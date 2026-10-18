@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Warmwasser-Rechner</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .geraete { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+
+    @media (max-width: 760px) {
+      .geraete { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .geraete button { flex: 0 0 66%; scroll-snap-align: start; }
+    }
+
+    .geraete button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 2px 12px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .geraete button:hover { border-color: var(--leise); }
+    .geraete button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .geraete button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .geraete canvas { grid-row: span 2; width: 58px; height: 58px; }
+    .geraete b { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; line-height: 1.15; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: anywhere; min-width: 0; }
+    .geraete small { color: var(--leise); font-size: .82rem; line-height: 1.3; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitachse { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; }
+    .zeitanzeige { font-family: var(--technik); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    /* Kostenübersicht */
+    .kosten { margin-top: 18px; }
+    .kosten-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+    .jahresbetrag { font-family: var(--technik); font-size: clamp(2rem, 5vw, 3rem); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+    .jahresbetrag small { font-size: 1rem; color: var(--leise); font-weight: 400; margin-left: 6px; }
+    .kostenbalken { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--flaeche2); margin: 14px 0 10px; }
+    .kostenbalken span { display: block; height: 100%; }
+    .kostentabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .kostentabelle th, .kostentabelle td { padding: 7px 4px; border-bottom: 1px solid var(--linie); text-align: right; }
+    .kostentabelle th:first-child, .kostentabelle td:first-child { text-align: left; }
+    .kostentabelle th { color: var(--leise); font-weight: 400; font-size: .88rem; }
+    .kostentabelle td { font-family: var(--technik); font-size: 1.08rem; }
+    .kostentabelle td:first-child { font-family: var(--schrift); font-size: .95rem; }
+    .kostentabelle tr.summe td { font-weight: 600; border-bottom: none; }
+    .kostentabelle i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; }
+    .kosten .offen { color: var(--leise); font-size: .9rem; margin: 10px 0 0; }
+
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Warmwasser-Rechner</span></h1>
+      <p>Gerät wählen, bekannte Werte eintragen. Alles, was sich daraus ergibt, wird ausgerechnet, egal in welche Richtung, und Schritt für Schritt hergeleitet.</p>
+    </section>
+
+    <nav class="geraete" id="geraete" aria-label="Gerät wählen"></nav>
+
+    <section class="buehne" aria-label="Animation des Geräts">
+      <canvas id="szene" role="img" aria-label="Animation des gewählten Warmwassergeräts mit Stromzähler, Thermometer und Energiefluss"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">▶ Aufheizen</button>
+        <div class="zeitachse">
+          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="1000" aria-label="Zeitpunkt">
+          <span class="zeitanzeige" id="zeitanzeige"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tafel kosten" aria-labelledby="h-kosten">
+      <div class="kosten-kopf">
+        <h2 id="h-kosten">Was es kostet</h2>
+        <div class="jahresbetrag" id="jahresbetrag"></div>
+      </div>
+      <div class="kostenbalken" id="kostenbalken" aria-hidden="true"></div>
+      <table class="kostentabelle">
+        <thead><tr><th>Kosten für</th><th>je Vorgang</th><th>im Jahr</th></tr></thead>
+        <tbody id="kostenzeilen"></tbody>
+      </table>
+      <p class="offen" id="kostenoffen"></p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Gesuchtes einfach leer lassen. Ausgerechnete Werte darfst du überschreiben, dann wird von dort aus weitergerechnet.</p>
+        <div class="zeichenerklaerung"><span><i></i>eingetragen</span><span><i class="ergebnis"></i>ausgerechnet</span></div>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="allesLeeren">Alle Eingaben löschen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte in der Reihenfolge, in der sie sich ergeben.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Größen (intern: kg, °C, K, kJ/(kg·K), kJ, kWh, s, W, Anteil, €/kWh, €, l/min)
+    // ============================================================
+
+    const GROESSEN = {
+      mw:    { sym: 'm<sub>w</sub>',      name: 'Wassermenge (erwärmt)',     einheiten: [['kg (≈ l)', 1]] },
+      Tk:    { sym: 'T<sub>k</sub>',      name: 'Kaltwassertemperatur',      einheiten: [['°C', 1]] },
+      Tw:    { sym: 'T<sub>w</sub>',      name: 'Warmwassertemperatur',      einheiten: [['°C', 1]] },
+      dT:    { sym: 'ΔT',                 name: 'Temperaturerhöhung',        einheiten: [['K', 1]] },
+      c:     { sym: 'c',                  name: 'spez. Wärmekapazität',      einheiten: [['kJ/(kg·K)', 1]] },
+      Q:     { sym: 'Q',                  name: 'benötigte Wärmemenge',      einheiten: [['kJ', 1], ['MJ', 1000], ['kWh', 3600]] },
+      t:     { sym: 't',                  name: 'Heizzeit / Zapfzeit',       einheiten: [['h', 3600], ['min', 60], ['s', 1]] },
+      Vp:    { sym: 'V&#775;',            name: 'Durchfluss',                einheiten: [['l/min', 1]] },
+      Wh:    { sym: 'W<sub>heiz</sub>',   name: 'benötigte Heizarbeit',      einheiten: [['kWh', 1], ['Wh', 0.001]] },
+      Ph:    { sym: 'P<sub>heiz</sub>',   name: 'Heizleistung (= P_ab)',     einheiten: [['W', 1], ['kW', 1000]] },
+      eta:   { sym: 'η',                  name: 'Wirkungsgrad',              einheiten: [['%', 0.01], ['Dezimal', 1]] },
+      We:    { sym: 'W<sub>elektr</sub>', name: 'aufgenommene el. Arbeit',   einheiten: [['kWh', 1], ['Wh', 0.001]] },
+      Pe:    { sym: 'P<sub>elektr</sub>', name: 'aufgenommene el. Leistung', einheiten: [['W', 1], ['kW', 1000]] },
+      preis: { sym: 'P',                  name: 'Energiepreis',              einheiten: [['€/kWh', 1], ['ct/kWh', 0.01]] },
+      EK:    { sym: 'EK',                 name: 'Energiekosten',             einheiten: [['€', 1], ['ct', 0.01]] },
+      Tm:    { sym: 'T<sub>m</sub>',      name: 'Mischwassertemperatur',     einheiten: [['°C', 1]] },
+      mm:    { sym: 'm<sub>m</sub>',      name: 'Mischwassermenge',          einheiten: [['kg (≈ l)', 1]] },
+      mk:    { sym: 'm<sub>k</sub>',      name: 'zugemischtes Kaltwasser',   einheiten: [['kg (≈ l)', 1]] },
+      pW:    { sym: 'P<sub>W</sub>',      name: 'Wasserpreis (mit Abwasser)', einheiten: [['€/m³', 1]] },
+      WKw:   { sym: 'WK<sub>w</sub>',     name: 'Wasserkosten Warmwasser',   einheiten: [['€', 1], ['ct', 0.01]] },
+      WKk:   { sym: 'WK<sub>k</sub>',     name: 'Wasserkosten Kaltwasser',   einheiten: [['€', 1], ['ct', 0.01]] },
+      WK:    { sym: 'WK',                 name: 'Wasserkosten zusammen',     einheiten: [['€', 1], ['ct', 0.01]] },
+      nT:    { sym: 'n<sub>Tag</sub>',    name: 'Vorgänge pro Tag',          einheiten: [['pro Tag', 1]] },
+      tage:  { sym: 'd<sub>Jahr</sub>',   name: 'Nutzungstage im Jahr',      einheiten: [['Tage', 1]] },
+      WeJ:   { sym: 'W<sub>Jahr</sub>',   name: 'Stromverbrauch im Jahr',    einheiten: [['kWh', 1]] },
+      EKJ:   { sym: 'EK<sub>Jahr</sub>',  name: 'Energiekosten im Jahr',     einheiten: [['€', 1]] },
+      WKJ:   { sym: 'WK<sub>Jahr</sub>',  name: 'Wasserkosten im Jahr',      einheiten: [['€', 1]] }
+    };
+
+    const GRUPPEN = [
+      { titel: 'Wasser', farbe: '#2B7BB9', felder: ['mw', 'Tk', 'Tw', 'dT', 'c', 'Q'] },
+      { titel: 'Gerät und Zeit', farbe: '#E4572E', felder: ['t', 'Vp', 'Wh', 'Ph', 'eta', 'We', 'Pe'] },
+      { titel: 'Mischwasser (Dusche, Wanne)', farbe: 'linear-gradient(#E4572E, #2B7BB9)', felder: ['Tm', 'mm', 'mk'] },
+      { titel: 'Energiekosten', farbe: '#F2A541', felder: ['preis', 'EK'] },
+      { titel: 'Wasserkosten', farbe: '#2B7BB9', felder: ['pW', 'WKw', 'WKk', 'WK'] },
+      { titel: 'Pro Jahr', farbe: 'var(--text)', felder: ['nT', 'tage', 'WeJ', 'EKJ', 'WKJ'] }
+    ];
+
+
+    // Formelzeichen für LaTeX
+    const TEX = {
+      mw: 'm_\\text{w}', Tk: 'T_\\text{k}', Tw: 'T_\\text{w}', dT: '\\Delta T', c: 'c', Q: 'Q', t: 't', Vp: '\\dot{V}',
+      Wh: 'W_\\text{heiz}', Ph: 'P_\\text{heiz}', eta: '\\eta', We: 'W_\\text{elektr}', Pe: 'P_\\text{elektr}',
+      preis: 'P', EK: '\\mathit{EK}', Tm: 'T_\\text{m}', mm: 'm_\\text{m}', mk: 'm_\\text{k}',
+      pW: 'P_\\text{W}', WKw: '\\mathit{WK}_\\text{w}', WKk: '\\mathit{WK}_\\text{k}', WK: '\\mathit{WK}',
+      nT: 'n_\\text{Tag}', tage: 'd_\\text{Jahr}', WeJ: 'W_\\text{Jahr}', EKJ: '\\mathit{EK}_\\text{Jahr}', WKJ: '\\mathit{WK}_\\text{Jahr}'
+    };
+
+    // Einheiten, in denen die Formeln rechnen (für den Rechenweg)
+    const TEX_EINHEIT = {
+      mw: '\\text{kg}', mm: '\\text{kg}', mk: '\\text{kg}', Tk: '{}^\\circ\\text{C}', Tw: '{}^\\circ\\text{C}', Tm: '{}^\\circ\\text{C}',
+      dT: '\\text{K}', c: '\\tfrac{\\text{kJ}}{\\text{kg}\\cdot\\text{K}}', Q: '\\text{kJ}', Wh: '\\text{kWh}', We: '\\text{kWh}',
+      Ph: '\\text{W}', Pe: '\\text{W}', preis: '\\tfrac{\\text{€}}{\\text{kWh}}', EK: '\\text{€}', Vp: '\\tfrac{\\text{l}}{\\text{min}}',
+      pW: '\\tfrac{\\text{€}}{\\text{m}^3}', WKw: '\\text{€}', WKk: '\\text{€}', WK: '\\text{€}',
+      nT: '\\tfrac{1}{\\text{Tag}}', tage: '\\text{Tage}', WeJ: '\\text{kWh}', EKJ: '\\text{€}', WKJ: '\\text{€}'
+    };
+
+    // ============================================================
+    // Gleichungen: jede nach jeder ihrer Größen umgestellt
+    // ============================================================
+    //
+    // tex: Formel für die Formelsammlung; loese[k].tex: umgestellt nach k, @x steht für die Größe x
+
+    const GLEICHUNGEN = [
+      { titel: 'Temperaturerhöhung', thema: 'waerme', tex: '\\Delta T = T_\\text{w} - T_\\text{k}', loese: {
+          dT: { tex: '@Tw - @Tk', rechne: function (v) { return v.Tw - v.Tk; } },
+          Tw: { tex: '@Tk + @dT', rechne: function (v) { return v.Tk + v.dT; } },
+          Tk: { tex: '@Tw - @dT', rechne: function (v) { return v.Tw - v.dT; } } } },
+
+      { titel: 'Benötigte Wärmemenge', thema: 'waerme', tex: 'Q = m_\\text{w} \\cdot c \\cdot (T_\\text{w} - T_\\text{k})', loese: {
+          Q:  { tex: '@mw \\cdot @c \\cdot @dT',       rechne: function (v) { return v.mw * v.c * v.dT; } },
+          mw: { tex: '\\frac{@Q}{@c \\cdot @dT}',      rechne: function (v) { return v.Q / (v.c * v.dT); } },
+          dT: { tex: '\\frac{@Q}{@mw \\cdot @c}',      rechne: function (v) { return v.Q / (v.mw * v.c); } },
+          c:  { tex: '\\frac{@Q}{@mw \\cdot @dT}',     rechne: function (v) { return v.Q / (v.mw * v.dT); } } } },
+
+      { titel: 'Benötigte Heizarbeit', thema: 'arbeit', tex: 'W_\\text{heiz} = \\frac{Q \\text{ in kJ}}{3600} \\text{ in kWh}', loese: {
+          Wh: { tex: '\\frac{@Q}{3600\\,\\tfrac{\\text{kJ}}{\\text{kWh}}}', rechne: function (v) { return v.Q / 3600; } },
+          Q:  { tex: '@Wh \\cdot 3600\\,\\tfrac{\\text{kJ}}{\\text{kWh}}',  rechne: function (v) { return v.Wh * 3600; } } } },
+
+      { titel: 'Benötigte Heizleistung', thema: 'arbeit', inJoule: true,
+        tex: 'P_\\text{heiz} = P_\\text{ab} = \\frac{Q}{t} = \\frac{m_\\text{w} \\cdot c \\cdot \\Delta T}{t}', loese: {
+          Ph: { tex: '\\frac{@Q}{@t}',  rechne: function (v) { return v.Q * 1000 / v.t; } },
+          Q:  { tex: '@Ph \\cdot @t',   rechne: function (v) { return v.Ph * v.t / 1000; } },
+          t:  { tex: '\\frac{@Q}{@Ph}', rechne: function (v) { return v.Q * 1000 / v.Ph; } } } },
+
+      { titel: 'Wassermenge aus dem Durchfluss', thema: 'arbeit', tInMinuten: true, nurBei: 'durchlauf', tex: 'm_\\text{w} = \\dot{V} \\cdot t', loese: {
+          mw: { tex: '@Vp \\cdot @t',      rechne: function (v) { return v.Vp * v.t / 60; } },
+          Vp: { tex: '\\frac{@mw}{@t}',    rechne: function (v) { return v.mw / (v.t / 60); } },
+          t:  { tex: '\\frac{@mw}{@Vp}',   rechne: function (v) { return v.mw / v.Vp * 60; } } } },
+
+      { titel: 'Aufgenommene elektrische Arbeit', thema: 'elektrisch', tex: 'W_\\text{elektr} = \\frac{W_\\text{heiz}}{\\eta}', loese: {
+          We:  { tex: '\\frac{@Wh}{@eta}', rechne: function (v) { return v.Wh / v.eta; } },
+          Wh:  { tex: '@We \\cdot @eta',   rechne: function (v) { return v.We * v.eta; } },
+          eta: { tex: '\\frac{@Wh}{@We}',  rechne: function (v) { return v.Wh / v.We; } } } },
+
+      { titel: 'Aufgenommene elektrische Leistung', thema: 'elektrisch', tex: 'P_\\text{elektr} = P_\\text{auf} = \\frac{P_\\text{heiz}}{\\eta}', loese: {
+          Pe:  { tex: '\\frac{@Ph}{@eta}', rechne: function (v) { return v.Ph / v.eta; } },
+          Ph:  { tex: '@Pe \\cdot @eta',   rechne: function (v) { return v.Pe * v.eta; } },
+          eta: { tex: '\\frac{@Ph}{@Pe}',  rechne: function (v) { return v.Ph / v.Pe; } } } },
+
+      { titel: 'Elektrische Leistung aus der Arbeit', thema: 'elektrisch', tex: 'P_\\text{elektr} = \\frac{W_\\text{elektr}}{t}', loese: {
+          Pe: { tex: '\\frac{@We}{@t}',  rechne: function (v) { return v.We * 3.6e6 / v.t; } },
+          We: { tex: '@Pe \\cdot @t',    rechne: function (v) { return v.Pe * v.t / 3.6e6; } },
+          t:  { tex: '\\frac{@We}{@Pe}', rechne: function (v) { return v.We * 3.6e6 / v.Pe; } } } },
+
+      { titel: 'Energiekosten', thema: 'elektrisch', tex: '\\mathit{EK} = W_\\text{elektr} \\cdot P', loese: {
+          EK:    { tex: '@We \\cdot @preis',      rechne: function (v) { return v.We * v.preis; } },
+          We:    { tex: '\\frac{@EK}{@preis}',    rechne: function (v) { return v.EK / v.preis; } },
+          preis: { tex: '\\frac{@EK}{@We}',       rechne: function (v) { return v.EK / v.We; } } } },
+
+      { titel: 'Mischwassermenge', thema: 'misch', tex: 'm_\\text{m} = m_\\text{w} + m_\\text{k}', loese: {
+          mm: { tex: '@mw + @mk', rechne: function (v) { return v.mw + v.mk; } },
+          mw: { tex: '@mm - @mk', rechne: function (v) { return v.mm - v.mk; } },
+          mk: { tex: '@mm - @mw', rechne: function (v) { return v.mm - v.mw; } } } },
+
+      { titel: 'Mischungsregel (abgegebene = aufgenommene Wärme)', thema: 'misch',
+        tex: 'm_\\text{w} \\cdot (T_\\text{w} - T_\\text{m}) = m_\\text{k} \\cdot (T_\\text{m} - T_\\text{k})', loese: {
+          Tm: { tex: '\\frac{@mw \\cdot @Tw + @mk \\cdot @Tk}{@mw + @mk}', rechne: function (v) { return (v.mw * v.Tw + v.mk * v.Tk) / (v.mw + v.mk); } },
+          mw: { tex: '\\frac{@mk \\cdot (@Tm - @Tk)}{@Tw - @Tm}',         rechne: function (v) { return v.mk * (v.Tm - v.Tk) / (v.Tw - v.Tm); } },
+          mk: { tex: '\\frac{@mw \\cdot (@Tw - @Tm)}{@Tm - @Tk}',         rechne: function (v) { return v.mw * (v.Tw - v.Tm) / (v.Tm - v.Tk); } },
+          Tw: { tex: '@Tm + \\frac{@mk \\cdot (@Tm - @Tk)}{@mw}',         rechne: function (v) { return v.Tm + v.mk * (v.Tm - v.Tk) / v.mw; } },
+          Tk: { tex: '@Tm - \\frac{@mw \\cdot (@Tw - @Tm)}{@mk}',         rechne: function (v) { return v.Tm - v.mw * (v.Tw - v.Tm) / v.mk; } } } },
+
+      // Wasserkosten: Menge in m³ mal Preis (1 m³ = 1000 l ≈ 1000 kg)
+      { titel: 'Wasserkosten Warmwasser', thema: 'wasser', inKubik: true, tex: '\\mathit{WK}_\\text{w} = m_\\text{w} \\cdot P_\\text{W} \\quad (m \\text{ in m}^3)', loese: {
+          WKw: { tex: '@mw \\cdot @pW',       rechne: function (v) { return v.mw / 1000 * v.pW; } },
+          mw:  { tex: '\\frac{@WKw}{@pW}',    rechne: function (v) { return v.WKw / v.pW * 1000; } },
+          pW:  { tex: '\\frac{@WKw}{@mw}',    rechne: function (v) { return v.WKw / (v.mw / 1000); } } } },
+
+      { titel: 'Wasserkosten Kaltwasser', thema: 'wasser', inKubik: true, tex: '\\mathit{WK}_\\text{k} = m_\\text{k} \\cdot P_\\text{W}', loese: {
+          WKk: { tex: '@mk \\cdot @pW',       rechne: function (v) { return v.mk / 1000 * v.pW; } },
+          mk:  { tex: '\\frac{@WKk}{@pW}',    rechne: function (v) { return v.WKk / v.pW * 1000; } },
+          pW:  { tex: '\\frac{@WKk}{@mk}',    rechne: function (v) { return v.WKk / (v.mk / 1000); } } } },
+
+      { titel: 'Wasserkosten zusammen', thema: 'wasser', tex: '\\mathit{WK} = \\mathit{WK}_\\text{w} + \\mathit{WK}_\\text{k}', loese: {
+          WK:  { tex: '@WKw + @WKk', rechne: function (v) { return v.WKw + v.WKk; } },
+          WKw: { tex: '@WK - @WKk',  rechne: function (v) { return v.WK - v.WKk; } },
+          WKk: { tex: '@WK - @WKw',  rechne: function (v) { return v.WK - v.WKw; } } } },
+
+      // Hochrechnung aufs Jahr: Vorgänge pro Tag mal Nutzungstage
+      { titel: 'Stromverbrauch im Jahr', thema: 'jahr', tex: 'W_\\text{Jahr} = W_\\text{elektr} \\cdot n_\\text{Tag} \\cdot d_\\text{Jahr}', loese: {
+          WeJ:  { tex: '@We \\cdot @nT \\cdot @tage',        rechne: function (v) { return v.We * v.nT * v.tage; } },
+          We:   { tex: '\\frac{@WeJ}{@nT \\cdot @tage}',     rechne: function (v) { return v.WeJ / (v.nT * v.tage); } },
+          nT:   { tex: '\\frac{@WeJ}{@We \\cdot @tage}',     rechne: function (v) { return v.WeJ / (v.We * v.tage); } },
+          tage: { tex: '\\frac{@WeJ}{@We \\cdot @nT}',       rechne: function (v) { return v.WeJ / (v.We * v.nT); } } } },
+
+      { titel: 'Energiekosten im Jahr', thema: 'jahr', tex: '\\mathit{EK}_\\text{Jahr} = \\mathit{EK} \\cdot n_\\text{Tag} \\cdot d_\\text{Jahr}', loese: {
+          EKJ:  { tex: '@EK \\cdot @nT \\cdot @tage',        rechne: function (v) { return v.EK * v.nT * v.tage; } },
+          EK:   { tex: '\\frac{@EKJ}{@nT \\cdot @tage}',     rechne: function (v) { return v.EKJ / (v.nT * v.tage); } },
+          nT:   { tex: '\\frac{@EKJ}{@EK \\cdot @tage}',     rechne: function (v) { return v.EKJ / (v.EK * v.tage); } },
+          tage: { tex: '\\frac{@EKJ}{@EK \\cdot @nT}',       rechne: function (v) { return v.EKJ / (v.EK * v.nT); } } } },
+
+      { titel: 'Wasserkosten im Jahr', thema: 'jahr', tex: '\\mathit{WK}_\\text{Jahr} = \\mathit{WK} \\cdot n_\\text{Tag} \\cdot d_\\text{Jahr}', loese: {
+          WKJ:  { tex: '@WK \\cdot @nT \\cdot @tage',        rechne: function (v) { return v.WK * v.nT * v.tage; } },
+          WK:   { tex: '\\frac{@WKJ}{@nT \\cdot @tage}',     rechne: function (v) { return v.WKJ / (v.nT * v.tage); } },
+          nT:   { tex: '\\frac{@WKJ}{@WK \\cdot @tage}',     rechne: function (v) { return v.WKJ / (v.WK * v.tage); } },
+          tage: { tex: '\\frac{@WKJ}{@WK \\cdot @nT}',       rechne: function (v) { return v.WKJ / (v.WK * v.nT); } } } }
+    ];
+    GLEICHUNGEN.forEach(function (gl) { gl.groessen = Object.keys(gl.loese); });
+
+    // Aus Mischwassermenge und -temperatur den Warmwasseranteil (beide Mischgleichungen zusammen)
+    const MISCHANTEIL = {
+      titel: 'Warmwasseranteil im Mischwasser', thema: 'misch',
+      tex: 'm_\\text{w} = m_\\text{m} \\cdot \\frac{T_\\text{m} - T_\\text{k}}{T_\\text{w} - T_\\text{k}}',
+      braucht: ['mm', 'Tm', 'Tk', 'Tw'], loesung: '\\frac{@mm \\cdot (@Tm - @Tk)}{@Tw - @Tk}',
+      rechne: function (v) { return v.mm * (v.Tm - v.Tk) / (v.Tw - v.Tk); }
+    };
+
+    const THEMEN = [
+      { id: 'waerme', titel: 'Wärme' },
+      { id: 'arbeit', titel: 'Heizarbeit und Heizleistung' },
+      { id: 'elektrisch', titel: 'Elektrische Arbeit, Leistung und Kosten' },
+      { id: 'misch', titel: 'Mischwasser' },
+      { id: 'wasser', titel: 'Wasserkosten' },
+      { id: 'jahr', titel: 'Hochrechnung aufs Jahr' }
+    ];
+
+    const KONSTANTEN = [
+      'c_\\text{Wasser} = 4{,}19\\,\\frac{\\text{kJ}}{\\text{kg}\\cdot\\text{K}}',
+      '1\\,\\text{J} = 1\\,\\text{Ws} \\qquad 1\\,\\text{kJ} = 1\\,\\text{kWs}',
+      '3600\\,\\text{kJ} = 1\\,\\text{kWh} \\qquad 1\\,\\text{kg Wasser} \\approx 1\\,\\text{l}',
+      '1\\,\\text{m}^3 = 1000\\,\\text{l}'
+    ];
+
+
+    // ============================================================
+    // Geräte
+    // ============================================================
+
+    const GERAETE = {
+      kochend: {
+        name: 'Kochendwassergerät', kurz: 'offen · 5 l · bis 100 °C', modus: 'speicher',
+        werte: { mw: 5, Tk: 15, Tw: 100, c: 4.19, Pe: 2000, eta: 0.9, preis: 0.35 }, einheit: { t: 1 },
+        fakten: ['offenes, druckloses Gerät', 'meist 5 l Inhalt', 'erhitzt bis 100 °C', 'Kaltwasser schiebt Heißwasser hinaus']
+      },
+      boiler: {
+        name: 'Boiler (offener Speicher)', kurz: 'Untertisch · 5–15 l · drucklos', modus: 'speicher',
+        werte: { mw: 10, Tk: 12, Tw: 60, c: 4.19, Pe: 2000, eta: 0.95, preis: 0.35 }, einheit: { t: 1 },
+        fakten: ['offener Kleinspeicher, drucklos', 'unter oder über dem Becken', 'braucht eine Niederdruckarmatur', 'Ausdehnungswasser tropft beim Heizen']
+      },
+      durchlauf: {
+        name: 'Durchlauferhitzer', kurz: 'kein Speicher · 18–27 kW', modus: 'durchlauf',
+        werte: { Vp: 9, t: 360, Tk: 12, Tw: 42, c: 4.19, eta: 0.99, preis: 0.35 }, einheit: { t: 1, Pe: 1, Ph: 1 },
+        fakten: ['heizt nur, während Wasser fließt', 'hohe Leistung, meist Drehstrom', 'mehr Durchfluss = weniger ΔT', 'keine Bereitschaftsverluste']
+      },
+      druckfest: {
+        name: 'Druckfester Speicher', kurz: 'geschlossen · 30–150 l', modus: 'speicher',
+        werte: { mw: 80, Tk: 12, Tw: 60, c: 4.19, Pe: 2000, eta: 0.95, preis: 0.35 }, einheit: { t: 0 },
+        fakten: ['steht unter Leitungsdruck', 'versorgt mehrere Zapfstellen', 'Sicherheitsgruppe am Kaltwasser', 'Dämmung hält Verluste klein']
+      }
+    };
+
+    let geraet = 'druckfest';
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (wert === 0) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    function dauer(sekunden) {
+      if (!isFinite(sekunden)) return '–';
+      if (sekunden < 120) return zahl(sekunden, 3) + ' s';
+      const h = Math.floor(sekunden / 3600), min = Math.round((sekunden - h * 3600) / 60);
+      if (h === 0) return min + ' min';
+      return h + ' h' + (min ? ' ' + min + ' min' : '');
+    }
+
+
+    // ============================================================
+    // Rechnen: alles ableiten, was mit genau einer Unbekannten geht
+    // ============================================================
+
+    const gegeben = {};
+    const einheitWahl = {};
+    let ergebnis = { werte: {}, schritte: [], widersprueche: [], warnungen: [] };
+
+    function einheitVon(key) { return GROESSEN[key].einheiten[einheitWahl[key] || 0]; }
+
+    // Manche Gleichungen gelten nur für eine Geräteart (Durchfluss nur beim Durchlauferhitzer)
+    function gilt(gl) { return !gl.nurBei || gl.nurBei === GERAETE[geraet].modus; }
+
+    function rechnen() {
+      const werte = Object.assign({}, gegeben);
+      const schritte = [];
+      let weiter = true;
+
+      while (weiter) {
+        weiter = false;
+        GLEICHUNGEN.forEach(function (gl) {
+          if (!gilt(gl)) return;
+          const offen = gl.groessen.filter(function (k) { return !(k in werte); });
+          if (offen.length !== 1) return;
+          const ziel = offen[0], w = gl.loese[ziel].rechne(werte);
+          if (!isFinite(w)) return;
+          werte[ziel] = w;
+          schritte.push({ gleichung: gl, ziel: ziel, vorlage: gl.loese[ziel].tex, werte: Object.assign({}, werte) });
+          weiter = true;
+        });
+        if (!weiter && !('mw' in werte) && MISCHANTEIL.braucht.every(function (k) { return k in werte; })) {
+          const w = MISCHANTEIL.rechne(werte);
+          if (isFinite(w)) {
+            werte.mw = w;
+            schritte.push({ gleichung: MISCHANTEIL, ziel: 'mw', vorlage: MISCHANTEIL.loesung, werte: Object.assign({}, werte) });
+            weiter = true;
+          }
+        }
+      }
+
+      const widersprueche = [];
+      GLEICHUNGEN.forEach(function (gl) {
+        if (!gilt(gl) || !gl.groessen.every(function (k) { return k in werte; })) return;
+        const ziel = gl.groessen[0], soll = gl.loese[ziel].rechne(werte), ist = werte[ziel];
+        if (Math.abs(soll - ist) > Math.max(Math.abs(ist), Math.abs(soll)) * 0.005 + 1e-9) {
+          widersprueche.push({ gleichung: gl, ziel: ziel, soll: soll, beteiligt: gl.groessen.filter(function (k) { return k in gegeben; }) });
+        }
+      });
+
+      const warnungen = [];
+      if (werte.eta > 1) warnungen.push('Der Wirkungsgrad liegt über 100 %. Ein Gerät kann nicht mehr Wärme abgeben, als es an Strom aufnimmt.');
+      if (werte.dT < 0) warnungen.push('Das Warmwasser ist kälter als das Kaltwasser. Sind T<sub>w</sub> und T<sub>k</sub> vertauscht?');
+      if (werte.Tw > 100) warnungen.push('Über 100 °C kocht Wasser bei normalem Luftdruck.');
+      if (geraet === 'durchlauf' && werte.Pe > 27000) warnungen.push('Mehr als 27 kW schafft kaum ein Durchlauferhitzer im Haushalt. Weniger Durchfluss oder weniger ΔT wählen.');
+      if (geraet === 'kochend' && werte.mw > 10) warnungen.push('Kochendwassergeräte fassen meist nur 5 l.');
+      if ('Tm' in werte && 'Tw' in werte && 'Tk' in werte && (werte.Tm > werte.Tw || werte.Tm < werte.Tk)) {
+        warnungen.push('Die Mischtemperatur muss zwischen Kalt- und Warmwassertemperatur liegen.');
+      }
+      ['mw', 'mm', 'mk', 't', 'Q', 'Pe', 'Ph', 'EK', 'Vp'].forEach(function (k) {
+        if (werte[k] < 0) warnungen.push(GROESSEN[k].sym + ' ist negativ. Prüfe die Eingaben.');
+      });
+
+      ergebnis = { werte: werte, schritte: schritte, widersprueche: widersprueche, warnungen: warnungen };
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const felder = {};
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      GRUPPEN.forEach(function (gruppe) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe';
+        fs.style.setProperty('--farbe', gruppe.farbe);
+        const lg = document.createElement('legend');
+        lg.textContent = gruppe.titel;
+        fs.append(lg);
+
+        gruppe.felder.forEach(function (key) {
+          const gr = GROESSEN[key];
+          const zeile = document.createElement('div');
+          zeile.className = 'feld';
+
+          const label = document.createElement('label');
+          label.htmlFor = 'f-' + key;
+          const symbol = document.createElement('span');
+          symbol.className = 'symbol';
+          Formel.setze(symbol, TEX[key]);
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = gr.name;
+          label.append(symbol, name);
+
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + key; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.placeholder = 'gesucht';
+
+          let einheit;
+          if (gr.einheiten.length > 1) {
+            einheit = document.createElement('select');
+            einheit.setAttribute('aria-label', 'Einheit für ' + gr.name);
+            gr.einheiten.forEach(function (e, i) {
+              const o = document.createElement('option');
+              o.value = String(i); o.textContent = e[0];
+              einheit.append(o);
+            });
+            einheit.addEventListener('change', function () { einheitWahl[key] = +einheit.value; anzeigen(); });
+          } else {
+            einheit = document.createElement('span');
+            einheit.className = 'einheit';
+            einheit.textContent = gr.einheiten[0][0];
+          }
+
+          const leeren = document.createElement('button');
+          leeren.type = 'button'; leeren.className = 'leeren'; leeren.textContent = '✕';
+          leeren.setAttribute('aria-label', gr.name + ' löschen');
+          leeren.addEventListener('click', function () { delete gegeben[key]; eingabe.value = ''; neuRechnen(); eingabe.focus(); });
+
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value);
+            if (eingabe.value.trim() === '') delete gegeben[key];
+            else if (isFinite(w)) gegeben[key] = w * einheitVon(key)[1];
+            else return;
+            neuRechnen(key);
+          });
+          eingabe.addEventListener('blur', function () { anzeigen(); });
+
+          zeile.append(label, eingabe, einheit, leeren);
+          fs.append(zeile);
+          felder[key] = { zeile: zeile, eingabe: eingabe, einheit: einheit };
+        });
+        ziel.append(fs);
+      });
+    }
+
+    // „0,9“ im %-Feld meint 90 %
+    function wirkungsgradDeuten() {
+      if ('eta' in gegeben && (einheitWahl.eta || 0) === 0 && gegeben.eta > 0 && gegeben.eta <= 0.01) gegeben.eta *= 100;
+    }
+
+    function neuRechnen(gerade) {
+      wirkungsgradDeuten();
+      rechnen();
+      anzeigen(gerade);
+      zeitText();
+    }
+
+    function anzeigen(gerade) {
+      const werte = ergebnis.werte, rot = {};
+      ergebnis.widersprueche.forEach(function (w) { w.beteiligt.forEach(function (k) { rot[k] = true; }); });
+
+      felder.Vp.zeile.hidden = GERAETE[geraet].modus !== 'durchlauf';
+
+      Object.keys(felder).forEach(function (key) {
+        const f = felder[key];
+        const ist = key in gegeben, berechnet = !ist && key in werte;
+        f.zeile.classList.toggle('gegeben', ist);
+        f.zeile.classList.toggle('berechnet', berechnet);
+        f.zeile.classList.toggle('widerspruch', !!rot[key]);
+        if (key === gerade || (document.activeElement === f.eingabe && ist)) return;
+        f.eingabe.value = ist || berechnet ? zahl(werte[key] / einheitVon(key)[1], 5).replace(/ /g, '') : '';
+        f.eingabe.title = berechnet ? 'ausgerechnet, zum Ändern überschreiben' : '';
+      });
+
+      meldungenZeigen();
+      kostenZeigen();
+      rechenwegZeigen();
+      formelnMarkieren();
+    }
+
+
+    // ============================================================
+    // Rechenweg (LaTeX)
+    // ============================================================
+
+    function texZahl(w, stellen) {
+      const text = Formel.zahl(zahl(w, stellen || 5));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    // Größe als eingesetzter Wert mit Einheit
+    function texWert(gl, k, werte) {
+      if (k === 't') return gl.tInMinuten ? texZahl(werte.t / 60) + '\\,\\text{min}' : texZahl(werte.t) + '\\,\\text{s}';
+      if (k === 'eta') return texZahl(werte.eta, 4);
+      if ((k === 'mw' || k === 'mk') && gl.inKubik) return texZahl(werte[k] / 1000) + '\\,\\text{m}^3';
+      if (k === 'Q' && gl.inJoule) return texZahl(werte.Q * 1000) + '\\,\\text{J}';
+      return texZahl(werte[k]) + '\\,' + TEX_EINHEIT[k];
+    }
+
+    function texErgebnis(k, w, gl) {
+      if (k === 't') {
+        return (gl && gl.tInMinuten ? texZahl(w / 60) + '\\,\\text{min}' : texZahl(w) + '\\,\\text{s}') + ' = \\text{' + dauer(w) + '}';
+      }
+      if (k === 'eta') return texZahl(w, 4) + ' = ' + texZahl(w * 100, 4) + '\\,\\%';
+      let text = texZahl(w) + '\\,' + TEX_EINHEIT[k];
+      if (k === 'Q') text += ' = ' + texZahl(w / 3600, 4) + '\\,\\text{kWh}';
+      if ((k === 'Ph' || k === 'Pe') && Math.abs(w) >= 1000) text += ' = ' + texZahl(w / 1000, 4) + '\\,\\text{kW}';
+      if (k === 'EK' && w < 1) text += ' = ' + texZahl(w * 100, 3) + '\\,\\text{ct}';
+      return text;
+    }
+
+    function einsetzen(vorlage, ersetze) {
+      return vorlage.replace(/@(\w+)/g, function (_, k) { return ersetze(k); });
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        titel.textContent = s.gleichung.titel;
+
+        const umgestellt = document.createElement('div');
+        umgestellt.className = 'rechnung';
+        Formel.setze(umgestellt, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return TEX[k]; }));
+
+        const eingesetzt = document.createElement('div');
+        eingesetzt.className = 'rechnung';
+        Formel.setze(eingesetzt, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return texWert(s.gleichung, k, s.werte); }) +
+          ' = \\htmlClass{ergebnis}{\\boldsymbol{' + texErgebnis(s.ziel, s.werte[s.ziel], s.gleichung) + '}}');
+
+        li.append(titel, umgestellt, eingesetzt);
+        liste.append(li);
+      });
+
+      const hinweis = document.createElement('div');
+      hinweis.className = 'hilfe';
+      if (!ergebnis.schritte.length) {
+        hinweis.innerHTML = Object.keys(gegeben).length > 1
+          ? 'Damit lässt sich noch nichts ausrechnen. ' + tipp()
+          : 'Noch nichts eingetragen. Wähle oben ein Gerät oder trag zum Beispiel m<sub>w</sub>, T<sub>k</sub> und T<sub>w</sub> ein.';
+      } else {
+        hinweis.innerHTML = tipp();
+      }
+      if (hinweis.innerHTML) liste.append(hinweis);
+    }
+
+    function tipp() {
+      const w = ergebnis.werte;
+      const texte = ['Q', 'We', 't', 'Pe', 'EK'].filter(function (k) { return !(k in w); }).map(function (k) {
+        let beste = null;
+        GLEICHUNGEN.forEach(function (gl) {
+          if (!gilt(gl) || gl.groessen.indexOf(k) < 0) return;
+          const fehlt = gl.groessen.filter(function (x) { return x !== k && !(x in w); });
+          if (!beste || fehlt.length < beste.length) beste = fehlt;
+        });
+        return beste && beste.length ? 'Für ' + GROESSEN[k].sym + ' fehlt ' + beste.map(function (x) { return GROESSEN[x].sym; }).join(' und ') : '';
+      }).filter(Boolean);
+      return texte.length ? texte.slice(0, 3).join('. ') + '.' : '';
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.widersprueche.forEach(function (w) {
+        const d = document.createElement('div');
+        d.className = 'hinweis fehler';
+        d.innerHTML = '<b>Die Angaben widersprechen sich.</b> Nach <span class="f"></span> müsste <span class="z"></span> sein. ' +
+          'Lösch eine der rot markierten Angaben, dann wird sie ausgerechnet.';
+        Formel.setze(d.querySelector('.f'), w.gleichung.tex);
+        Formel.setze(d.querySelector('.z'), TEX[w.ziel] + ' = ' + texErgebnis(w.ziel, w.soll, w.gleichung));
+        box.append(d);
+      });
+      ergebnis.warnungen.forEach(function (t) {
+        const d = document.createElement('div');
+        d.className = 'hinweis';
+        d.innerHTML = t;
+        box.append(d);
+      });
+    }
+
+
+    // ============================================================
+    // Formelsammlung (LaTeX)
+    // ============================================================
+
+    // ============================================================
+    // Kostenübersicht: Strom und Wasser, je Vorgang und im Jahr
+    // ============================================================
+
+    function euro(w) {
+      if (!isFinite(w)) return '–';
+      return w.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F') + ' €';
+    }
+
+    function kostenZeigen() {
+      const w = ergebnis.werte;
+      const jahr = isFinite(w.nT) && isFinite(w.tage) ? w.nT * w.tage : NaN;
+      const posten = [
+        { name: 'Strom zum Heizen', wert: w.EK, farbe: '#F2A541' },
+        { name: 'Wasser, das erwärmt wird', wert: w.WKw, farbe: '#E4572E' },
+        { name: 'zugemischtes Kaltwasser', wert: w.WKk, farbe: '#2B7BB9' }
+      ];
+      const bekanntePosten = posten.filter(function (p) { return isFinite(p.wert); });
+      const summe = bekanntePosten.reduce(function (s, p) { return s + p.wert; }, 0);
+
+      const zeilen = document.getElementById('kostenzeilen');
+      zeilen.innerHTML = '';
+      posten.forEach(function (p) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td><i style="background:' + p.farbe + '"></i>' + p.name + '</td><td>' + euro(p.wert) + '</td><td>' + euro(p.wert * jahr) + '</td>';
+        zeilen.append(tr);
+      });
+      const tr = document.createElement('tr');
+      tr.className = 'summe';
+      tr.innerHTML = '<td>Zusammen' + (bekanntePosten.length < posten.length && bekanntePosten.length ? ' (soweit bekannt)' : '') + '</td><td>' +
+        (bekanntePosten.length ? euro(summe) : '–') + '</td><td>' + (bekanntePosten.length ? euro(summe * jahr) : '–') + '</td>';
+      zeilen.append(tr);
+
+      const gross = document.getElementById('jahresbetrag');
+      if (bekanntePosten.length && isFinite(jahr)) gross.innerHTML = euro(summe * jahr) + '<small>im Jahr</small>';
+      else if (bekanntePosten.length) gross.innerHTML = euro(summe) + '<small>je Vorgang</small>';
+      else gross.innerHTML = '';
+
+      const balken = document.getElementById('kostenbalken');
+      balken.innerHTML = '';
+      bekanntePosten.forEach(function (p) {
+        const teil = document.createElement('span');
+        teil.style.width = (summe > 0 ? 100 * p.wert / summe : 0) + '%';
+        teil.style.background = p.farbe;
+        balken.append(teil);
+      });
+
+      const fehlt = [];
+      if (!isFinite(w.EK)) fehlt.push('Energiepreis P (und was zum Rechnen der Arbeit nötig ist)');
+      if (!isFinite(w.pW)) fehlt.push('Wasserpreis P<sub>W</sub> für die Wasserkosten');
+      else if (!isFinite(w.WKk)) fehlt.push('beim Mischen T<sub>m</sub> mit m<sub>m</sub> oder m<sub>k</sub> für das Kaltwasser');
+      if (!isFinite(jahr)) fehlt.push('Vorgänge pro Tag und Nutzungstage für die Jahreskosten');
+      document.getElementById('kostenoffen').innerHTML = fehlt.length ? 'Noch offen: ' + fehlt.join('; ') + '.' : '';
+    }
+
+    const ALLE_FORMELN = GLEICHUNGEN.concat([MISCHANTEIL]);
+
+    function formelnAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      THEMEN.forEach(function (thema) {
+        const abschnitt = document.createElement('section');
+        const h = document.createElement('h3');
+        h.textContent = thema.titel;
+        abschnitt.append(h);
+        ALLE_FORMELN.forEach(function (gl, i) {
+          if (gl.thema !== thema.id) return;
+          const f = document.createElement('div');
+          f.className = 'formelblock';
+          f.dataset.nr = String(i);
+          f.title = gl.titel;
+          Formel.setze(f, gl.tex, true);
+          abschnitt.append(f);
+        });
+        ziel.append(abschnitt);
+      });
+      const konst = document.createElement('section');
+      konst.innerHTML = '<h3>Konstanten und Umrechnung</h3>';
+      KONSTANTEN.forEach(function (tex) {
+        const f = document.createElement('div');
+        f.className = 'formelblock';
+        Formel.setze(f, tex, true);
+        konst.append(f);
+      });
+      ziel.append(konst);
+    }
+
+    function formelnMarkieren() {
+      document.querySelectorAll('#formelsammlung [data-nr]').forEach(function (d) {
+        const gl = ALLE_FORMELN[+d.dataset.nr];
+        d.hidden = !gilt(gl);
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.gleichung === gl; }));
+      });
+    }
+
+    document.getElementById('allesLeeren').addEventListener('click', function () {
+      Object.keys(gegeben).forEach(function (k) { delete gegeben[k]; });
+      gegeben.c = 4.19;
+      gegeben.tage = 365;
+      neuRechnen();
+    });
+
+
+    // ============================================================
+    // Geräte wählen
+    // ============================================================
+
+    // Nur Bild und Animation wechseln; die eingetragenen Werte bleiben, wie sie sind
+    function geraetWaehlen(id) {
+      geraet = id;
+      document.querySelectorAll('#geraete button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+      neuRechnen();
+      partikel.length = 0;
+      fortschritt = 0;
+      abspielen(true);
+    }
+
+    function geraeteAufbauen() {
+      const ziel = document.getElementById('geraete');
+      Object.keys(GERAETE).forEach(function (id) {
+        const d = GERAETE[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 58 * dichte; bild.height = 58 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { geraetWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 58, 58); piktogramm(k, id); });
+      });
+    }
+
+    // Kleine Zeichnung je Gerät für die Auswahl
+    function piktogramm(k, id) {
+      const verlauf = k.createLinearGradient(0, 50, 0, 8);
+      verlauf.addColorStop(0, '#2B7BB9'); verlauf.addColorStop(1, '#E4572E');
+      k.lineWidth = 2; k.strokeStyle = Thema.farbe('--text') || '#13233A'; k.lineJoin = 'round';
+      const rund = function (x, y, b, h, r) {
+        k.beginPath(); k.moveTo(x + r, y); k.arcTo(x + b, y, x + b, y + h, r); k.arcTo(x + b, y + h, x, y + h, r);
+        k.arcTo(x, y + h, x, y, r); k.arcTo(x, y, x + b, y, r); k.closePath();
+      };
+      if (id === 'kochend') {
+        rund(16, 10, 26, 34, 6); k.fillStyle = '#fff'; k.fill(); k.stroke();
+        k.fillStyle = verlauf; k.fillRect(22, 20, 14, 20);
+        k.beginPath(); k.moveTo(29, 44); k.lineTo(29, 50); k.lineTo(37, 50); k.stroke();
+        k.strokeStyle = '#9AA7B1'; k.beginPath(); k.moveTo(24, 8); k.quadraticCurveTo(20, 4, 25, 0); k.moveTo(33, 8); k.quadraticCurveTo(29, 4, 34, 0); k.stroke();
+      } else if (id === 'boiler') {
+        k.beginPath(); k.moveTo(6, 10); k.lineTo(52, 10); k.lineTo(48, 18); k.lineTo(10, 18); k.closePath(); k.fillStyle = '#fff'; k.fill(); k.stroke();
+        rund(18, 26, 22, 26, 5); k.fillStyle = verlauf; k.fill(); k.stroke();
+        k.beginPath(); k.moveTo(29, 10); k.lineTo(29, 4); k.lineTo(36, 4); k.stroke();
+      } else if (id === 'durchlauf') {
+        rund(14, 6, 30, 38, 5); k.fillStyle = '#fff'; k.fill(); k.stroke();
+        k.strokeStyle = '#E4572E'; k.beginPath(); for (let i = 0; i < 6; i++) k.lineTo(20 + (i % 2) * 18, 12 + i * 5); k.stroke();
+        k.lineWidth = 4; k.strokeStyle = '#2B7BB9'; k.beginPath(); k.moveTo(20, 44); k.lineTo(20, 54); k.stroke();
+        k.strokeStyle = '#E4572E'; k.beginPath(); k.moveTo(38, 44); k.lineTo(38, 54); k.stroke();
+      } else {
+        rund(12, 4, 34, 46, 14); k.fillStyle = '#E3E9EC'; k.fill(); k.stroke();
+        rund(17, 9, 24, 36, 10); k.fillStyle = verlauf; k.fill();
+        k.lineWidth = 3; k.strokeStyle = '#2B7BB9'; k.beginPath(); k.moveTo(22, 50); k.lineTo(22, 56); k.stroke();
+        k.fillStyle = '#13233A'; k.fillRect(18, 52, 8, 4);
+      }
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    const bewegungAus = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    // Text- und Linienfarben folgen dem hellen oder dunklen Design
+    const F = { text: '#13233A', leise: '#5E6B7A' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || '#13233A';
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const KALT = [43, 123, 185], MITTE = [110, 111, 166], WARM = [228, 87, 46], HEISS = [242, 165, 65];
+
+    let L = { W: 1100, H: 440, schmal: false, m: 1 };
+    let fortschritt = 1, laeuft = false;
+    const DAUER = 9;               // Sekunden für den ganzen Vorgang im Zeitraffer
+    const partikel = [];
+    let zaehlerVersatz = 0, kabelVersatz = 0, flussVersatz = 0, uhr = 0;
+
+    // Farbe je Temperatur: 10 °C blau, über violett und rot bis 100 °C orange
+    function tempFarbe(T, alpha) {
+      const a = Math.max(0, Math.min(1, (T - 10) / 90));
+      const stufen = [[0, KALT], [0.35, MITTE], [0.7, WARM], [1, HEISS]];
+      let i = 1;
+      while (i < stufen.length - 1 && a > stufen[i][0]) i++;
+      const u = Math.max(0, Math.min(1, (a - stufen[i - 1][0]) / (stufen[i][0] - stufen[i - 1][0])));
+      const f = stufen[i - 1][1].map(function (x, j) { return Math.round(x + (stufen[i][1][j] - x) * u); });
+      return 'rgba(' + f.join(',') + ',' + (alpha === undefined ? 1 : alpha) + ')';
+    }
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720 ? { W: 520, H: 860, schmal: true } : { W: 1100, H: 440, schmal: false };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function wert(k) { return ergebnis.werte[k]; }
+    function bekannt(k) { return k in ergebnis.werte && isFinite(ergebnis.werte[k]); }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      if (o.schatten) { g.shadowColor = 'rgba(10, 20, 35, .55)'; g.shadowBlur = 6; }
+      g.fillText(t, x, y);
+      g.shadowColor = 'transparent'; g.shadowBlur = 0;
+    }
+
+    // Text auf eine Breite umbrechen; gibt die Anzahl Zeilen zurück
+    function schreibeUmbrochen(t, x, y, breite, zeilenhoehe, o) {
+      g.font = (o.groesse || 13) + 'px system-ui, sans-serif';
+      const woerter = t.split(' ');
+      let zeile = '', n = 0;
+      woerter.forEach(function (w) {
+        const probe = zeile ? zeile + ' ' + w : w;
+        if (g.measureText(probe).width > breite && zeile) {
+          schreibe(zeile, x, y + n * zeilenhoehe, o); n++; zeile = w;
+        } else zeile = probe;
+      });
+      if (zeile) { schreibe(zeile, x, y + n * zeilenhoehe, o); n++; }
+      return n;
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function rohr(punkte, farbe, dicke) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 9; g.lineJoin = 'round'; g.lineCap = 'butt';
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+    }
+
+    // Punkte, die entlang eines Linienzugs wandern
+    function wandern(punkte, versatz, abstand, farbe, r) {
+      let gesamt = 0;
+      const st = [];
+      for (let i = 1; i < punkte.length; i++) {
+        const l = Math.hypot(punkte[i][0] - punkte[i - 1][0], punkte[i][1] - punkte[i - 1][1]);
+        st.push({ a: punkte[i - 1], b: punkte[i], l: l, s: gesamt }); gesamt += l;
+      }
+      g.fillStyle = farbe;
+      for (let s = ((versatz % abstand) + abstand) % abstand; s < gesamt; s += abstand) {
+        const x = st.find(function (q) { return s >= q.s && s <= q.s + q.l; });
+        if (!x) continue;
+        const u = (s - x.s) / x.l;
+        g.beginPath(); g.arc(x.a[0] + (x.b[0] - x.a[0]) * u, x.a[1] + (x.b[1] - x.a[1]) * u, r || 3.2, 0, 7); g.fill();
+      }
+    }
+
+    function orte() {
+      if (L.schmal) {
+        return { zaehler: { x: 20, y: 20, b: 230, h: 136 }, fakten: { x: 270, y: 30, b: 230 },
+                 geraet: { x: 10, y: 190, b: 410, h: 440 }, thermo: { x: 466, y: 230, h: 360 },
+                 fluss: { x: 20, y: 676, b: 480 }, misch: { x: 20, y: 770, b: 480 } };
+      }
+      return { zaehler: { x: 28, y: 28, b: 210, h: 140 }, fakten: { x: 880, y: 34, b: 200 },
+               geraet: { x: 290, y: 20, b: 470, h: 400 }, thermo: { x: 812, y: 50, h: 330 },
+               fluss: { x: 28, y: 300, b: 222 }, misch: { x: 880, y: 250, b: 200 } };
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+      const o = orte(), d = GERAETE[geraet];
+      const Tk = bekannt('Tk') ? wert('Tk') : 12, Tw = bekannt('Tw') ? wert('Tw') : 60;
+      const aktiv = laeuft && fortschritt < 1;
+      // Speicher heizen nach und nach auf; der Durchlauferhitzer liefert sofort die volle Temperatur
+      const T = d.modus === 'durchlauf' ? (fortschritt > 0 ? Tw : Tk) : Tk + (Tw - Tk) * fortschritt;
+      const Pe = bekannt('Pe') ? wert('Pe') : 2000;
+      const last = Math.max(0.15, Math.min(1, Math.log10(Math.max(Pe, 10)) / 4.4));
+
+      zeichneZaehler(o.zaehler, dt, aktiv, last);
+      const zeichner = { kochend: zeichneKochend, boiler: zeichneBoiler, durchlauf: zeichneDurchlauf, druckfest: zeichneDruckfest }[geraet];
+      const anschluss = zeichner(o.geraet, T, Tk, Tw, dt, aktiv, last);
+      zeichneKabel(o.zaehler, anschluss, dt, aktiv, last);
+      zeichneThermometer(o.thermo, Tk, Tw, T);
+      zeichneFakten(o.fakten, d);
+      zeichneFluss(o.fluss);
+      zeichneMisch(o.misch);
+    }
+
+    function zeichneZaehler(z, dt, aktiv, last) {
+      rund(z.x, z.y, z.b, z.h, 14);
+      g.fillStyle = '#13233A'; g.fill();
+      schreibe('Stromzähler', z.x + 16, z.y + 26, { groesse: 14, farbe: '#9FB2C4' });
+      if (bekannt('EKJ')) schreibe(zahl(wert('EKJ'), 3) + ' €/Jahr', z.x + z.b - 16, z.y + 26, { groesse: 14, farbe: '#FFD45C', ausrichtung: 'right' });
+      const We = bekannt('We') ? wert('We') * fortschritt : NaN, EK = bekannt('EK') ? wert('EK') * fortschritt : NaN;
+      schreibe(isFinite(We) ? zahl(We, 4).replace(/ /g, '') + ' kWh' : '– kWh', z.x + z.b - 16, z.y + 64, { groesse: 30, fett: true, farbe: '#FFD45C', ausrichtung: 'right' });
+      schreibe(isFinite(EK) ? zahl(EK, 3) + ' €' : (bekannt('preis') ? zahl(wert('preis'), 3) + ' €/kWh' : '– €'), z.x + z.b - 16, z.y + 94,
+               { groesse: 20, farbe: '#fff', ausrichtung: 'right' });
+      // Zählerscheibe: läuft schneller bei mehr Leistung
+      if (aktiv && !bewegungAus) zaehlerVersatz += dt * (20 + 140 * last);
+      const sx = z.x + 16, sw = z.b - 32, sy = z.y + z.h - 26;
+      g.fillStyle = '#2A3B52'; rund(sx, sy, sw, 10, 5); g.fill();
+      g.save(); rund(sx, sy, sw, 10, 5); g.clip();
+      g.fillStyle = '#E4572E'; g.fillRect(sx + (zaehlerVersatz % (sw + 20)) - 20, sy, 20, 10);
+      g.restore();
+    }
+
+    function zeichneKabel(z, ziel, dt, aktiv, last) {
+      if (!ziel) return;
+      const start = L.schmal ? [z.x + 40, z.y + z.h] : [z.x + z.b, z.y + 50];
+      const punkte = L.schmal ? [start, [start[0], ziel[1]], ziel] : [start, [ziel[0] - 30, start[1]], [ziel[0] - 30, ziel[1]], ziel];
+      rohr(punkte, F.text, 5);
+      if (aktiv) {
+        if (!bewegungAus) kabelVersatz += dt * (50 + 220 * last);
+        wandern(punkte, kabelVersatz, 20, '#FFD45C', 3.2);
+      }
+      const P = bekannt('Pe') ? (wert('Pe') >= 1000 ? zahl(wert('Pe') / 1000, 3) + ' kW' : zahl(wert('Pe'), 3) + ' W') : 'P elektr ?';
+      if (L.schmal) schreibe(P, start[0] + 12, start[1] + 26, { groesse: 15, fett: true });
+      else schreibe(P, (start[0] + ziel[0] - 30) / 2, start[1] - 10, { groesse: 15, fett: true, ausrichtung: 'center' });
+    }
+
+    function blasen(bereich, aktiv, last, dt, kochen) {
+      if (aktiv && !bewegungAus && Math.random() < (kochen ? 0.5 : 0.1) + last * (kochen ? 0.5 : 0.3)) {
+        partikel.push({ art: 'blase', x: bereich.x + 10 + Math.random() * (bereich.b - 20), y: bereich.y + bereich.h - 10,
+                        r: (kochen ? 3 : 1.6) + Math.random() * (kochen ? 4 : 2.4), v: (30 + Math.random() * 40) * (kochen ? 2 : 1) });
+      }
+      for (let i = partikel.length - 1; i >= 0; i--) {
+        const p = partikel[i];
+        if (p.art !== 'blase') continue;
+        if (!bewegungAus) { p.y -= p.v * dt; p.x += Math.sin(p.y / 9 + i) * 0.35; }
+        if (p.y < bereich.y + 4 || !aktiv) partikel.splice(i, 1);
+      }
+      g.fillStyle = 'rgba(255,255,255,.6)';
+      partikel.forEach(function (p) { if (p.art === 'blase') { g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); } });
+    }
+
+    function tropfen(dt, boden, farbe) {
+      for (let i = partikel.length - 1; i >= 0; i--) {
+        const p = partikel[i];
+        if (p.art !== 'tropfen') continue;
+        if (!bewegungAus) { p.y += p.v * dt; p.v += 400 * dt; }
+        if (p.y > (p.boden || boden)) partikel.splice(i, 1);
+      }
+      partikel.forEach(function (p) {
+        if (p.art !== 'tropfen') return;
+        g.fillStyle = p.farbe || farbe;
+        g.beginPath(); g.ellipse(p.x, p.y, 2.6, 4, 0, 0, 7); g.fill();
+      });
+    }
+
+    function heizstab(x, y, b, glut) {
+      g.strokeStyle = 'rgba(255,' + Math.round(150 - 80 * glut) + ',40,' + (0.35 + 0.65 * glut) + ')';
+      g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k <= 8; k++) g.lineTo(x + 12 + k * (b - 24) / 8, y + (k % 2 ? -10 : 0));
+      g.stroke();
+    }
+
+    // ---------- Kochendwassergerät ----------
+    function zeichneKochend(a, T, Tk, Tw, dt, aktiv, last) {
+      const cx = a.x + a.b / 2, b = 170, h = 250, x = cx - b / 2, y = a.y + 70;
+      rund(x, y, b, h, 26); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#13233A'; g.lineWidth = 2.5; g.stroke();
+
+      // Sichtfenster mit Wasserstand
+      const fx = x + 34, fy = y + 30, fb = b - 68, fh = h - 90;
+      rund(fx, fy, fb, fh, 12); g.fillStyle = '#F5F8FA'; g.fill();
+      const kocht = Tw >= 99 && T >= Tw - 0.6;
+      g.save(); rund(fx, fy, fb, fh, 12); g.clip();
+      const pegel = fy + fh * 0.12 + (aktiv || kocht ? Math.sin(uhr * 7) * (kocht ? 2.5 : 0.6) : 0);
+      g.fillStyle = tempFarbe(T, 0.92); g.fillRect(fx, pegel, fb, fh);
+      blasen({ x: fx, y: pegel, b: fb, h: fh - (pegel - fy) }, aktiv || kocht, last, dt, kocht || T > 85);
+      heizstab(fx - 4, fy + fh - 16, fb + 8, aktiv ? 0.6 + 0.4 * last : 0.1);
+      g.restore();
+      g.strokeStyle = '#13233A'; g.lineWidth = 2; rund(fx, fy, fb, fh, 12); g.stroke();
+
+      // Dampf, sobald es kocht
+      if (kocht && !bewegungAus) {
+        for (let i = 0; i < 3; i++) {
+          const t = (uhr * 0.7 + i / 3) % 1;
+          g.strokeStyle = 'rgba(150,165,177,' + (0.7 * (1 - t)) + ')'; g.lineWidth = 4;
+          g.beginPath();
+          for (let k = 0; k <= 10; k++) g.lineTo(cx - 20 + i * 20 + Math.sin(k + uhr * 4) * 5, y - 6 - k * 4 - t * 24);
+          g.stroke();
+        }
+        schreibe('kocht', cx + 70, y - 20, { groesse: 16, fett: true, farbe: '#E4572E' });
+      }
+
+      // Schwenkauslauf und Tasse
+      rohr([[cx, y + h], [cx, y + h + 22], [cx + 54, y + h + 22], [cx + 54, y + h + 34]], '#8A97A1', 8);
+      g.strokeStyle = F.text; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(cx + 34, y + h + 50); g.lineTo(cx + 38, y + h + 78); g.lineTo(cx + 70, y + h + 78); g.lineTo(cx + 74, y + h + 50); g.stroke();
+      schreibe(bekannt('mw') ? zahl(wert('mw'), 3) + ' l' : '? l', cx, fy + fh / 2 + 10, { groesse: 30, fett: true, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      schreibe(zahl(T, 3) + ' °C', cx, fy + fh / 2 + 38, { groesse: 18, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      return [x, y + h - 40];
+    }
+
+    // ---------- Offener Speicher unter dem Becken ----------
+    function zeichneBoiler(a, T, Tk, Tw, dt, aktiv, last) {
+      const cx = a.x + a.b / 2, by = a.y + 40;
+
+      // Speicher unter dem Becken mit Leitungen (zuerst, damit das Becken darüber liegt)
+      const sx = cx - 70, sy = by + 140, sb = 140, sh = 200;
+      rohr([[cx - 40, by + 92], [cx - 40, sy + 30], [sx + 6, sy + 30]], tempFarbe(T), 7);
+      rohr([[cx + 40, by + 92], [cx + 40, sy - 20], [sx + sb + 30, sy - 20], [sx + sb + 30, sy + sh - 30], [sx + sb, sy + sh - 30]], '#2B7BB9', 7);
+      rund(sx, sy, sb, sh, 18); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#13233A'; g.lineWidth = 2.5; g.stroke();
+      g.save(); rund(sx + 6, sy + 6, sb - 12, sh - 12, 14); g.clip();
+      const v = g.createLinearGradient(0, sy, 0, sy + sh);
+      v.addColorStop(0, tempFarbe(T + 4, 0.92)); v.addColorStop(1, tempFarbe(T - 6, 0.92));
+      g.fillStyle = v; g.fillRect(sx, sy, sb, sh);
+      blasen({ x: sx + 10, y: sy + 10, b: sb - 20, h: sh - 30 }, aktiv, last, dt, false);
+      heizstab(sx + 2, sy + sh - 26, sb - 4, aktiv ? 0.6 + 0.4 * last : 0.1);
+      g.restore();
+      schreibe(bekannt('mw') ? zahl(wert('mw'), 3) + ' l' : '? l', cx, sy + 72, { groesse: 28, fett: true, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      schreibe(zahl(T, 3) + ' °C', cx, sy + 100, { groesse: 18, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      schreibe('drucklos', cx, sy + 122, { groesse: 13, farbe: 'rgba(255,255,255,.85)', ausrichtung: 'center', schatten: true });
+
+      // Waschbecken und Niederdruckarmatur
+      g.fillStyle = '#fff'; g.strokeStyle = '#13233A'; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(cx - 150, by + 40); g.lineTo(cx + 150, by + 40); g.lineTo(cx + 120, by + 92); g.lineTo(cx - 120, by + 92); g.closePath(); g.fill(); g.stroke();
+      rohr([[cx - 40, by + 40], [cx - 40, by - 6], [cx + 20, by - 6], [cx + 20, by + 8]], '#8A97A1', 10);
+      g.fillStyle = '#13233A'; g.fillRect(cx - 52, by - 30, 24, 10);
+
+      // Ausdehnungswasser tropft beim Aufheizen aus dem Auslauf
+      if (aktiv && !bewegungAus && Math.random() < 0.08) partikel.push({ art: 'tropfen', x: cx + 20, y: by + 14, v: 40, boden: by + 84 });
+      tropfen(dt, by + 84, 'rgba(43,123,185,.85)');
+      if (aktiv) schreibe('Ausdehnungswasser', cx + 32, by + 24, { groesse: 13, farbe: F.leise, technik: false });
+      return [sx, sy + sh - 40];
+    }
+
+    // ---------- Durchlauferhitzer ----------
+    function zeichneDurchlauf(a, T, Tk, Tw, dt, aktiv, last) {
+      const x = a.x + 70, y = a.y + 50, b = 160, h = 220;
+      rund(x, y, b, h, 14); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#13233A'; g.lineWidth = 2.5; g.stroke();
+
+      // Wasserweg im Gerät: kalt rein, durch das Heizelement, warm raus
+      const weg = [[x + 36, y + h + 40], [x + 36, y + 40], [x + b - 36, y + 40], [x + b - 36, y + h + 20]];
+      rohr(weg, '#E3E9EC', 14);
+      g.strokeStyle = aktiv ? 'rgba(255,90,40,' + (0.6 + 0.4 * last) + ')' : '#C9D2D8';
+      g.lineWidth = 3;
+      g.beginPath();
+      for (let k = 0; k <= 14; k++) g.lineTo(x + b - 36 + (k % 2 ? 9 : -9), y + 56 + k * 10);
+      g.stroke();
+
+      if (aktiv) {
+        if (!bewegungAus) flussVersatz += dt * (40 + 12 * (bekannt('Vp') ? wert('Vp') : 8));
+        wandern(weg.slice(0, 3), flussVersatz, 18, tempFarbe(Tk), 4);
+        wandern([weg[2], weg[3]], flussVersatz, 18, tempFarbe(Tw), 4);
+      }
+
+      // Anzeige Durchfluss
+      rund(x + 30, y + h - 70, b - 60, 40, 6); g.fillStyle = '#13233A'; g.fill();
+      schreibe(bekannt('Vp') ? zahl(wert('Vp'), 3) + ' l/min' : '? l/min', x + b / 2, y + h - 43, { groesse: 18, fett: true, farbe: '#7FE0D6', ausrichtung: 'center' });
+
+      // Kaltwasserzulauf und Brause
+      rohr([[x + 36, y + h + 40], [x + 36, y + h + 70], [x - 40, y + h + 70]], '#2B7BB9', 9);
+      const dx = x + b + 110, dy = y + 10;
+      rohr([[x + b - 36, y + h + 20], [x + b - 36, y + h + 40], [x + b + 80, y + h + 40], [x + b + 80, dy], [dx, dy]], tempFarbe(T), 9);
+      g.fillStyle = '#8A97A1'; rund(dx - 6, dy - 8, 52, 16, 8); g.fill();
+      if (aktiv && !bewegungAus) {
+        for (let i = 0; i < 3; i++) {
+          partikel.push({ art: 'tropfen', x: dx + 2 + Math.random() * 40, y: dy + 10, v: 120 + Math.random() * 60, farbe: tempFarbe(T, 0.8), boden: a.y + a.h - 20 });
+        }
+      }
+      tropfen(dt, a.y + a.h - 20);
+      schreibe('kalt ' + zahl(Tk, 3) + ' °C', x - 40, y + h + 96, { groesse: 14, farbe: '#2B7BB9', fett: true });
+      schreibe('warm ' + zahl(Tw, 3) + ' °C', dx + 20, dy - 18, { groesse: 14, farbe: tempFarbe(Tw), fett: true, ausrichtung: 'center' });
+      if (bekannt('mw')) schreibe(zahl(wert('mw') * fortschritt, 3) + ' l gezapft', x + b / 2, y - 16, { groesse: 16, fett: true, ausrichtung: 'center' });
+      return [x, y + h - 50];
+    }
+
+    // ---------- Druckfester Speicher ----------
+    function zeichneDruckfest(a, T, Tk, Tw, dt, aktiv, last) {
+      const x = a.x + 50, b = 170, h = 290, y = a.y + 56, cx = x + b / 2;
+
+      // Warmwasserleitung oben zu zwei Zapfstellen
+      const wy = y - 34;
+      rohr([[cx, y - 12], [cx, wy], [x + b + 170, wy]], tempFarbe(T), 8);
+      [[x + b + 70, 'Küche'], [x + b + 160, 'Bad']].forEach(function (z) {
+        rohr([[z[0], wy], [z[0], wy + 26], [z[0] + 16, wy + 26]], '#8A97A1', 7);
+        schreibe(z[1], z[0], wy - 10, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+      });
+
+      // Dämmung
+      rund(x - 12, y - 12, b + 24, h + 24, 40);
+      g.fillStyle = '#E8EEF0'; g.fill();
+      g.save(); rund(x - 12, y - 12, b + 24, h + 24, 40); g.clip();
+      g.strokeStyle = '#D2DBE0'; g.lineWidth = 1;
+      for (let i = -h; i < b + h; i += 10) { g.beginPath(); g.moveTo(x - 12 + i, y - 12); g.lineTo(x - 12 + i - h, y + h + 12); g.stroke(); }
+      g.restore();
+      g.strokeStyle = '#13233A'; g.lineWidth = 2.5; rund(x - 12, y - 12, b + 24, h + 24, 40); g.stroke();
+
+      // Behälter mit Schichtung: oben warm, unten kälter
+      g.save(); rund(x, y, b, h, 30); g.clip();
+      const v = g.createLinearGradient(0, y, 0, y + h);
+      v.addColorStop(0, tempFarbe(T + 6, 0.95)); v.addColorStop(0.75, tempFarbe(T - 4, 0.95)); v.addColorStop(1, tempFarbe(Tk + (T - Tk) * 0.4, 0.95));
+      g.fillStyle = v; g.fillRect(x, y, b, h);
+      blasen({ x: x + 14, y: y + 20, b: b - 28, h: h - 50 }, aktiv, last, dt, false);
+      heizstab(x, y + h - 40, b * 0.75, aktiv ? 0.6 + 0.4 * last : 0.1);
+      g.fillStyle = 'rgba(19,35,58,.3)'; g.fillRect(cx + 34, y, 6, h * 0.6);      // Schutzanode
+      g.restore();
+      g.strokeStyle = '#13233A'; g.lineWidth = 2; rund(x, y, b, h, 30); g.stroke();
+      schreibe(bekannt('mw') ? zahl(wert('mw'), 3) + ' l' : '? l', cx, y + 90, { groesse: 34, fett: true, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      schreibe(zahl(T, 3) + ' °C', cx, y + 124, { groesse: 20, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      schreibe('unter Druck', cx, y + 148, { groesse: 13, farbe: 'rgba(255,255,255,.85)', ausrichtung: 'center', schatten: true });
+
+      // Kaltwasser mit Sicherheitsgruppe; beim Aufheizen tropft das Sicherheitsventil in den Trichter
+      const sgx = x + b + 90, sgy = y + h - 30;
+      rohr([[x + b - 30, y + h + 12], [x + b - 30, sgy + 14], [sgx + 120, sgy + 14]], '#2B7BB9', 8);
+      rund(sgx - 22, sgy, 44, 28, 6); g.fillStyle = '#C8D1D7'; g.fill(); g.strokeStyle = '#13233A'; g.lineWidth = 2; g.stroke();
+      schreibe('Sicherheitsgruppe', sgx, sgy - 10, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+      if (aktiv && !bewegungAus && Math.random() < 0.06) partikel.push({ art: 'tropfen', x: sgx, y: sgy + 30, v: 30, boden: sgy + 62 });
+      tropfen(dt, sgy + 62, 'rgba(43,123,185,.85)');
+      g.strokeStyle = F.text; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(sgx - 10, sgy + 56); g.lineTo(sgx - 4, sgy + 68); g.lineTo(sgx + 4, sgy + 68); g.lineTo(sgx + 10, sgy + 56); g.stroke();
+      schreibe('Kaltwasser', sgx + 120, sgy + 38, { groesse: 12, ausrichtung: 'right', farbe: '#2B7BB9', technik: false });
+      return [x - 12, y + h - 40];
+    }
+
+    function zeichneThermometer(th, Tk, Tw, T) {
+      const x = th.x, y = th.y, h = th.h;
+      const py = function (t) { return y + h - 24 - t / 100 * (h - 44); };
+      rund(x - 10, y, 20, h - 10, 10); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#13233A'; g.lineWidth = 2; g.stroke();
+      g.beginPath(); g.arc(x, y + h - 10, 17, 0, 7); g.fillStyle = tempFarbe(T); g.fill(); g.stroke();
+      const oben = py(Math.max(0, Math.min(100, T)));
+      g.fillStyle = tempFarbe(T); g.fillRect(x - 5, oben, 10, y + h - 12 - oben);
+      [0, 20, 40, 60, 80, 100].forEach(function (t) {
+        g.strokeStyle = '#B5C0C8'; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(x + 12, py(t)); g.lineTo(x + 18, py(t)); g.stroke();
+        schreibe(String(t), x + 22, py(t) + 4, { groesse: 11, farbe: F.leise });
+      });
+      [[Tk, '#2B7BB9'], [Tw, '#E4572E']].forEach(function (m) {
+        if (!isFinite(m[0])) return;
+        g.strokeStyle = m[1]; g.lineWidth = 2.5;
+        g.beginPath(); g.moveTo(x - 22, py(m[0])); g.lineTo(x - 11, py(m[0])); g.stroke();
+        schreibe(zahl(m[0], 3) + '°', x - 25, py(m[0]) + 5, { groesse: 13, fett: true, farbe: m[1], ausrichtung: 'right' });
+      });
+      schreibe('ΔT ' + (bekannt('dT') ? zahl(wert('dT'), 3) + ' K' : '?'), x, y - 10, { groesse: 15, fett: true, ausrichtung: 'center' });
+    }
+
+    function zeichneFakten(f, d) {
+      schreibe(d.name, f.x, f.y + 6, { groesse: 18, fett: true });
+      let y = f.y + 32;
+      d.fakten.forEach(function (text, i) {
+        g.fillStyle = i % 2 ? '#E4572E' : '#2B7BB9';
+        g.beginPath(); g.arc(f.x + 4, y - 4, 3.5, 0, 7); g.fill();
+        const zeilen = schreibeUmbrochen(text, f.x + 14, y, f.b - 14, 17, { groesse: 13, technik: false, farbe: F.leise });
+        y += zeilen * 17 + 6;
+      });
+    }
+
+    function zeichneFluss(f) {
+      schreibe('Energiefluss', f.x, f.y, { groesse: 15, fett: true });
+      const y = f.y + 12, h = 30;
+      const eta = bekannt('eta') ? Math.max(0, Math.min(1, wert('eta'))) : NaN;
+      if (!isFinite(eta)) {
+        rund(f.x, y, f.b, h, 8); g.fillStyle = '#E3E9EC'; g.fill();
+        schreibe('η eintragen', f.x + 10, y + 20, { groesse: 13, farbe: F.leise, technik: false });
+        return;
+      }
+      g.save(); rund(f.x, y, f.b, h, 8); g.clip();
+      const v = g.createLinearGradient(f.x, 0, f.x + f.b, 0);
+      v.addColorStop(0, '#2B7BB9'); v.addColorStop(1, '#E4572E');
+      g.fillStyle = v; g.fillRect(f.x, y, f.b * eta, h);
+      g.fillStyle = '#B9C4CB'; g.fillRect(f.x + f.b * eta, y, f.b * (1 - eta), h);
+      g.restore();
+      schreibe(zahl(eta * 100, 3) + ' % ins Wasser', f.x + 10, y + 20, { groesse: 14, fett: true, farbe: '#fff' });
+      schreibe(zahl((1 - eta) * 100, 2) + ' % Verlust', f.x + f.b, y + h + 18, { groesse: 12, farbe: F.leise, ausrichtung: 'right', technik: false });
+      schreibe((bekannt('We') ? zahl(wert('We'), 3) : '?') + ' kWh rein', f.x, y + h + 18, { groesse: 12, technik: false, farbe: F.leise });
+    }
+
+    function zeichneMisch(m) {
+      if (!(bekannt('Tm') || bekannt('mm'))) return;
+      schreibe('Mischwasser', m.x, m.y, { groesse: 15, fett: true });
+      const y = m.y + 12, h = 30;
+      if (bekannt('mw') && bekannt('mk')) {
+        const summe = wert('mw') + wert('mk'), bw = m.b * wert('mw') / summe;
+        g.save(); rund(m.x, y, m.b, h, 8); g.clip();
+        g.fillStyle = '#E4572E'; g.fillRect(m.x, y, bw, h);
+        g.fillStyle = '#2B7BB9'; g.fillRect(m.x + bw, y, m.b - bw, h);
+        g.restore();
+        schreibe(zahl(wert('mw'), 3) + ' l warm', m.x + 8, y + 20, { groesse: 13, fett: true, farbe: '#fff' });
+        schreibe(zahl(wert('mk'), 3) + ' l kalt', m.x + m.b - 8, y + 20, { groesse: 13, fett: true, farbe: '#fff', ausrichtung: 'right' });
+      }
+      if (bekannt('Tm')) {
+        g.fillStyle = tempFarbe(wert('Tm'));
+        g.beginPath(); g.arc(m.x + 10, y + h + 22, 8, 0, 7); g.fill();
+        schreibe('ergibt ' + (bekannt('mm') ? zahl(wert('mm'), 3) + ' l mit ' : '') + zahl(wert('Tm'), 3) + ' °C', m.x + 24, y + h + 27, { groesse: 14, fett: true });
+      }
+    }
+
+
+    // ============================================================
+    // Abspielen
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    const regler = document.getElementById('fortschritt');
+    const anzeige = document.getElementById('zeitanzeige');
+
+    function abspielen(an) {
+      laeuft = an;
+      if (laeuft && fortschritt >= 1) fortschritt = 0;
+      const verb = GERAETE[geraet].modus === 'durchlauf' ? 'Zapfen' : 'Aufheizen';
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : (fortschritt >= 1 ? '▶ ' + verb : '▶ Weiter');
+      zeitText();
+    }
+
+    knopf.addEventListener('click', function () { abspielen(!laeuft); });
+    regler.addEventListener('input', function () { fortschritt = +regler.value / 1000; abspielen(false); });
+
+    function zeitText() {
+      const t = bekannt('t') ? wert('t') : NaN;
+      const durchlauf = GERAETE[geraet].modus === 'durchlauf';
+      if (fortschritt >= 1 && !laeuft) {
+        anzeige.textContent = (durchlauf ? 'fertig gezapft' : 'aufgeheizt') + (isFinite(t) ? ' nach ' + dauer(t) : '');
+      } else {
+        anzeige.textContent = isFinite(t) ? dauer(t * fortschritt) + ' von ' + dauer(t) : zahl(fortschritt * 100, 3) + ' %, Zeit noch unbekannt';
+      }
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.min(0.05, (jetzt - vorher) / 1000);
+      vorher = jetzt;
+      if (laeuft) {
+        fortschritt = Math.min(1, fortschritt + dt / DAUER);
+        regler.value = String(Math.round(fortschritt * 1000));
+        if (fortschritt >= 1) abspielen(false); else zeitText();
+      }
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    felderAufbauen();
+    formelnAufbauen();
+    geraeteAufbauen();
+    anpassen();
+    // Beim ersten Öffnen: ein Speicher mit typischen Werten als Beispiel
+    Object.assign(gegeben, GERAETE.druckfest.werte, { nT: 1, tage: 365, pW: 4.5 });
+    geraetWaehlen('druckfest');
+    requestAnimationFrame(schleife);
+
+    window.Warmwasser = { gegeben: gegeben, ergebnis: function () { return ergebnis; }, neuRechnen: neuRechnen, geraetWaehlen: geraetWaehlen,
+                          setzeFortschritt: function (f) { fortschritt = f; abspielen(false); } };
+  })();
+  </script>
+</body>
+</html>

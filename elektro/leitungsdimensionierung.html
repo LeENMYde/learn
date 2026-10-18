@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leitungsdimensionierung</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .netze { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0 12px; }
+
+    @media (max-width: 760px) {
+      .netze { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .netze button { flex: 0 0 72%; scroll-snap-align: start; }
+    }
+
+    .netze button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 2px 12px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .netze button:hover { border-color: var(--leise); }
+    .netze button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .netze button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .netze canvas { grid-row: span 2; width: 58px; height: 58px; }
+    .netze b { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+    .netze small { color: var(--leise); font-size: .82rem; line-height: 1.3; }
+
+    .optionen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin: 0 0 14px; }
+    @media (max-width: 760px) { .optionen { grid-template-columns: minmax(0, 1fr); } }
+    .optionen label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .optionen span { font-family: var(--technik); font-weight: 600; font-size: .98rem; }
+    .optionen select {
+      width: 100%; padding: 9px 10px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein);
+      background: var(--flaeche); font-size: .95rem; cursor: pointer;
+    }
+    .optionen select:hover { border-color: var(--leise); }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .steuerung .knopf:disabled { opacity: .45; cursor: default; }
+    .zustand { flex: 1 1 260px; font-size: .95rem; color: var(--leise); }
+    .zustand b { color: var(--text); font-family: var(--technik); font-weight: 600; }
+    .zustand.gut b { color: var(--ergebnis); }
+    .zustand.schlecht b { color: var(--fehler); }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    /* Ergebnis und Nachweise */
+    .ergebnis-tafel { margin-top: 18px; }
+    .ergebnis-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+    .dimension { font-family: var(--technik); font-size: clamp(1.6rem, 4.4vw, 2.6rem); font-weight: 600; line-height: 1.1; }
+    .dimension small { display: block; font-size: 1rem; color: var(--leise); font-weight: 400; margin-top: 4px; }
+    .urteil { display: inline-block; padding: 4px 12px; border-radius: 999px; font-family: var(--technik); font-size: 1rem; background: var(--flaeche2); color: var(--leise); }
+    .urteil.gut { background: var(--ergebnis-flaeche); color: var(--ergebnis); }
+    .urteil.schlecht { background: var(--fehler-flaeche); color: var(--fehler); }
+
+    .nachweise { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+    .nachweise li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+    .nachweise .marke-n {
+      grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; background: var(--linie); color: var(--leise);
+    }
+    .nachweise li.gut .marke-n { background: var(--ergebnis); color: var(--flaeche); }
+    .nachweise li.schlecht .marke-n { background: var(--fehler); color: var(--flaeche); }
+    .nachweise .was { font-size: .9rem; color: var(--leise); }
+    .nachweise .was b { color: var(--text); font-family: var(--technik); font-weight: 600; font-size: 1.02rem; margin-right: 6px; }
+    .nachweise .formel { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+    .vergleich-kopf { margin: 20px 0 4px; font-size: 1.15rem; }
+    .vergleich-rahmen { overflow-x: auto; }
+    .vergleich { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 560px; }
+    .vergleich th, .vergleich td { padding: 7px 6px; border-bottom: 1px solid var(--linie); text-align: right; white-space: nowrap; }
+    .vergleich th:first-child, .vergleich td:first-child { text-align: left; }
+    .vergleich th { color: var(--leise); font-weight: 400; font-size: .86rem; }
+    .vergleich td { font-family: var(--technik); font-size: 1.02rem; }
+    .vergleich tbody tr { cursor: pointer; }
+    .vergleich tbody tr:hover td { background: var(--flaeche2); }
+    .vergleich tr.gewaehlt td { background: var(--ergebnis-flaeche); color: var(--ergebnis); font-weight: 600; }
+    .vergleich td.schlecht { color: var(--fehler); }
+    .vergleich td.ok::after { content: ' ✓'; color: var(--ergebnis); }
+
+    details.formeln, details.tabellen { margin-top: 18px; }
+    details.formeln summary, details.tabellen summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+    .tabelle-rahmen { overflow-x: auto; margin-bottom: 14px; }
+    .tabelle { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .92rem; width: 100%; }
+    .tabelle th, .tabelle td { padding: 4px 8px; border-bottom: 1px solid var(--linie); text-align: right; white-space: nowrap; }
+    .tabelle th { color: var(--leise); font-weight: 400; }
+    .tabelle th:first-child, .tabelle td:first-child { text-align: left; }
+    .tabelle .spalte { background: var(--flaeche2); }
+    .tabelle .treffer { background: var(--ergebnis-flaeche); color: var(--ergebnis); font-weight: 700; }
+    .tabelle caption { text-align: left; font-family: var(--technik); font-weight: 600; padding: 4px 0 6px; }
+    .quelle { color: var(--leise); font-size: .82rem; margin: 0 0 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Leitungs&shy;dimensionierung</span></h1>
+      <p>Netz wählen, Verlegung einstellen und bekannte Werte eintragen. Der Rechner bestimmt Betriebsstrom, Schutzorgan und Querschnitt, prüft Belastbarkeit, Spannungsfall und Abschaltbedingung und rechnet die Verluste bis aufs Jahr. Das geht in jede Richtung, mit Rechenweg.</p>
+    </section>
+
+    <nav class="netze" id="netze" aria-label="Netzart wählen"></nav>
+
+    <div class="optionen">
+      <label><span>Leiterwerkstoff</span>
+        <select id="o-material">
+          <option value="cu">Kupfer (Cu)</option>
+          <option value="al">Aluminium (Al)</option>
+        </select>
+      </label>
+      <label><span>Verlegeart</span>
+        <select id="o-verlegung"></select>
+      </label>
+      <label><span>Schutzorgan</span>
+        <select id="o-schutz">
+          <option value="B">LS-Schalter Typ B</option>
+          <option value="C">LS-Schalter Typ C</option>
+          <option value="D">LS-Schalter Typ D</option>
+          <option value="gG">Schmelzsicherung gG</option>
+        </select>
+      </label>
+    </div>
+
+    <section class="buehne" aria-label="Animation des Stromkreises">
+      <canvas id="szene" role="img" aria-label="Stromkreis mit Verteiler, Leitung und Verbraucher, darunter Querschnitt, Spannungsverlauf und Stromvergleich"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="schalten">❚❚ Ausschalten</button>
+        <button type="button" class="knopf" id="kurzschluss">⚡ Kurzschluss am Leitungsende</button>
+        <span class="zustand" id="zustand" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="tafel ergebnis-tafel" aria-labelledby="h-ergebnis">
+      <div class="ergebnis-kopf">
+        <div>
+          <h2 id="h-ergebnis">Ergebnis der Dimensionierung</h2>
+          <div class="dimension" id="dimension"></div>
+        </div>
+        <span class="urteil" id="urteil"></span>
+      </div>
+      <ul class="nachweise" id="nachweise"></ul>
+
+      <h3 class="vergleich-kopf">Querschnitte im Vergleich</h3>
+      <p class="hilfe">Zeile antippen, um den Querschnitt fest zu übernehmen. Zum automatischen Wählen das Feld A wieder leeren.</p>
+      <div class="vergleich-rahmen">
+        <table class="vergleich">
+          <thead><tr><th>A</th><th>I<sub>z</sub></th><th>Δu</th><th>I<sub>k</sub></th><th>P<sub>V</sub></th><th>Verlust im Jahr</th></tr></thead>
+          <tbody id="vergleich"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Gesuchtes einfach leer lassen. Ausgerechnete Werte darfst du überschreiben, dann wird von dort aus weitergerechnet. Leere Felder für κ, m, f und A füllt der Rechner aus den Tabellen.</p>
+        <div class="zeichenerklaerung"><span><i></i>eingetragen</span><span><i class="ergebnis"></i>ausgerechnet</span></div>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="allesLeeren">Alle Eingaben löschen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte in der Reihenfolge, in der sie sich ergeben.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+
+        <details class="tabellen">
+          <summary>Tabellen</summary>
+          <p class="quelle">Richtwerte nach DIN VDE 0298-4 (PVC-Isolierung, 70 °C Leitertemperatur, 30 °C Umgebung). Für verbindliche Planungen das Tabellenbuch oder die Norm heranziehen.</p>
+          <div id="tabellen"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Größen (intern: W, VA, V, A, m, mm², Ω, %, °C, h, kWh, €)
+    // ============================================================
+
+    const GROESSEN = {
+      P:     { name: 'aufgenommene Wirkleistung',      einheiten: [['W', 1], ['kW', 1000]] },
+      Pab:   { name: 'abgegebene Leistung (Motor)',    einheiten: [['W', 1], ['kW', 1000]] },
+      eta:   { name: 'Wirkungsgrad des Verbrauchers',  einheiten: [['%', 0.01], ['Dezimal', 1]] },
+      S:     { name: 'Scheinleistung',                 einheiten: [['VA', 1], ['kVA', 1000]] },
+      cos:   { name: 'Leistungsfaktor',                einheiten: [['–', 1]] },
+      U:     { name: 'Netzspannung (bei 3~ zwischen L1 und L2)', einheiten: [['V', 1], ['kV', 1000]] },
+      Ib:    { name: 'Betriebsstrom',                  einheiten: [['A', 1]] },
+      l:     { name: 'einfache Leitungslänge',         einheiten: [['m', 1], ['km', 1000]] },
+      A:     { name: 'Leiterquerschnitt',              einheiten: [['mm²', 1]] },
+      kappa: { name: 'Leitfähigkeit',                  einheiten: [['m/(Ω·mm²)', 1]] },
+      RL:    { name: 'Widerstand eines Leiters',       einheiten: [['Ω', 1], ['mΩ', 0.001]] },
+      dU:    { name: 'Spannungsfall',                  einheiten: [['V', 1]] },
+      du:    { name: 'Spannungsfall in Prozent',       einheiten: [['%', 1]] },
+      duz:   { name: 'zulässiger Spannungsfall',       einheiten: [['%', 1]] },
+      dUz:   { name: 'zulässiger Spannungsfall',       einheiten: [['V', 1]] },
+      Amin:  { name: 'Mindestquerschnitt (Spannungsfall)', einheiten: [['mm²', 1]] },
+      lmax:  { name: 'größte Länge (Spannungsfall)',   einheiten: [['m', 1]] },
+      In:    { name: 'Bemessungsstrom Schutzorgan',    einheiten: [['A', 1]] },
+      Ir:    { name: 'Belastbarkeit laut Tabelle',     einheiten: [['A', 1]] },
+      thU:   { name: 'Umgebungstemperatur',            einheiten: [['°C', 1]] },
+      fT:    { name: 'Umrechnungsfaktor Temperatur',   einheiten: [['–', 1]] },
+      nH:    { name: 'Stromkreise gebündelt',          einheiten: [['Anzahl', 1]] },
+      fH:    { name: 'Umrechnungsfaktor Häufung',      einheiten: [['–', 1]] },
+      Iz:    { name: 'Strombelastbarkeit der Leitung', einheiten: [['A', 1]] },
+      U0:    { name: 'Spannung Außenleiter gegen Erde', einheiten: [['V', 1]] },
+      ZV:    { name: 'Schleifenimpedanz vor der Leitung', einheiten: [['Ω', 1], ['mΩ', 0.001]] },
+      ZS:    { name: 'Schleifenimpedanz am Leitungsende', einheiten: [['Ω', 1], ['mΩ', 0.001]] },
+      Ik:    { name: 'Kurzschlussstrom (L gegen PE)',  einheiten: [['A', 1], ['kA', 1000]] },
+      m:     { name: 'Auslösefaktor des Schutzorgans', einheiten: [['–', 1]] },
+      Ia:    { name: 'Abschaltstrom (≤ 0,4 s)',        einheiten: [['A', 1]] },
+      lmaxA: { name: 'größte Länge (Abschaltung)',     einheiten: [['m', 1]] },
+      PV:    { name: 'Verlustleistung der Leitung',    einheiten: [['W', 1], ['kW', 1000]] },
+      pV:    { name: 'Verlust bezogen auf P',          einheiten: [['%', 1]] },
+      tB:    { name: 'Betriebsstunden im Jahr',        einheiten: [['h', 1]] },
+      WV:    { name: 'Energieverlust im Jahr',         einheiten: [['kWh', 1]] },
+      preis: { name: 'Strompreis',                     einheiten: [['€/kWh', 1], ['ct/kWh', 0.01]] },
+      KV:    { name: 'Verlustkosten im Jahr',          einheiten: [['€', 1]] }
+    };
+
+    const GRUPPEN = [
+      { titel: 'Verbraucher und Netz', farbe: '#F2A541', felder: ['P', 'Pab', 'eta', 'S', 'cos', 'U', 'Ib'] },
+      { titel: 'Leitung', farbe: '#E4572E', felder: ['l', 'A', 'kappa', 'RL'] },
+      { titel: 'Spannungsfall', farbe: '#2B7BB9', felder: ['dU', 'du', 'duz', 'dUz', 'Amin', 'lmax'] },
+      { titel: 'Belastbarkeit und Überlastschutz', farbe: '#0E6B6A', felder: ['In', 'Ir', 'thU', 'fT', 'nH', 'fH', 'Iz'] },
+      { titel: 'Kurzschluss und Abschaltung', farbe: '#C0392B', felder: ['U0', 'ZV', 'ZS', 'Ik', 'm', 'Ia', 'lmaxA'] },
+      { titel: 'Verluste und Kosten', farbe: 'var(--text)', felder: ['PV', 'pV', 'tB', 'WV', 'preis', 'KV'] }
+    ];
+
+    // Formelzeichen für LaTeX
+    const TEX = {
+      P: 'P', Pab: 'P_\\text{ab}', eta: '\\eta', S: 'S', cos: '\\cos\\varphi', U: 'U', Ib: 'I_\\text{b}',
+      l: 'l', A: 'A', kappa: '\\kappa', RL: 'R_\\text{L}',
+      dU: '\\Delta U', du: '\\Delta u', duz: '\\Delta u_\\text{zul}', dUz: '\\Delta U_\\text{zul}', Amin: 'A_\\text{min}', lmax: 'l_\\text{max}',
+      In: 'I_\\text{n}', Ir: 'I_\\text{r}', thU: '\\vartheta_\\text{U}', fT: 'f_\\vartheta', nH: 'n_\\text{H}', fH: 'f_\\text{H}', Iz: 'I_\\text{z}',
+      U0: 'U_0', ZV: 'Z_\\text{V}', ZS: 'Z_\\text{S}', Ik: 'I_\\text{k}', m: 'm', Ia: 'I_\\text{a}', lmaxA: 'l_\\text{max,A}',
+      PV: 'P_\\text{V}', pV: 'p_\\text{V}', tB: 't_\\text{B}', WV: 'W_\\text{V}', preis: 'k_\\text{E}', KV: 'K_\\text{V}'
+    };
+
+    // Einheiten, in denen die Formeln rechnen (für den Rechenweg)
+    const OHM_MM = '\\tfrac{\\text{m}}{\\Omega\\cdot\\text{mm}^2}';
+    const TEX_EINHEIT = {
+      P: '\\text{W}', Pab: '\\text{W}', PV: '\\text{W}', S: '\\text{VA}', eta: '', cos: '', fT: '', fH: '', m: '', nH: '',
+      U: '\\text{V}', dU: '\\text{V}', dUz: '\\text{V}', U0: '\\text{V}',
+      Ib: '\\text{A}', In: '\\text{A}', Ir: '\\text{A}', Iz: '\\text{A}', Ik: '\\text{A}', Ia: '\\text{A}',
+      l: '\\text{m}', lmax: '\\text{m}', lmaxA: '\\text{m}', A: '\\text{mm}^2', Amin: '\\text{mm}^2', kappa: OHM_MM,
+      RL: '\\Omega', ZV: '\\Omega', ZS: '\\Omega', du: '\\%', duz: '\\%', pV: '\\%', thU: '{}^\\circ\\text{C}',
+      tB: '\\text{h}', WV: '\\text{kWh}', preis: '\\tfrac{\\text{€}}{\\text{kWh}}', KV: '\\text{€}'
+    };
+
+
+    // ============================================================
+    // Netzarten
+    // ============================================================
+
+    const NETZE = {
+      dc:  { name: 'Gleichstrom', kurz: 'L+, L−, PE · z. B. PV, 12–48 V', adern: 2, leiter: 3, k: 2, kTex: '2', cos: false, kV: 2,
+             beispiel: 'U = 24 V bis 1500 V' },
+      ac1: { name: 'Wechselstrom', kurz: '1~ · 230 V · L, N, PE', adern: 2, leiter: 3, k: 2, kTex: '2', cos: true, kV: 2,
+             beispiel: 'U = 230 V' },
+      ac3: { name: 'Drehstrom', kurz: '3~ · 400 V · L1–L3, N, PE', adern: 3, leiter: 5, k: Math.sqrt(3), kTex: '\\sqrt{3}', cos: true, kV: 3,
+             beispiel: 'U = 400 V' }
+    };
+
+    const einst = { netz: 'ac1', material: 'cu', verlegung: 'C', schutz: 'B' };
+
+
+    // ============================================================
+    // Tabellen (DIN VDE 0298-4, PVC, 70 °C Leiter, 30 °C Umgebung)
+    // ============================================================
+
+    const QUERSCHNITTE = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
+
+    const VERLEGEARTEN = {
+      A1: { titel: 'A1 · Aderleitungen im Rohr in wärmegedämmter Wand', leitung: 'H07V-U' },
+      A2: { titel: 'A2 · Mantelleitung im Rohr in wärmegedämmter Wand', leitung: 'NYM-J' },
+      B1: { titel: 'B1 · Aderleitungen im Rohr auf oder in der Wand', leitung: 'H07V-U' },
+      B2: { titel: 'B2 · Mantelleitung im Rohr auf oder in der Wand', leitung: 'NYM-J' },
+      C:  { titel: 'C · Mantelleitung direkt auf oder in der Wand', leitung: 'NYM-J' },
+      E:  { titel: 'E · Leitung frei in Luft (Kabelwanne)', leitung: 'NYM-J' }
+    };
+
+    // je Verlegeart: [2 belastete Adern, 3 belastete Adern] für die Querschnitte oben
+    const BELASTBARKEIT = {
+      cu: {
+        A1: [[15.5, 13.5], [19.5, 18], [26, 24], [34, 31], [46, 42], [61, 56], [80, 73], [99, 89], [119, 108], [151, 136], [182, 164], [210, 188]],
+        A2: [[15.5, 13], [18.5, 17.5], [25, 23], [32, 29], [43, 39], [57, 52], [75, 68], [92, 83], [110, 99], [139, 125], [167, 150], [192, 172]],
+        B1: [[17.5, 15.5], [24, 21], [32, 28], [41, 36], [57, 50], [76, 68], [101, 89], [125, 110], [151, 134], [192, 171], [232, 207], [269, 239]],
+        B2: [[16.5, 15], [23, 20], [30, 27], [38, 34], [52, 46], [69, 62], [90, 80], [111, 99], [133, 118], [168, 149], [201, 179], [232, 206]],
+        C:  [[19.5, 17.5], [27, 24], [36, 32], [46, 41], [63, 57], [85, 76], [112, 96], [138, 119], [168, 144], [213, 184], [258, 223], [299, 259]],
+        E:  [[22, 18.5], [30, 25], [40, 34], [51, 43], [70, 60], [94, 80], [119, 101], [148, 126], [180, 153], [232, 196], [282, 238], [328, 276]]
+      },
+      // Aluminium erst ab 16 mm²
+      al: {
+        A1: [null, null, null, null, null, [48, 43], [63, 57], [77, 70], [93, 84], [118, 107], [142, 129], [164, 149]],
+        A2: [null, null, null, null, null, [44, 41], [58, 53], [71, 65], [86, 78], [108, 98], [130, 118], [150, 135]],
+        B1: [null, null, null, null, null, [60, 53], [80, 70], [99, 86], [119, 104], [151, 133], [182, 161], [210, 186]],
+        B2: [null, null, null, null, null, [54, 48], [71, 62], [86, 77], [104, 92], [131, 116], [157, 139], [181, 160]],
+        C:  [null, null, null, null, null, [66, 59], [83, 73], [103, 90], [125, 110], [160, 140], [195, 170], [226, 197]],
+        E:  [null, null, null, null, null, [73, 61], [89, 78], [111, 96], [135, 117], [173, 150], [210, 183], [244, 212]]
+      }
+    };
+
+    const TEMPERATURFAKTOR = [[10, 1.22], [15, 1.17], [20, 1.12], [25, 1.06], [30, 1], [35, 0.94], [40, 0.87], [45, 0.79], [50, 0.71], [55, 0.61], [60, 0.5]];
+    const HAEUFUNGSFAKTOR = [[1, 1], [2, 0.8], [3, 0.7], [4, 0.65], [5, 0.6], [6, 0.57], [7, 0.54], [8, 0.52], [9, 0.5], [12, 0.45], [16, 0.41], [20, 0.38]];
+
+    const NORMSTROEME_LS = [2, 4, 6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
+    const NORMSTROEME_GG = [2, 4, 6, 10, 16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 250];
+
+    const MATERIAL = {
+      cu: { name: 'Kupfer', kurz: 'Cu', kappa: 56, mindest: 1.5, farbe: '#C87533' },
+      al: { name: 'Aluminium', kurz: 'Al', kappa: 35, mindest: 16, farbe: '#B8BEC4' }
+    };
+
+    const SCHUTZ = {
+      B:  { name: 'LS-Schalter Typ B', kurz: 'B', m: 5, f2: 1.45, text: 'löst sicher bei 5 · I_n sofort aus' },
+      C:  { name: 'LS-Schalter Typ C', kurz: 'C', m: 10, f2: 1.45, text: 'löst sicher bei 10 · I_n sofort aus' },
+      D:  { name: 'LS-Schalter Typ D', kurz: 'D', m: 20, f2: 1.45, text: 'löst sicher bei 20 · I_n sofort aus' },
+      gG: { name: 'Schmelzsicherung gG', kurz: 'gG', m: NaN, f2: 1.6, text: 'Abschaltstrom aus der Kennlinie ablesen' }
+    };
+
+    function normstroeme() { return einst.schutz === 'gG' ? NORMSTROEME_GG : NORMSTROEME_LS; }
+
+    // Belastbarkeit aus der Tabelle; bei Zwischenwerten zählt der nächstkleinere Normquerschnitt
+    function irTabelle(A, material, verlegung, adern) {
+      let i = -1;
+      QUERSCHNITTE.forEach(function (q, j) { if (q <= A + 1e-9) i = j; });
+      if (i < 0) return NaN;
+      const zeile = BELASTBARKEIT[material || einst.material][verlegung || einst.verlegung][i];
+      return zeile ? zeile[(adern || NETZE[einst.netz].adern) === 2 ? 0 : 1] : NaN;
+    }
+
+    function stufe(tabelle, x) {
+      for (let i = 0; i < tabelle.length; i++) if (x <= tabelle[i][0] + 1e-9) return tabelle[i][1];
+      return NaN;
+    }
+
+    function istNormquerschnitt(A) { return QUERSCHNITTE.some(function (q) { return Math.abs(q - A) < 1e-6; }); }
+
+
+    // ============================================================
+    // Gleichungen: jede nach jeder ihrer Größen umgestellt
+    // ============================================================
+    //
+    // formel: Gleichung mit @-Platzhaltern; loese[k].tex: nach k umgestellt; nurBei: nur in diesen Netzen
+
+    const GLEICHUNGEN = [];
+    const ALLE = ['dc', 'ac1', 'ac3'];
+    const AC = ['ac1', 'ac3'];
+
+    function gl(def) { GLEICHUNGEN.push(def); return def; }
+
+    // --- Strom und Leistung ---
+    gl({ titel: 'Scheinleistung (Wechselstrom)', thema: 'leistung', nurBei: ['ac1'], formel: '@S = @U \\cdot @Ib', loese: {
+      S:  { tex: '@U \\cdot @Ib',   rechne: function (v) { return v.U * v.Ib; } },
+      U:  { tex: '\\frac{@S}{@Ib}', rechne: function (v) { return v.S / v.Ib; } },
+      Ib: { tex: '\\frac{@S}{@U}',  rechne: function (v) { return v.S / v.U; } } } });
+
+    gl({ titel: 'Scheinleistung (Drehstrom)', thema: 'leistung', nurBei: ['ac3'], formel: '@S = \\sqrt{3} \\cdot @U \\cdot @Ib', loese: {
+      S:  { tex: '\\sqrt{3} \\cdot @U \\cdot @Ib',   rechne: function (v) { return Math.sqrt(3) * v.U * v.Ib; } },
+      U:  { tex: '\\frac{@S}{\\sqrt{3} \\cdot @Ib}', rechne: function (v) { return v.S / (Math.sqrt(3) * v.Ib); } },
+      Ib: { tex: '\\frac{@S}{\\sqrt{3} \\cdot @U}',  rechne: function (v) { return v.S / (Math.sqrt(3) * v.U); } } } });
+
+    gl({ titel: 'Wirkleistung', thema: 'leistung', nurBei: AC, formel: '@P = @S \\cdot @cos', loese: {
+      P:   { tex: '@S \\cdot @cos',   rechne: function (v) { return v.S * v.cos; } },
+      S:   { tex: '\\frac{@P}{@cos}', rechne: function (v) { return v.P / v.cos; } },
+      cos: { tex: '\\frac{@P}{@S}',   rechne: function (v) { return v.P / v.S; } } } });
+
+    gl({ titel: 'Leistung (Gleichstrom)', thema: 'leistung', nurBei: ['dc'], formel: '@P = @U \\cdot @Ib', loese: {
+      P:  { tex: '@U \\cdot @Ib',   rechne: function (v) { return v.U * v.Ib; } },
+      U:  { tex: '\\frac{@P}{@Ib}', rechne: function (v) { return v.P / v.Ib; } },
+      Ib: { tex: '\\frac{@P}{@U}',  rechne: function (v) { return v.P / v.U; } } } });
+
+    gl({ titel: 'Wirkungsgrad des Verbrauchers', thema: 'leistung', formel: '@Pab = @P \\cdot @eta', loese: {
+      Pab: { tex: '@P \\cdot @eta',     rechne: function (v) { return v.P * v.eta; } },
+      P:   { tex: '\\frac{@Pab}{@eta}', rechne: function (v) { return v.Pab / v.eta; } },
+      eta: { tex: '\\frac{@Pab}{@P}',   rechne: function (v) { return v.Pab / v.P; } } } });
+
+    // --- Leitungswiderstand ---
+    gl({ titel: 'Widerstand eines Leiters', thema: 'leitung', formel: '@RL = \\frac{@l}{@kappa \\cdot @A}', loese: {
+      RL:    { tex: '\\frac{@l}{@kappa \\cdot @A}',  rechne: function (v) { return v.l / (v.kappa * v.A); } },
+      l:     { tex: '@RL \\cdot @kappa \\cdot @A',   rechne: function (v) { return v.RL * v.kappa * v.A; } },
+      kappa: { tex: '\\frac{@l}{@RL \\cdot @A}',     rechne: function (v) { return v.l / (v.RL * v.A); } },
+      A:     { tex: '\\frac{@l}{@RL \\cdot @kappa}', rechne: function (v) { return v.l / (v.RL * v.kappa); } } } });
+
+    // Gleichungen mit dem Netzfaktor k (2 für Hin- und Rückleiter, √3 bei Drehstrom) und cos φ nur bei Wechselgrößen
+    Object.keys(NETZE).forEach(function (id) {
+      const n = NETZE[id], k = n.k, kt = n.kTex;
+      const c = n.cos ? ' \\cdot @cos' : '';
+      const C = n.cos ? function (v) { return v.cos; } : function () { return 1; };
+      const zusatz = { dc: ' (Gleichstrom)', ac1: ' (Wechselstrom)', ac3: ' (Drehstrom)' }[id];
+
+      const fall = { titel: 'Spannungsfall auf der Leitung' + zusatz, thema: 'fall', nurBei: [id], formel: '@dU = ' + kt + ' \\cdot @RL \\cdot @Ib' + c, loese: {
+        dU: { tex: kt + ' \\cdot @RL \\cdot @Ib' + c,                 rechne: function (v) { return k * v.RL * v.Ib * C(v); } },
+        RL: { tex: '\\frac{@dU}{' + kt + ' \\cdot @Ib' + c + '}',      rechne: function (v) { return v.dU / (k * v.Ib * C(v)); } },
+        Ib: { tex: '\\frac{@dU}{' + kt + ' \\cdot @RL' + c + '}',      rechne: function (v) { return v.dU / (k * v.RL * C(v)); } } } };
+      if (n.cos) fall.loese.cos = { tex: '\\frac{@dU}{' + kt + ' \\cdot @RL \\cdot @Ib}', rechne: function (v) { return v.dU / (k * v.RL * v.Ib); } };
+      gl(fall);
+
+      const amin = { titel: 'Mindestquerschnitt wegen Spannungsfall' + zusatz, thema: 'fall', nurBei: [id],
+        formel: '@Amin = \\frac{' + kt + ' \\cdot @l \\cdot @Ib' + c + '}{@kappa \\cdot @dUz}', loese: {
+        Amin:  { tex: '\\frac{' + kt + ' \\cdot @l \\cdot @Ib' + c + '}{@kappa \\cdot @dUz}',  rechne: function (v) { return k * v.l * v.Ib * C(v) / (v.kappa * v.dUz); } },
+        l:     { tex: '\\frac{@Amin \\cdot @kappa \\cdot @dUz}{' + kt + ' \\cdot @Ib' + c + '}', rechne: function (v) { return v.Amin * v.kappa * v.dUz / (k * v.Ib * C(v)); } },
+        Ib:    { tex: '\\frac{@Amin \\cdot @kappa \\cdot @dUz}{' + kt + ' \\cdot @l' + c + '}',  rechne: function (v) { return v.Amin * v.kappa * v.dUz / (k * v.l * C(v)); } },
+        kappa: { tex: '\\frac{' + kt + ' \\cdot @l \\cdot @Ib' + c + '}{@Amin \\cdot @dUz}',   rechne: function (v) { return k * v.l * v.Ib * C(v) / (v.Amin * v.dUz); } },
+        dUz:   { tex: '\\frac{' + kt + ' \\cdot @l \\cdot @Ib' + c + '}{@kappa \\cdot @Amin}', rechne: function (v) { return k * v.l * v.Ib * C(v) / (v.kappa * v.Amin); } } } };
+      if (n.cos) amin.loese.cos = { tex: '\\frac{@Amin \\cdot @kappa \\cdot @dUz}{' + kt + ' \\cdot @l \\cdot @Ib}', rechne: function (v) { return v.Amin * v.kappa * v.dUz / (k * v.l * v.Ib); } };
+      gl(amin);
+
+      gl({ titel: 'Größte Länge wegen Spannungsfall' + zusatz, thema: 'fall', nurBei: [id],
+        formel: '@lmax = \\frac{@kappa \\cdot @A \\cdot @dUz}{' + kt + ' \\cdot @Ib' + c + '}', loese: {
+        lmax: { tex: '\\frac{@kappa \\cdot @A \\cdot @dUz}{' + kt + ' \\cdot @Ib' + c + '}', rechne: function (v) { return v.kappa * v.A * v.dUz / (k * v.Ib * C(v)); } },
+        A:    { tex: '\\frac{' + kt + ' \\cdot @lmax \\cdot @Ib' + c + '}{@kappa \\cdot @dUz}', rechne: function (v) { return k * v.lmax * v.Ib * C(v) / (v.kappa * v.dUz); } } } });
+
+      gl({ titel: 'Verlustleistung der Leitung' + zusatz, thema: 'verlust', nurBei: [id], formel: '@PV = ' + n.kV + ' \\cdot @Ib^2 \\cdot @RL', loese: {
+        PV: { tex: n.kV + ' \\cdot @Ib^2 \\cdot @RL',               rechne: function (v) { return n.kV * v.Ib * v.Ib * v.RL; } },
+        Ib: { tex: '\\sqrt{\\frac{@PV}{' + n.kV + ' \\cdot @RL}}',  rechne: function (v) { return Math.sqrt(v.PV / (n.kV * v.RL)); } },
+        RL: { tex: '\\frac{@PV}{' + n.kV + ' \\cdot @Ib^2}',        rechne: function (v) { return v.PV / (n.kV * v.Ib * v.Ib); } } } });
+    });
+
+    gl({ titel: 'Spannungsfall in Prozent', thema: 'fall', formel: '@du = \\frac{@dU}{@U} \\cdot 100\\,\\%', loese: {
+      du: { tex: '\\frac{@dU}{@U} \\cdot 100\\,\\%',    rechne: function (v) { return v.dU / v.U * 100; } },
+      dU: { tex: '\\frac{@du \\cdot @U}{100\\,\\%}',    rechne: function (v) { return v.du * v.U / 100; } },
+      U:  { tex: '\\frac{@dU \\cdot 100\\,\\%}{@du}',   rechne: function (v) { return v.dU * 100 / v.du; } } } });
+
+    gl({ titel: 'Zulässiger Spannungsfall in Volt', thema: 'fall', formel: '@dUz = \\frac{@duz \\cdot @U}{100\\,\\%}', loese: {
+      dUz: { tex: '\\frac{@duz \\cdot @U}{100\\,\\%}',  rechne: function (v) { return v.duz * v.U / 100; } },
+      duz: { tex: '\\frac{@dUz}{@U} \\cdot 100\\,\\%',  rechne: function (v) { return v.dUz / v.U * 100; } },
+      U:   { tex: '\\frac{@dUz \\cdot 100\\,\\%}{@duz}', rechne: function (v) { return v.dUz * 100 / v.duz; } } } });
+
+    // --- Belastbarkeit ---
+    gl({ titel: 'Strombelastbarkeit mit Umrechnungsfaktoren', thema: 'schutz', formel: '@Iz = @Ir \\cdot @fT \\cdot @fH', loese: {
+      Iz: { tex: '@Ir \\cdot @fT \\cdot @fH',          rechne: function (v) { return v.Ir * v.fT * v.fH; } },
+      Ir: { tex: '\\frac{@Iz}{@fT \\cdot @fH}',         rechne: function (v) { return v.Iz / (v.fT * v.fH); } },
+      fT: { tex: '\\frac{@Iz}{@Ir \\cdot @fH}',         rechne: function (v) { return v.Iz / (v.Ir * v.fH); } },
+      fH: { tex: '\\frac{@Iz}{@Ir \\cdot @fT}',         rechne: function (v) { return v.Iz / (v.Ir * v.fT); } } } });
+
+    // --- Kurzschluss und Abschaltung ---
+    gl({ titel: 'Spannung gegen Erde', thema: 'abschalt', nurBei: ['dc', 'ac1'], formel: '@U0 = @U', loese: {
+      U0: { tex: '@U',  rechne: function (v) { return v.U; } },
+      U:  { tex: '@U0', rechne: function (v) { return v.U0; } } } });
+
+    gl({ titel: 'Spannung gegen Erde (Drehstrom)', thema: 'abschalt', nurBei: ['ac3'], formel: '@U0 = \\frac{@U}{\\sqrt{3}}', loese: {
+      U0: { tex: '\\frac{@U}{\\sqrt{3}}', rechne: function (v) { return v.U / Math.sqrt(3); } },
+      U:  { tex: '\\sqrt{3} \\cdot @U0',  rechne: function (v) { return Math.sqrt(3) * v.U0; } } } });
+
+    gl({ titel: 'Schleifenimpedanz am Leitungsende', thema: 'abschalt', formel: '@ZS = @ZV + 2 \\cdot @RL', loese: {
+      ZS: { tex: '@ZV + 2 \\cdot @RL',      rechne: function (v) { return v.ZV + 2 * v.RL; } },
+      ZV: { tex: '@ZS - 2 \\cdot @RL',      rechne: function (v) { return v.ZS - 2 * v.RL; } },
+      RL: { tex: '\\frac{@ZS - @ZV}{2}',    rechne: function (v) { return (v.ZS - v.ZV) / 2; } } } });
+
+    gl({ titel: 'Kurzschlussstrom am Leitungsende', thema: 'abschalt', formel: '@Ik = \\frac{@U0}{@ZS}', loese: {
+      Ik: { tex: '\\frac{@U0}{@ZS}', rechne: function (v) { return v.U0 / v.ZS; } },
+      U0: { tex: '@Ik \\cdot @ZS',   rechne: function (v) { return v.Ik * v.ZS; } },
+      ZS: { tex: '\\frac{@U0}{@Ik}', rechne: function (v) { return v.U0 / v.Ik; } } } });
+
+    gl({ titel: 'Abschaltstrom des Schutzorgans', thema: 'abschalt', formel: '@Ia = @m \\cdot @In', loese: {
+      Ia: { tex: '@m \\cdot @In',   rechne: function (v) { return v.m * v.In; } },
+      m:  { tex: '\\frac{@Ia}{@In}', rechne: function (v) { return v.Ia / v.In; } },
+      In: { tex: '\\frac{@Ia}{@m}',  rechne: function (v) { return v.Ia / v.m; } } } });
+
+    gl({ titel: 'Größte Länge, bei der noch rechtzeitig abgeschaltet wird', thema: 'abschalt',
+      formel: '@lmaxA = \\frac{@kappa \\cdot @A}{2} \\cdot \\left( \\frac{@U0}{@Ia} - @ZV \\right)', loese: {
+      lmaxA: { tex: '\\frac{@kappa \\cdot @A}{2} \\cdot \\left( \\frac{@U0}{@Ia} - @ZV \\right)', rechne: function (v) { return v.kappa * v.A / 2 * (v.U0 / v.Ia - v.ZV); } },
+      A:     { tex: '\\frac{2 \\cdot @lmaxA}{@kappa \\cdot \\left( \\frac{@U0}{@Ia} - @ZV \\right)}', rechne: function (v) { return 2 * v.lmaxA / (v.kappa * (v.U0 / v.Ia - v.ZV)); } },
+      ZV:    { tex: '\\frac{@U0}{@Ia} - \\frac{2 \\cdot @lmaxA}{@kappa \\cdot @A}',               rechne: function (v) { return v.U0 / v.Ia - 2 * v.lmaxA / (v.kappa * v.A); } },
+      Ia:    { tex: '\\frac{@U0}{@ZV + \\frac{2 \\cdot @lmaxA}{@kappa \\cdot @A}}',              rechne: function (v) { return v.U0 / (v.ZV + 2 * v.lmaxA / (v.kappa * v.A)); } } } });
+
+    // --- Verluste und Kosten ---
+    gl({ titel: 'Verlust bezogen auf die Leistung', thema: 'verlust', formel: '@pV = \\frac{@PV}{@P} \\cdot 100\\,\\%', loese: {
+      pV: { tex: '\\frac{@PV}{@P} \\cdot 100\\,\\%',  rechne: function (v) { return v.PV / v.P * 100; } },
+      PV: { tex: '\\frac{@pV \\cdot @P}{100\\,\\%}',  rechne: function (v) { return v.pV * v.P / 100; } },
+      P:  { tex: '\\frac{@PV \\cdot 100\\,\\%}{@pV}', rechne: function (v) { return v.PV * 100 / v.pV; } } } });
+
+    gl({ titel: 'Energieverlust im Jahr', thema: 'verlust', formel: '@WV = \\frac{@PV \\cdot @tB}{1000}', loese: {
+      WV: { tex: '\\frac{@PV \\cdot @tB}{1000\\,\\tfrac{\\text{W}}{\\text{kW}}}',   rechne: function (v) { return v.PV * v.tB / 1000; } },
+      PV: { tex: '\\frac{@WV \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{kW}}}{@tB}',   rechne: function (v) { return v.WV * 1000 / v.tB; } },
+      tB: { tex: '\\frac{@WV \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{kW}}}{@PV}',   rechne: function (v) { return v.WV * 1000 / v.PV; } } } });
+
+    gl({ titel: 'Verlustkosten im Jahr', thema: 'verlust', formel: '@KV = @WV \\cdot @preis', loese: {
+      KV:    { tex: '@WV \\cdot @preis',   rechne: function (v) { return v.WV * v.preis; } },
+      WV:    { tex: '\\frac{@KV}{@preis}', rechne: function (v) { return v.KV / v.preis; } },
+      preis: { tex: '\\frac{@KV}{@WV}',    rechne: function (v) { return v.KV / v.WV; } } } });
+
+    function einsetzen(vorlage, ersetze) {
+      return vorlage.replace(/@(\w+)/g, function (_, k) { return ersetze(k); });
+    }
+
+    GLEICHUNGEN.forEach(function (g) {
+      g.groessen = Object.keys(g.loese);
+      g.tex = einsetzen(g.formel, function (k) { return TEX[k]; });
+    });
+
+    const THEMEN = [
+      { id: 'leistung', titel: 'Strom und Leistung' },
+      { id: 'leitung', titel: 'Leitungswiderstand' },
+      { id: 'fall', titel: 'Spannungsfall' },
+      { id: 'schutz', titel: 'Belastbarkeit und Überlastschutz' },
+      { id: 'abschalt', titel: 'Kurzschluss und Abschaltbedingung' },
+      { id: 'verlust', titel: 'Verluste und Kosten' }
+    ];
+
+    const BEDINGUNGEN = [
+      'I_\\text{b} \\le I_\\text{n} \\le I_\\text{z}',
+      'I_2 \\le 1{,}45 \\cdot I_\\text{z} \\qquad I_2 = 1{,}45 \\cdot I_\\text{n} \\;(\\text{LS}), \\; 1{,}6 \\cdot I_\\text{n} \\;(\\text{gG})',
+      '\\Delta u \\le \\Delta u_\\text{zul} \\qquad \\text{üblich } 3\\,\\% \\text{ (Zähler bis Verbraucher)}',
+      'I_\\text{k} \\ge I_\\text{a} \\quad \\Longleftrightarrow \\quad Z_\\text{S} \\le \\frac{U_0}{I_\\text{a}}',
+      'A \\ge 1{,}5\\,\\text{mm}^2 \\;(\\text{Cu, fest verlegt}) \\qquad A \\ge 16\\,\\text{mm}^2 \\;(\\text{Al})'
+    ];
+
+    const KONSTANTEN = [
+      '\\kappa_\\text{Cu} = 56\\,' + OHM_MM + ' \\qquad \\kappa_\\text{Al} = 35\\,' + OHM_MM,
+      '\\rho = \\frac{1}{\\kappa} \\qquad \\rho_\\text{Cu} \\approx 0{,}0179\\,\\tfrac{\\Omega\\cdot\\text{mm}^2}{\\text{m}}',
+      '\\sqrt{3} \\approx 1{,}732 \\qquad 400\\,\\text{V} = \\sqrt{3} \\cdot 230\\,\\text{V}',
+      '\\text{Normquerschnitte: } 1{,}5 \\;\\; 2{,}5 \\;\\; 4 \\;\\; 6 \\;\\; 10 \\;\\; 16 \\;\\; 25 \\;\\; 35 \\;\\; 50 \\;\\; 70 \\;\\; 95 \\;\\; 120\\,\\text{mm}^2',
+      '\\text{Normströme: } 6 \\;\\; 10 \\;\\; 13 \\;\\; 16 \\;\\; 20 \\;\\; 25 \\;\\; 32 \\;\\; 40 \\;\\; 50 \\;\\; 63\\,\\text{A}'
+    ];
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (wert === 0) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    function euro(w) {
+      if (!isFinite(w)) return '–';
+      return w.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+    }
+
+    function leistungText(w) {
+      if (!isFinite(w)) return '?';
+      return Math.abs(w) >= 1000 ? zahl(w / 1000, 3) + ' kW' : zahl(w, 3) + ' W';
+    }
+
+    function querschnittText(A) { return zahl(A, 3) + ' mm²'; }
+
+
+    // ============================================================
+    // Rechnen: Gleichungen, bis nichts mehr geht; dann der nächste Tabellenschritt
+    // ============================================================
+
+    const gegeben = {};
+    const einheitWahl = {};
+    let ergebnis = { werte: {}, schritte: [], widersprueche: [], warnungen: [], kriterium: null };
+
+    function einheitVon(key) { return GROESSEN[key].einheiten[einheitWahl[key] || 0]; }
+
+    function gilt(g) { return !g.nurBei || g.nurBei.indexOf(einst.netz) >= 0; }
+
+    function sichtbar(key) {
+      if (einst.netz === 'dc' && (key === 'S' || key === 'cos')) return false;
+      return true;
+    }
+
+    function hat(w, k) { return k in w && isFinite(w[k]); }
+
+    // Für einen Querschnitt prüfen, was erfüllt ist (für die Wahl und den Vergleich)
+    function bewerte(A, w) {
+      const n = NETZE[einst.netz], s = SCHUTZ[einst.schutz];
+      const cos = n.cos ? (hat(w, 'cos') ? w.cos : NaN) : 1;
+      const kappa = w.kappa;
+      const Ir = irTabelle(A);
+      const Iz = Ir * (hat(w, 'fT') ? w.fT : NaN) * (hat(w, 'fH') ? w.fH : NaN);
+      const RL = w.l / (kappa * A);
+      const dU = n.k * RL * w.Ib * cos;
+      const du = dU / w.U * 100;
+      const ZS = w.ZV + 2 * RL;
+      const Ik = w.U0 / ZS;
+      const PV = n.kV * w.Ib * w.Ib * RL;
+      const KV = PV * w.tB / 1000 * w.preis;
+      return {
+        A: A, Ir: Ir, Iz: Iz, du: du, Ik: Ik, PV: PV, KV: KV,
+        okLast: isFinite(Iz) && hat(w, 'In') ? w.In <= Iz + 1e-9 && s.f2 * w.In <= 1.45 * Iz + 1e-9 : null,
+        okFall: isFinite(du) && hat(w, 'duz') ? du <= w.duz + 1e-9 : null,
+        okAb: isFinite(Ik) && hat(w, 'Ia') ? Ik >= w.Ia - 1e-9 : null,
+        okMech: A >= MATERIAL[einst.material].mindest - 1e-9
+      };
+    }
+
+    // Tabellenschritte: liefern { ziel, wert, titel, zeilen } oder null
+    const TABELLENSCHRITTE = [
+      function kappa(w) {
+        if (hat(w, 'kappa')) return null;
+        const m = MATERIAL[einst.material];
+        return { ziel: 'kappa', wert: m.kappa, titel: 'Leitfähigkeit aus dem Werkstoff (' + m.name + ')',
+                 zeilen: ['\\kappa_\\text{' + m.kurz + '} \\text{ bei } 20\\,{}^\\circ\\text{C}'] };
+      },
+      function ausloesefaktor(w) {
+        if (hat(w, 'm') || hat(w, 'Ia')) return null;
+        const s = SCHUTZ[einst.schutz];
+        if (!isFinite(s.m)) return null;
+        return { ziel: 'm', wert: s.m, titel: 'Auslösefaktor für ' + s.name,
+                 zeilen: ['\\text{Typ ' + s.kurz + ' löst bei } I = ' + s.m + ' \\cdot I_\\text{n} \\text{ sofort aus}'] };
+      },
+      function temperatur(w) {
+        if (hat(w, 'fT') || !hat(w, 'thU')) return null;
+        const f = stufe(TEMPERATURFAKTOR, w.thU);
+        if (!isFinite(f)) return null;
+        const zeile = TEMPERATURFAKTOR.filter(function (z) { return w.thU <= z[0] + 1e-9; })[0];
+        return { ziel: 'fT', wert: f, titel: 'Umrechnungsfaktor für die Umgebungstemperatur (Tabelle)',
+                 zeilen: ['\\vartheta_\\text{U} = ' + texZahl(w.thU) + '\\,{}^\\circ\\text{C} \\;\\le\\; ' + zeile[0] + '\\,{}^\\circ\\text{C} \\text{ (Tabellenzeile)}'] };
+      },
+      function haeufung(w) {
+        if (hat(w, 'fH') || !hat(w, 'nH')) return null;
+        const f = stufe(HAEUFUNGSFAKTOR, Math.max(1, Math.round(w.nH)));
+        if (!isFinite(f)) return null;
+        return { ziel: 'fH', wert: f, titel: 'Umrechnungsfaktor für Häufung (gebündelt, Tabelle)',
+                 zeilen: ['n_\\text{H} = ' + texZahl(Math.round(w.nH)) + ' \\text{ Stromkreis' + (Math.round(w.nH) === 1 ? '' : 'e') + '}'] };
+      },
+      function schutzorgan(w) {
+        if (hat(w, 'In') || !hat(w, 'Ib')) return null;
+        const In = normstroeme().filter(function (x) { return x >= w.Ib - 1e-9; })[0];
+        if (!In) return null;
+        return { ziel: 'In', wert: In, titel: 'Schutzorgan: nächste Normstufe über dem Betriebsstrom',
+                 zeilen: ['I_\\text{n} \\ge I_\\text{b} = ' + texZahl(w.Ib) + '\\,\\text{A}'] };
+      },
+      function belastbarkeit(w) {
+        if (hat(w, 'Ir') || !hat(w, 'A')) return null;
+        const Ir = irTabelle(w.A);
+        if (!isFinite(Ir)) return null;
+        const n = NETZE[einst.netz];
+        return { ziel: 'Ir', wert: Ir, titel: 'Belastbarkeit aus der Tabelle',
+                 zeilen: ['\\text{Verlegeart ' + einst.verlegung + ', ' + n.adern + ' belastete Adern, ' + MATERIAL[einst.material].kurz + ', } A = ' + texZahl(w.A) + '\\,\\text{mm}^2'] };
+      },
+      function querschnitt(w) {
+        if (hat(w, 'A') || !hat(w, 'In') || !hat(w, 'fT') || !hat(w, 'fH')) return null;
+        const s = SCHUTZ[einst.schutz], mat = MATERIAL[einst.material];
+        const kandidaten = QUERSCHNITTE.filter(function (q) { return q >= mat.mindest - 1e-9 && isFinite(irTabelle(q)); });
+        const erst = function (bed) { return kandidaten.filter(bed)[0]; };
+
+        const kriterien = [];
+        const aLast = erst(function (q) { const Iz = irTabelle(q) * w.fT * w.fH; return w.In <= Iz + 1e-9 && s.f2 * w.In <= 1.45 * Iz + 1e-9; });
+        kriterien.push({ name: 'Belastbarkeit', A: aLast, tex: 'I_\\text{r} \\cdot f_\\vartheta \\cdot f_\\text{H} \\ge I_\\text{n} = ' + texZahl(w.In) + '\\,\\text{A}' });
+        if (hat(w, 'Amin')) {
+          kriterien.push({ name: 'Spannungsfall', A: erst(function (q) { return q >= w.Amin - 1e-9; }),
+                           tex: 'A \\ge A_\\text{min} = ' + texZahl(w.Amin) + '\\,\\text{mm}^2' });
+        }
+        if (hat(w, 'l') && hat(w, 'kappa') && hat(w, 'U0') && hat(w, 'Ia') && hat(w, 'ZV')) {
+          kriterien.push({ name: 'Abschaltbedingung', A: erst(function (q) { return w.kappa * q / 2 * (w.U0 / w.Ia - w.ZV) >= w.l - 1e-9; }),
+                           tex: 'l_\\text{max,A}(A) \\ge l = ' + texZahl(w.l) + '\\,\\text{m}' });
+        }
+        kriterien.push({ name: 'Mindestquerschnitt', A: mat.mindest, tex: 'A \\ge ' + texZahl(mat.mindest) + '\\,\\text{mm}^2 \\text{ (' + mat.kurz + ', mechanisch)}' });
+
+        if (kriterien.some(function (k) { return !k.A; })) {
+          return { kein: true, kriterien: kriterien };
+        }
+        let A = 0, entscheidend = null;
+        kriterien.forEach(function (k) { if (k.A > A + 1e-9) { A = k.A; entscheidend = k; } });
+        return {
+          ziel: 'A', wert: A, titel: 'Querschnitt: kleinster Normquerschnitt, der alles erfüllt', kriterium: entscheidend.name,
+          zeilen: kriterien.map(function (k) { return k.tex + ' \\;\\Rightarrow\\; A \\ge ' + texZahl(k.A) + '\\,\\text{mm}^2' })
+        };
+      }
+    ];
+
+    function rechnen() {
+      const werte = Object.assign({}, gegeben);
+      const schritte = [];
+      let kriterium = null, keinQuerschnitt = null;
+
+      // Wirkungsgrad, cos φ usw. gehören zum Netz; im Gleichstromnetz bleibt cos φ außen vor
+      if (einst.netz === 'dc') { delete werte.S; delete werte.cos; }
+
+      for (let runde = 0; runde < 200; runde++) {
+        let weiter = false;
+        GLEICHUNGEN.forEach(function (g) {
+          if (!gilt(g)) return;
+          const offen = g.groessen.filter(function (k) { return !(k in werte); });
+          if (offen.length !== 1) return;
+          const ziel = offen[0], w = g.loese[ziel].rechne(werte);
+          if (!isFinite(w)) return;
+          werte[ziel] = w;
+          schritte.push({ gleichung: g, ziel: ziel, vorlage: g.loese[ziel].tex, werte: Object.assign({}, werte) });
+          weiter = true;
+        });
+        if (weiter) continue;
+
+        // Erst wenn keine Gleichung mehr weiterkommt, wird in den Tabellen nachgeschlagen
+        for (let i = 0; i < TABELLENSCHRITTE.length; i++) {
+          const t = TABELLENSCHRITTE[i](werte);
+          if (!t) continue;
+          if (t.kein) { keinQuerschnitt = t; continue; }
+          werte[t.ziel] = t.wert;
+          if (t.kriterium) kriterium = t.kriterium;
+          schritte.push({ tabelle: t, ziel: t.ziel, werte: Object.assign({}, werte) });
+          weiter = true;
+          break;
+        }
+        if (!weiter) break;
+      }
+
+      const widersprueche = [];
+      GLEICHUNGEN.forEach(function (g) {
+        if (!gilt(g) || !g.groessen.every(function (k) { return k in werte; })) return;
+        const ziel = g.groessen[0], soll = g.loese[ziel].rechne(werte), ist = werte[ziel];
+        if (Math.abs(soll - ist) > Math.max(Math.abs(ist), Math.abs(soll)) * 0.005 + 1e-9) {
+          widersprueche.push({ gleichung: g, ziel: ziel, soll: soll, beteiligt: g.groessen.filter(function (k) { return k in gegeben; }) });
+        }
+      });
+
+      const warnungen = [];
+      const n = NETZE[einst.netz];
+      if (n.cos && (werte.cos > 1 + 1e-9 || werte.cos <= 0)) warnungen.push('cos φ liegt immer zwischen 0 und 1.');
+      if (werte.eta > 1) warnungen.push('Der Wirkungsgrad liegt über 100 %. Kein Verbraucher gibt mehr ab, als er aufnimmt.');
+      if (einst.netz === 'ac3' && werte.U > 0 && werte.U < 300) warnungen.push('Bei Drehstrom ist U die Spannung zwischen zwei Außenleitern, im Niederspannungsnetz 400 V. 230 V ist die Spannung gegen N.');
+      if (einst.netz === 'ac1' && werte.U > 300) warnungen.push('Bei Wechselstrom zwischen L und N sind es 230 V. Für 400 V oben Drehstrom wählen.');
+      if (hat(werte, 'A') && werte.A > 0 && !istNormquerschnitt(werte.A)) {
+        const naechster = QUERSCHNITTE.filter(function (q) { return q >= werte.A; })[0];
+        warnungen.push(querschnittText(werte.A) + ' ist kein Normquerschnitt.' + (naechster ? ' Der nächste ist ' + querschnittText(naechster) + '.' : ''));
+      }
+      if ('Ir' in gegeben && hat(werte, 'A')) {
+        const tab = irTabelle(werte.A);
+        if (isFinite(tab) && Math.abs(tab - gegeben.Ir) > 0.01) warnungen.push('Laut Tabelle (Verlegeart ' + einst.verlegung + ') wäre I<sub>r</sub> = ' + zahl(tab, 3) + ' A.');
+      }
+      if (hat(werte, 'thU') && !hat(werte, 'fT') && werte.thU > 60) warnungen.push('Über 60 °C Umgebung darf eine PVC-Leitung nicht betrieben werden.');
+      if (einst.schutz === 'gG' && !hat(werte, 'Ia')) warnungen.push('Bei Schmelzsicherungen den Abschaltstrom I<sub>a</sub> für 0,4 s (Endstromkreis) bzw. 5 s (Verteilerstromkreis) aus der Kennlinie ablesen und eintragen.');
+      if (keinQuerschnitt) warnungen.push('Kein Normquerschnitt bis 120 mm² erfüllt alle Bedingungen. Leitung kürzer planen, Spannungsfall-Grenze prüfen oder Schutzorgan ändern.');
+      if (hat(werte, 'U0') && hat(werte, 'Ia') && hat(werte, 'ZV') && werte.U0 / werte.Ia <= werte.ZV) {
+        warnungen.push('Schon vor der Leitung ist die Schleifenimpedanz zu groß: Z<sub>V</sub> ≥ U<sub>0</sub>/I<sub>a</sub>. Kein Querschnitt hilft, das Schutzorgan muss kleiner oder anders sein (z. B. Typ B statt C, RCD).');
+      }
+      ['P', 'S', 'U', 'Ib', 'l', 'A', 'RL', 'In', 'Iz', 'ZV', 'ZS', 'Ik', 'PV', 'KV'].forEach(function (k) {
+        if (werte[k] < 0) warnungen.push(GROESSEN[k].name + ' ist negativ. Prüfe die Eingaben.');
+      });
+
+      ergebnis = { werte: werte, schritte: schritte, widersprueche: widersprueche, warnungen: warnungen, kriterium: kriterium };
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const felder = {};
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      GRUPPEN.forEach(function (gruppe) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe';
+        fs.style.setProperty('--farbe', gruppe.farbe);
+        const lg = document.createElement('legend');
+        lg.textContent = gruppe.titel;
+        fs.append(lg);
+
+        gruppe.felder.forEach(function (key) {
+          const gr = GROESSEN[key];
+          const zeile = document.createElement('div');
+          zeile.className = 'feld';
+
+          const label = document.createElement('label');
+          label.htmlFor = 'f-' + key;
+          const symbol = document.createElement('span');
+          symbol.className = 'symbol';
+          Formel.setze(symbol, TEX[key]);
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = gr.name;
+          name.title = gr.name;
+          label.append(symbol, name);
+
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + key; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.placeholder = 'gesucht';
+
+          let einheit;
+          if (gr.einheiten.length > 1) {
+            einheit = document.createElement('select');
+            einheit.setAttribute('aria-label', 'Einheit für ' + gr.name);
+            gr.einheiten.forEach(function (e, i) {
+              const o = document.createElement('option');
+              o.value = String(i); o.textContent = e[0];
+              einheit.append(o);
+            });
+            einheit.addEventListener('change', function () { einheitWahl[key] = +einheit.value; anzeigen(); });
+          } else {
+            einheit = document.createElement('span');
+            einheit.className = 'einheit';
+            einheit.textContent = gr.einheiten[0][0];
+          }
+
+          const leeren = document.createElement('button');
+          leeren.type = 'button'; leeren.className = 'leeren'; leeren.textContent = '✕';
+          leeren.setAttribute('aria-label', gr.name + ' löschen');
+          leeren.addEventListener('click', function () { delete gegeben[key]; eingabe.value = ''; neuRechnen(); eingabe.focus(); });
+
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value);
+            if (eingabe.value.trim() === '') delete gegeben[key];
+            else if (isFinite(w)) gegeben[key] = w * einheitVon(key)[1];
+            else return;
+            neuRechnen(key);
+          });
+          eingabe.addEventListener('blur', function () { anzeigen(); });
+
+          zeile.append(label, eingabe, einheit, leeren);
+          fs.append(zeile);
+          felder[key] = { zeile: zeile, eingabe: eingabe, einheit: einheit };
+        });
+        ziel.append(fs);
+      });
+    }
+
+    // „0,9“ im %-Feld meint 90 %
+    function wirkungsgradDeuten() {
+      if ('eta' in gegeben && (einheitWahl.eta || 0) === 0 && gegeben.eta > 0 && gegeben.eta <= 0.01) gegeben.eta *= 100;
+    }
+
+    function neuRechnen(gerade) {
+      wirkungsgradDeuten();
+      rechnen();
+      anzeigen(gerade);
+    }
+
+    function anzeigen(gerade) {
+      const werte = ergebnis.werte, rot = {};
+      ergebnis.widersprueche.forEach(function (w) { w.beteiligt.forEach(function (k) { rot[k] = true; }); });
+
+      Object.keys(felder).forEach(function (key) {
+        const f = felder[key];
+        f.zeile.hidden = !sichtbar(key);
+        const ist = key in gegeben, berechnet = !ist && key in werte;
+        f.zeile.classList.toggle('gegeben', ist);
+        f.zeile.classList.toggle('berechnet', berechnet);
+        f.zeile.classList.toggle('widerspruch', !!rot[key]);
+        if (key === gerade || (document.activeElement === f.eingabe && ist)) return;
+        f.eingabe.value = ist || berechnet ? zahl(werte[key] / einheitVon(key)[1], 5).replace(/ /g, '') : '';
+        f.eingabe.title = berechnet ? 'ausgerechnet, zum Ändern überschreiben' : '';
+      });
+
+      meldungenZeigen();
+      ergebnisZeigen();
+      rechenwegZeigen();
+      formelnMarkieren();
+      tabellenZeigen();
+      zustandText();
+    }
+
+
+    // ============================================================
+    // Rechenweg (LaTeX)
+    // ============================================================
+
+    function texZahl(w, stellen) {
+      const text = Formel.zahl(zahl(w, stellen || 5));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    function texWert(k, werte) {
+      if (k === 'eta' || k === 'cos' || k === 'fT' || k === 'fH' || k === 'm') return texZahl(werte[k], 4);
+      return texZahl(werte[k]) + (TEX_EINHEIT[k] ? '\\,' + TEX_EINHEIT[k] : '');
+    }
+
+    function texErgebnis(k, w) {
+      if (k === 'eta') return texZahl(w, 4) + ' = ' + texZahl(w * 100, 4) + '\\,\\%';
+      if (k === 'cos' || k === 'fT' || k === 'fH' || k === 'm') return texZahl(w, 4);
+      let text = texZahl(w) + (TEX_EINHEIT[k] ? '\\,' + TEX_EINHEIT[k] : '');
+      if ((k === 'P' || k === 'Pab' || k === 'PV') && Math.abs(w) >= 1000) text += ' = ' + texZahl(w / 1000, 4) + '\\,\\text{kW}';
+      if (k === 'S' && Math.abs(w) >= 1000) text += ' = ' + texZahl(w / 1000, 4) + '\\,\\text{kVA}';
+      if ((k === 'RL' || k === 'ZS' || k === 'ZV') && Math.abs(w) < 1 && w !== 0) text += ' = ' + texZahl(w * 1000, 4) + '\\,\\text{m}\\Omega';
+      if (k === 'Ik' && Math.abs(w) >= 1000) text += ' = ' + texZahl(w / 1000, 4) + '\\,\\text{kA}';
+      return text;
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+
+        const erst = document.createElement('div');
+        erst.className = 'rechnung';
+        const dann = document.createElement('div');
+        dann.className = 'rechnung';
+        const fett = ' = \\htmlClass{ergebnis}{\\boldsymbol{' + texErgebnis(s.ziel, s.werte[s.ziel]) + '}}';
+
+        if (s.tabelle) {
+          titel.textContent = s.tabelle.titel;
+          s.tabelle.zeilen.forEach(function (z) {
+            const d = document.createElement('div');
+            Formel.setze(d, z);
+            erst.append(d);
+          });
+          Formel.setze(dann, '\\displaystyle ' + TEX[s.ziel] + fett);
+        } else {
+          titel.textContent = s.gleichung.titel;
+          Formel.setze(erst, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return TEX[k]; }));
+          Formel.setze(dann, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return texWert(k, s.werte); }) + fett);
+        }
+        li.append(titel, erst, dann);
+        liste.append(li);
+      });
+
+      const hinweis = document.createElement('div');
+      hinweis.className = 'hilfe';
+      if (!ergebnis.schritte.length) {
+        hinweis.innerHTML = Object.keys(gegeben).length > 1
+          ? 'Damit lässt sich noch nichts ausrechnen. ' + tipp()
+          : 'Noch nichts eingetragen. Trag zum Beispiel P, U, cos φ und die Leitungslänge l ein.';
+      } else {
+        hinweis.innerHTML = tipp();
+      }
+      if (hinweis.innerHTML) liste.append(hinweis);
+    }
+
+    // Formelzeichen als HTML für Hinweise
+    function symbolHtml(k) {
+      const sonder = { dU: 'ΔU', du: 'Δu', duz: 'Δu<sub>zul</sub>', dUz: 'ΔU<sub>zul</sub>', kappa: 'κ', eta: 'η', cos: 'cos φ',
+                       thU: 'ϑ<sub>U</sub>', fT: 'f<sub>ϑ</sub>', U0: 'U<sub>0</sub>', lmaxA: 'l<sub>max,A</sub>' };
+      if (sonder[k]) return sonder[k];
+      return TEX[k].replace(/_\\text\{([^}]*)\}/, '<sub>$1</sub>');
+    }
+
+    function tipp() {
+      const w = ergebnis.werte;
+      const texte = ['Ib', 'A', 'dU', 'Ik', 'KV'].filter(function (k) { return !(k in w); }).map(function (k) {
+        if (k === 'A' && !('In' in w)) return 'Für den Querschnitt A fehlt zuerst der Betriebsstrom I<sub>b</sub>';
+        let beste = null;
+        GLEICHUNGEN.forEach(function (g) {
+          if (!gilt(g) || g.groessen.indexOf(k) < 0) return;
+          const fehlt = g.groessen.filter(function (x) { return x !== k && !(x in w); });
+          if (!beste || fehlt.length < beste.length) beste = fehlt;
+        });
+        return beste && beste.length ? 'Für ' + symbolHtml(k) + ' fehlt ' + beste.map(symbolHtml).join(' und ') : '';
+      }).filter(Boolean);
+      return texte.length ? texte.slice(0, 3).join('. ') + '.' : '';
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.widersprueche.forEach(function (w) {
+        const d = document.createElement('div');
+        d.className = 'hinweis fehler';
+        d.innerHTML = '<b>Die Angaben widersprechen sich.</b> Nach <span class="f"></span> müsste <span class="z"></span> sein. ' +
+          'Lösch eine der rot markierten Angaben, dann wird sie ausgerechnet.';
+        Formel.setze(d.querySelector('.f'), w.gleichung.tex);
+        Formel.setze(d.querySelector('.z'), TEX[w.ziel] + ' = ' + texErgebnis(w.ziel, w.soll));
+        box.append(d);
+      });
+      ergebnis.warnungen.forEach(function (t) {
+        const d = document.createElement('div');
+        d.className = 'hinweis';
+        d.innerHTML = t;
+        box.append(d);
+      });
+    }
+
+
+    // ============================================================
+    // Ergebnis: Leitung, Nachweise, Vergleich
+    // ============================================================
+
+    function leitungsName(A) {
+      const n = NETZE[einst.netz];
+      const typ = einst.material === 'al' ? 'NAYY-J' : VERLEGEARTEN[einst.verlegung].leitung;
+      const anzahl = typ === 'H07V-U' ? n.leiter + ' Adern ' : n.leiter + ' × ';
+      return typ + ' ' + anzahl + (isFinite(A) ? zahl(A, 3) : '?') + ' mm²';
+    }
+
+    function nachweiseErmitteln() {
+      const w = ergebnis.werte, s = SCHUTZ[einst.schutz], mat = MATERIAL[einst.material];
+      const liste = [];
+      const tz = function (k, x) { return texErgebnis(k, x === undefined ? w[k] : x); };
+
+      // 1. Überlastschutz
+      if (hat(w, 'Ib') && hat(w, 'In') && hat(w, 'Iz')) {
+        const ok = w.Ib <= w.In + 1e-9 && w.In <= w.Iz + 1e-9;
+        liste.push({ titel: 'Überlastschutz', ok: ok, text: ok ? 'Betriebsstrom ≤ Schutzorgan ≤ Belastbarkeit' : (w.Ib > w.In ? 'Das Schutzorgan ist zu klein für den Betriebsstrom.' : 'Die Leitung ist schwächer als das Schutzorgan: größerer Querschnitt nötig.'),
+                     tex: 'I_\\text{b} = ' + tz('Ib') + ' \\;' + (w.Ib <= w.In + 1e-9 ? '\\le' : '>') + '\\; I_\\text{n} = ' + tz('In') + ' \\;' + (w.In <= w.Iz + 1e-9 ? '\\le' : '>') + '\\; I_\\text{z} = ' + tz('Iz') });
+      } else liste.push({ titel: 'Überlastschutz', ok: null, text: 'Braucht I<sub>b</sub>, I<sub>n</sub> und I<sub>z</sub>.', tex: 'I_\\text{b} \\le I_\\text{n} \\le I_\\text{z}' });
+
+      // 2. Großer Prüfstrom
+      if (hat(w, 'In') && hat(w, 'Iz')) {
+        const I2 = s.f2 * w.In, grenze = 1.45 * w.Iz, ok = I2 <= grenze + 1e-9;
+        liste.push({ titel: 'Großer Prüfstrom', ok: ok, text: ok ? 'Das Schutzorgan löst aus, bevor die Leitung zu heiß wird.' : 'Das Schutzorgan löst zu spät aus.',
+                     tex: 'I_2 = ' + Formel.zahl(zahl(s.f2, 3)) + ' \\cdot I_\\text{n} = ' + tz('In', I2) + ' \\;' + (ok ? '\\le' : '>') + '\\; 1{,}45 \\cdot I_\\text{z} = ' + tz('Iz', grenze) });
+      } else liste.push({ titel: 'Großer Prüfstrom', ok: null, text: 'Braucht I<sub>n</sub> und I<sub>z</sub>.', tex: 'I_2 \\le 1{,}45 \\cdot I_\\text{z}' });
+
+      // 3. Spannungsfall
+      if (hat(w, 'du') && hat(w, 'duz')) {
+        const ok = w.du <= w.duz + 1e-9;
+        liste.push({ titel: 'Spannungsfall', ok: ok, text: ok ? 'Am Verbraucher kommt genug Spannung an.' : 'Zu viel Spannung geht auf der Leitung verloren: größerer Querschnitt oder kürzere Leitung.',
+                     tex: '\\Delta u = ' + tz('du') + ' \\;' + (ok ? '\\le' : '>') + '\\; \\Delta u_\\text{zul} = ' + tz('duz') +
+                          (hat(w, 'dU') && hat(w, 'U') ? ' \\qquad U_\\text{Ende} = ' + tz('U', w.U - w.dU) : '') });
+      } else liste.push({ titel: 'Spannungsfall', ok: null, text: 'Braucht Δu und Δu<sub>zul</sub>.', tex: '\\Delta u \\le \\Delta u_\\text{zul}' });
+
+      // 4. Abschaltbedingung
+      if (hat(w, 'Ik') && hat(w, 'Ia')) {
+        const ok = w.Ik >= w.Ia - 1e-9;
+        liste.push({ titel: 'Abschaltbedingung', ok: ok, text: ok ? 'Bei einem Körperschluss am Leitungsende schaltet das Schutzorgan rechtzeitig ab.' : 'Der Kurzschlussstrom reicht nicht für die schnelle Abschaltung: größerer Querschnitt, kürzere Leitung oder anderes Schutzorgan.',
+                     tex: 'I_\\text{k} = ' + tz('Ik') + ' \\;' + (ok ? '\\ge' : '<') + '\\; I_\\text{a} = ' + tz('Ia') +
+                          (hat(w, 'lmaxA') && hat(w, 'l') ? ' \\qquad l = ' + tz('l') + ' \\;' + (w.l <= w.lmaxA + 1e-9 ? '\\le' : '>') + '\\; l_\\text{max,A} = ' + tz('lmaxA') : '') });
+      } else liste.push({ titel: 'Abschaltbedingung', ok: null, text: 'Braucht Z<sub>V</sub> (Schleifenimpedanz am Verteiler) und I<sub>a</sub>.', tex: 'I_\\text{k} \\ge I_\\text{a}' });
+
+      // 5. Mechanische Festigkeit
+      if (hat(w, 'A')) {
+        const ok = w.A >= mat.mindest - 1e-9;
+        liste.push({ titel: 'Mindestquerschnitt', ok: ok, text: ok ? 'Mechanisch fest genug für feste Verlegung.' : 'Für feste Verlegung zu dünn.',
+                     tex: 'A = ' + tz('A') + ' \\;' + (ok ? '\\ge' : '<') + '\\; ' + texZahl(mat.mindest) + '\\,\\text{mm}^2 \\;(\\text{' + mat.kurz + '})' });
+      } else liste.push({ titel: 'Mindestquerschnitt', ok: null, text: 'Braucht A.', tex: 'A \\ge ' + texZahl(mat.mindest) + '\\,\\text{mm}^2' });
+
+      return liste;
+    }
+
+    function ergebnisZeigen() {
+      const w = ergebnis.werte, s = SCHUTZ[einst.schutz];
+      const nachweise = nachweiseErmitteln();
+      const gut = nachweise.filter(function (n) { return n.ok === true; }).length;
+      const schlecht = nachweise.filter(function (n) { return n.ok === false; }).length;
+
+      const dim = document.getElementById('dimension');
+      dim.innerHTML = '';
+      dim.append(document.createTextNode(leitungsName(w.A)));
+      const klein = document.createElement('small');
+      klein.textContent = 'an ' + s.name + ' ' + (hat(w, 'In') ? zahl(w.In, 3) + ' A' : '? A') + ' · ' +
+        VERLEGEARTEN[einst.verlegung].titel + (ergebnis.kriterium && !('A' in gegeben) ? ' · entscheidend: ' + ergebnis.kriterium : '');
+      dim.append(klein);
+
+      const urteil = document.getElementById('urteil');
+      urteil.className = 'urteil' + (schlecht ? ' schlecht' : gut === nachweise.length ? ' gut' : '');
+      urteil.textContent = schlecht ? schlecht + ' von ' + nachweise.length + ' Nachweisen nicht erfüllt'
+        : gut === nachweise.length ? 'alle Nachweise erfüllt' : gut + ' von ' + nachweise.length + ' Nachweisen geprüft';
+
+      const ul = document.getElementById('nachweise');
+      ul.innerHTML = '';
+      nachweise.forEach(function (n) {
+        const li = document.createElement('li');
+        li.className = n.ok === true ? 'gut' : n.ok === false ? 'schlecht' : '';
+        li.innerHTML = '<span class="marke-n" aria-hidden="true">' + (n.ok === true ? '✓' : n.ok === false ? '✗' : '?') + '</span>' +
+          '<div class="was"><b></b>' + n.text + '</div><div class="formel"></div>';
+        li.querySelector('b').textContent = n.titel;
+        Formel.setze(li.querySelector('.formel'), n.tex);
+        ul.append(li);
+      });
+
+      vergleichZeigen();
+    }
+
+    function vergleichZeigen() {
+      const w = ergebnis.werte, mat = MATERIAL[einst.material];
+      const tbody = document.getElementById('vergleich');
+      tbody.innerHTML = '';
+      const liste = QUERSCHNITTE.filter(function (q) { return q >= mat.mindest - 1e-9 && isFinite(irTabelle(q)); });
+      let start = 0;
+      if (hat(w, 'A')) {
+        const i = liste.findIndex(function (q) { return q >= w.A - 1e-9; });
+        if (i > 5) start = i - 5;
+      }
+      liste.slice(start, start + 8).forEach(function (q) {
+        const b = bewerte(q, w);
+        const tr = document.createElement('tr');
+        if (hat(w, 'A') && Math.abs(w.A - q) < 1e-6) tr.className = 'gewaehlt';
+        const zelle = function (text, ok) { return '<td class="' + (ok === false ? 'schlecht' : ok === true ? 'ok' : '') + '">' + text + '</td>'; };
+        tr.innerHTML = zelle(zahl(q, 3) + ' mm²', b.okMech ? null : false) +
+          zelle(isFinite(b.Iz) ? zahl(b.Iz, 3) + ' A' : '–', b.okLast) +
+          zelle(isFinite(b.du) ? zahl(b.du, 3) + ' %' : '–', b.okFall) +
+          zelle(isFinite(b.Ik) ? zahl(b.Ik, 3) + ' A' : '–', b.okAb) +
+          zelle(isFinite(b.PV) ? zahl(b.PV, 3) + ' W' : '–') +
+          zelle(isFinite(b.KV) ? euro(b.KV) : '–');
+        tr.title = zahl(q, 3) + ' mm² übernehmen';
+        tr.tabIndex = 0;
+        const nehmen = function () { gegeben.A = q; neuRechnen(); };
+        tr.addEventListener('click', nehmen);
+        tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nehmen(); } });
+        tbody.append(tr);
+      });
+    }
+
+
+    // ============================================================
+    // Formelsammlung und Tabellen
+    // ============================================================
+
+    function formelnAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      THEMEN.forEach(function (thema) {
+        const abschnitt = document.createElement('section');
+        const h = document.createElement('h3');
+        h.textContent = thema.titel;
+        abschnitt.append(h);
+        GLEICHUNGEN.forEach(function (g, i) {
+          if (g.thema !== thema.id) return;
+          const f = document.createElement('div');
+          f.className = 'formelblock';
+          f.dataset.nr = String(i);
+          f.title = g.titel;
+          Formel.setze(f, g.tex, true);
+          abschnitt.append(f);
+        });
+        ziel.append(abschnitt);
+      });
+      [['Bedingungen (Nachweise)', BEDINGUNGEN], ['Konstanten und Normwerte', KONSTANTEN]].forEach(function (teil) {
+        const abschnitt = document.createElement('section');
+        const h = document.createElement('h3');
+        h.textContent = teil[0];
+        abschnitt.append(h);
+        teil[1].forEach(function (tex) {
+          const f = document.createElement('div');
+          f.className = 'formelblock';
+          Formel.setze(f, tex, true);
+          abschnitt.append(f);
+        });
+        ziel.append(abschnitt);
+      });
+    }
+
+    function formelnMarkieren() {
+      document.querySelectorAll('#formelsammlung [data-nr]').forEach(function (d) {
+        const g = GLEICHUNGEN[+d.dataset.nr];
+        d.hidden = !gilt(g);
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.gleichung === g; }));
+      });
+    }
+
+    function tabellenZeigen() {
+      const w = ergebnis.werte, n = NETZE[einst.netz], mat = MATERIAL[einst.material];
+      const ziel = document.getElementById('tabellen');
+      const spalte = n.adern === 2 ? 0 : 1;
+      let html = '<div class="tabelle-rahmen"><table class="tabelle"><caption>Belastbarkeit I<sub>r</sub> in A, ' + mat.name + ', ' + n.adern + ' belastete Adern</caption><thead><tr><th>A in mm²</th>';
+      Object.keys(VERLEGEARTEN).forEach(function (v) { html += '<th class="' + (v === einst.verlegung ? 'spalte' : '') + '">' + v + '</th>'; });
+      html += '</tr></thead><tbody>';
+      QUERSCHNITTE.forEach(function (q, i) {
+        if (!BELASTBARKEIT[einst.material].C[i]) return;
+        const treffer = hat(w, 'A') && Math.abs(w.A - q) < 1e-6;
+        html += '<tr><td>' + zahl(q, 3) + '</td>';
+        Object.keys(VERLEGEARTEN).forEach(function (v) {
+          const wert = BELASTBARKEIT[einst.material][v][i][spalte];
+          const cls = v === einst.verlegung ? (treffer ? 'treffer' : 'spalte') : '';
+          html += '<td class="' + cls + '">' + zahl(wert, 3) + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+
+      const fT = hat(w, 'thU') ? TEMPERATURFAKTOR.filter(function (z) { return w.thU <= z[0] + 1e-9; })[0] : null;
+      html += '<div class="tabelle-rahmen"><table class="tabelle"><caption>Umrechnungsfaktor f<sub>ϑ</sub> für die Umgebungstemperatur (PVC)</caption><tbody><tr><th>ϑ<sub>U</sub> in °C</th>';
+      TEMPERATURFAKTOR.forEach(function (z) { html += '<td class="' + (fT === z ? 'treffer' : '') + '">' + z[0] + '</td>'; });
+      html += '</tr><tr><th>f<sub>ϑ</sub></th>';
+      TEMPERATURFAKTOR.forEach(function (z) { html += '<td class="' + (fT === z ? 'treffer' : '') + '">' + zahl(z[1], 3) + '</td>'; });
+      html += '</tr></tbody></table></div>';
+
+      const nH = hat(w, 'nH') ? Math.max(1, Math.round(w.nH)) : NaN;
+      const fH = isFinite(nH) ? HAEUFUNGSFAKTOR.filter(function (z) { return nH <= z[0]; })[0] : null;
+      html += '<div class="tabelle-rahmen"><table class="tabelle"><caption>Umrechnungsfaktor f<sub>H</sub> für Häufung (gebündelt auf oder in der Wand)</caption><tbody><tr><th>Stromkreise</th>';
+      HAEUFUNGSFAKTOR.forEach(function (z) { html += '<td class="' + (fH === z ? 'treffer' : '') + '">' + z[0] + '</td>'; });
+      html += '</tr><tr><th>f<sub>H</sub></th>';
+      HAEUFUNGSFAKTOR.forEach(function (z) { html += '<td class="' + (fH === z ? 'treffer' : '') + '">' + zahl(z[1], 3) + '</td>'; });
+      html += '</tr></tbody></table></div>';
+
+      html += '<div class="tabelle-rahmen"><table class="tabelle"><caption>Schutzorgane</caption><thead><tr><th>Art</th><th>Abschaltstrom I<sub>a</sub></th><th>I<sub>2</sub></th></tr></thead><tbody>';
+      Object.keys(SCHUTZ).forEach(function (id) {
+        const s = SCHUTZ[id], cls = id === einst.schutz ? 'treffer' : '';
+        html += '<tr><td class="' + cls + '">' + s.name + '</td><td class="' + cls + '">' + (isFinite(s.m) ? s.m + ' · I<sub>n</sub>' : 'aus der Kennlinie') + '</td><td class="' + cls + '">' + zahl(s.f2, 3) + ' · I<sub>n</sub></td></tr>';
+      });
+      html += '</tbody></table></div>';
+      ziel.innerHTML = html;
+    }
+
+
+    // ============================================================
+    // Auswahl: Netz, Werkstoff, Verlegeart, Schutzorgan
+    // ============================================================
+    // Die Auswahl ändert keine eingetragenen Werte, nur welche Formeln und Tabellen gelten
+
+    function netzWaehlen(id) {
+      einst.netz = id;
+      const leiste = document.getElementById('netze');
+      leiste.querySelectorAll('button').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.id === id));
+        // auf schmalen Bildschirmen ist die Leiste waagerecht scrollbar: gewählte Netzart sichtbar machen
+        if (b.dataset.id === id && leiste.scrollWidth > leiste.clientWidth) leiste.scrollLeft = b.offsetLeft - leiste.offsetLeft - 8;
+      });
+      neuRechnen();
+      if (zustand !== 'ein') schalten('ein');
+    }
+
+    function netzeAufbauen() {
+      const ziel = document.getElementById('netze');
+      Object.keys(NETZE).forEach(function (id) {
+        const d = NETZE[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 58 * dichte; bild.height = 58 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { netzWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 58, 58); piktogramm(k, id); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      k.lineWidth = 2.5; k.lineCap = 'round'; k.lineJoin = 'round';
+      k.strokeStyle = Thema.farbe('--linie') || '#D9E0E3';
+      k.beginPath(); k.moveTo(4, 29); k.lineTo(54, 29); k.stroke();
+      const welle = function (farbe, phase) {
+        k.strokeStyle = farbe; k.beginPath();
+        for (let x = 4; x <= 54; x++) k.lineTo(x, 29 - 17 * Math.sin((x - 4) / 50 * 2 * Math.PI * 1.5 + phase));
+        k.stroke();
+      };
+      if (id === 'dc') {
+        k.strokeStyle = '#E4572E'; k.lineWidth = 3.5; k.beginPath(); k.moveTo(4, 14); k.lineTo(54, 14); k.stroke();
+        k.strokeStyle = '#2B7BB9'; k.beginPath(); k.moveTo(4, 44); k.lineTo(54, 44); k.stroke();
+        k.fillStyle = text; k.font = '600 13px system-ui, sans-serif'; k.textAlign = 'center';
+        k.fillText('+', 29, 10); k.fillText('−', 29, 58);
+      } else if (id === 'ac1') {
+        welle('#8B5A2B', 0);
+      } else {
+        welle('#8B5A2B', 0); welle(text, 2 * Math.PI / 3); welle('#8A8F94', 4 * Math.PI / 3);
+      }
+    }
+
+    function optionenAufbauen() {
+      const verlegung = document.getElementById('o-verlegung');
+      Object.keys(VERLEGEARTEN).forEach(function (id) {
+        const o = document.createElement('option');
+        o.value = id; o.textContent = VERLEGEARTEN[id].titel;
+        verlegung.append(o);
+      });
+      [['o-material', 'material'], ['o-verlegung', 'verlegung'], ['o-schutz', 'schutz']].forEach(function (p) {
+        const el = document.getElementById(p[0]);
+        el.value = einst[p[1]];
+        el.addEventListener('change', function () { einst[p[1]] = el.value; neuRechnen(); });
+      });
+    }
+
+    document.getElementById('allesLeeren').addEventListener('click', function () {
+      Object.keys(gegeben).forEach(function (k) { delete gegeben[k]; });
+      gegeben.duz = 3; gegeben.thU = 30; gegeben.nH = 1;
+      neuRechnen();
+    });
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    const bewegungAus = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const DUNKEL = '#13233A';
+    const F = { text: DUNKEL, leise: '#5E6B7A', linie: '#D9E0E3', flaeche2: '#F6F8F8', ergebnis: '#0E6B6A', fehler: '#C0392B' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || DUNKEL;
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+      F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+      F.ergebnis = Thema.farbe('--ergebnis') || '#0E6B6A';
+      F.fehler = Thema.farbe('--fehler') || '#C0392B';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const ADERFARBEN = { L: '#8B5A2B', L1: '#8B5A2B', L2: '#222222', L3: '#8A8F94', N: '#2B7BB9', PE: '#3FA34D', 'L+': '#C0392B', 'L−': '#2B7BB9' };
+
+    let L = { W: 1100, H: 470, schmal: false, m: 1 };
+    let zustand = 'ein';                // ein | aus | kurzschluss | ausgeloest
+    let stromAnteil = 1, uhr = 0, versatz = 0, pfeilVersatz = 0, drehung = 0, kt = 0;
+    let kurzErgebnis = null;            // true: rechtzeitig, false: zu spät, null: unbekannt
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720 ? { W: 520, H: 720, schmal: true } : { W: 1100, H: 470, schmal: false };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function wert(k) { return ergebnis.werte[k]; }
+    function bekannt(k) { return hat(ergebnis.werte, k); }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      g.fillText(t, x, y);
+    }
+
+    // Text mit tiefgestellten Teilen: ['I', ['b'], ' 15 A']
+    function schreibeTeile(teile, x, y, o) {
+      o = o || {};
+      const gr = o.groesse || 15, fam = (o.fett ? '600 ' : '');
+      let breite = 0;
+      teile.forEach(function (t) {
+        g.font = fam + (Array.isArray(t) ? gr * 0.72 : gr) + 'px ' + SCHRIFT;
+        breite += g.measureText(Array.isArray(t) ? t[0] : t).width;
+      });
+      let px = o.ausrichtung === 'right' ? x - breite : o.ausrichtung === 'center' ? x - breite / 2 : x;
+      g.fillStyle = o.farbe || F.text; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      teile.forEach(function (t) {
+        const tief = Array.isArray(t);
+        g.font = fam + (tief ? gr * 0.72 : gr) + 'px ' + SCHRIFT;
+        const text = tief ? t[0] : t;
+        g.fillText(text, px, y + (tief ? gr * 0.28 : 0));
+        px += g.measureText(text).width;
+      });
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function linie(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 2; g.lineJoin = 'round'; g.lineCap = 'round';
+      g.setLineDash(strich || []);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+      g.setLineDash([]);
+    }
+
+    function orte() {
+      if (L.schmal) {
+        return { verteiler: { x: 10, y: 18, b: 112, h: 196 }, kabel: { x1: 122, x2: 398, y: 116 }, last: { x: 398, y: 18, b: 112, h: 196 },
+                 quer: { x: 10, y: 262, b: 200, h: 200 }, strom: { x: 228, y: 262, b: 282, h: 200 }, spannung: { x: 10, y: 494, b: 500, h: 210 } };
+      }
+      return { verteiler: { x: 20, y: 20, b: 150, h: 200 }, kabel: { x1: 170, x2: 910, y: 120 }, last: { x: 910, y: 20, b: 170, h: 200 },
+               quer: { x: 20, y: 258, b: 200, h: 196 }, spannung: { x: 250, y: 258, b: 440, h: 196 }, strom: { x: 730, y: 258, b: 350, h: 196 } };
+    }
+
+    function adern() {
+      if (einst.netz === 'dc') return [{ n: 'L+', aktiv: true, dir: 1, phase: 0 }, { n: 'L−', aktiv: true, dir: -1, phase: 0 }, { n: 'PE' }];
+      if (einst.netz === 'ac1') return [{ n: 'L', aktiv: true, dir: 1, phase: 0 }, { n: 'N', aktiv: true, dir: -1, phase: 0 }, { n: 'PE' }];
+      return [{ n: 'L1', aktiv: true, dir: 1, phase: 0 }, { n: 'L2', aktiv: true, dir: 1, phase: 2 * Math.PI / 3 },
+              { n: 'L3', aktiv: true, dir: 1, phase: 4 * Math.PI / 3 }, { n: 'N' }, { n: 'PE' }];
+    }
+
+    // Leitertemperatur, grob: wächst mit (I_b / I_z)² von der Umgebung bis 70 °C
+    function leiterTemperatur() {
+      const thU = bekannt('thU') ? wert('thU') : 30;
+      if (!bekannt('Ib') || !bekannt('Iz') || wert('Iz') <= 0) return NaN;
+      const a = wert('Ib') / wert('Iz');
+      return thU + (70 - thU) * a * a;
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+
+      const fliesst = zustand === 'ein' || zustand === 'kurzschluss';
+      stromAnteil += ((fliesst ? 1 : 0) - stromAnteil) * Math.min(1, dt * 5);
+
+      if (zustand === 'kurzschluss') {
+        kt += dt;
+        const grenze = kurzErgebnis === true ? 0.6 : kurzErgebnis === false ? 2.8 : 1.4;
+        if (kt >= grenze) { zustand = 'ausgeloest'; knoepfe(); zustandText(); }
+      }
+
+      const Ib = bekannt('Ib') ? wert('Ib') : 10;
+      const tempo = (18 + 26 * Math.log10(1 + Math.max(0, Ib))) * (zustand === 'kurzschluss' ? 5 : 1);
+      if (!bewegungAus && fliesst) { versatz += dt * tempo; pfeilVersatz += dt * 40; }
+
+      const o = orte();
+      zeichneKabel(o.kabel, dt);
+      zeichneVerteiler(o.verteiler, o.kabel);
+      zeichneLast(o.last, o.kabel, dt);
+      zeichneQuerschnitt(o.quer);
+      zeichneSpannung(o.spannung);
+      zeichneStrom(o.strom);
+    }
+
+    function zeichneVerteiler(v, k) {
+      rund(v.x, v.y, v.b, v.h, 14); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2.5; g.stroke();
+      schreibe('Verteiler', v.x + v.b / 2, v.y + 24, { groesse: 15, fett: true, farbe: DUNKEL, ausrichtung: 'center' });
+      const mb = 46, mh = 104, mx = v.x + v.b / 2 - mb / 2, my = k.y - 58;
+      // Zuleitung von oben, Hutschiene hinter dem Gerät
+      linie([[mx + mb / 2, v.y + 34], [mx + mb / 2, my]], DUNKEL, 3);
+      g.fillStyle = '#C8D1D7'; g.fillRect(v.x + 10, my + mh / 2 - 6, v.b - 20, 12);
+      rund(mx, my, mb, mh, 6); g.fillStyle = '#F4F6F7'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2; g.stroke();
+      const s = SCHUTZ[einst.schutz];
+      schreibe(s.kurz + (bekannt('In') ? zahl(wert('In'), 3) : '?'), mx + mb / 2, my + 20, { groesse: 15, fett: true, farbe: DUNKEL, ausrichtung: 'center' });
+
+      // Schalthebel: oben = ein, unten = aus
+      const an = zustand === 'ein' || zustand === 'kurzschluss';
+      g.fillStyle = '#DCE2E6'; g.fillRect(mx + 15, my + 34, 16, 46);
+      g.fillStyle = an ? DUNKEL : (zustand === 'ausgeloest' ? '#C0392B' : '#5E6B7A');
+      rund(mx + 12, an ? my + 34 : my + 58, 22, 22, 4); g.fill();
+      schreibe(an ? 'I' : '0', mx + mb / 2, an ? my + 50 : my + 74, { groesse: 13, fett: true, farbe: '#fff', ausrichtung: 'center' });
+      g.fillStyle = an ? '#3FA34D' : '#C0392B';
+      g.fillRect(mx + 8, my + mh - 16, mb - 16, 6);
+
+      // Abgang unten heraus und zur Leitung
+      linie([[mx + mb / 2, my + mh], [mx + mb / 2, my + mh + 12], [mx + mb + 12, my + mh + 12], [mx + mb + 12, k.y], [v.x + v.b, k.y]], DUNKEL, 3);
+      if (zustand === 'ausgeloest') schreibe('ausgelöst', v.x + v.b / 2, v.y + v.h - 10, { groesse: 13, fett: true, farbe: '#C0392B', ausrichtung: 'center' });
+      else schreibe(an ? 'eingeschaltet' : 'ausgeschaltet', v.x + v.b / 2, v.y + v.h - 10, { groesse: 12, farbe: '#5E6B7A', ausrichtung: 'center', technik: false });
+    }
+
+    function zeichneKabel(k, dt) {
+      const liste = adern(), n = liste.length;
+      const A = bekannt('A') ? wert('A') : 2.5;
+      const dicke = 1.6 + Math.min(5.5, Math.sqrt(A) * 1.1);
+      const h = 14 + n * (dicke + 5);
+      const x1 = k.x1, x2 = k.x2, y = k.y;
+
+      // Mantel
+      rund(x1, y - h / 2, x2 - x1, h, Math.min(h / 2, 14));
+      g.fillStyle = einst.material === 'al' ? '#2B2F33' : '#D5DCE1'; g.fill();
+      g.strokeStyle = F.text; g.lineWidth = 1.5; g.stroke();
+
+      // Erwärmung: leichtes Glühen, beim Kurzschluss ohne Abschaltung stark
+      let glut = 0;
+      const T = leiterTemperatur();
+      if (isFinite(T)) glut = Math.max(0, Math.min(1, (T - 35) / 45)) * stromAnteil;
+      if (zustand === 'kurzschluss') glut = Math.max(glut, kurzErgebnis === true ? 0.35 : Math.min(1, kt / 1.6));
+      if (zustand === 'ausgeloest' && kurzErgebnis === false) glut = Math.max(glut, 0.5);
+      if (glut > 0.01) {
+        rund(x1, y - h / 2, x2 - x1, h, Math.min(h / 2, 14));
+        g.fillStyle = 'rgba(228,87,46,' + (0.55 * glut) + ')'; g.fill();
+      }
+
+      // Adern mit Elektronen
+      const bewegt = zustand === 'ein' || zustand === 'kurzschluss';
+      liste.forEach(function (a, i) {
+        const ay = y - h / 2 + 7 + (i + 0.5) * (h - 14) / n;
+        linie([[x1 + 6, ay], [x2 - 6, ay]], ADERFARBEN[a.n], dicke);
+        if (a.n === 'PE') linie([[x1 + 6, ay], [x2 - 6, ay]], '#F2D13C', dicke * 0.55, [10, 10]);
+        if (!a.aktiv || stromAnteil < 0.05) return;
+
+        let schub;
+        if (einst.netz === 'dc' || zustand === 'kurzschluss') schub = versatz * a.dir;
+        else schub = (bewegungAus ? 0 : 10 * Math.sin(uhr * 2 * Math.PI * 0.7 + a.phase)) * a.dir * Math.min(1.6, pendelTempo());
+        g.fillStyle = zustand === 'kurzschluss' ? 'rgba(255,240,200,' + stromAnteil + ')' : 'rgba(255,212,92,' + stromAnteil + ')';
+        const abstand = 22;
+        for (let s = ((schub % abstand) + abstand) % abstand; x1 + 8 + s < x2 - 8; s += abstand) {
+          g.beginPath(); g.arc(x1 + 8 + s, ay, Math.max(1.6, dicke * 0.42), 0, 7); g.fill();
+        }
+      });
+
+      // Energiefluss über der Leitung
+      const py = y - h / 2 - 16;
+      if (stromAnteil > 0.05) {
+        g.fillStyle = 'rgba(242,165,65,' + (0.9 * stromAnteil) + ')';
+        for (let s = pfeilVersatz % 40; x1 + 20 + s < x2 - 20; s += 40) {
+          const px = x1 + 20 + s;
+          g.beginPath(); g.moveTo(px, py - 5); g.lineTo(px + 7, py); g.lineTo(px, py + 5); g.closePath(); g.fill();
+        }
+      }
+      const mitte = (x1 + x2) / 2;
+      const pText = 'P = ' + leistungText(wert('P')) + (bekannt('Ib') ? '   I = ' + zahl(wert('Ib'), 3) + ' A' : '');
+      g.font = '600 15px ' + SCHRIFT;
+      const bt = g.measureText(pText).width + 16;
+      rund(mitte - bt / 2, py - 30, bt, 22, 11); g.fillStyle = F.flaeche2; g.fill();
+      schreibe(pText, mitte, py - 14, { groesse: 15, fett: true, ausrichtung: 'center' });
+
+      // Maßlinie für die Länge
+      const my = y + h / 2 + 22;
+      linie([[x1 + 4, my], [x2 - 4, my]], F.leise, 1.2);
+      linie([[x1 + 4, my - 6], [x1 + 4, my + 6]], F.leise, 1.2);
+      linie([[x2 - 4, my - 6], [x2 - 4, my + 6]], F.leise, 1.2);
+      const lText = 'l = ' + (bekannt('l') ? zahl(wert('l'), 4) + ' m' : '?');
+      g.font = '600 15px ' + SCHRIFT;
+      const lb = g.measureText(lText).width + 14;
+      g.fillStyle = Thema.farbe('--flaeche') || '#fff'; g.fillRect(mitte - lb / 2, my - 10, lb, 20);
+      schreibe(lText, mitte, my + 5, { groesse: 15, fett: true, ausrichtung: 'center' });
+      const unten = [];
+      if (bekannt('RL')) unten.push('R je Leiter ' + ohmText(wert('RL')));
+      if (bekannt('dU')) unten.push('ΔU ' + zahl(wert('dU') * stromAnteil, 3) + ' V');
+      if (isFinite(T)) { const thU = bekannt('thU') ? wert('thU') : 30; unten.push('Leiter ≈ ' + zahl(thU + (T - thU) * stromAnteil, 2) + ' °C'); }
+      if (L.schmal) {
+        schreibe(unten.slice(0, 2).join('  ·  '), mitte, my + 24, { groesse: 12, farbe: F.leise, ausrichtung: 'center', technik: false });
+        if (unten[2]) schreibe(unten[2], mitte, my + 40, { groesse: 12, farbe: F.leise, ausrichtung: 'center', technik: false });
+      } else {
+        schreibe(unten.join('  ·  '), mitte, my + 26, { groesse: 13, farbe: F.leise, ausrichtung: 'center', technik: false });
+      }
+    }
+
+    function pendelTempo() { return bekannt('Ib') ? Math.max(0.3, Math.log10(1 + wert('Ib'))) : 1; }
+
+    function ohmText(w) {
+      if (!isFinite(w)) return '?';
+      return Math.abs(w) < 1 ? zahl(w * 1000, 3) + ' mΩ' : zahl(w, 3) + ' Ω';
+    }
+
+    function zeichneLast(v, k, dt) {
+      rund(v.x, v.y, v.b, v.h, 14); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2.5; g.stroke();
+      schreibe('Verbraucher', v.x + v.b / 2, v.y + 24, { groesse: 15, fett: true, farbe: DUNKEL, ausrichtung: 'center' });
+      linie([[v.x, k.y], [v.x + 18, k.y]], DUNKEL, 3);
+
+      const cx = v.x + v.b / 2, cy = v.y + 92;
+      const U = bekannt('U') ? wert('U') : NaN;
+      const Uende = bekannt('dU') && isFinite(U) ? U - wert('dU') : U;
+      const anteil = isFinite(Uende) && isFinite(U) && U > 0 ? Math.max(0, Uende / U) : 1;
+      const an = stromAnteil;
+
+      if (einst.netz === 'ac3') {
+        // Motor mit Lüfterrad
+        if (!bewegungAus) drehung += dt * 9 * an * anteil;
+        g.beginPath(); g.arc(cx, cy, 38, 0, 7); g.fillStyle = '#EEF2F4'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2.5; g.stroke();
+        g.save(); g.translate(cx, cy); g.rotate(drehung);
+        g.fillStyle = 'rgba(43,123,185,.35)';
+        for (let i = 0; i < 4; i++) { g.rotate(Math.PI / 2); g.beginPath(); g.ellipse(0, -18, 7, 15, 0, 0, 7); g.fill(); }
+        g.restore();
+        schreibe('M', cx, cy + 4, { groesse: 26, fett: true, farbe: DUNKEL, ausrichtung: 'center' });
+        schreibe('3~', cx, cy + 24, { groesse: 13, fett: true, farbe: DUNKEL, ausrichtung: 'center' });
+      } else {
+        // Leuchte bzw. Heizgerät: Helligkeit folgt der Spannung am Ende (P ~ U²)
+        const hell = an * Math.pow(anteil, 4);
+        if (hell > 0.02) {
+          const r = g.createRadialGradient(cx, cy - 4, 4, cx, cy - 4, 58);
+          r.addColorStop(0, 'rgba(255,212,92,' + (0.85 * hell) + ')'); r.addColorStop(1, 'rgba(255,212,92,0)');
+          g.fillStyle = r; g.beginPath(); g.arc(cx, cy - 4, 58, 0, 7); g.fill();
+        }
+        g.beginPath(); g.arc(cx, cy - 8, 26, Math.PI * 0.8, Math.PI * 2.2); g.lineTo(cx + 12, cy + 22); g.lineTo(cx - 12, cy + 22); g.closePath();
+        g.fillStyle = hell > 0.02 ? 'rgba(255,236,170,' + (0.5 + 0.5 * hell) + ')' : '#F4F6F7'; g.fill();
+        g.strokeStyle = DUNKEL; g.lineWidth = 2.2; g.stroke();
+        g.fillStyle = '#8A97A1'; g.fillRect(cx - 12, cy + 22, 24, 12);
+        // Haltedrähte und Glühwendel
+        const draht = hell > 0.05 ? '#E4572E' : '#8A97A1';
+        linie([[cx - 8, cy + 20], [cx - 8, cy - 6]], '#8A97A1', 1.4);
+        linie([[cx + 8, cy + 20], [cx + 8, cy - 6]], '#8A97A1', 1.4);
+        g.strokeStyle = draht; g.lineWidth = 1.8; g.beginPath();
+        for (let i = 0; i <= 32; i++) { const t = i / 32; g.lineTo(cx - 8 + 16 * t, cy - 6 - 4 * Math.abs(Math.sin(t * Math.PI * 4))); }
+        g.stroke();
+      }
+
+      const zeilen = [];
+      zeilen.push('U Ende ' + (isFinite(Uende) ? zahl(Uende * an + U * (1 - an), 4) + ' V' : '?'));
+      if (einst.netz !== 'ac3' && isFinite(Uende) && bekannt('dU')) zeilen.push('Heizleistung ' + zahl(anteil * anteil * 100, 3) + ' %');
+      zeilen.forEach(function (t, i) {
+        schreibe(t, cx, v.y + v.h - 30 + i * 18, { groesse: L.schmal ? 12 : 13, farbe: DUNKEL, ausrichtung: 'center', fett: i === 0 });
+      });
+
+      // Kurzschluss am Leitungsende: Funken
+      if (zustand === 'kurzschluss') {
+        const fx = v.x - 4, fy = k.y;
+        const blitz = 0.5 + 0.5 * Math.sin(uhr * 40);
+        g.fillStyle = 'rgba(255,240,150,' + (0.5 + 0.5 * blitz) + ')';
+        g.beginPath(); g.arc(fx, fy, 14 + 10 * blitz, 0, 7); g.fill();
+        linie([[fx - 16, fy - 26], [fx + 2, fy - 6], [fx - 8, fy - 2], [fx + 14, fy + 22]], '#E4572E', 3);
+        if (!bewegungAus && Math.random() < 0.9) {
+          for (let i = 0; i < 4; i++) {
+            const w = Math.random() * Math.PI * 2, r = 14 + Math.random() * 26;
+            linie([[fx, fy], [fx + Math.cos(w) * r, fy + Math.sin(w) * r]], '#F2A541', 1.6);
+          }
+        }
+      }
+    }
+
+    function zeichneQuerschnitt(q) {
+      schreibe('Querschnitt', q.x, q.y + 4, { groesse: 15, fett: true });
+      const liste = adern(), n = liste.length;
+      const A = bekannt('A') ? wert('A') : NaN;
+      const cx = q.x + q.b / 2, cy = q.y + 24 + (q.h - 60) / 2, R = Math.min(q.b, q.h - 60) / 2 - 4;
+      g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fillStyle = einst.material === 'al' ? '#2B2F33' : '#D5DCE1'; g.fill();
+      g.strokeStyle = F.text; g.lineWidth = 1.5; g.stroke();
+
+      // Aderdurchmesser maßstäblich zum Querschnitt (größter Querschnitt füllt die Hülle)
+      const platz = n === 3 ? R * 0.44 : R * 0.33;
+      const rLeiter = isFinite(A) ? Math.max(3, platz * 0.78 * Math.sqrt(Math.min(A, 120) / 120) + platz * 0.12) : platz * 0.4;
+      const rAder = Math.min(platz, rLeiter + 4);
+      const ring = n === 3 ? R * 0.48 : R * 0.58;
+      const metall = MATERIAL[einst.material].farbe;
+      liste.forEach(function (a, i) {
+        const w = -Math.PI / 2 + i * 2 * Math.PI / n;
+        const x = cx + Math.cos(w) * ring, y = cy + Math.sin(w) * ring;
+        g.beginPath(); g.arc(x, y, rAder, 0, 7); g.fillStyle = ADERFARBEN[a.n]; g.fill();
+        if (a.n === 'PE') {
+          g.save(); g.beginPath(); g.arc(x, y, rAder, 0, 7); g.clip();
+          g.fillStyle = '#F2D13C'; g.fillRect(x - rAder, y - rAder * 0.25, rAder * 2, rAder * 0.5); g.restore();
+        }
+        g.beginPath(); g.arc(x, y, rLeiter, 0, 7); g.fillStyle = metall; g.fill();
+      });
+      const name = isFinite(A) ? NETZE[einst.netz].leiter + ' × ' + zahl(A, 3) + ' mm² ' + MATERIAL[einst.material].kurz : 'A noch offen';
+      schreibe(name, cx, q.y + q.h - 10, { groesse: 15, fett: true, ausrichtung: 'center' });
+    }
+
+    function zeichneSpannung(s) {
+      schreibe('Spannung entlang der Leitung', s.x, s.y + 4, { groesse: 15, fett: true });
+      const ox = s.x + 52, oy = s.y + 22, b = s.b - 70, h = s.h - 62;
+      if (!bekannt('U')) {
+        schreibe('U eintragen, dann erscheint der Verlauf.', s.x, oy + 40, { groesse: 13, farbe: F.leise, technik: false });
+        return;
+      }
+      const U = wert('U');
+      let fall = bekannt('dU') ? wert('dU') : NaN;
+      const zul = bekannt('dUz') ? wert('dUz') : NaN;
+      const kurz = zustand === 'kurzschluss';
+      let unten, ende;
+      if (kurz) { unten = 0; ende = 0; }
+      else {
+        const spanne = Math.max(isFinite(fall) ? fall : 0, isFinite(zul) ? zul : 0, U * 0.01) * 1.45;
+        unten = U - spanne;
+        ende = U - (isFinite(fall) ? fall : 0) * stromAnteil;
+      }
+      const py = function (u) { return oy + (U - u) / (U - unten) * h; };
+
+      // Achsen
+      linie([[ox, oy - 4], [ox, oy + h], [ox + b, oy + h]], F.leise, 1.2);
+      schreibe(zahl(U, 4) + ' V', ox - 6, py(U) + 4, { groesse: 12, farbe: F.leise, ausrichtung: 'right' });
+      schreibe(zahl(unten, 4) + ' V', ox - 6, oy + h + 4, { groesse: 12, farbe: F.leise, ausrichtung: 'right' });
+      schreibe('0 m', ox, oy + h + 18, { groesse: 12, farbe: F.leise, ausrichtung: 'left' });
+      schreibe(bekannt('l') ? zahl(wert('l'), 4) + ' m' : 'l', ox + b, oy + h + 18, { groesse: 12, farbe: F.leise, ausrichtung: 'right' });
+
+      // Grenze
+      if (isFinite(zul) && !kurz) {
+        const gy = py(U - zul), ueber = isFinite(fall) && fall > zul + 1e-9;
+        linie([[ox, gy], [ox + b, gy]], ueber ? F.fehler : F.leise, 1.4, [6, 5]);
+        schreibe('Grenze ' + zahl(wert('duz'), 3) + ' %', ox + 6, gy - 6, { groesse: 12, farbe: ueber ? F.fehler : F.leise, technik: false });
+      }
+
+      // Verlauf: linear über die Länge
+      const verlauf = g.createLinearGradient(ox, 0, ox + b, 0);
+      verlauf.addColorStop(0, 'rgba(43,123,185,.35)'); verlauf.addColorStop(1, 'rgba(228,87,46,.35)');
+      g.beginPath(); g.moveTo(ox, py(U)); g.lineTo(ox + b, py(ende)); g.lineTo(ox + b, oy + h); g.lineTo(ox, oy + h); g.closePath();
+      g.fillStyle = verlauf; g.fill();
+      linie([[ox, py(U)], [ox + b, py(ende)]], kurz ? F.fehler : F.text, 2.5);
+
+      // Wandernder Messpunkt
+      if (stromAnteil > 0.05 && !bewegungAus) {
+        const t = (uhr * 0.25) % 1;
+        g.fillStyle = '#F2A541';
+        g.beginPath(); g.arc(ox + b * t, py(U + (ende - U) * t), 5, 0, 7); g.fill();
+      }
+      g.fillStyle = F.text; g.beginPath(); g.arc(ox + b, py(ende), 4, 0, 7); g.fill();
+
+      let text;
+      if (kurz) text = 'Kurzschluss: die Spannung bricht zusammen';
+      else if (!isFinite(fall)) text = 'ΔU noch unbekannt';
+      else if (stromAnteil < 0.05) text = 'Kein Strom, also kein Spannungsfall';
+      else text = 'ΔU = ' + zahl(fall, 3) + ' V  ·  Δu = ' + zahl(wert('du'), 3) + ' %  ·  am Ende ' + zahl(U - fall, 4) + ' V';
+      schreibe(text, ox + b, oy + h + 38, { groesse: 13, fett: true, ausrichtung: 'right', farbe: isFinite(fall) && isFinite(zul) && fall > zul + 1e-9 ? F.fehler : F.text });
+    }
+
+    function zeichneStrom(s) {
+      schreibe('Ströme', s.x, s.y + 4, { groesse: 15, fett: true });
+      schreibeTeile(['I', ['b'], ' ≤ I', ['n'], ' ≤ I', ['z']], s.x + s.b - 6, s.y + 4, { groesse: 14, farbe: F.leise, ausrichtung: 'right' });
+      const Ib = bekannt('Ib') ? wert('Ib') : NaN, In = bekannt('In') ? wert('In') : NaN, Iz = bekannt('Iz') ? wert('Iz') : NaN;
+      const max = Math.max(isFinite(Ib) ? Ib : 0, isFinite(In) ? In : 0, isFinite(Iz) ? Iz : 0) * 1.18 || 20;
+      const x = s.x, b = s.b - 6, y = s.y + 44, h = 24;
+      const px = function (i) { return x + Math.min(1, i / max) * b; };
+
+      rund(x, y, b, h, 8); g.fillStyle = F.flaeche2; g.fill(); g.strokeStyle = F.linie; g.lineWidth = 1; g.stroke();
+      if (isFinite(Ib)) {
+        const ok = !(isFinite(In) && Ib > In) && !(isFinite(Iz) && Ib > Iz);
+        g.save(); rund(x, y, b, h, 8); g.clip();
+        const breite = (px(Ib) - x) * Math.max(stromAnteil, 0.15);
+        const v = g.createLinearGradient(x, 0, x + b, 0);
+        v.addColorStop(0, '#2B7BB9'); v.addColorStop(0.7, ok ? '#6E6FA6' : '#E4572E'); v.addColorStop(1, '#E4572E');
+        g.fillStyle = v; g.fillRect(x, y, breite, h);
+        g.restore();
+        schreibeTeile(['I', ['b'], ' ' + zahl(Ib, 3) + ' A'], x + 8, y + 17, { groesse: 13, fett: true, farbe: '#fff' });
+      }
+      const marke = function (i, farbe, index, oben) {
+        if (!isFinite(i)) return;
+        const mx = px(i);
+        linie([[mx, y - 8], [mx, y + h + 8]], farbe, 3);
+        schreibeTeile(['I', [index], ' ' + zahl(i, 3) + ' A'], mx, oben ? y - 14 : y + h + 24,
+                      { groesse: 13, fett: true, farbe: farbe, ausrichtung: mx > x + b - 60 ? 'right' : mx < x + 40 ? 'left' : 'center' });
+      };
+      marke(In, '#F2A541', 'n', true);
+      marke(Iz, isFinite(In) && In > Iz ? F.fehler : F.ergebnis, 'z', false);
+
+      const zeilen = [];
+      if (isFinite(Ib) && isFinite(Iz)) zeilen.push(['Auslastung der Leitung', zahl(Ib / Iz * 100, 3) + ' %']);
+      if (isFinite(leiterTemperatur())) zeilen.push(['Leitertemperatur (Näherung)', '≈ ' + zahl(leiterTemperatur(), 2) + ' °C']);
+      if (bekannt('PV')) zeilen.push(['Verlust in der Leitung', zahl(wert('PV'), 3) + ' W' + (bekannt('KV') ? ' · ' + euro(wert('KV')) + '/Jahr' : '')]);
+      if (bekannt('Ik')) zeilen.push(['Kurzschlussstrom', zahl(wert('Ik'), 4) + ' A' + (bekannt('Ia') ? (wert('Ik') >= wert('Ia') ? ' ≥ ' : ' < ') + zahl(wert('Ia'), 3) + ' A' : '')]);
+      zeilen.forEach(function (z, i) {
+        const zy = y + h + 52 + i * 21;
+        schreibe(z[0], x, zy, { groesse: L.schmal ? 11.5 : 13, farbe: F.leise, technik: false });
+        const schlecht = z[0].indexOf('Kurzschluss') === 0 && bekannt('Ia') && wert('Ik') < wert('Ia');
+        schreibe(z[1], x + b, zy, { groesse: L.schmal ? 12.5 : 14, fett: true, ausrichtung: 'right', farbe: schlecht ? F.fehler : F.text });
+      });
+    }
+
+
+    // ============================================================
+    // Schalten und Kurzschluss
+    // ============================================================
+
+    const knopfSchalten = document.getElementById('schalten');
+    const knopfKurz = document.getElementById('kurzschluss');
+    const zustandFeld = document.getElementById('zustand');
+
+    function schalten(neu) {
+      zustand = neu;
+      kt = 0;
+      knoepfe();
+      zustandText();
+    }
+
+    function knoepfe() {
+      knopfSchalten.textContent = zustand === 'ein' || zustand === 'kurzschluss' ? '❚❚ Ausschalten' : '▶ Einschalten';
+      knopfKurz.disabled = zustand !== 'ein';
+    }
+
+    knopfSchalten.addEventListener('click', function () { schalten(zustand === 'ein' || zustand === 'kurzschluss' ? 'aus' : 'ein'); });
+    knopfKurz.addEventListener('click', function () {
+      kurzErgebnis = bekannt('Ik') && bekannt('Ia') ? wert('Ik') >= wert('Ia') : null;
+      schalten('kurzschluss');
+    });
+
+    function zustandText() {
+      const w = ergebnis.werte;
+      let html = '', klasse = '';
+      if (zustand === 'ein') {
+        html = '<b>Eingeschaltet.</b> ' + (hat(w, 'Ib') ? 'Es fließen ' + zahl(w.Ib, 3) + ' A' + (hat(w, 'P') ? ' für ' + leistungText(w.P) : '') + '.' : 'Betriebsstrom noch unbekannt.') +
+          (einst.netz !== 'dc' ? ' Bei Wechselstrom pendeln die Elektronen (hier stark verlangsamt).' : '');
+      } else if (zustand === 'aus') {
+        html = '<b>Ausgeschaltet.</b> Ohne Strom gibt es keinen Spannungsfall und keine Verluste.';
+      } else if (zustand === 'kurzschluss') {
+        html = '<b>Kurzschluss am Leitungsende!</b> ' + (hat(w, 'Ik') ? 'I<sub>k</sub> = ' + zahl(w.Ik, 4) + ' A' : 'I<sub>k</sub> unbekannt');
+        klasse = 'schlecht';
+      } else if (zustand === 'ausgeloest') {
+        if (kurzErgebnis === true) {
+          html = '<b>Rechtzeitig abgeschaltet.</b> I<sub>k</sub> = ' + zahl(w.Ik, 4) + ' A ≥ I<sub>a</sub> = ' + zahl(w.Ia, 3) + ' A, das Schutzorgan trennt in weniger als 0,4 s.';
+          klasse = 'gut';
+        } else if (kurzErgebnis === false) {
+          html = '<b>Zu spät abgeschaltet!</b> I<sub>k</sub> = ' + zahl(w.Ik, 4) + ' A < I<sub>a</sub> = ' + zahl(w.Ia, 3) + ' A. Die Leitung wird heiß, am Gehäuse kann gefährliche Spannung anliegen. Größerer Querschnitt, kürzere Leitung oder Typ B.';
+          klasse = 'schlecht';
+        } else {
+          html = '<b>Abgeschaltet, aber nicht nachgewiesen.</b> Für die Prüfung Z<sub>V</sub> und I<sub>a</sub> (bzw. das Schutzorgan) angeben.';
+        }
+      }
+      zustandFeld.innerHTML = html;
+      zustandFeld.className = 'zustand ' + klasse;
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.min(0.05, (jetzt - vorher) / 1000);
+      vorher = jetzt;
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    optionenAufbauen();
+    felderAufbauen();
+    formelnAufbauen();
+    netzeAufbauen();
+    anpassen();
+    // Beim ersten Öffnen: ein Wechselstromkreis für 3,5 kW über 25 m als Beispiel
+    Object.assign(gegeben, { P: 3500, cos: 1, U: 230, l: 25, duz: 3, thU: 30, nH: 1, ZV: 0.3, tB: 1000, preis: 0.35 });
+    netzWaehlen('ac1');
+    knoepfe();
+    requestAnimationFrame(schleife);
+
+    window.Leitung = { gegeben: gegeben, einst: einst, ergebnis: function () { return ergebnis; }, neuRechnen: neuRechnen, netzWaehlen: netzWaehlen,
+                       schalten: schalten, zustand: function () { return zustand; } };
+  })();
+  </script>
+</body>
+</html>

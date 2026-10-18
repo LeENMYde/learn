@@ -1,0 +1,371 @@
+/*
+ * Gemeinsames Design für alle Seiten der Sammlung
+ * ================================================
+ * Einbinden:  <link rel="stylesheet" href="../assets/stil.css">   (Pfad je nach Ordnertiefe)
+ *
+ * Hell und dunkel: folgt der Systemeinstellung, der Schalter in der Kopfzeile
+ * (assets/basis.js) setzt <html data-thema="hell|dunkel">.
+ *
+ * Bausteine: .seite, .seitenkopf, .held, .chip, .karte, .tafel, .gruppe, .feld,
+ *            .knopf, .knopf-haupt, .skala, .hinweis, .weg, .formelblock, .seitenfuss
+ */
+
+/* ---------- Farben und Schriften ---------- */
+:root {
+  --grund: #F1F3F2;
+  --flaeche: #FFFFFF;
+  --flaeche2: #F6F8F8;
+  --text: #13233A;
+  --leise: #5E6B7A;
+  --linie: #D9E0E3;
+  --kalt: #2B7BB9;
+  --warm: #E4572E;
+  --heiss: #F2A541;
+  --ergebnis: #0E6B6A;
+  --ergebnis-flaeche: #DCF0EE;
+  --fehler: #C0392B;
+  --fehler-flaeche: #FCEAE7;
+  --achtung-flaeche: #FFF4E0;
+  --skala: linear-gradient(90deg, #2B7BB9, #6E6FA6 45%, #E4572E 80%, #F2A541);
+  --schatten: 0 1px 0 rgba(19, 35, 58, .06), 0 8px 24px -12px rgba(19, 35, 58, .18);
+
+  --technik: Bahnschrift, 'DIN Alternate', 'DIN Next', 'D-DIN', 'Roboto Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --schrift: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Arial, sans-serif;
+
+  --rund-gross: 20px;
+  --rund: 12px;
+  --rund-klein: 8px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-thema="hell"]) {
+    --grund: #111214;
+    --flaeche: #1A1C1F;
+    --flaeche2: #212429;
+    --text: #ECEEF0;
+    --leise: #9AA3AD;
+    --linie: #2E3238;
+    --ergebnis: #6FD6CB;
+    --ergebnis-flaeche: #12302D;
+    --fehler: #FF8A7A;
+    --fehler-flaeche: #3A1D1A;
+    --achtung-flaeche: #352A15;
+    --schatten: 0 1px 0 rgba(255, 255, 255, .04), 0 10px 30px -14px rgba(0, 0, 0, .8);
+    color-scheme: dark;
+  }
+}
+
+:root[data-thema="dunkel"] {
+  --grund: #111214;
+  --flaeche: #1A1C1F;
+  --flaeche2: #212429;
+  --text: #ECEEF0;
+  --leise: #9AA3AD;
+  --linie: #2E3238;
+  --ergebnis: #6FD6CB;
+  --ergebnis-flaeche: #12302D;
+  --fehler: #FF8A7A;
+  --fehler-flaeche: #3A1D1A;
+  --achtung-flaeche: #352A15;
+  --schatten: 0 1px 0 rgba(255, 255, 255, .04), 0 10px 30px -14px rgba(0, 0, 0, .8);
+  color-scheme: dark;
+}
+
+/* ---------- Grundlagen ---------- */
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--text);
+  font-family: var(--schrift);
+  line-height: 1.5;
+}
+
+button, select, input, textarea { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--kalt); outline-offset: 2px; }
+sub { font-size: .7em; }
+[hidden] { display: none !important; }
+
+.seite { max-width: 1200px; margin: 0 auto; padding: 0 18px; }
+
+h1, h2, h3 { font-family: var(--technik); font-weight: 600; line-height: 1.15; letter-spacing: -.01em; }
+
+/* ---------- Kopfzeile (wird von basis.js gefüllt) ---------- */
+.seitenkopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-family: var(--technik);
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.marke-zeichen {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: var(--skala);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: .95rem;
+}
+
+.seitenkopf nav { display: flex; align-items: center; gap: 4px; }
+.seitenkopf nav a {
+  text-decoration: none;
+  color: var(--leise);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+.seitenkopf nav a:hover, .seitenkopf nav a[aria-current="page"] { color: var(--text); background: var(--flaeche); }
+
+.themenschalter {
+  width: 38px; height: 38px;
+  border: 1px solid var(--linie);
+  border-radius: 50%;
+  background: var(--flaeche);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.themenschalter svg { width: 18px; height: 18px; }
+
+@media (max-width: 560px) { .seitenkopf nav a.optional { display: none; } }
+
+/* ---------- Großer Einstieg ---------- */
+.held { padding: 26px 0 10px; }
+
+.held h1 {
+  font-size: clamp(2.2rem, 6vw, 4.2rem);
+  line-height: 1.02;
+  margin: 0;
+  max-width: 16ch;
+}
+
+.held p { max-width: 58ch; color: var(--leise); font-size: 1.08rem; margin: 14px 0 0; }
+
+.unterstrichen { display: inline-block; padding-bottom: 8px; background: var(--skala) bottom left / 100% 5px no-repeat; }
+
+/* ---------- Hashtag-Chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--linie);
+  background: var(--flaeche);
+  color: var(--text);
+  font-family: var(--technik);
+  font-size: .98rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.chip::before { content: '#'; color: var(--warm); font-weight: 600; }
+.chip:hover { border-color: var(--leise); }
+.chip[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+.chip[aria-pressed="true"]::before { color: var(--heiss); }
+
+/* Durchlaufendes Band aus Hashtags */
+.band {
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  color: var(--leise);
+  font-family: var(--technik);
+  font-size: 1.05rem;
+  padding: 6px 0;
+}
+.band-innen { display: inline-block; animation: band-laufen 60s linear infinite; }
+.band-innen span { margin-right: 26px; }
+.band-innen span::before { content: '#'; color: var(--warm); }
+@keyframes band-laufen { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .band-innen { animation: none; } }
+
+/* ---------- Karten (Übersicht) ---------- */
+.raster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.karte {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 18px 16px;
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  box-shadow: var(--schatten);
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid transparent;
+  transition: border-color .15s, transform .15s;
+}
+.karte:hover { border-color: var(--linie); transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) { .karte, .karte:hover { transition: none; transform: none; } }
+
+.karte .bereich { color: var(--leise); font-size: .85rem; }
+.karte h3 { margin: 0; font-size: 1.35rem; }
+.karte p { margin: 0; color: var(--leise); font-size: .95rem; }
+.karte .formelbild {
+  padding: 12px 10px;
+  border-radius: var(--rund);
+  background: var(--flaeche2);
+  font-size: 1.15rem;
+  min-height: 62px;
+  display: flex; align-items: center; justify-content: center;
+  overflow-x: auto;
+}
+.karte .tags { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--technik); font-size: .9rem; color: var(--leise); margin-top: auto; }
+.karte .tags span::before { content: '#'; color: var(--warm); }
+
+/* ---------- Tafeln und Eingabefelder (Rechner) ---------- */
+.tafel { background: var(--flaeche); border-radius: var(--rund-gross); padding: 18px 20px 20px; box-shadow: var(--schatten); }
+.tafel h2 { font-size: 1.45rem; margin: 0; }
+.tafel .hilfe { margin: 4px 0 14px; color: var(--leise); font-size: .93rem; }
+
+.gruppe { margin: 0 0 16px; padding: 0 0 0 14px; border: none; position: relative; min-width: 0; }
+.gruppe::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 6px; width: 4px; border-radius: 2px; background: var(--farbe, var(--linie)); }
+.gruppe legend { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; padding: 0; margin-bottom: 4px; }
+
+.feld {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px 92px 28px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+.feld label { display: flex; align-items: baseline; gap: 10px; min-width: 0; cursor: text; }
+.feld .symbol { font-weight: 600; font-size: 1.05rem; min-width: 64px; white-space: nowrap; }
+.feld .name { color: var(--leise); font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.feld input {
+  width: 100%;
+  text-align: right;
+  padding: 7px 10px;
+  border: 1.5px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  font-family: var(--technik);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.feld input::placeholder { color: var(--leise); opacity: .6; font-family: var(--schrift); font-size: .88rem; }
+.feld input:hover { border-color: var(--leise); }
+.feld.gegeben input { border-color: var(--text); }
+.feld.berechnet input { background: var(--ergebnis-flaeche); border-color: transparent; color: var(--ergebnis); }
+.feld.widerspruch input { background: var(--fehler-flaeche); border-color: var(--fehler); color: var(--fehler); }
+
+.feld select { width: 100%; padding: 6px 4px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); font-size: .9rem; }
+.feld .einheit { color: var(--leise); font-size: .9rem; padding-left: 4px; }
+.feld .leeren { width: 28px; height: 28px; border: none; border-radius: 50%; background: none; cursor: pointer; color: var(--leise); visibility: hidden; }
+.feld.gegeben .leeren { visibility: visible; }
+.feld .leeren:hover { background: var(--fehler-flaeche); color: var(--fehler); }
+
+@media (max-width: 540px) {
+  .tafel { padding: 16px 14px; }
+  .feld { grid-template-columns: minmax(0, 1fr) 104px 78px 26px; gap: 6px; }
+  .feld label { flex-direction: column; gap: 0; }
+  .feld .name { font-size: .78rem; max-width: 100%; white-space: normal; line-height: 1.25; }
+}
+
+.zeichenerklaerung { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: .85rem; color: var(--leise); margin: 0 0 14px; }
+.zeichenerklaerung i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; border: 1.5px solid var(--text); }
+.zeichenerklaerung i.ergebnis { background: var(--ergebnis-flaeche); border-color: var(--ergebnis-flaeche); }
+
+/* ---------- Knöpfe und Regler ---------- */
+.knopf {
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 7px 16px;
+  background: var(--flaeche);
+  cursor: pointer;
+}
+.knopf:hover { border-color: var(--leise); }
+
+.knopf-haupt {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  min-width: 128px;
+  background: var(--text);
+  color: var(--grund);
+  font-family: var(--technik);
+  font-size: 1.02rem;
+  cursor: pointer;
+}
+
+.knopf-leise { border: none; background: none; color: var(--leise); text-decoration: underline; cursor: pointer; padding: 4px 0; }
+
+input[type="range"].skala { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; cursor: pointer; }
+input[type="range"].skala::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--skala); }
+input[type="range"].skala::-moz-range-track { height: 8px; border-radius: 4px; background: var(--skala); }
+input[type="range"].skala::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%; background: var(--flaeche); border: 3px solid var(--text); }
+input[type="range"].skala::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--flaeche); border: 3px solid var(--text); }
+
+/* ---------- Hinweise ---------- */
+.hinweis { padding: 10px 14px; margin-bottom: 10px; border-radius: 10px; background: var(--achtung-flaeche); font-size: .93rem; }
+.hinweis.fehler { background: var(--fehler-flaeche); color: var(--fehler); }
+
+/* ---------- Rechenweg ---------- */
+ol.weg { list-style: none; margin: 0; padding: 0; counter-reset: schritt; }
+ol.weg li {
+  counter-increment: schritt;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 0 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--linie);
+}
+ol.weg li::before {
+  content: counter(schritt);
+  grid-row: span 3;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--text); color: var(--grund);
+  font-family: var(--technik);
+  display: flex; align-items: center; justify-content: center;
+}
+.weg .titel { color: var(--leise); font-size: .85rem; }
+.weg .rechnung { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.weg .ergebnis { color: var(--ergebnis); }
+
+/* ---------- Formeln (KaTeX) ---------- */
+.katex { font-size: 1.08em; }
+.formelblock { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+
+.formelsammlung { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.formelsammlung section { border-radius: var(--rund); background: var(--flaeche2); padding: 10px 14px; }
+.formelsammlung h3 { font-size: 1rem; margin: 0 0 4px; color: var(--leise); font-weight: 600; }
+.formelsammlung .formelblock { font-size: 1.05rem; }
+.formelsammlung .genutzt { border-left: 4px solid var(--ergebnis); padding-left: 10px; }
+
+/* ---------- Fuß ---------- */
+.seitenfuss {
+  margin: 40px 0 0;
+  padding: 18px 0 30px;
+  border-top: 1px solid var(--linie);
+  color: var(--leise);
+  font-size: .9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  justify-content: space-between;
+}
