@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abwasser bemessen</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .modi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+
+    @media (max-width: 760px) {
+      .modi { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .modi button { flex: 0 0 72%; scroll-snap-align: start; }
+    }
+
+    .modi button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 2px 12px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .modi button:hover { border-color: var(--leise); }
+    .modi button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .modi button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .modi canvas { grid-row: span 2; width: 58px; height: 58px; }
+    .modi b { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+    .modi small { color: var(--leise); font-size: .82rem; line-height: 1.3; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitanzeige { flex: 1 1 260px; font-family: var(--technik); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+    /* Ergebnis auf einen Blick */
+    .ergebnis-tafel { margin-top: 18px; }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .titel { color: var(--leise); font-size: .88rem; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.75rem); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+    .aussage { margin: 14px 0 0; font-size: .98rem; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    .feld .wahl { grid-column: 2 / span 2; }
+    .feld.ungueltig input { background: var(--fehler-flaeche); border-color: var(--fehler); color: var(--fehler); }
+    .feld.null input { color: var(--leise); border-color: var(--linie); }
+
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+
+    /* Regeln */
+    .tabelle { width: 100%; border-collapse: collapse; font-size: .93rem; }
+    .tabelle th, .tabelle td { padding: 8px 6px; border-bottom: 1px solid var(--linie); text-align: left; vertical-align: top; }
+    .tabelle th { color: var(--leise); font-weight: 400; font-size: .85rem; }
+    .tabelle td.wert { font-family: var(--technik); font-size: 1.05rem; white-space: nowrap; }
+    .tabelle td small { display: block; color: var(--leise); font-size: .8rem; }
+    .tabelle-rahmen { overflow-x: auto; }
+    .regeln { margin-top: 18px; }
+    .anmerkung { color: var(--leise); font-size: .85rem; margin: 12px 0 0; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Abwasser bemessen</span></h1>
+      <p>Wie viel Schmutz- und Regenwasser anfällt, welche Nennweite die Grundleitung braucht, wie voll das Rohr läuft und wie schnell das Wasser fließt. Werte ändern, zusehen, nachrechnen.</p>
+    </section>
+
+    <nav class="modi" id="modi" aria-label="Berechnung wählen"></nav>
+
+    <section class="buehne" aria-label="Animation der Entwässerung">
+      <canvas id="szene" role="img" aria-label="Leitungsweg mit fließendem Wasser, Rohrquerschnitt und Teilfüllungskurve"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">❚❚ Anhalten</button>
+        <span class="zeitanzeige" id="zeitanzeige"></span>
+      </div>
+    </section>
+
+    <section class="tafel ergebnis-tafel" aria-labelledby="h-ergebnis">
+      <h2 id="h-ergebnis">Auf einen Blick</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <p class="aussage" id="aussage"></p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Einstellungen</h2>
+        <p class="hilfe" id="felderhilfe"></p>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="zuruecksetzen">Werte zurücksetzen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte mit den aktuellen Werten.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+
+    <section class="tafel regeln" aria-labelledby="h-regeln">
+      <h2 id="h-regeln">Regeln auf einen Blick</h2>
+      <p class="hilfe">Bemessungswerte für Entwässerungsanlagen in Gebäuden und auf Grundstücken.</p>
+      <div class="tabelle-rahmen">
+        <table class="tabelle">
+          <thead><tr><th>Was</th><th>Wert</th><th>Quelle</th></tr></thead>
+          <tbody>
+            <tr><td>Schmutzwasserabfluss</td><td class="wert">Q<sub>ww</sub> = K · √ΣDU</td><td>DIN EN 12056-2, DIN 1986-100<small>mindestens der größte Anschlusswert eines einzelnen Objekts</small></td></tr>
+            <tr><td>Abflusskennzahl K</td><td class="wert">0,5 · 0,7 · 1,0 · 1,2</td><td>DIN EN 12056-2<small>unregelmäßige, regelmäßige, häufige Benutzung, besondere Nutzung</small></td></tr>
+            <tr><td>Füllungsgrad Schmutzwasser-Grundleitung</td><td class="wert">h/d ≤ 0,5<br>h/d ≤ 0,7</td><td>DIN 1986-100<small>innerhalb des Gebäudes / außerhalb</small></td></tr>
+            <tr><td>Füllungsgrad Regenwasser-Grundleitung</td><td class="wert">h/d ≤ 0,7<br>h/d ≤ 1,0</td><td>DIN 1986-100<small>innerhalb des Gebäudes / außerhalb</small></td></tr>
+            <tr><td>Mindestgefälle Grundleitung</td><td class="wert">0,5 cm/m<br>1 : DN</td><td>DIN 1986-100<small>innerhalb des Gebäudes (1 : 200) / außerhalb, z. B. DN 150 → 1 : 150</small></td></tr>
+            <tr><td>Kleinste Nennweite Grundleitung</td><td class="wert">DN 100</td><td>DIN 1986-100</td></tr>
+            <tr><td>Fließgeschwindigkeit</td><td class="wert">≥ 0,5 m/s</td><td>DIN 1986-100<small>damit sich nichts absetzt (Selbstreinigung)</small></td></tr>
+            <tr><td>Betriebliche Rauheit</td><td class="wert">k<sub>b</sub> = 1,0 mm</td><td>DIN 1986-100<small>für die Bemessung, unabhängig vom Rohrwerkstoff</small></td></tr>
+            <tr><td>Regenspende</td><td class="wert">r<sub>(5,2)</sub><br>r<sub>(5,100)</sub></td><td>KOSTRA-DWD<small>Bemessung der Dachentwässerung / Notentwässerung und Überflutungsnachweis, je nach Ort</small></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="anmerkung">Zusammenfassung zum Lernen. Für eine echte Planung gelten die aktuellen Fassungen von DIN 1986-100 und DIN EN 12056 sowie die örtliche Entwässerungssatzung.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Hydraulik (Prandtl-Colebrook, Teilfüllung über den hydraulischen Radius)
+    // ============================================================
+
+    const GRAV = 9.81;        // m/s²
+    const NU = 1.31e-6;       // m²/s, Wasser bei 10 °C
+    const HD_SCHEITEL = 0.938; // bei dieser Füllung ist der Abfluss am größten
+
+    // Rohre: Nennweite, Außendurchmesser × Wand (mm), Innendurchmesser (mm)
+    const ROHRE = [
+      [50, '50 × 1,8', 46.4], [70, '75 × 1,9', 71.2], [90, '90 × 2,2', 85.6], [100, '110 × 3,2', 103.6], [125, '125 × 3,2', 118.6],
+      [150, '160 × 4,0', 152.0], [200, '200 × 4,9', 190.2], [250, '250 × 6,2', 237.6], [300, '315 × 7,7', 299.6]
+    ];
+
+    function vPC(dh, J, kb) {
+      const w = Math.sqrt(2 * GRAV * dh * J);
+      return -2 * Math.log10(2.51 * NU / (dh * w) + kb / (3.71 * dh)) * w;
+    }
+
+    function querschnitt(hd, d) {
+      const th = 2 * Math.acos(1 - 2 * Math.min(1, Math.max(0, hd)));
+      const A = d * d / 8 * (th - Math.sin(th)), U = d * th / 2;
+      return { th: th, A: A, U: U, R: U > 0 ? A / U : 0 };
+    }
+
+    function abfluss(hd, d, J, kb) {
+      if (hd <= 0) return { Q: 0, v: 0, A: 0, R: 0, th: 0 };
+      const q = querschnitt(hd, d), v = vPC(4 * q.R, J, kb);
+      return { Q: q.A * v, v: v, A: q.A, R: q.R, th: q.th };
+    }
+
+    // Füllungsgrad zu einem Abfluss (Halbierung auf dem ansteigenden Ast der Kurve)
+    function fuellung(Q, d, J, kb) {
+      if (!(Q > 0)) return 0;
+      if (Q > abfluss(HD_SCHEITEL, d, J, kb).Q) return NaN;
+      let a = 1e-5, b = HD_SCHEITEL;
+      for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (abfluss(m, d, J, kb).Q < Q) a = m; else b = m; }
+      return (a + b) / 2;
+    }
+
+    // Was das Rohr bei der erlaubten Füllung abführt (bei h/d = 1 die Vollfüllung)
+    function leistung(d, J, kb, grenze) { return abfluss(grenzWert(grenze), d, J, kb).Q; }
+
+    // Auswahlwerte wie 0,71 (nur damit die Optionen eindeutig sind) rechnen als 0,7
+    function grenzWert(grenze) { return Math.min(1, Math.round(grenze * 10) / 10); }
+
+    function mindestgefaelle(Q, d, kb, grenze) {
+      let a = Math.log(1e-5), b = Math.log(0.5);
+      if (leistung(d, Math.exp(b), kb, grenze) < Q) return NaN;
+      for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (leistung(d, Math.exp(m), kb, grenze) < Q) a = m; else b = m; }
+      return Math.exp((a + b) / 2);
+    }
+
+    // Kleinste Nennweite ab DN 100, die den Abfluss mit erlaubter Füllung schafft
+    function bemessen(Q, J, kb, grenze) {
+      for (let i = 0; i < ROHRE.length; i++) {
+        if (ROHRE[i][0] < 100) continue;
+        const d = ROHRE[i][2] / 1000;
+        if (leistung(d, J, kb, grenze) >= Q) return i;
+      }
+      return -1;
+    }
+
+
+    // ============================================================
+    // Themen und Eingaben
+    // ============================================================
+
+    // Anschlusswerte DU in l/s (System I)
+    const OBJEKTE = [
+      ['Waschtisch, Bidet', 0.5, 2], ['Dusche ohne Stöpsel', 0.6, 1], ['Dusche mit Stöpsel', 0.8, 0], ['Badewanne', 0.8, 1],
+      ['Küchenspüle', 0.8, 1], ['Geschirrspüler (Haushalt)', 0.8, 1], ['Waschmaschine bis 6 kg', 0.8, 1], ['Waschmaschine bis 12 kg', 1.5, 0],
+      ['Urinal mit Druckspüler', 0.5, 0], ['Urinal mit Spülkasten', 0.8, 0], ['WC mit 6-l-Spülkasten', 2.0, 2], ['WC mit 9-l-Spülkasten', 2.5, 0],
+      ['Bodenablauf DN 50', 0.8, 0], ['Bodenablauf DN 70', 1.5, 0], ['Bodenablauf DN 100', 2.0, 0]
+    ];
+
+    const NUTZUNG = [['Wohnhaus, Büro, Pension (unregelmäßig)', 0.5], ['Krankenhaus, Schule, Hotel, Gaststätte (regelmäßig)', 0.7],
+                     ['öffentliche Toiletten und Duschen (häufig)', 1.0], ['Labor, besondere Nutzung', 1.2]];
+
+    // Dachflächen und Spitzenabflussbeiwerte C
+    const FLAECHEN = [['Schrägdach (Ziegel, Metall, Glas)', 1.0, 'schraeg'], ['Flachdach mit Abdichtung', 1.0, 'flach'], ['Flachdach bekiest', 0.8, 'kies'],
+                      ['Gründach extensiv, unter 10 cm', 0.7, 'gruen'], ['Gründach extensiv, ab 10 cm', 0.4, 'gruen'], ['Gründach intensiv, ab 30 cm', 0.2, 'gruen'],
+                      ['Hof, Asphalt oder Beton', 1.0, 'hof']];
+
+    const ROHRWAHL = ROHRE.map(function (r, i) { return ['DN ' + r[0] + ' (' + r[1] + ')', i]; });
+
+    const objektFelder = OBJEKTE.map(function (o, i) {
+      return { k: 'o' + i, gruppe: 'Objekte', name: o[0], symbol: 'DU ' + zahl(o[1]), einheit: 'Stück', std: o[2], min: 0, max: 500, ganz: true };
+    });
+
+    const MODI = {
+      schmutz: {
+        name: 'Schmutzwasser', kurz: 'Anschlusswerte, Abfluss, Nennweite',
+        hilfe: 'Anzahl der Objekte eintragen. Daraus folgt der Schmutzwasserabfluss und die kleinste passende Grundleitung.',
+        felder: objektFelder.concat([
+          { k: 'K', gruppe: 'Gebäude', name: 'Nutzung', wahl: NUTZUNG.map(function (n) { return [n[0] + ' · K = ' + zahl(n[1]), n[1]]; }), std: 0.5 },
+          { k: 'Qc', gruppe: 'Gebäude', tex: 'Q_\\text{c}', name: 'Dauerabfluss (z. B. Kühlwasser)', einheit: 'l/s', std: 0, min: 0, max: 100 },
+          { k: 'Qp', gruppe: 'Gebäude', tex: 'Q_\\text{p}', name: 'Pumpenförderstrom (Hebeanlage)', einheit: 'l/s', std: 0, min: 0, max: 100 },
+          { k: 'J', gruppe: 'Grundleitung', tex: 'J', name: 'Gefälle', einheit: 'cm/m', std: 1, min: 0.05, max: 20 },
+          { k: 'grenze', gruppe: 'Grundleitung', name: 'Lage', wahl: [['im Gebäude · h/d ≤ 0,5', 0.5], ['außerhalb · h/d ≤ 0,7', 0.7]], std: 0.5 }
+        ])
+      },
+      rohr: {
+        name: 'Rohr und Gefälle', kurz: 'Teilfüllung, Geschwindigkeit',
+        hilfe: 'Ein Rohr mit Gefälle und Abfluss: Wie voll läuft es, wie schnell fließt das Wasser, und reicht das Gefälle?',
+        felder: [
+          { k: 'rohr', gruppe: 'Rohr', name: 'Nennweite', wahl: ROHRWAHL, std: 3 },
+          { k: 'J', gruppe: 'Rohr', tex: 'J', name: 'Gefälle', einheit: 'cm/m', std: 1, min: 0.05, max: 20 },
+          { k: 'kb', gruppe: 'Rohr', tex: 'k_\\text{b}', name: 'betriebliche Rauheit', einheit: 'mm', std: 1, min: 0.01, max: 5 },
+          { k: 'Q', gruppe: 'Abfluss', tex: 'Q', name: 'Abfluss', einheit: 'l/s', std: 2.5, min: 0.01, max: 500 },
+          { k: 'grenze', gruppe: 'Abfluss', name: 'Erlaubte Füllung', wahl: [['Schmutzwasser im Gebäude · 0,5', 0.5], ['Schmutz- oder Mischwasser außerhalb · 0,7', 0.7],
+                                                                     ['Regenwasser im Gebäude · 0,7', 0.71], ['Regenwasser außerhalb · 1,0', 1]], std: 0.5 }
+        ]
+      },
+      regen: {
+        name: 'Regenwasser', kurz: 'Dachfläche, Regenspende, Abfluss',
+        hilfe: 'Fläche und Regenspende des Ortes eintragen (KOSTRA-DWD). Der Abflussbeiwert hängt von der Oberfläche ab.',
+        felder: [
+          { k: 'A', gruppe: 'Fläche', tex: 'A', name: 'Fläche (Grundriss)', einheit: 'm²', std: 150, min: 1, max: 100000 },
+          { k: 'C', gruppe: 'Fläche', name: 'Oberfläche', wahl: FLAECHEN.map(function (f, i) { return [f[0] + ' · C = ' + zahl(f[1]), i]; }), std: 0 },
+          { k: 'r', gruppe: 'Fläche', tex: 'r_{(5,2)}', name: 'Regenspende', einheit: 'l/(s·ha)', std: 300, min: 10, max: 2000 },
+          { k: 'J', gruppe: 'Grundleitung', tex: 'J', name: 'Gefälle', einheit: 'cm/m', std: 1, min: 0.05, max: 20 },
+          { k: 'grenze', gruppe: 'Grundleitung', name: 'Lage', wahl: [['im Gebäude · h/d ≤ 0,7', 0.71], ['außerhalb · h/d ≤ 1,0', 1]], std: 0.71 }
+        ]
+      }
+    };
+
+    let modus = 'schmutz';
+    const werte = {};
+    Object.keys(MODI).forEach(function (m) {
+      werte[m] = {};
+      MODI[m].felder.forEach(function (f) { werte[m][f.k] = f.std; });
+    });
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (wert === 0) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    function texZahl(w, stellen) {
+      if (w !== 0 && isFinite(w) && Math.abs(w) < 0.001) {
+        const e = Math.floor(Math.log10(Math.abs(w)));
+        return Formel.zahl(zahl(w / Math.pow(10, e), 3)) + ' \\cdot 10^{' + e + '}';
+      }
+      const text = Formel.zahl(zahl(w, stellen || 4));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    // Gefälle als „1 : x“
+    function verhaeltnis(J) { return '1 : ' + zahl(1 / J, 3); }
+    function grenzText(grenze) { return zahl(Math.min(1, Math.round(grenze * 10) / 10), 2); }
+
+    function erg(tex) { return '\\htmlClass{ergebnis}{\\boldsymbol{' + tex + '}}'; }
+
+    const LS = '\\,\\tfrac{\\text{l}}{\\text{s}}', MS = '\\,\\tfrac{\\text{m}}{\\text{s}}';
+
+
+    // ============================================================
+    // Rechnen je Thema
+    // ============================================================
+
+    let ergebnis = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+
+    // Gemeinsam: Rohr mit Abfluss Q (l/s) nachweisen
+    function nachweis(r, Q, i, J, kb, grenze, lage) {
+      const rohr = ROHRE[i], d = rohr[2] / 1000, q = Q / 1000;
+      const w = Math.sqrt(2 * GRAV * d * J), voll = abfluss(1, d, J, kb);
+      const hd = fuellung(q, d, J, kb), teil = isFinite(hd) ? abfluss(hd, d, J, kb) : null;
+      const jMin = mindestgefaelle(q, d, kb, grenze);
+
+      r.schritte.push({ formel: 'pc', titel: 'Hilfsgröße für DN ' + rohr[0] + ' (d = ' + zahl(rohr[2]) + ' mm, J = ' + zahl(J * 100, 3) + ' cm/m)',
+        a: '\\sqrt{2 g d J}',
+        b: '\\sqrt{2 \\cdot 9{,}81\\,\\tfrac{\\text{m}}{\\text{s}^2} \\cdot ' + texZahl(d) + '\\,\\text{m} \\cdot ' + texZahl(J) + '} = ' + erg(texZahl(w, 3) + MS) });
+      r.schritte.push({ formel: 'pc', titel: 'Fließgeschwindigkeit bei Vollfüllung (Prandtl-Colebrook)',
+        a: 'v_\\text{v} = -2 \\lg\\left(\\frac{2{,}51\\,\\nu}{d \\sqrt{2 g d J}} + \\frac{k_\\text{b}}{3{,}71\\,d}\\right) \\sqrt{2 g d J}',
+        b: 'v_\\text{v} = -2 \\lg\\left(\\frac{2{,}51 \\cdot 1{,}31 \\cdot 10^{-6}\\,\\tfrac{\\text{m}^2}{\\text{s}}}{' + texZahl(d) + '\\,\\text{m} \\cdot ' + texZahl(w, 3) + MS + '} + \\frac{' + texZahl(kb * 1000) + '\\,\\text{mm}}{3{,}71 \\cdot ' + texZahl(rohr[2]) + '\\,\\text{mm}}\\right) \\cdot ' + texZahl(w, 3) + MS + ' = ' + erg(texZahl(voll.v, 3) + MS) });
+      r.schritte.push({ formel: 'voll', titel: 'Abfluss bei Vollfüllung',
+        a: 'Q_\\text{v} = \\frac{\\pi}{4} d^2 \\cdot v_\\text{v}',
+        b: 'Q_\\text{v} = \\frac{\\pi}{4} \\cdot (' + texZahl(d) + '\\,\\text{m})^2 \\cdot ' + texZahl(voll.v, 3) + MS + ' = ' + texZahl(voll.Q, 3) + '\\,\\tfrac{\\text{m}^3}{\\text{s}} = ' + erg(texZahl(voll.Q * 1000, 3) + LS) });
+      if (teil) {
+        r.schritte.push({ formel: 'teil', titel: 'Füllungsgrad, bei dem genau Q abfließt (iterativ aus der Teilfüllung)',
+          a: 'Q = A(h/d) \\cdot v(h/d) \\quad\\text{mit}\\quad A = \\tfrac{d^2}{8}(\\theta - \\sin\\theta),\\; \\theta = 2 \\arccos\\left(1 - 2\\tfrac{h}{d}\\right)',
+          b: '\\tfrac{h}{d} = ' + erg(texZahl(hd, 3)) + ' \\qquad h = ' + texZahl(hd * rohr[2], 3) + '\\,\\text{mm}' });
+        r.schritte.push({ formel: 'teil', titel: 'Fließgeschwindigkeit bei Teilfüllung (d durch 4 · r_hy ersetzt)',
+          a: 'r_\\text{hy} = \\frac{A}{d\\,\\theta/2} \\qquad v = v_\\text{PC}(4 r_\\text{hy})',
+          b: 'r_\\text{hy} = ' + texZahl(teil.R * 1000, 3) + '\\,\\text{mm} \\qquad v = ' + erg(texZahl(teil.v, 3) + MS) });
+      }
+      if (isFinite(jMin)) {
+        r.schritte.push({ formel: 'jmin', titel: 'Kleinstes Gefälle, bei dem Q mit h/d = ' + grenzText(grenze) + ' gerade durchpasst (iterativ)',
+          a: 'J_\\text{min}: \\; Q(h/d = ' + Formel.zahl(grenzText(grenze)) + ') = Q',
+          b: 'J_\\text{min} = ' + erg(texZahl(jMin * 100, 3) + '\\,\\tfrac{\\text{cm}}{\\text{m}}') + ' = ' + verhaeltnis(jMin).replace(' ', '\\,') });
+      }
+
+      // Prüfen gegen die Regeln
+      if (!teil) r.meldungen.push({ fehler: true, text: 'DN ' + rohr[0] + ' ist überlastet: Selbst randvoll fließen bei diesem Gefälle höchstens ' + zahl(abfluss(HD_SCHEITEL, d, J, kb).Q * 1000, 3) + ' l/s ab.' });
+      else if (hd > grenzWert(grenze) + 1e-9) r.meldungen.push({ fehler: true, text: 'Füllungsgrad ' + zahl(hd, 2) + ' liegt über dem erlaubten h/d = ' + grenzText(grenze) + '. Größere Nennweite oder mehr Gefälle wählen.' });
+      if (teil && teil.v < 0.5) r.meldungen.push({ text: 'Nur ' + zahl(teil.v, 2) + ' m/s: Unter 0,5 m/s können sich Feststoffe absetzen. Mehr Gefälle oder kleinere Nennweite hilft.' });
+      if (teil && teil.v > 2.5) r.meldungen.push({ text: zahl(teil.v, 2) + ' m/s ist sehr schnell. Das Wasser läuft den Feststoffen davon und das Rohr wird stärker beansprucht.' });
+      if (lage === 'innen' && J < 0.005) r.meldungen.push({ fehler: true, text: 'Im Gebäude sollen Grundleitungen mindestens 0,5 cm/m (1 : 200) Gefälle haben.' });
+      if (lage === 'aussen' && J < 1 / rohr[0] - 1e-9) r.meldungen.push({ fehler: true, text: 'Außerhalb des Gebäudes gilt als Mindestgefälle 1 : DN, hier also 1 : ' + rohr[0] + ' = ' + zahl(100 / rohr[0], 2) + ' cm/m.' });
+      if (rohr[0] < 100 && modus === 'rohr') r.meldungen.push({ text: 'Grundleitungen müssen mindestens DN 100 haben. Kleinere Nennweiten sind für Anschluss- und Fallleitungen.' });
+
+      return { i: i, d: d, hd: hd, v: teil ? teil.v : NaN, voll: voll, jMin: jMin, Q: Q };
+    }
+
+    function rechneSchmutz(w) {
+      const r = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      let summe = 0, groesster = 0, anzahl = 0;
+      const teile = [];
+      OBJEKTE.forEach(function (o, i) {
+        const n = w['o' + i];
+        if (!(n > 0)) return;
+        summe += n * o[1]; anzahl += n; groesster = Math.max(groesster, o[1]);
+        teile.push(Formel.zahl(zahl(n)) + ' \\cdot ' + Formel.zahl(zahl(o[1])));
+      });
+      const Qww = w.K * Math.sqrt(summe), massgebend = Math.max(Qww, groesster), Qtot = massgebend + w.Qc + w.Qp;
+
+      r.schritte.push({ formel: 'du', titel: 'Summe der Anschlusswerte (' + anzahl + ' Objekte)',
+        a: '\\textstyle\\sum DU = \\sum n \\cdot DU',
+        b: '\\textstyle\\sum DU = ' + (teile.length ? teile.join(' + ') : '0') + ' = ' + erg(texZahl(summe, 3) + LS) });
+      r.schritte.push({ formel: 'qww', titel: 'Schmutzwasserabfluss',
+        a: 'Q_\\text{ww} = K \\cdot \\sqrt{\\textstyle\\sum DU}',
+        b: 'Q_\\text{ww} = ' + texZahl(w.K) + ' \\cdot \\sqrt{' + texZahl(summe, 3) + '} = ' + erg(texZahl(Qww, 3) + LS) });
+      r.schritte.push({ formel: 'qww', titel: 'Mindestens der größte Einzelanschlusswert',
+        a: 'Q = \\max(Q_\\text{ww};\\, DU_\\text{max})',
+        b: 'Q = \\max(' + texZahl(Qww, 3) + ';\\, ' + texZahl(groesster) + ')' + ' = ' + erg(texZahl(massgebend, 3) + LS) });
+      if (w.Qc > 0 || w.Qp > 0) {
+        r.schritte.push({ formel: 'qtot', titel: 'Gesamtabfluss mit Dauerabfluss und Pumpe',
+          a: 'Q_\\text{tot} = Q + Q_\\text{c} + Q_\\text{p}',
+          b: 'Q_\\text{tot} = ' + texZahl(massgebend, 3) + ' + ' + texZahl(w.Qc) + ' + ' + texZahl(w.Qp) + ' = ' + erg(texZahl(Qtot, 3) + LS) });
+      }
+
+      const J = w.J / 100, kb = 0.001, i = summe > 0 || Qtot > 0 ? bemessen(Qtot / 1000, J, kb, w.grenze) : 3;
+      let n = null;
+      if (i < 0) r.meldungen.push({ fehler: true, text: 'Auch DN 300 reicht bei diesem Gefälle nicht. Mehr Gefälle wählen oder die Leitung aufteilen.' });
+      else if (Qtot > 0) n = nachweis(r, Qtot, i, J, kb, w.grenze, w.grenze < 0.6 ? 'innen' : 'aussen');
+      if (groesster >= Qww && summe > 0) r.meldungen.push({ text: 'Der größte Einzelanschlusswert (' + zahl(groesster) + ' l/s) ist größer als K · √ΣDU. Er ist maßgebend, weil ein einzelnes Objekt allein schon so viel abgibt.' });
+      if (w.o10 + w.o11 > 0 && n && ROHRE[n.i][0] < 100) r.meldungen.push({ text: 'Mit WC mindestens DN 100 als Grundleitung.' });
+
+      r.kacheln = [
+        { titel: 'Summe Anschlusswerte', wert: zahl(summe, 3) + ' l/s', farbe: '#6E6FA6', klein: anzahl + ' Objekte' },
+        { titel: 'Schmutzwasserabfluss', wert: zahl(Qtot, 3) + ' l/s', farbe: '#2B7BB9', klein: groesster >= Qww ? 'größter Einzelwert maßgebend' : 'K · √ΣDU' + (w.Qc + w.Qp > 0 ? ' + Q_c + Q_p' : '') },
+        { titel: 'Grundleitung', wert: n ? 'DN ' + ROHRE[n.i][0] : (i < 0 ? 'zu klein' : '–'), farbe: n ? 'var(--ergebnis)' : '#C0392B', klein: 'bei ' + zahl(w.J, 3) + ' cm/m (' + verhaeltnis(J) + ')' },
+        { titel: 'Füllungsgrad', wert: n ? 'h/d ' + zahl(n.hd, 2) : '–', farbe: n && n.hd <= grenzWert(w.grenze) ? 'var(--ergebnis)' : '#C0392B', klein: 'erlaubt ' + grenzText(w.grenze) },
+        { titel: 'Fließgeschwindigkeit', wert: n ? zahl(n.v, 2) + ' m/s' : '–', farbe: n && n.v >= 0.5 ? 'var(--ergebnis)' : '#F2A541', klein: 'mindestens 0,5 m/s' }
+      ];
+      r.aussage = 'Nicht alle Objekte laufen gleichzeitig. Deshalb wächst der Abfluss nur mit der Wurzel der Anschlusswerte: Viermal so viele Objekte ergeben nur doppelt so viel Wasser.';
+      r.rohr = n; r.Q = Qtot; r.groesster = groesster;
+      return r;
+    }
+
+    function rechneRohr(w) {
+      const r = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const J = w.J / 100, kb = w.kb / 1000;
+      const n = nachweis(r, w.Q, w.rohr, J, kb, w.grenze, null);
+      r.kacheln = [
+        { titel: 'Füllungsgrad', wert: isFinite(n.hd) ? 'h/d ' + zahl(n.hd, 2) : 'überlastet', farbe: isFinite(n.hd) && n.hd <= grenzWert(w.grenze) ? 'var(--ergebnis)' : '#C0392B', klein: 'erlaubt ' + grenzText(w.grenze) },
+        { titel: 'Fließgeschwindigkeit', wert: isFinite(n.v) ? zahl(n.v, 2) + ' m/s' : '–', farbe: n.v >= 0.5 ? 'var(--ergebnis)' : '#F2A541', klein: 'mindestens 0,5 m/s' },
+        { titel: 'Vollfüllung', wert: zahl(n.voll.Q * 1000, 3) + ' l/s', farbe: '#2B7BB9', klein: 'v = ' + zahl(n.voll.v, 2) + ' m/s' },
+        { titel: 'Kleinstes Gefälle', wert: isFinite(n.jMin) ? zahl(n.jMin * 100, 2) + ' cm/m' : '–', farbe: '#6E6FA6', klein: isFinite(n.jMin) ? verhaeltnis(n.jMin) + ' für h/d ' + grenzText(w.grenze) : '' },
+        { titel: 'Gefälle', wert: verhaeltnis(J), farbe: 'var(--text)', klein: zahl(w.J, 3) + ' cm/m = ' + zahl(w.J, 3) + ' %' }
+      ];
+      r.aussage = 'Ein Rohr führt nicht bei Vollfüllung am meisten ab, sondern bei etwa 94 % Füllung: Darüber wächst die Reibung am Rohrscheitel schneller als der Querschnitt. Die Geschwindigkeit ist bei halber Füllung schon fast so groß wie bei voller.';
+      r.rohr = n; r.Q = w.Q;
+      return r;
+    }
+
+    function rechneRegen(w) {
+      const r = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const flaeche = FLAECHEN[w.C], C = flaeche[1];
+      const Qr = w.r * C * w.A / 10000;
+      r.schritte.push({ formel: 'regen', titel: 'Regenwasserabfluss (' + flaeche[0] + ')',
+        a: 'Q_\\text{r} = r_{(D,T)} \\cdot C \\cdot \\frac{A}{10\\,000}',
+        b: 'Q_\\text{r} = ' + texZahl(w.r) + '\\,\\tfrac{\\text{l}}{\\text{s} \\cdot \\text{ha}} \\cdot ' + texZahl(C) + ' \\cdot \\frac{' + texZahl(w.A) + '\\,\\text{m}^2}{10\\,000\\,\\tfrac{\\text{m}^2}{\\text{ha}}} = ' + erg(texZahl(Qr, 3) + LS) });
+      const J = w.J / 100, kb = 0.001, i = bemessen(Qr / 1000, J, kb, w.grenze);
+      let n = null;
+      if (i < 0) r.meldungen.push({ fehler: true, text: 'Auch DN 300 reicht bei diesem Gefälle nicht. Mehr Gefälle wählen oder die Fläche auf mehrere Leitungen aufteilen.' });
+      else n = nachweis(r, Qr, i, J, kb, w.grenze, w.grenze < 0.9 ? 'innen' : 'aussen');
+      if (C < 0.8) r.meldungen.push({ text: 'Ein Gründach hält Wasser zurück und gibt es verzögert ab. Deshalb ist C kleiner und die Leitung kann kleiner werden.' });
+
+      r.kacheln = [
+        { titel: 'Regenabfluss', wert: zahl(Qr, 3) + ' l/s', farbe: '#2B7BB9', klein: zahl(w.A, 4) + ' m² · C = ' + zahl(C) },
+        { titel: 'Grundleitung', wert: n ? 'DN ' + ROHRE[n.i][0] : 'zu klein', farbe: n ? 'var(--ergebnis)' : '#C0392B', klein: 'bei ' + zahl(w.J, 3) + ' cm/m (' + verhaeltnis(J) + ')' },
+        { titel: 'Füllungsgrad', wert: n ? 'h/d ' + zahl(n.hd, 2) : '–', farbe: n && n.hd <= grenzWert(w.grenze) ? 'var(--ergebnis)' : '#C0392B', klein: 'erlaubt ' + grenzText(w.grenze) },
+        { titel: 'Fließgeschwindigkeit', wert: n ? zahl(n.v, 2) + ' m/s' : '–', farbe: n && n.v >= 0.5 ? 'var(--ergebnis)' : '#F2A541', klein: 'mindestens 0,5 m/s' }
+      ];
+      r.aussage = 'Ein Hektar sind 10 000 m². Eine Regenspende von ' + zahl(w.r) + ' l/(s·ha) heißt: Auf jeden Quadratmeter fallen ' + zahl(w.r / 10000 * 60, 3) + ' l pro Minute, auf diese Fläche zusammen ' + zahl(Qr * 60, 3) + ' l pro Minute.';
+      r.rohr = n; r.Q = Qr; r.C = C; r.art = flaeche[2];
+      return r;
+    }
+
+    const RECHNER = { schmutz: rechneSchmutz, rohr: rechneRohr, regen: rechneRegen };
+
+
+    // ============================================================
+    // Formelsammlung
+    // ============================================================
+
+    const FORMELN = [
+      { id: 'du', modi: ['schmutz'], tex: '\\textstyle\\sum DU = \\sum n \\cdot DU' },
+      { id: 'qww', modi: ['schmutz'], tex: 'Q_\\text{ww} = K \\cdot \\sqrt{\\textstyle\\sum DU} \\;\\geq\\; DU_\\text{max}' },
+      { id: 'qtot', modi: ['schmutz'], tex: 'Q_\\text{tot} = Q_\\text{ww} + Q_\\text{c} + Q_\\text{p}' },
+      { id: 'regen', modi: ['regen'], tex: 'Q_\\text{r} = r_{(D,T)} \\cdot C \\cdot \\frac{A}{10\\,000}' },
+      { id: 'pc', modi: ['schmutz', 'rohr', 'regen'], tex: 'v = -2 \\lg\\left(\\frac{2{,}51\\,\\nu}{d \\sqrt{2 g d J}} + \\frac{k_\\text{b}}{3{,}71\\,d}\\right) \\sqrt{2 g d J}' },
+      { id: 'voll', modi: ['schmutz', 'rohr', 'regen'], tex: 'Q_\\text{v} = \\frac{\\pi}{4} d^2 \\cdot v_\\text{v}' },
+      { id: 'teil', modi: ['schmutz', 'rohr', 'regen'], tex: '\\theta = 2 \\arccos\\left(1 - 2\\tfrac{h}{d}\\right) \\qquad A = \\tfrac{d^2}{8}(\\theta - \\sin\\theta) \\qquad r_\\text{hy} = \\frac{A}{d\\,\\theta / 2}' },
+      { id: 'jmin', modi: ['schmutz', 'rohr', 'regen'], tex: 'J = \\frac{\\Delta h}{L} \\qquad 1\\,\\tfrac{\\text{cm}}{\\text{m}} = 1\\,\\% = 1 : 100' }
+    ];
+
+    const KONSTANTEN = [
+      'g = 9{,}81\\,\\tfrac{\\text{m}}{\\text{s}^2} \\qquad \\nu = 1{,}31 \\cdot 10^{-6}\\,\\tfrac{\\text{m}^2}{\\text{s}} \\;(10\\,{}^\\circ\\text{C}) \\qquad k_\\text{b} = 1{,}0\\,\\text{mm}',
+      '1\\,\\text{ha} = 10\\,000\\,\\text{m}^2 \\qquad 1\\,\\text{m}^3 = 1000\\,\\text{l}'
+    ];
+
+    function formelnZeigen() {
+      const ziel = document.getElementById('formelsammlung');
+      ziel.innerHTML = '';
+      const abschnitt = document.createElement('section');
+      abschnitt.innerHTML = '<h3></h3>';
+      abschnitt.querySelector('h3').textContent = MODI[modus].name;
+      FORMELN.forEach(function (f) {
+        if (f.modi.indexOf(modus) < 0) return;
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        Formel.setze(d, f.tex, true);
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.formel === f.id; }));
+        abschnitt.append(d);
+      });
+      ziel.append(abschnitt);
+      const konst = document.createElement('section');
+      konst.innerHTML = '<h3>Konstanten und Umrechnung</h3>';
+      KONSTANTEN.forEach(function (tex) {
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        Formel.setze(d, tex, true);
+        konst.append(d);
+      });
+      ziel.append(konst);
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      ziel.innerHTML = '';
+      document.getElementById('felderhilfe').textContent = MODI[modus].hilfe;
+      const farben = { Objekte: '#6E6FA6', 'Gebäude': '#2B7BB9', Grundleitung: '#E4572E', Rohr: '#E4572E', Abfluss: '#2B7BB9', 'Fläche': '#2B7BB9' };
+      const gruppen = {};
+
+      MODI[modus].felder.forEach(function (f) {
+        if (!gruppen[f.gruppe]) {
+          const fs = document.createElement('fieldset');
+          fs.className = 'gruppe';
+          fs.style.setProperty('--farbe', farben[f.gruppe] || 'var(--linie)');
+          const lg = document.createElement('legend');
+          lg.textContent = f.gruppe;
+          fs.append(lg);
+          ziel.append(fs);
+          gruppen[f.gruppe] = fs;
+        }
+        const zeile = document.createElement('div');
+        zeile.className = 'feld gegeben';
+        const label = document.createElement('label');
+        label.htmlFor = 'f-' + f.k;
+        const symbol = document.createElement('span');
+        symbol.className = 'symbol';
+        if (f.tex) Formel.setze(symbol, f.tex);
+        else if (f.symbol) symbol.textContent = f.symbol;
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = f.name;
+        name.title = f.name;
+        label.append(symbol, name);
+        zeile.append(label);
+
+        if (f.wahl) {
+          const auswahl = document.createElement('select');
+          auswahl.id = 'f-' + f.k;
+          auswahl.className = 'wahl';
+          f.wahl.forEach(function (o) {
+            const opt = document.createElement('option');
+            opt.value = String(o[1]); opt.textContent = o[0];
+            auswahl.append(opt);
+          });
+          auswahl.value = String(werte[modus][f.k]);
+          auswahl.addEventListener('change', function () { werte[modus][f.k] = +auswahl.value; neuRechnen(); });
+          zeile.append(auswahl, document.createElement('span'));
+        } else {
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + f.k; eingabe.inputMode = f.ganz ? 'numeric' : 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.value = zahl(werte[modus][f.k], 6).replace(/ /g, '');
+          zeile.classList.toggle('null', f.ganz && !werte[modus][f.k]);
+          const einheit = document.createElement('span');
+          einheit.className = 'einheit';
+          einheit.textContent = f.einheit;
+          eingabe.addEventListener('input', function () {
+            const roh = eingabe.value.trim() === '' && f.ganz ? 0 : lies(eingabe.value);
+            const gut = isFinite(roh) && roh >= f.min && roh <= f.max && (!f.ganz || Math.round(roh) === roh);
+            zeile.classList.toggle('ungueltig', !gut);
+            eingabe.title = gut ? '' : 'erlaubt: ' + zahl(f.min) + ' bis ' + zahl(f.max) + ' ' + f.einheit;
+            if (!gut) return;
+            werte[modus][f.k] = roh;
+            zeile.classList.toggle('null', f.ganz && !roh);
+            neuRechnen();
+          });
+          eingabe.addEventListener('blur', function () {
+            zeile.classList.remove('ungueltig');
+            eingabe.value = zahl(werte[modus][f.k], 6).replace(/ /g, '');
+          });
+          zeile.append(eingabe, einheit);
+        }
+        zeile.append(document.createElement('span'));
+        gruppen[f.gruppe].append(zeile);
+      });
+    }
+
+    document.getElementById('zuruecksetzen').addEventListener('click', function () {
+      MODI[modus].felder.forEach(function (f) { werte[modus][f.k] = f.std; });
+      felderAufbauen();
+      neuRechnen();
+    });
+
+
+    // ============================================================
+    // Anzeigen
+    // ============================================================
+
+    function neuRechnen() {
+      ergebnis = RECHNER[modus](werte[modus]);
+      kachelnZeigen();
+      meldungenZeigen();
+      rechenwegZeigen();
+      formelnZeigen();
+      zustandText();
+    }
+
+    function kachelnZeigen() {
+      const ziel = document.getElementById('kacheln');
+      ziel.innerHTML = '';
+      ergebnis.kacheln.forEach(function (k) {
+        const d = document.createElement('div');
+        d.className = 'kachel';
+        d.style.setProperty('--farbe', k.farbe);
+        d.innerHTML = '<div class="titel"></div><div class="wert"></div>' + (k.klein ? '<small></small>' : '');
+        d.querySelector('.titel').textContent = k.titel;
+        d.querySelector('.wert').textContent = k.wert;
+        if (k.klein) d.querySelector('small').textContent = k.klein;
+        ziel.append(d);
+      });
+      document.getElementById('aussage').textContent = ergebnis.aussage;
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.meldungen.forEach(function (m) {
+        const d = document.createElement('div');
+        d.className = 'hinweis' + (m.fehler ? ' fehler' : '');
+        d.textContent = m.text;
+        box.append(d);
+      });
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        titel.textContent = s.titel;
+        const allgemein = document.createElement('div');
+        allgemein.className = 'rechnung';
+        Formel.setze(allgemein, '\\displaystyle ' + s.a);
+        const eingesetzt = document.createElement('div');
+        eingesetzt.className = 'rechnung';
+        Formel.setze(eingesetzt, '\\displaystyle ' + s.b);
+        li.append(titel, allgemein, eingesetzt);
+        liste.append(li);
+      });
+    }
+
+    function zustandText() {
+      const n = ergebnis.rohr, el = document.getElementById('zeitanzeige');
+      if (!n) { el.textContent = 'Q = ' + zahl(ergebnis.Q, 3) + ' l/s'; return; }
+      el.textContent = 'Q = ' + zahl(ergebnis.Q, 3) + ' l/s · DN ' + ROHRE[n.i][0] + (isFinite(n.hd) ? ' · h/d = ' + zahl(n.hd, 2) + ' · v = ' + zahl(n.v, 2) + ' m/s' : ' · überlastet');
+    }
+
+
+    // ============================================================
+    // Themen wählen
+    // ============================================================
+
+    function modusWaehlen(id) {
+      modus = id;
+      document.querySelectorAll('#modi button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+      felderAufbauen();
+      neuRechnen();
+    }
+
+    function modiAufbauen() {
+      const ziel = document.getElementById('modi');
+      Object.keys(MODI).forEach(function (id) {
+        const d = MODI[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 58 * dichte; bild.height = 58 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { modusWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 58, 58); piktogramm(k, id); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      k.lineWidth = 2; k.strokeStyle = text; k.lineJoin = 'round'; k.lineCap = 'round';
+      if (id === 'schmutz') {
+        // WC und Fallleitung
+        k.beginPath(); k.moveTo(8, 10); k.lineTo(8, 24); k.quadraticCurveTo(8, 34, 20, 34); k.lineTo(28, 34); k.quadraticCurveTo(30, 24, 22, 24); k.lineTo(8, 24); k.stroke();
+        k.strokeStyle = '#8A97A1'; k.lineWidth = 6;
+        k.beginPath(); k.moveTo(42, 4); k.lineTo(42, 46); k.lineTo(56, 52); k.stroke();
+        k.strokeStyle = '#2B7BB9'; k.lineWidth = 2.5;
+        k.beginPath(); k.moveTo(42, 14); k.lineTo(42, 24); k.moveTo(42, 32); k.lineTo(42, 42); k.stroke();
+      } else if (id === 'rohr') {
+        // Querschnitt mit Wasserstand
+        k.beginPath(); k.arc(29, 29, 22, 0, 7); k.stroke();
+        k.save(); k.beginPath(); k.arc(29, 29, 20, 0, 7); k.clip();
+        k.fillStyle = '#2B7BB9'; k.fillRect(0, 31, 58, 30); k.restore();
+        k.strokeStyle = '#E4572E'; k.setLineDash([3, 3]); k.beginPath(); k.moveTo(4, 29); k.lineTo(54, 29); k.stroke(); k.setLineDash([]);
+      } else {
+        // Dach mit Regen
+        k.beginPath(); k.moveTo(6, 34); k.lineTo(29, 16); k.lineTo(52, 34); k.stroke();
+        k.strokeStyle = '#2B7BB9';
+        [[14, 2], [26, 0], [38, 4], [48, 10], [10, 14]].forEach(function (p) { k.beginPath(); k.moveTo(p[0], p[1]); k.lineTo(p[0] - 2, p[1] + 7); k.stroke(); });
+        k.strokeStyle = '#8A97A1'; k.lineWidth = 4; k.beginPath(); k.moveTo(8, 36); k.lineTo(8, 54); k.stroke();
+      }
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    // Bewegung läuft immer, auch wenn das System „Animationen reduzieren“ meldet; anhalten geht über den Knopf
+    const bewegungAus = false;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const F = { text: '#13233A', leise: '#5E6B7A', linie: '#D9E0E3', flaeche: '#FFFFFF', flaeche2: '#F6F8F8' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || '#13233A';
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+      F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche = Thema.farbe('--flaeche') || '#FFFFFF';
+      F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const WASSER = '#2B7BB9', ROHR = '#8A97A1', GRENZE = '#E4572E', REGEN = '#6FA8DC';
+
+    let L = { W: 1100, H: 440, schmal: false, m: 1, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+    let laeuft = true, uhr = 0;
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720
+        ? { W: 520, H: 860, schmal: true, A: { x: 0, y: 0, s: 520 / 560 }, B: { x: 10, y: 430, s: 1 } }
+        : { W: 1100, H: 440, schmal: false, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      g.fillText(t, x, y);
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function linie(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 3; g.lineJoin = 'round'; g.lineCap = 'butt';
+      if (strich) g.setLineDash(strich);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+      g.setLineDash([]);
+    }
+
+    function zufall(i) { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+
+    // Geneigtes Rohr in Seitenansicht mit Wasser auf der Sohle; Teilchen wandern mit v
+    function rohrSeite(x1, y1, x2, y2, dicke, hd, v, saat) {
+      const lg = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / lg, uy = (y2 - y1) / lg;
+      // Normale immer nach unten, damit das Wasser auf der Sohle liegt, egal in welche Richtung es fließt
+      const unten = ux >= 0 ? 1 : -1, nx = -uy * unten, ny = ux * unten;
+      linie([[x1, y1], [x2, y2]], ROHR, dicke + 6);
+      linie([[x1, y1], [x2, y2]], F.flaeche2, dicke);
+      const h = Math.max(0, Math.min(1, isFinite(hd) ? hd : 1)) * dicke;
+      if (h > 0.5) {
+        const versatz = dicke / 2 - h / 2;
+        const a = [x1 + nx * versatz, y1 + ny * versatz], b = [x2 + nx * versatz, y2 + ny * versatz];
+        linie([a, b], isFinite(hd) ? 'rgba(43,123,185,.85)' : 'rgba(192,57,43,.8)', h);
+        const tempo = 30 + 70 * Math.min(1, (v || 0) / 2.5), abstand = 26;
+        g.fillStyle = 'rgba(255,255,255,.75)';
+        for (let s = ((bewegungAus ? 0 : uhr * tempo) % abstand); s < lg; s += abstand) {
+          const quer = (zufall(saat + Math.floor(s)) - 0.5) * h * 0.6;
+          g.beginPath(); g.arc(a[0] + ux * s + nx * quer, a[1] + uy * s + ny * quer, 1.8, 0, 7); g.fill();
+        }
+      }
+    }
+
+    // Fallleitung: Wasser fällt als Film an der Wand
+    function fallleitung(x, y1, y2, staerke) {
+      linie([[x, y1], [x, y2]], ROHR, 16);
+      linie([[x, y1], [x, y2]], F.flaeche2, 10);
+      if (staerke <= 0) return;
+      g.fillStyle = 'rgba(43,123,185,.85)';
+      for (let i = 0; i < 6 + staerke * 10; i++) {
+        const y = y1 + (((bewegungAus ? 0 : uhr * 160) + zufall(i) * (y2 - y1)) % (y2 - y1));
+        g.beginPath(); g.ellipse(x + (zufall(i + 9) - 0.5) * 5, y, 1.8, 5, 0, 0, 7); g.fill();
+      }
+    }
+
+    function gefaelleDreieck(x, y, J) {
+      const b = 70, h = Math.max(6, Math.min(40, J * 100 * 12));
+      linie([[x, y], [x + b, y], [x + b, y + h], [x, y]], F.leise, 1.2);
+      schreibe('1 : ' + zahl(1 / J, 3), x + b / 2, y - 6, { groesse: 12, farbe: F.leise, ausrichtung: 'center' });
+      schreibe(zahl(J * 100, 3) + ' cm/m', x + b + 6, y + h / 2 + 4, { groesse: 12, farbe: F.leise });
+    }
+
+    // Grundleitung mit überhöhtem Gefälle bis zum Kanal
+    function grundleitung(x1, y1, x2, n, J) {
+      const fall = Math.max(10, Math.min(70, J * 100 * 30));
+      const dicke = n ? 12 + ROHRE[n.i][0] * 0.07 : 18;
+      rohrSeite(x1, y1, x2, y1 + fall, dicke, n ? n.hd : NaN, n ? n.v : 0, 3);
+      schreibe(n ? 'Grundleitung DN ' + ROHRE[n.i][0] : 'Grundleitung', (x1 + x2) / 2, y1 + fall / 2 - dicke / 2 - 12, { groesse: 13, fett: true, ausrichtung: 'center' });
+      gefaelleDreieck(x2 - 160, y1 + fall + 34, J);
+      schreibe('zum Kanal →', x2, y1 + fall + 30, { groesse: 12, farbe: F.leise, ausrichtung: 'right', technik: false });
+      schreibe('Gefälle überhöht gezeichnet', x1, y1 + fall + 70, { groesse: 11, farbe: F.leise, technik: false });
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      if (laeuft) uhr += dt;
+      const links = { schmutz: zeichneSchmutz, rohr: zeichneRohr, regen: zeichneRegen }[modus];
+      [[L.A, links], [L.B, zeichneQuerschnitt]].forEach(function (feld) {
+        g.save();
+        g.translate(feld[0].x, feld[0].y);
+        g.scale(feld[0].s, feld[0].s);
+        feld[1]();
+        g.restore();
+      });
+    }
+
+
+    // ---------- Schmutzwasser ----------
+    function zeichneSchmutz() {
+      const w = werte.schmutz, n = ergebnis.rohr;
+      schreibe('Vom Objekt zum Kanal', 20, 26, { groesse: 17, fett: true });
+
+      // Objekte als Plaketten, die in die Sammelleitung abgeben
+      const liste = OBJEKTE.map(function (o, i) { return { name: o[0], du: o[1], n: w['o' + i] }; }).filter(function (o) { return o.n > 0; });
+      const spalten = 3, pb = 136, ph = 30;
+      liste.slice(0, 9).forEach(function (o, i) {
+        const x = 130 + (i % spalten) * (pb + 8), y = 44 + Math.floor(i / spalten) * (ph + 6);
+        rund(x, y, pb, ph, 8); g.fillStyle = F.flaeche2; g.fill();
+        g.fillStyle = WASSER; g.fillRect(x, y + ph - 4, pb * Math.min(1, o.du / 2.5), 4);
+        schreibe(o.n + '×', x + 8, y + 19, { groesse: 13, fett: true });
+        let name = o.name.replace(' (Haushalt)', '').replace('-Spülkasten', '');
+        if (name.length > 20) name = name.slice(0, 19) + '…';
+        schreibe(name, x + 30, y + 19, { groesse: 11, technik: false, farbe: F.leise });
+      });
+      if (liste.length > 9) schreibe('+ ' + (liste.length - 9) + ' weitere', 540, 160, { groesse: 11, farbe: F.leise, ausrichtung: 'right', technik: false });
+      if (!liste.length) schreibe('Keine Objekte eingetragen', 300, 80, { groesse: 13, farbe: F.leise, ausrichtung: 'center', technik: false });
+
+      const staerke = Math.min(1, (ergebnis.Q || 0) / 6);
+      const yS = 172;
+      rohrSeite(546, yS, 70, yS + 10, 12, Math.min(0.6, 0.2 + staerke * 0.4), 0.8, 7);
+      schreibe('Anschluss- und Sammelleitungen', 300, yS - 12, { groesse: 12, farbe: F.leise, ausrichtung: 'center', technik: false });
+      fallleitung(62, yS + 8, 300, staerke);
+      schreibe('Fallleitung', 80, 250, { groesse: 12, farbe: F.leise, technik: false });
+      grundleitung(62, 300, 546, n, w.J / 100);
+
+      schreibe('Q = ' + zahl(ergebnis.Q, 3) + ' l/s', 20, 70, { groesse: 18, fett: true, farbe: WASSER });
+      schreibe('ΣDU ' + zahl(liste.reduce(function (s, o) { return s + o.n * o.du; }, 0), 3), 20, 92, { groesse: 13, farbe: F.leise });
+    }
+
+
+    // ---------- Rohr und Gefälle ----------
+    function zeichneRohr() {
+      const w = werte.rohr, n = ergebnis.rohr, rohr = ROHRE[w.rohr];
+      schreibe('DN ' + rohr[0] + ' mit ' + zahl(w.J, 3) + ' cm/m Gefälle', 20, 26, { groesse: 17, fett: true });
+      const fall = Math.max(10, Math.min(90, w.J * 100 * 30)), dicke = 24 + rohr[2] * 0.22;
+      rohrSeite(40, 120, 520, 120 + fall, dicke, n.hd, n.v, 11);
+      schreibe('v = ' + (isFinite(n.v) ? zahl(n.v, 2) + ' m/s' : '–'), 280, 120 + fall / 2 + dicke / 2 + 26, { groesse: 18, fett: true, ausrichtung: 'center', farbe: WASSER });
+      schreibe('Q = ' + zahl(w.Q, 3) + ' l/s', 280, 120 + fall / 2 + dicke / 2 + 48, { groesse: 15, ausrichtung: 'center' });
+
+      // Höhenunterschied auf 10 m
+      const y = 330;
+      schreibe('Auf 10 m Länge fällt die Leitung um', 40, y, { groesse: 13, technik: false, farbe: F.leise });
+      schreibe(zahl(w.J * 10, 3) + ' cm', 40, y + 30, { groesse: 26, fett: true });
+      gefaelleDreieck(300, y - 10, w.J / 100);
+      schreibe('Gefälle überhöht gezeichnet', 40, y + 60, { groesse: 11, farbe: F.leise, technik: false });
+    }
+
+
+    // ---------- Regenwasser ----------
+    function zeichneRegen() {
+      const w = werte.regen, n = ergebnis.rohr, art = ergebnis.art;
+      schreibe('Vom Dach zum Kanal', 20, 26, { groesse: 17, fett: true });
+
+      const xl = 110, xr = 500, traufe = 170, first = art === 'schraeg' ? 80 : 150;
+      const dachHoehe = function (x) {
+        if (x < xl || x > xr) return traufe + 120;
+        if (art !== 'schraeg') return first;
+        const m = (xl + xr) / 2;
+        return first + (traufe - first) * Math.abs(x - m) / (m - xl);
+      };
+
+      // Regen
+      const tropfen = Math.round(20 + Math.min(1, w.r / 600) * 80);
+      g.strokeStyle = REGEN; g.lineWidth = 1.5;
+      for (let i = 0; i < tropfen; i++) {
+        const x = 70 + zufall(i) * 470, unten = dachHoehe(x);
+        const y = 40 + (((bewegungAus ? 0 : uhr * 260) + zufall(i + 77) * 300) % 300);
+        if (y + 8 > unten) continue;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x - 2, y + 8); g.stroke();
+      }
+
+      // Dach je nach Oberfläche
+      g.fillStyle = F.flaeche2; g.strokeStyle = F.text; g.lineWidth = 2.5;
+      g.beginPath();
+      if (art === 'schraeg') { g.moveTo(xl, traufe); g.lineTo((xl + xr) / 2, first); g.lineTo(xr, traufe); }
+      else { g.moveTo(xl, first); g.lineTo(xr, first); g.lineTo(xr, traufe); g.lineTo(xl, traufe); g.closePath(); }
+      g.fill(); g.stroke();
+      if (art === 'gruen') { g.fillStyle = '#5E9E4A'; g.fillRect(xl, first - 12 - (1 - ergebnis.C) * 14, xr - xl, 12 + (1 - ergebnis.C) * 14); }
+      if (art === 'kies') { g.fillStyle = '#A9A39A'; for (let i = 0; i < 60; i++) { g.beginPath(); g.arc(xl + 6 + zufall(i) * (xr - xl - 12), first - 3 - zufall(i + 3) * 4, 2.4, 0, 7); g.fill(); } }
+      if (art === 'hof') schreibe('Hoffläche', (xl + xr) / 2, first + 14, { groesse: 12, farbe: F.leise, ausrichtung: 'center', technik: false });
+
+      // Rinne und Fallrohr
+      linie([[xl - 18, traufe + 4], [xl + 4, traufe + 4]], ROHR, 8);
+      fallleitung(xl - 14, traufe + 8, 300, Math.min(1, ergebnis.Q / 10));
+      grundleitung(xl - 14, 300, 546, n, w.J / 100);
+
+      schreibe('A = ' + zahl(w.A, 4) + ' m²', (xl + xr) / 2, traufe + 30, { groesse: 15, fett: true, ausrichtung: 'center' });
+      schreibe('C = ' + zahl(ergebnis.C) + ' · r = ' + zahl(w.r) + ' l/(s·ha)', (xl + xr) / 2, traufe + 50, { groesse: 13, ausrichtung: 'center', farbe: F.leise });
+      schreibe('Q = ' + zahl(ergebnis.Q, 3) + ' l/s', 20, 60, { groesse: 18, fett: true, farbe: WASSER });
+    }
+
+
+    // ---------- Querschnitt und Teilfüllungskurve ----------
+    function zeichneQuerschnitt() {
+      const n = ergebnis.rohr, w = werte[modus];
+      schreibe('Rohrquerschnitt', 20, 18, { groesse: 17, fett: true });
+      if (!n) { schreibe('keine passende Nennweite', 130, 180, { groesse: 14, farbe: F.leise, ausrichtung: 'center', technik: false }); return; }
+      const rohr = ROHRE[n.i], cx = 130, cy = 160, r = 96, grenze = grenzWert(w.grenze), hd = n.hd;
+
+      g.beginPath(); g.arc(cx, cy, r + 8, 0, 7); g.fillStyle = ROHR; g.fill();
+      g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = F.flaeche2; g.fill();
+      g.save(); g.beginPath(); g.arc(cx, cy, r, 0, 7); g.clip();
+      const voll = !isFinite(hd), stand = cy + r - 2 * r * (voll ? 1 : hd);
+      g.fillStyle = voll ? 'rgba(192,57,43,.8)' : 'rgba(43,123,185,.85)';
+      g.beginPath(); g.moveTo(cx - r, stand);
+      for (let x = -r; x <= r; x += 4) g.lineTo(cx + x, stand + (bewegungAus ? 0 : Math.sin(x / 14 + uhr * 3) * 1.6));
+      g.lineTo(cx + r, cy + r); g.lineTo(cx - r, cy + r); g.closePath(); g.fill();
+      g.restore();
+      const gy = cy + r - 2 * r * grenze;
+      linie([[cx - r - 14, gy], [cx + r + 14, gy]], GRENZE, 2, [6, 4]);
+      schreibe('erlaubt ' + grenzText(w.grenze), cx + r + 16, gy + 4, { groesse: 12, fett: true, farbe: GRENZE });
+
+      schreibe('DN ' + rohr[0] + ' · di ' + zahl(rohr[2]) + ' mm', cx, cy + r + 34, { groesse: 14, fett: true, ausrichtung: 'center' });
+      schreibe(voll ? 'überlastet' : 'h/d = ' + zahl(hd, 2), cx, cy + r + 60, { groesse: 22, fett: true, ausrichtung: 'center', farbe: voll || hd > grenze + 1e-9 ? '#C0392B' : WASSER });
+      schreibe(zahl(ergebnis.Q, 3) + ' von ' + zahl(n.voll.Q * 1000, 3) + ' l/s (voll)', cx, cy + r + 82, { groesse: 13, ausrichtung: 'center', farbe: F.leise });
+
+      // Teilfüllungskurve: Q/Qv und v/vv über h/d
+      const x0 = 300, x1 = 480, y0 = 50, y1 = 290;
+      const px = function (a) { return x0 + a / 1.2 * (x1 - x0); }, py = function (h) { return y1 - h * (y1 - y0); };
+      schreibe('Teilfüllung', x0 - 20, 18, { groesse: 15, fett: true });
+      linie([[x0, y0 - 8], [x0, y1], [x1 + 6, y1]], F.text, 1.5);
+      [0, 0.5, 1].forEach(function (h) { schreibe(zahl(h), x0 - 6, py(h) + 4, { groesse: 11, farbe: F.leise, ausrichtung: 'right' }); });
+      [0.5, 1].forEach(function (a) {
+        linie([[px(a), y0], [px(a), y1]], F.linie, 1);
+        schreibe(zahl(a), px(a), y1 + 16, { groesse: 11, farbe: F.leise, ausrichtung: 'center' });
+      });
+      schreibe('h/d', x0 - 8, y0 - 14, { groesse: 12, fett: true, ausrichtung: 'center' });
+      const J = w.J / 100, kb = modus === 'rohr' ? w.kb / 1000 : 0.001;
+      [['Q / Qv', 'Q', WASSER], ['v / vv', 'v', '#F2A541']].forEach(function (k, j) {
+        g.strokeStyle = k[2]; g.lineWidth = 2.5; g.beginPath();
+        for (let i = 1; i <= 100; i++) {
+          const h = i / 100, a = abfluss(h, n.d, J, kb)[k[1]] / n.voll[k[1]];
+          if (i === 1) g.moveTo(px(a), py(h)); else g.lineTo(px(a), py(h));
+        }
+        g.stroke();
+        g.fillStyle = k[2]; g.fillRect(x0 + j * 90, y1 + 30, 14, 4);
+        schreibe(k[0], x0 + 18 + j * 90, y1 + 36, { groesse: 12, technik: false, farbe: F.leise });
+      });
+      linie([[x0, py(grenze)], [x1, py(grenze)]], GRENZE, 1.5, [5, 4]);
+      if (isFinite(hd)) {
+        linie([[x0, py(hd)], [x1, py(hd)]], F.text, 1.2, [3, 3]);
+        const t = abfluss(hd, n.d, J, kb);
+        [[t.Q / n.voll.Q, WASSER], [t.v / n.voll.v, '#F2A541']].forEach(function (p) {
+          g.beginPath(); g.arc(px(p[0]), py(hd), 5, 0, 7); g.fillStyle = p[1]; g.fill();
+        });
+      }
+    }
+
+
+    // ============================================================
+    // Abspielen
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    knopf.addEventListener('click', function () {
+      laeuft = !laeuft;
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : '▶ Fließen lassen';
+    });
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.max(0, Math.min(0.05, (jetzt - vorher) / 1000));
+      vorher = jetzt;
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    modiAufbauen();
+    anpassen();
+    // Thema direkt verlinkbar, z. B. abwasser.html#regen
+    const anker = location.hash.slice(1);
+    modusWaehlen(MODI[anker] ? anker : 'schmutz');
+    requestAnimationFrame(schleife);
+  })();
+  </script>
+</body>
+</html>

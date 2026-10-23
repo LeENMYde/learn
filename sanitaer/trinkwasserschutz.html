@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trinkwasserschutz</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .modi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+
+    @media (max-width: 760px) {
+      .modi { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .modi button { flex: 0 0 72%; scroll-snap-align: start; }
+    }
+
+    .modi button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 2px 12px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .modi button:hover { border-color: var(--leise); }
+    .modi button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .modi button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .modi canvas { grid-row: span 2; width: 58px; height: 58px; }
+    .modi b { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+    .modi small { color: var(--leise); font-size: .82rem; line-height: 1.3; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; touch-action: pan-y; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitachse { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; }
+    .zeitanzeige { font-family: var(--technik); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+    /* Ergebnis auf einen Blick */
+    .ergebnis-tafel { margin-top: 18px; }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .titel { color: var(--leise); font-size: .88rem; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.75rem); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+    .aussage { margin: 14px 0 0; font-size: .98rem; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    .feld .wahl { grid-column: 2 / span 2; }
+    .feld.ungueltig input { background: var(--fehler-flaeche); border-color: var(--fehler); color: var(--fehler); }
+
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+
+    /* Regeln und Sicherungsarmaturen */
+    .wissen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .wissen { grid-template-columns: minmax(0, 1fr); } }
+    .tabelle { width: 100%; border-collapse: collapse; font-size: .93rem; }
+    .tabelle th, .tabelle td { padding: 8px 6px; border-bottom: 1px solid var(--linie); text-align: left; vertical-align: top; }
+    .tabelle th { color: var(--leise); font-weight: 400; font-size: .85rem; }
+    .tabelle td.wert { font-family: var(--technik); font-size: 1.05rem; white-space: nowrap; }
+    .tabelle td small { display: block; color: var(--leise); font-size: .8rem; }
+    .tabelle .kat { font-family: var(--technik); font-weight: 600; font-size: 1.3rem; text-align: center; width: 36px; }
+    .k1 { color: #2B7BB9; } .k2 { color: #6E6FA6; } .k3 { color: #F2A541; } .k4 { color: #E4572E; } .k5 { color: #C0392B; }
+    .tabelle-rahmen { overflow-x: auto; }
+    .anmerkung { color: var(--leise); font-size: .85rem; margin: 12px 0 0; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Trinkwasser&shy;schutz</span></h1>
+      <p>Wann sich Legionellen vermehren und wann sie absterben, warum Zirkulation, regelmäßiger Wasserwechsel und kaltes Kaltwasser wichtig sind und wie viel Wasser in einer Leitung stehen darf. Werte ändern, zusehen, nachrechnen.</p>
+    </section>
+
+    <nav class="modi" id="modi" aria-label="Thema wählen"></nav>
+
+    <section class="buehne" aria-label="Simulation">
+      <canvas id="szene" role="img" aria-label="Simulation zum gewählten Thema"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">▶ Abspielen</button>
+        <div class="zeitachse">
+          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="0" aria-label="Zeitpunkt">
+          <span class="zeitanzeige" id="zeitanzeige"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tafel ergebnis-tafel" aria-labelledby="h-ergebnis">
+      <h2 id="h-ergebnis">Auf einen Blick</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <p class="aussage" id="aussage"></p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Einstellungen</h2>
+        <p class="hilfe" id="felderhilfe"></p>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="zuruecksetzen">Werte zurücksetzen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte mit den aktuellen Werten.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+
+    <div class="wissen">
+      <section class="tafel" aria-labelledby="h-regeln">
+        <h2 id="h-regeln">Regeln auf einen Blick</h2>
+        <p class="hilfe">Die wichtigsten Werte für Trinkwasser-Installationen.</p>
+        <div class="tabelle-rahmen">
+          <table class="tabelle">
+            <thead><tr><th>Was</th><th>Wert</th><th>Quelle</th></tr></thead>
+            <tbody>
+              <tr><td>Austritt aus dem Trinkwassererwärmer</td><td class="wert">≥ 60 °C</td><td>DVGW W 551<small>Großanlagen; in Kleinanlagen empfohlen, nie unter 50 °C</small></td></tr>
+              <tr><td>Zirkulationsrücklauf</td><td class="wert">≥ 55 °C</td><td>DVGW W 551<small>höchstens 5 K unter der Austrittstemperatur</small></td></tr>
+              <tr><td>Warmwasser an der Zapfstelle</td><td class="wert">≥ 55 °C</td><td>DIN 1988-200<small>spätestens 30 s nach voll geöffneter Zapfstelle</small></td></tr>
+              <tr><td>Kaltwasser an der Zapfstelle</td><td class="wert">≤ 25 °C</td><td>DIN 1988-200, VDI/DVGW 6023<small>spätestens 30 s nach voll geöffneter Zapfstelle</small></td></tr>
+              <tr><td>Leitungsinhalt ohne Zirkulation</td><td class="wert">≤ 3 l</td><td>DVGW W 551<small>je Fließweg vom Erwärmer bis zur Zapfstelle</small></td></tr>
+              <tr><td>Großanlage</td><td class="wert">&gt; 400 l<br>oder &gt; 3 l</td><td>DVGW W 551<small>Speicherinhalt oder Inhalt einer Leitung; Ein- und Zweifamilienhäuser zählen immer als Kleinanlage</small></td></tr>
+              <tr><td>Wasserwechsel an jeder Zapfstelle</td><td class="wert">≤ 72 h</td><td>VDI/DVGW 6023<small>bestimmungsgemäßer Betrieb; sonst spülen</small></td></tr>
+              <tr><td>Thermische Desinfektion</td><td class="wert">≥ 70 °C<br>≥ 3 min</td><td>DVGW W 551<small>an jeder Entnahmestelle, Verbrühungsgefahr beachten</small></td></tr>
+              <tr><td>Technischer Maßnahmenwert Legionellen</td><td class="wert">100 KBE<br>/100 ml</td><td>TrinkwV<small>darüber: Gefährdungsanalyse und Maßnahmen</small></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-kategorien">
+        <h2 id="h-kategorien">Schutz vor Rückfließen</h2>
+        <p class="hilfe">DIN EN 1717 teilt Flüssigkeiten in fünf Kategorien ein. Je gefährlicher die Flüssigkeit, desto stärker muss das Trinkwasser abgesichert sein.</p>
+        <div class="tabelle-rahmen">
+          <table class="tabelle">
+            <thead><tr><th>Kat.</th><th>Gefährdung und Beispiele</th><th>Typische Sicherung</th></tr></thead>
+            <tbody>
+              <tr><td class="kat k1">1</td><td>Trinkwasser direkt aus der Installation<small>keine Gefährdung</small></td><td>keine</td></tr>
+              <tr><td class="kat k2">2</td><td>Geschmack, Geruch, Farbe oder Temperatur verändert<small>erwärmtes Trinkwasser, Kaffee, Tee</small></td><td>Rückfluss&shy;verhinderer (EA, EB)</td></tr>
+              <tr><td class="kat k3">3</td><td>Gesundheitsgefahr durch weniger giftige Stoffe<small>Heizungswasser ohne Zusätze, Spülmittel</small></td><td>Systemtrenner CA</td></tr>
+              <tr><td class="kat k4">4</td><td>Giftige, krebserregende oder radioaktive Stoffe<small>Heizungswasser mit Inhibitoren, Pflanzenschutzmittel</small></td><td>Systemtrenner BA</td></tr>
+              <tr><td class="kat k5">5</td><td>Krankheitserreger (Bakterien, Viren)<small>Abwasser, WC, Regenwasser, Bidet</small></td><td>freier Auslauf (AA, AB)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="anmerkung">Typische Zuordnungen; im Einzelfall entscheiden Norm und Hersteller.</p>
+      </section>
+    </div>
+
+    <p class="anmerkung">Die Simulation ist ein vereinfachtes Lernmodell mit typischen Laborwerten. Echte Anlagen hängen zusätzlich von Biofilm, Nährstoffen, Werkstoffen und Hydraulik ab und ersetzen keine Probenahme oder Gefährdungsanalyse.</p>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Legionellen-Modell (vereinfacht, Laborwerte)
+    // ============================================================
+    //
+    // Vermehrung: Verdopplungen pro Stunde je Temperatur, dazwischen linear
+    // Abtötung ab 50 °C: D-Wert (Zeit für 90 %) mit D60 = 2 min und z = 6 K
+    // Rechnung in lg N (N in KBE/100 ml), begrenzt auf 0,1 … 100 000
+
+    const WACHSTUM = [[20, 0], [25, 1 / 48], [30, 1 / 16], [35, 1 / 9], [37, 1 / 8], [40, 1 / 10], [42, 1 / 14], [45, 1 / 30], [48, 0]];
+    const D60 = 2;      // min
+    const ZWERT = 6;    // K
+    const LG2 = Math.log10(2);
+    const N_MIN = -1, N_MAX = 5;
+    const MASSNAHMENWERT = 100;
+
+    function verdopplungen(T) {
+      if (!(T > 20 && T < 48)) return 0;
+      for (let i = 1; i < WACHSTUM.length; i++) {
+        if (T <= WACHSTUM[i][0]) {
+          const a = WACHSTUM[i - 1], b = WACHSTUM[i];
+          return a[1] + (b[1] - a[1]) * (T - a[0]) / (b[0] - a[0]);
+        }
+      }
+      return 0;
+    }
+
+    function dWert(T) { return D60 * Math.pow(10, (60 - T) / ZWERT); }
+
+    // Änderung von lg N pro Stunde
+    function lgRate(T) {
+      if (T >= 50) return -60 / dWert(T);
+      return verdopplungen(T) * LG2;
+    }
+
+    function begrenzen(n) { return Math.max(N_MIN, Math.min(N_MAX, n)); }
+
+    // Frisches Wasser kommt nach, ein Zehntel bleibt im Biofilm hängen
+    function spuelen(zulauf, alt) { return begrenzen(Math.log10(Math.pow(10, zulauf) + Math.pow(10, alt - 1))); }
+
+    function bereich(T) {
+      if (T < 20) return { text: 'kaum Vermehrung', farbe: '#2B7BB9' };
+      if (T < 25) return { text: 'langsame Vermehrung', farbe: '#6E6FA6' };
+      if (T <= 45) return { text: 'starke Vermehrung', farbe: '#C0392B' };
+      if (T < 50) return { text: 'Vermehrung stockt', farbe: '#F2A541' };
+      if (T < 55) return { text: 'langsame Abtötung', farbe: '#F2A541' };
+      if (T < 60) return { text: 'Abtötung in Minuten', farbe: '#0E6B6A' };
+      if (T < 70) return { text: 'schnelle Abtötung', farbe: '#0E6B6A' };
+      return { text: 'Abtötung in Sekunden', farbe: '#0E6B6A' };
+    }
+
+    // Einstufung nach DVGW W 551
+    function bewertung(n) {
+      const w = Math.pow(10, n);
+      if (w <= 100) return { text: 'unauffällig', farbe: 'var(--ergebnis)' };
+      if (w <= 1000) return { text: 'mittlere Kontamination', farbe: '#F2A541' };
+      if (w <= 10000) return { text: 'hohe Kontamination', farbe: '#E4572E' };
+      return { text: 'extrem hohe Kontamination', farbe: '#C0392B' };
+    }
+
+
+    // ============================================================
+    // Themen und Eingaben
+    // ============================================================
+
+    // Rohre: Name, Außendurchmesser, Wandstärke (mm)
+    const ROHRE = [
+      ['Kupfer 12 × 1', 12, 1], ['Kupfer 15 × 1', 15, 1], ['Kupfer 18 × 1', 18, 1], ['Kupfer 22 × 1', 22, 1], ['Kupfer 28 × 1,5', 28, 1.5],
+      ['Verbundrohr 16 × 2', 16, 2], ['Verbundrohr 20 × 2', 20, 2], ['Verbundrohr 26 × 3', 26, 3], ['Verbundrohr 32 × 3', 32, 3]
+    ];
+
+    const MODI = {
+      temperatur: {
+        name: 'Legionellen und Temperatur', kurz: 'vermehren oder abtöten?', verb: 'Verweilen',
+        hilfe: 'Temperatur eintragen oder in der Grafik ziehen. Die Verweilzeit ist, wie lange das Wasser bei dieser Temperatur steht.',
+        felder: [
+          { k: 'T', tex: 'T', name: 'Wassertemperatur', einheit: '°C', std: 37, min: 0, max: 100 },
+          { k: 'N0', tex: 'N_0', name: 'Legionellen am Anfang', einheit: 'KBE/100 ml', std: 50, min: 0.1, max: 100000 },
+          { k: 't', tex: 't', name: 'Verweilzeit', einheit: 'h', std: 48, min: 0.01, max: 2000 }
+        ]
+      },
+      anlage: {
+        name: 'Warmwasseranlage', kurz: 'Zirkulation, Stagnation, Kaltwasser', verb: '3 Wochen abspielen',
+        hilfe: 'Ein Haus mit Speicher, Küche, Bad und einem selten genutzten Gäste-WC, drei Wochen im Zeitraffer. Küche alle 4 h und Bad alle 12 h (nachts von 22 bis 6 Uhr nicht), das Gäste-WC so oft wie eingestellt.',
+        felder: [
+          { k: 'Tsp', tex: 'T_\\text{Sp}', name: 'Speichertemperatur', einheit: '°C', std: 60, min: 20, max: 90 },
+          { k: 'zirk', name: 'Zirkulation', wahl: [['in Betrieb', 1], ['keine / abgeschaltet', 0]], std: 1 },
+          { k: 'dTz', tex: '\\Delta T_\\text{Z}', name: 'Abkühlung bis zum Rücklauf', einheit: 'K', std: 5, min: 0, max: 40 },
+          { k: 'Tu', tex: 'T_\\text{U}', name: 'Umgebung im Schacht', einheit: '°C', std: 26, min: 0, max: 45 },
+          { k: 'Tkw', tex: 'T_\\text{KW}', name: 'Kaltwasser vom Versorger', einheit: '°C', std: 12, min: 2, max: 30 },
+          { k: 'tg', tex: 't_\\text{Stag}', name: 'Gäste-WC genutzt alle', einheit: 'h', std: 168, min: 1, max: 1000 },
+          { k: 'des', name: 'Thermische Desinfektion', wahl: [['keine', 0], ['an Tag 7', 7], ['an Tag 14', 14]], std: 0 }
+        ]
+      },
+      dreiliter: {
+        name: '3-Liter-Regel', kurz: 'Leitungsinhalt und Wartezeit', verb: 'Zapfen',
+        hilfe: 'Eine Warmwasserleitung ohne Zirkulation vom Abzweig bis zur Zapfstelle. Beim Öffnen kommt erst das abgekühlte Wasser.',
+        felder: [
+          { k: 'rohr', name: 'Rohr', wahl: ROHRE.map(function (r, i) { return [r[0], i]; }), std: 1 },
+          { k: 'l', tex: 'l', name: 'Länge ohne Zirkulation', einheit: 'm', std: 12, min: 0.1, max: 200 },
+          { k: 'Vp', tex: '\\dot{V}', name: 'Durchfluss an der Zapfstelle', einheit: 'l/min', std: 6, min: 0.1, max: 100 },
+          { k: 'Tw', tex: 'T_\\text{W}', name: 'Warmwasser am Abzweig', einheit: '°C', std: 58, min: 20, max: 90 },
+          { k: 'Tl', tex: 'T_\\text{L}', name: 'abgekühltes Wasser in der Leitung', einheit: '°C', std: 22, min: 0, max: 60 }
+        ]
+      }
+    };
+
+    // Zeitkonstanten für Abkühlen und Erwärmen (Annahmen)
+    const TAU = { v: 3, s: 1, kw: 5 };
+    const ZAPFTAKT = { sk: 4, sb: 12 };
+    const SIM_TAGE = 21;
+
+    let modus = 'anlage';
+    const werte = {};
+    Object.keys(MODI).forEach(function (m) {
+      werte[m] = {};
+      MODI[m].felder.forEach(function (f) { werte[m][f.k] = f.std; });
+    });
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (wert === 0) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    // auf gültige Stellen runden (1234 → 1200)
+    function gerundet(w, stellen) {
+      if (!isFinite(w) || w === 0) return w;
+      const f = Math.pow(10, Math.floor(Math.log10(Math.abs(w))) - (stellen - 1));
+      return Math.round(w / f) * f;
+    }
+
+    function kbe(n) {
+      const w = Math.pow(10, n);
+      if (w < 1) return '< 1';
+      return zahl(gerundet(w, 2), 6);
+    }
+
+    function dauer(sekunden) {
+      if (!isFinite(sekunden)) return '–';
+      if (sekunden < 120) return zahl(sekunden, 3) + ' s';
+      if (sekunden < 7200) return zahl(sekunden / 60, 3) + ' min';
+      if (sekunden < 3 * 86400) return zahl(sekunden / 3600, 3) + ' h';
+      return zahl(sekunden / 86400, 3) + ' Tage';
+    }
+
+    function texZahl(w, stellen) {
+      if (w !== 0 && isFinite(w) && (Math.abs(w) < 0.001 || Math.abs(w) >= 1e7)) {
+        const e = Math.floor(Math.log10(Math.abs(w)));
+        return Formel.zahl(zahl(w / Math.pow(10, e), 3)) + ' \\cdot 10^{' + e + '}';
+      }
+      const text = Formel.zahl(zahl(w, stellen || 4));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    function texDauer(sekunden) {
+      if (sekunden < 120) return texZahl(sekunden, 3) + '\\,\\text{s}';
+      if (sekunden < 7200) return texZahl(sekunden / 60, 3) + '\\,\\text{min}';
+      return texZahl(sekunden / 3600, 3) + '\\,\\text{h}';
+    }
+
+    const GRAD = '\\,{}^\\circ\\text{C}';
+    const KBE = '\\,\\tfrac{\\text{KBE}}{100\\,\\text{ml}}';
+
+    function erg(tex) { return '\\htmlClass{ergebnis}{\\boldsymbol{' + tex + '}}'; }
+
+
+    // ============================================================
+    // Simulation der Warmwasseranlage
+    // ============================================================
+    //
+    // Abschnitte: sp Speicher, v Verteilung und Steigleitung, sk/sb/sg Stichleitungen
+    // zu Küche, Bad, Gäste-WC, kw Kaltwasserleitung zum Gäste-WC (liegt im warmen Schacht)
+
+    const ABSCHNITTE = ['sp', 'v', 'sk', 'sb', 'sg', 'kw'];
+    let sim = null;
+
+    // Nachts zwischen 22 und 6 Uhr zapft niemand in Küche und Bad
+    function nachts(t) { const h = t % 24; return h >= 22 || h < 6; }
+
+    function simulieren(w) {
+      const dt = 0.05, schritte = Math.round(SIM_TAGE * 24 / dt), probeAlle = 5;
+      const zirk = w.zirk === 1;
+      const T = { sp: w.Tsp, v: zirk ? w.Tsp - w.dTz : w.Tu, sk: w.Tu, sb: w.Tu, sg: w.Tu, kw: w.Tkw };
+      const N = { sp: 0, v: 0, sk: 0, sb: 0, sg: 0, kw: 0 };
+      const takt = { sk: ZAPFTAKT.sk, sb: ZAPFTAKT.sb, sg: w.tg };
+      const naechste = { sk: 1, sb: 3, sg: w.tg };
+      const zuletzt = { sk: -99, sb: -99, sg: -99 };
+      const proben = [];
+      const hoechst = { v: N_MIN, sk: N_MIN, sb: N_MIN, sg: N_MIN, kw: N_MIN, kwT: T.kw };
+      const kuehlen = function (Ta, tau) { return w.Tu + (Ta - w.Tu) * Math.exp(-dt / tau); };
+
+      for (let i = 0; i <= schritte; i++) {
+        const t = i * dt;
+        const des = w.des > 0 && t >= w.des * 24 && t < w.des * 24 + 1;
+
+        T.sp = des ? 70 : w.Tsp;
+        T.v = des ? 70 : (zirk ? T.sp - w.dTz : kuehlen(T.v, TAU.v));
+        ['sk', 'sb', 'sg'].forEach(function (s) { T[s] = des ? 70 : kuehlen(T[s], TAU.s); });
+        T.kw = kuehlen(T.kw, TAU.kw);
+
+        ABSCHNITTE.forEach(function (a) { N[a] = begrenzen(N[a] + lgRate(T[a]) * dt); });
+        // Die Zirkulation tauscht das Wasser der Verteilung etwa alle 30 min gegen Speicherwasser
+        if (zirk) N.v = begrenzen(Math.log10((1 - dt / 0.5) * Math.pow(10, N.v) + dt / 0.5 * Math.pow(10, N.sp)));
+
+        ['sk', 'sb', 'sg'].forEach(function (s) {
+          if (t < naechste[s]) return;
+          naechste[s] += takt[s];
+          if (s !== 'sg' && nachts(t)) return;
+          zuletzt[s] = t;
+          if (!zirk) { T.v = T.sp; N.v = spuelen(N.sp, N.v); }
+          T[s] = T.v; N[s] = spuelen(N.v, N[s]);
+          if (s === 'sg') { T.kw = w.Tkw; N.kw = spuelen(N_MIN, N.kw); }
+        });
+
+        if (t >= 24) {
+          ['v', 'sk', 'sb', 'sg', 'kw'].forEach(function (a) { hoechst[a] = Math.max(hoechst[a], N[a]); });
+          hoechst.kwT = Math.max(hoechst.kwT, T.kw);
+        }
+        if (i % probeAlle === 0) proben.push({ t: t, T: Object.assign({}, T), N: Object.assign({}, N), zuletzt: Object.assign({}, zuletzt), des: des });
+      }
+      return { proben: proben, hoechst: hoechst, dauer: SIM_TAGE * 24 };
+    }
+
+
+    // ============================================================
+    // Rechnen je Thema
+    // ============================================================
+
+    let ergebnis = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+
+    function rechneTemperatur(w) {
+      const T = w.T, t = w.t, N0 = w.N0, lgN0 = Math.log10(N0);
+      const r = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const b = bereich(T);
+      let lgN, kennwert;
+
+      if (T >= 50) {
+        const D = dWert(T), stufen = t * 60 / D;
+        lgN = lgN0 - stufen;
+        kennwert = { titel: '90 % abgetötet nach', wert: dauer(D * 60), farbe: '#0E6B6A', klein: 'D-Wert bei ' + zahl(T, 3) + ' °C' };
+        r.schritte.push({ formel: 'dwert', titel: 'D-Wert: Zeit, in der 90 % der Legionellen absterben',
+          a: 'D(T) = D_{60} \\cdot 10^{\\frac{60' + GRAD + ' - T}{z}}',
+          b: 'D = 2\\,\\text{min} \\cdot 10^{\\frac{60' + GRAD + ' - ' + texZahl(T) + GRAD + '}{6\\,\\text{K}}} = ' + erg(texDauer(D * 60)) });
+        r.schritte.push({ formel: 'abtoetung', titel: 'Zehnerstufen in der Verweilzeit (je Stufe 90 % weniger)',
+          a: 's = \\frac{t}{D}',
+          b: 's = \\frac{' + texZahl(t * 60) + '\\,\\text{min}}{' + texZahl(D, 3) + '\\,\\text{min}} = ' + erg(texZahl(stufen, 3)) });
+        r.schritte.push({ formel: 'abtoetung', titel: 'Legionellen am Ende',
+          a: 'N = N_0 \\cdot 10^{-s}',
+          b: 'N = ' + texZahl(N0) + KBE + ' \\cdot 10^{-' + texZahl(stufen, 3) + '} = ' + erg(texZahl(N0 * Math.pow(10, -stufen), 3) + KBE) });
+        r.schritte.push({ formel: 'abtoetung', titel: 'Zeit für 99,9 % (drei Zehnerstufen)',
+          a: 't_{99{,}9} = 3 \\cdot D',
+          b: 't_{99{,}9} = 3 \\cdot ' + texDauer(D * 60) + ' = ' + erg(texDauer(3 * D * 60)) });
+      } else if (verdopplungen(T) > 0) {
+        const td = 1 / verdopplungen(T), n = t / td;
+        lgN = lgN0 + n * LG2;
+        kennwert = { titel: 'Verdopplung alle', wert: dauer(td * 3600), farbe: '#C0392B', klein: 'Modellwert bei ' + zahl(T, 3) + ' °C' };
+        r.schritte.push({ formel: 'vermehrung', titel: 'Verdopplungszeit bei dieser Temperatur (Modellwert)',
+          a: 't_\\text{d}(T)',
+          b: 't_\\text{d}(' + texZahl(T) + GRAD + ') = ' + erg(texZahl(td, 3) + '\\,\\text{h}') });
+        r.schritte.push({ formel: 'vermehrung', titel: 'Anzahl der Verdopplungen',
+          a: 'n = \\frac{t}{t_\\text{d}}',
+          b: 'n = \\frac{' + texZahl(t) + '\\,\\text{h}}{' + texZahl(td, 3) + '\\,\\text{h}} = ' + erg(texZahl(n, 3)) });
+        r.schritte.push({ formel: 'vermehrung', titel: 'Legionellen am Ende',
+          a: 'N = N_0 \\cdot 2^{n}',
+          b: 'N = ' + texZahl(N0) + KBE + ' \\cdot 2^{' + texZahl(n, 3) + '} = ' + erg(texZahl(N0 * Math.pow(2, n), 3) + KBE) });
+        if (lgN > N_MAX) r.meldungen.push({ text: 'Rechnerisch über 100 000 KBE/100 ml. In echtem Wasser bremsen Nährstoffe und Platz die Vermehrung vorher, die Grafik hört deshalb dort auf.' });
+      } else {
+        lgN = lgN0;
+        kennwert = { titel: 'Veränderung', wert: 'kaum', farbe: b.farbe, klein: T < 20 ? 'zu kalt zum Vermehren' : 'zu warm zum Vermehren, zu kalt zum Abtöten' };
+        r.schritte.push({ titel: T < 20 ? 'Unter 20 °C vermehren sich Legionellen praktisch nicht' : 'Zwischen 48 und 50 °C: keine Vermehrung, aber noch keine Abtötung',
+          a: 'N \\approx N_0', b: 'N \\approx ' + erg(texZahl(N0) + KBE) });
+      }
+
+      const nEnde = begrenzen(lgN), bew = bewertung(nEnde);
+      r.kacheln = [
+        { titel: 'Bei ' + zahl(T, 3) + ' °C', wert: b.text, farbe: b.farbe },
+        kennwert,
+        { titel: 'Nach ' + dauer(t * 3600), wert: kbe(nEnde) + ' KBE', farbe: bew.farbe, klein: 'je 100 ml' },
+        { titel: 'Bewertung (W 551)', wert: bew.text, farbe: bew.farbe, klein: 'Maßnahmenwert 100 KBE/100 ml' }
+      ];
+      r.aussage = T >= 60 ? 'Ab 60 °C sterben Legionellen innerhalb von Minuten ab, deshalb soll warmes Wasser den Speicher mit mindestens 60 °C verlassen.'
+        : T >= 50 ? 'Zwischen 50 und 60 °C sterben Legionellen langsam ab. Für eine sichere Anlage reicht das allein nicht.'
+        : T >= 25 ? 'Zwischen 25 und 45 °C vermehren sich Legionellen am schnellsten. Genau diese Temperaturen entstehen, wenn Warmwasser in Leitungen abkühlt oder Kaltwasser sich erwärmt.'
+        : 'Kaltes Wasser unter 20 °C ist sicher. Deshalb soll Kaltwasser auch nach längerem Stehen nicht über 25 °C kommen.';
+      r.lgN0 = lgN0;
+      return r;
+    }
+
+    function rechneAnlage(w) {
+      sim = simulieren(w);
+      const r = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const zirk = w.zirk === 1, TR = w.Tsp - w.dTz, h = sim.hoechst;
+      const T0 = zirk ? TR : w.Tsp;
+
+      if (zirk) {
+        r.schritte.push({ formel: 'ruecklauf', titel: 'Temperatur am Zirkulationsrücklauf',
+          a: 'T_\\text{R} = T_\\text{Sp} - \\Delta T_\\text{Z}',
+          b: 'T_\\text{R} = ' + texZahl(w.Tsp) + GRAD + ' - ' + texZahl(w.dTz) + '\\,\\text{K} = ' + erg(texZahl(TR) + GRAD) });
+      }
+      if (T0 > 50 && w.Tu < 50) {
+        const t50 = TAU.s * Math.log((T0 - w.Tu) / (50 - w.Tu));
+        r.schritte.push({ formel: 'zeit', titel: 'Gäste-WC: bis die Stichleitung unter 50 °C fällt (τ = 1 h)',
+          a: 't = \\tau \\cdot \\ln\\frac{T_0 - T_\\text{U}}{T - T_\\text{U}}',
+          b: 't = 1\\,\\text{h} \\cdot \\ln\\frac{' + texZahl(T0) + GRAD + ' - ' + texZahl(w.Tu) + GRAD + '}{50' + GRAD + ' - ' + texZahl(w.Tu) + GRAD + '} = ' + erg(texDauer(t50 * 3600)) });
+      }
+      const Tsg = w.Tu + (T0 - w.Tu) * Math.exp(-w.tg / TAU.s);
+      r.schritte.push({ formel: 'abkuehlung', titel: 'Gäste-WC: Warmwasser in der Stichleitung, bevor wieder gezapft wird',
+        a: 'T = T_\\text{U} + (T_0 - T_\\text{U}) \\cdot e^{-t/\\tau}',
+        b: 'T = ' + texZahl(w.Tu) + GRAD + ' + (' + texZahl(T0) + GRAD + ' - ' + texZahl(w.Tu) + GRAD + ') \\cdot e^{-' + texZahl(w.tg) + '\\,\\text{h} / 1\\,\\text{h}} = ' + erg(texZahl(Tsg, 3) + GRAD) });
+      const Tkw = w.Tu + (w.Tkw - w.Tu) * Math.exp(-w.tg / TAU.kw);
+      r.schritte.push({ formel: 'abkuehlung', titel: 'Gäste-WC: Kaltwasser nach der Stagnation (τ = 5 h)',
+        a: 'T = T_\\text{U} + (T_0 - T_\\text{U}) \\cdot e^{-t/\\tau}',
+        b: 'T = ' + texZahl(w.Tu) + GRAD + ' + (' + texZahl(w.Tkw) + GRAD + ' - ' + texZahl(w.Tu) + GRAD + ') \\cdot e^{-' + texZahl(w.tg) + '\\,\\text{h} / 5\\,\\text{h}} = ' + erg(texZahl(Tkw, 3) + GRAD) });
+      if (w.Tu > 25 && w.Tkw < 25) {
+        const t25 = TAU.kw * Math.log((w.Tu - w.Tkw) / (w.Tu - 25));
+        r.schritte.push({ formel: 'zeit', titel: 'Kaltwasser: bis 25 °C überschritten sind',
+          a: 't = \\tau \\cdot \\ln\\frac{T_0 - T_\\text{U}}{T - T_\\text{U}}',
+          b: 't = 5\\,\\text{h} \\cdot \\ln\\frac{' + texZahl(w.Tkw) + GRAD + ' - ' + texZahl(w.Tu) + GRAD + '}{25' + GRAD + ' - ' + texZahl(w.Tu) + GRAD + '} = ' + erg(texDauer(t25 * 3600)) });
+      }
+
+      // Prüfen gegen die Regeln
+      if (w.Tsp < 50) r.meldungen.push({ fehler: true, text: 'Speicher unter 50 °C: Legionellen können sich schon im Speicher vermehren.' });
+      else if (w.Tsp < 60) r.meldungen.push({ text: 'Speicher unter 60 °C: in Großanlagen nicht zulässig, in Kleinanlagen werden 60 °C empfohlen.' });
+      if (zirk && TR < 55) r.meldungen.push({ fehler: true, text: 'Zirkulationsrücklauf ' + zahl(TR, 3) + ' °C, gefordert sind mindestens 55 °C (höchstens 5 K unter dem Speicher).' });
+      if (!zirk) r.meldungen.push({ text: 'Ohne Zirkulation kühlt die ganze Verteilung zwischen den Zapfungen ab. Das ist nur erlaubt, wenn kein Fließweg mehr als 3 l enthält.' });
+      if (w.tg > 72) r.meldungen.push({ fehler: true, text: 'Das Gäste-WC wird nur alle ' + dauer(w.tg * 3600) + ' benutzt. Spätestens alle 72 h muss das Wasser gewechselt werden, sonst regelmäßig spülen.' });
+      if (h.kwT > 25) r.meldungen.push({ fehler: true, text: 'Das Kaltwasser erwärmt sich bis auf ' + zahl(h.kwT, 3) + ' °C, erlaubt sind höchstens 25 °C. Kaltwasser getrennt von warmen Leitungen führen und dämmen.' });
+
+      const bg = bewertung(h.sg), bk = bewertung(h.kw);
+      r.kacheln = [
+        zirk ? { titel: 'Zirkulationsrücklauf', wert: zahl(TR, 3) + ' °C', farbe: TR >= 55 ? 'var(--ergebnis)' : '#C0392B', klein: TR >= 55 ? 'mindestens 55 °C, in Ordnung' : 'unter 55 °C' }
+             : { titel: 'Zirkulation', wert: 'keine', farbe: '#F2A541', klein: 'Verteilung kühlt zwischen den Zapfungen ab' },
+        { titel: 'Gäste-WC warm, Höchstwert', wert: kbe(h.sg) + ' KBE', farbe: bg.farbe, klein: bg.text + ', je 100 ml' },
+        { titel: 'Gäste-WC kalt, Höchstwert', wert: kbe(h.kw) + ' KBE', farbe: bk.farbe, klein: bk.text + ', bis ' + zahl(h.kwT, 3) + ' °C warm' },
+        { titel: 'Wasserwechsel Gäste-WC', wert: 'alle ' + dauer(w.tg * 3600), farbe: w.tg <= 72 ? 'var(--ergebnis)' : '#C0392B', klein: w.tg <= 72 ? 'höchstens 72 h, in Ordnung' : 'mehr als 72 h Stagnation' }
+      ];
+      const schlecht = Math.max(h.sg, h.kw, h.v);
+      r.aussage = schlecht > 2
+        ? 'Über 100 KBE/100 ml: Das passiert dort, wo Wasser lange steht und zwischen 25 und 45 °C liegt. Abhilfe: Gäste-WC regelmäßig spülen, Zirkulation mit mindestens 55 °C, Kaltwasser kühl halten.'
+        : 'Die Anlage bleibt im Modell unter dem Maßnahmenwert. Wechsle zum Beispiel die Zirkulation auf „keine“ oder stell das Gäste-WC auf alle 300 h und sieh, was passiert.';
+      return r;
+    }
+
+    function rechneDreiliter(w) {
+      const r = { kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const rohr = ROHRE[w.rohr], di = rohr[1] - 2 * rohr[2];
+      const diDm = di / 100, flaeche = Math.PI / 4 * diDm * diDm;    // dm²
+      const V = flaeche * w.l * 10, t = V / (w.Vp / 60), lmax = 3 / flaeche / 10;
+
+      r.schritte.push({ formel: 'innen', titel: 'Innendurchmesser (' + rohr[0] + ')',
+        a: 'd_\\text{i} = d_\\text{a} - 2 \\cdot s',
+        b: 'd_\\text{i} = ' + texZahl(rohr[1]) + '\\,\\text{mm} - 2 \\cdot ' + texZahl(rohr[2]) + '\\,\\text{mm} = ' + erg(texZahl(di) + '\\,\\text{mm}') });
+      r.schritte.push({ formel: 'inhalt', titel: 'Leitungsinhalt (in dm gerechnet, 1 dm³ = 1 l)',
+        a: 'V = \\frac{\\pi}{4} \\cdot d_\\text{i}^2 \\cdot l',
+        b: 'V = \\frac{\\pi}{4} \\cdot (' + texZahl(diDm) + '\\,\\text{dm})^2 \\cdot ' + texZahl(w.l * 10) + '\\,\\text{dm} = ' + erg(texZahl(V, 3) + '\\,\\text{l}') });
+      r.schritte.push({ formel: 'ausstoss', titel: 'Ausstoßzeit, bis das warme Wasser ankommt',
+        a: 't = \\frac{V}{\\dot{V}}',
+        b: 't = \\frac{' + texZahl(V, 3) + '\\,\\text{l}}{' + texZahl(w.Vp) + '\\,\\tfrac{\\text{l}}{\\text{min}}} = ' + erg(texDauer(t)) });
+      r.schritte.push({ formel: 'laenge', titel: 'Größte Länge für höchstens 3 Liter',
+        a: 'l_\\text{max} = \\frac{3\\,\\text{l}}{\\frac{\\pi}{4} \\cdot d_\\text{i}^2}',
+        b: 'l_\\text{max} = \\frac{3\\,\\text{dm}^3}{\\frac{\\pi}{4} \\cdot (' + texZahl(diDm) + '\\,\\text{dm})^2} = ' + texZahl(lmax * 10, 3) + '\\,\\text{dm} = ' + erg(texZahl(lmax, 3) + '\\,\\text{m}') });
+
+      if (V > 3) r.meldungen.push({ fehler: true, text: 'Mehr als 3 l ohne Zirkulation. Außerhalb von Ein- und Zweifamilienhäusern ist das eine Großanlage nach W 551; die Zirkulation muss näher an die Zapfstelle.' });
+      if (t > 30) r.meldungen.push({ fehler: true, text: 'Warmes Wasser kommt erst nach ' + dauer(t) + '. Gefordert sind 55 °C spätestens nach 30 s.' });
+      if (w.Tw < 55) r.meldungen.push({ text: 'Am Abzweig kommen nur ' + zahl(w.Tw, 3) + ' °C an, an der Zapfstelle sollen es 55 °C sein.' });
+      if (w.Tl >= 25 && w.Tl <= 45) r.meldungen.push({ text: 'Das stehende Wasser in der Leitung liegt mit ' + zahl(w.Tl, 3) + ' °C mitten im Vermehrungsbereich der Legionellen.' });
+
+      r.kacheln = [
+        { titel: 'Leitungsinhalt', wert: zahl(V, 3) + ' l', farbe: V <= 3 ? 'var(--ergebnis)' : '#C0392B', klein: V <= 3 ? 'höchstens 3 l, in Ordnung' : 'mehr als 3 l' },
+        { titel: 'Warm nach', wert: dauer(t), farbe: t <= 30 ? 'var(--ergebnis)' : '#C0392B', klein: 'bei ' + zahl(w.Vp, 3) + ' l/min' },
+        { titel: 'Größte Länge für 3 l', wert: zahl(lmax, 3) + ' m', farbe: '#2B7BB9', klein: rohr[0] },
+        { titel: 'Inhalt je Meter', wert: zahl(flaeche * 10, 3) + ' l/m', farbe: '#6E6FA6', klein: 'Innendurchmesser ' + zahl(di, 3) + ' mm' }
+      ];
+      r.aussage = V <= 3
+        ? 'Höchstens 3 Liter stehen in der Leitung. Sie werden bei jeder Benutzung schnell ausgetauscht, deshalb darf diese Strecke ohne Zirkulation sein.'
+        : 'In der Leitung stehen ' + zahl(V, 3) + ' l, die zwischen den Zapfungen abkühlen. Kürzer verlegen, kleiner dimensionieren oder die Zirkulation bis näher an die Zapfstelle führen.';
+      r.V = V; r.t = t;
+      return r;
+    }
+
+    const RECHNER = { temperatur: rechneTemperatur, anlage: rechneAnlage, dreiliter: rechneDreiliter };
+
+
+    // ============================================================
+    // Formelsammlung
+    // ============================================================
+
+    const FORMELN = [
+      { id: 'vermehrung', modus: 'temperatur', titel: 'Vermehrung', tex: 'N = N_0 \\cdot 2^{t / t_\\text{d}}' },
+      { id: 'dwert', modus: 'temperatur', titel: 'D-Wert (90 % Abtötung)', tex: 'D(T) = D_{60} \\cdot 10^{(60' + GRAD + ' - T)/z}' },
+      { id: 'abtoetung', modus: 'temperatur', titel: 'Abtötung', tex: 'N = N_0 \\cdot 10^{-t/D}' },
+      { id: 'ruecklauf', modus: 'anlage', titel: 'Zirkulationsrücklauf', tex: 'T_\\text{R} = T_\\text{Sp} - \\Delta T_\\text{Z} \\geq 55' + GRAD },
+      { id: 'abkuehlung', modus: 'anlage', titel: 'Abkühlen und Erwärmen', tex: 'T(t) = T_\\text{U} + (T_0 - T_\\text{U}) \\cdot e^{-t/\\tau}' },
+      { id: 'zeit', modus: 'anlage', titel: 'Zeit bis zu einer Temperatur', tex: 't = \\tau \\cdot \\ln\\frac{T_0 - T_\\text{U}}{T - T_\\text{U}}' },
+      { id: 'innen', modus: 'dreiliter', titel: 'Innendurchmesser', tex: 'd_\\text{i} = d_\\text{a} - 2 \\cdot s' },
+      { id: 'inhalt', modus: 'dreiliter', titel: 'Leitungsinhalt', tex: 'V = \\frac{\\pi}{4} \\cdot d_\\text{i}^2 \\cdot l \\leq 3\\,\\text{l}' },
+      { id: 'ausstoss', modus: 'dreiliter', titel: 'Ausstoßzeit', tex: 't = \\frac{V}{\\dot{V}} \\leq 30\\,\\text{s}' },
+      { id: 'laenge', modus: 'dreiliter', titel: 'Größte Länge für 3 Liter', tex: 'l_\\text{max} = \\frac{3\\,\\text{l}}{\\frac{\\pi}{4} \\cdot d_\\text{i}^2}' }
+    ];
+
+    const KONSTANTEN = {
+      temperatur: ['D_{60} \\approx 2\\,\\text{min} \\qquad z \\approx 6\\,\\text{K}', 't_\\text{d}(37' + GRAD + ') \\approx 8\\,\\text{h} \\quad \\text{(Modell)}', '\\text{Maßnahmenwert: } 100' + KBE],
+      anlage: ['\\tau_\\text{Stich} = 1\\,\\text{h} \\qquad \\tau_\\text{Verteilung} = 3\\,\\text{h} \\qquad \\tau_\\text{KW} = 5\\,\\text{h} \\quad \\text{(Annahmen)}', 'T_\\text{KW} \\leq 25' + GRAD + ' \\qquad T_\\text{WW} \\geq 55' + GRAD],
+      dreiliter: ['1\\,\\text{l} = 1\\,\\text{dm}^3 \\qquad 1\\,\\text{m} = 10\\,\\text{dm} \\qquad 1\\,\\text{mm} = 0{,}01\\,\\text{dm}']
+    };
+
+    function formelnZeigen() {
+      const ziel = document.getElementById('formelsammlung');
+      ziel.innerHTML = '';
+      const abschnitt = document.createElement('section');
+      abschnitt.innerHTML = '<h3></h3>';
+      abschnitt.querySelector('h3').textContent = MODI[modus].name;
+      FORMELN.forEach(function (f) {
+        if (f.modus !== modus) return;
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        d.title = f.titel;
+        Formel.setze(d, f.tex, true);
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.formel === f.id; }));
+        abschnitt.append(d);
+      });
+      ziel.append(abschnitt);
+      const konst = document.createElement('section');
+      konst.innerHTML = '<h3>Konstanten und Annahmen</h3>';
+      KONSTANTEN[modus].forEach(function (tex) {
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        Formel.setze(d, tex, true);
+        konst.append(d);
+      });
+      ziel.append(konst);
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const felder = {};
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      ziel.innerHTML = '';
+      Object.keys(felder).forEach(function (k) { delete felder[k]; });
+      document.getElementById('felderhilfe').textContent = MODI[modus].hilfe;
+
+      const fs = document.createElement('fieldset');
+      fs.className = 'gruppe';
+      fs.style.setProperty('--farbe', 'linear-gradient(#E4572E, #2B7BB9)');
+      const lg = document.createElement('legend');
+      lg.textContent = MODI[modus].name;
+      fs.append(lg);
+
+      MODI[modus].felder.forEach(function (f) {
+        const zeile = document.createElement('div');
+        zeile.className = 'feld gegeben';
+        const label = document.createElement('label');
+        label.htmlFor = 'f-' + f.k;
+        const symbol = document.createElement('span');
+        symbol.className = 'symbol';
+        if (f.tex) Formel.setze(symbol, f.tex);
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = f.name;
+        label.append(symbol, name);
+        zeile.append(label);
+
+        if (f.wahl) {
+          const auswahl = document.createElement('select');
+          auswahl.id = 'f-' + f.k;
+          auswahl.className = 'wahl';
+          f.wahl.forEach(function (o) {
+            const opt = document.createElement('option');
+            opt.value = String(o[1]); opt.textContent = o[0];
+            auswahl.append(opt);
+          });
+          auswahl.value = String(werte[modus][f.k]);
+          auswahl.addEventListener('change', function () { werte[modus][f.k] = +auswahl.value; neuRechnen(true); });
+          zeile.append(auswahl, document.createElement('span'));
+        } else {
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + f.k; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.value = zahl(werte[modus][f.k], 6).replace(/ /g, '');
+          const einheit = document.createElement('span');
+          einheit.className = 'einheit';
+          einheit.textContent = f.einheit;
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value), gut = isFinite(w) && w >= f.min && w <= f.max;
+            zeile.classList.toggle('ungueltig', !gut);
+            eingabe.title = gut ? '' : 'erlaubt: ' + zahl(f.min) + ' bis ' + zahl(f.max) + ' ' + f.einheit;
+            if (!gut) return;
+            werte[modus][f.k] = w;
+            neuRechnen(true);
+          });
+          eingabe.addEventListener('blur', function () {
+            zeile.classList.remove('ungueltig');
+            eingabe.value = zahl(werte[modus][f.k], 6).replace(/ /g, '');
+          });
+          zeile.append(eingabe, einheit);
+          felder[f.k] = eingabe;
+        }
+        zeile.append(document.createElement('span'));
+        fs.append(zeile);
+      });
+      ziel.append(fs);
+    }
+
+    function feldSetzen(k, w) {
+      werte[modus][k] = w;
+      if (felder[k] && document.activeElement !== felder[k]) felder[k].value = zahl(w, 6).replace(/ /g, '');
+    }
+
+    document.getElementById('zuruecksetzen').addEventListener('click', function () {
+      MODI[modus].felder.forEach(function (f) { werte[modus][f.k] = f.std; });
+      felderAufbauen();
+      neuRechnen(true);
+    });
+
+
+    // ============================================================
+    // Anzeigen
+    // ============================================================
+
+    function neuRechnen(neuStarten) {
+      ergebnis = RECHNER[modus](werte[modus]);
+      kachelnZeigen();
+      meldungenZeigen();
+      rechenwegZeigen();
+      formelnZeigen();
+      if (neuStarten && modus === 'dreiliter') { fortschritt = 0; abspielen(true); }
+      zeitText();
+    }
+
+    function kachelnZeigen() {
+      const ziel = document.getElementById('kacheln');
+      ziel.innerHTML = '';
+      ergebnis.kacheln.forEach(function (k) {
+        const d = document.createElement('div');
+        d.className = 'kachel';
+        d.style.setProperty('--farbe', k.farbe);
+        d.innerHTML = '<div class="titel"></div><div class="wert"></div>' + (k.klein ? '<small></small>' : '');
+        d.querySelector('.titel').textContent = k.titel;
+        d.querySelector('.wert').textContent = k.wert;
+        if (k.klein) d.querySelector('small').textContent = k.klein;
+        ziel.append(d);
+      });
+      document.getElementById('aussage').textContent = ergebnis.aussage;
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.meldungen.forEach(function (m) {
+        const d = document.createElement('div');
+        d.className = 'hinweis' + (m.fehler ? ' fehler' : '');
+        d.textContent = m.text;
+        box.append(d);
+      });
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        titel.textContent = s.titel;
+        const allgemein = document.createElement('div');
+        allgemein.className = 'rechnung';
+        Formel.setze(allgemein, '\\displaystyle ' + s.a);
+        const eingesetzt = document.createElement('div');
+        eingesetzt.className = 'rechnung';
+        Formel.setze(eingesetzt, '\\displaystyle ' + s.b);
+        li.append(titel, allgemein, eingesetzt);
+        liste.append(li);
+      });
+    }
+
+
+    // ============================================================
+    // Themen wählen
+    // ============================================================
+
+    function modusWaehlen(id) {
+      modus = id;
+      document.querySelectorAll('#modi button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+      felderAufbauen();
+      neuRechnen(false);
+      fortschritt = 0;
+      abspielen(true);
+    }
+
+    function modiAufbauen() {
+      const ziel = document.getElementById('modi');
+      Object.keys(MODI).forEach(function (id) {
+        const d = MODI[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 58 * dichte; bild.height = 58 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { modusWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 58, 58); piktogramm(k, id); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      k.lineWidth = 2; k.strokeStyle = text; k.lineJoin = 'round'; k.lineCap = 'round';
+      if (id === 'temperatur') {
+        // Thermometer und Stäbchenbakterien
+        k.beginPath(); k.arc(18, 44, 7, 0, 7); k.fillStyle = '#E4572E'; k.fill(); k.stroke();
+        k.beginPath(); k.moveTo(14, 39); k.lineTo(14, 10); k.arc(18, 10, 4, Math.PI, 0); k.lineTo(22, 39); k.stroke();
+        k.fillStyle = '#E4572E'; k.fillRect(16, 22, 4, 18);
+        k.fillStyle = '#5B2A86';
+        [[36, 16, 0.5], [46, 26, -0.4], [34, 34, 1.2], [46, 44, 0.2]].forEach(function (p) {
+          k.save(); k.translate(p[0], p[1]); k.rotate(p[2]);
+          k.beginPath(); k.ellipse(0, 0, 7, 3, 0, 0, 7); k.fill(); k.restore();
+        });
+      } else if (id === 'anlage') {
+        // Speicher mit Zirkulationsschleife
+        k.beginPath(); k.ellipse(16, 38, 9, 14, 0, 0, 7); k.fillStyle = '#E4572E'; k.fill(); k.stroke();
+        k.strokeStyle = '#E4572E'; k.lineWidth = 3;
+        k.beginPath(); k.moveTo(16, 24); k.lineTo(16, 8); k.lineTo(44, 8); k.lineTo(44, 14); k.stroke();
+        k.strokeStyle = '#6E6FA6';
+        k.beginPath(); k.moveTo(30, 8); k.lineTo(30, 6); k.moveTo(50, 10); k.lineTo(50, 44); k.lineTo(26, 44); k.stroke();
+        k.strokeStyle = '#2B7BB9';
+        k.beginPath(); k.moveTo(36, 54); k.lineTo(36, 22); k.lineTo(44, 22); k.stroke();
+      } else {
+        // Leitung mit Messbecher
+        k.strokeStyle = '#2B7BB9'; k.lineWidth = 6;
+        k.beginPath(); k.moveTo(4, 14); k.lineTo(30, 14); k.stroke();
+        k.strokeStyle = '#E4572E';
+        k.beginPath(); k.moveTo(4, 14); k.lineTo(16, 14); k.stroke();
+        k.strokeStyle = text; k.lineWidth = 2;
+        k.beginPath(); k.moveTo(30, 14); k.lineTo(38, 14); k.lineTo(38, 22); k.stroke();
+        k.beginPath(); k.moveTo(26, 28); k.lineTo(28, 54); k.lineTo(48, 54); k.lineTo(50, 28); k.stroke();
+        k.fillStyle = '#2B7BB9'; k.fillRect(29, 40, 18, 13);
+        k.strokeStyle = '#C0392B'; k.setLineDash([3, 2]); k.beginPath(); k.moveTo(24, 36); k.lineTo(52, 36); k.stroke(); k.setLineDash([]);
+      }
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    // Bewegung läuft immer, auch wenn das System „Animationen reduzieren“ meldet; anhalten geht über den Knopf
+    const bewegungAus = false;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const F = { text: '#13233A', leise: '#5E6B7A', linie: '#D9E0E3', flaeche2: '#F6F8F8' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || '#13233A';
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+      F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const KALT = [43, 123, 185], MITTE = [110, 111, 166], WARM = [228, 87, 46], HEISS = [242, 165, 65];
+    const LEGIONELLE = '#5B2A86';
+
+    // Zwei Felder: A links (560 × 440), B rechts (500 × 400); schmal untereinander
+    let L = { W: 1100, H: 440, schmal: false, m: 1, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+    let fortschritt = 0, laeuft = false, uhr = 0;
+
+    function tempFarbe(T, alpha) {
+      const a = Math.max(0, Math.min(1, (T - 10) / 70));
+      const stufen = [[0, KALT], [0.3, MITTE], [0.6, WARM], [1, HEISS]];
+      let i = 1;
+      while (i < stufen.length - 1 && a > stufen[i][0]) i++;
+      const u = Math.max(0, Math.min(1, (a - stufen[i - 1][0]) / (stufen[i][0] - stufen[i - 1][0])));
+      const f = stufen[i - 1][1].map(function (x, j) { return Math.round(x + (stufen[i][1][j] - x) * u); });
+      return 'rgba(' + f.join(',') + ',' + (alpha === undefined ? 1 : alpha) + ')';
+    }
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720
+        ? { W: 520, H: 860, schmal: true, A: { x: 0, y: 0, s: 520 / 560 }, B: { x: 10, y: 430, s: 1 } }
+        : { W: 1100, H: 440, schmal: false, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      if (o.schatten) { g.shadowColor = 'rgba(10, 20, 35, .55)'; g.shadowBlur = 6; }
+      g.fillText(t, x, y);
+      g.shadowColor = 'transparent'; g.shadowBlur = 0;
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function rohr(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 8; g.lineJoin = 'round'; g.lineCap = 'butt';
+      if (strich) g.setLineDash(strich);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+      g.setLineDash([]);
+    }
+
+    // Punkt auf einem Linienzug bei Anteil u (0 … 1)
+    function aufLinie(punkte, u) {
+      let gesamt = 0;
+      const st = [];
+      for (let i = 1; i < punkte.length; i++) {
+        const l = Math.hypot(punkte[i][0] - punkte[i - 1][0], punkte[i][1] - punkte[i - 1][1]);
+        st.push({ a: punkte[i - 1], b: punkte[i], l: l, s: gesamt }); gesamt += l;
+      }
+      const s = u * gesamt;
+      const x = st.find(function (q) { return s >= q.s && s <= q.s + q.l; }) || st[st.length - 1];
+      const v = x.l ? (s - x.s) / x.l : 0;
+      return [x.a[0] + (x.b[0] - x.a[0]) * v, x.a[1] + (x.b[1] - x.a[1]) * v, Math.atan2(x.b[1] - x.a[1], x.b[0] - x.a[0])];
+    }
+
+    function zufall(i) { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+
+    function legionelle(x, y, winkel, groesse) {
+      g.save(); g.translate(x, y); g.rotate(winkel);
+      g.fillStyle = LEGIONELLE; g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1;
+      g.beginPath(); g.ellipse(0, 0, 5 * (groesse || 1), 2.2 * (groesse || 1), 0, 0, 7); g.fill(); g.stroke();
+      g.restore();
+    }
+
+    // Legionellen entlang einer Leitung, Anzahl nach lg N
+    function legionellenAufLeitung(punkte, n, saat) {
+      const anzahl = Math.round(Math.max(0, Math.min(1, (n + 0.5) / 5.5)) * 14);
+      for (let i = 0; i < anzahl; i++) {
+        const u = (i + 0.5 + (zufall(saat + i) - 0.5) * 0.6) / anzahl;
+        const p = aufLinie(punkte, Math.max(0.02, Math.min(0.98, u)));
+        const wackeln = bewegungAus ? 0 : Math.sin(uhr * 2 + i + saat) * 0.3;
+        legionelle(p[0], p[1] + (zufall(saat + i * 3) - 0.5) * 3, p[2] + (zufall(saat + i * 7) - 0.5) * 1.2 + wackeln, 0.8);
+      }
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+      const z = { temperatur: [zeichneKurve, zeichneProbe], anlage: [zeichneAnlage, zeichneVerlauf], dreiliter: [zeichneLeitung, zeichneBecher] }[modus];
+      [[L.A, z[0]], [L.B, z[1]]].forEach(function (feld) {
+        g.save();
+        g.translate(feld[0].x, feld[0].y);
+        g.scale(feld[0].s, feld[0].s);
+        feld[1](dt);
+        g.restore();
+      });
+    }
+
+
+    // ---------- Legionellen und Temperatur ----------
+    const KURVE = { x0: 56, x1: 530, oben: 56, unten: 220, band: 238 };
+    function kurveX(T) { return KURVE.x0 + T / 80 * (KURVE.x1 - KURVE.x0); }
+
+    function zeichneKurve() {
+      const w = werte.temperatur, k = KURVE;
+      schreibe('Vermehrung', k.x0, 26, { groesse: 17, fett: true });
+      schreibe('Verdopplungen pro Tag', k.x0 + 104, 26, { groesse: 13, farbe: F.leise, technik: false });
+
+      // Achse und Raster
+      const yW = function (proTag) { return k.unten - proTag / 4 * (k.unten - k.oben); };
+      g.strokeStyle = F.linie; g.lineWidth = 1;
+      [0, 1, 2, 3, 4].forEach(function (v) {
+        g.beginPath(); g.moveTo(k.x0, yW(v)); g.lineTo(k.x1, yW(v)); g.stroke();
+        schreibe(String(v), k.x0 - 8, yW(v) + 4, { groesse: 12, farbe: F.leise, ausrichtung: 'right' });
+      });
+
+      // Wachstumskurve
+      g.beginPath(); g.moveTo(kurveX(0), yW(0));
+      for (let T = 0; T <= 80; T += 0.5) g.lineTo(kurveX(T), yW(verdopplungen(T) * 24));
+      g.lineTo(kurveX(80), yW(0)); g.closePath();
+      const v = g.createLinearGradient(kurveX(20), 0, kurveX(48), 0);
+      v.addColorStop(0, 'rgba(110,111,166,.55)'); v.addColorStop(0.5, 'rgba(192,57,43,.65)'); v.addColorStop(1, 'rgba(242,165,65,.55)');
+      g.fillStyle = v; g.fill();
+      g.strokeStyle = '#C0392B'; g.lineWidth = 2.5;
+      g.beginPath();
+      for (let T = 20; T <= 48; T += 0.5) { if (T === 20) g.moveTo(kurveX(T), yW(0)); else g.lineTo(kurveX(T), yW(verdopplungen(T) * 24)); }
+      g.stroke();
+
+      // Temperaturbereiche
+      const zonen = [[0, 20, '#2B7BB9', 'kaum Vermehrung'], [20, 25, '#6E6FA6', ''], [25, 45, '#C0392B', 'starke Vermehrung'],
+                     [45, 50, '#F2A541', ''], [50, 60, '#E8A23A', 'Abtötung'], [60, 80, '#0E6B6A', 'schnelle Abtötung']];
+      zonen.forEach(function (z) {
+        g.fillStyle = z[2]; g.fillRect(kurveX(z[0]), k.band, kurveX(z[1]) - kurveX(z[0]), 26);
+        if (z[3]) schreibe(z[3], (kurveX(z[0]) + kurveX(z[1])) / 2, k.band + 18, { groesse: 12, fett: true, farbe: '#fff', ausrichtung: 'center', technik: false });
+      });
+      for (let T = 0; T <= 80; T += 10) schreibe(T + ' °C', kurveX(T), k.band + 46, { groesse: 12, farbe: F.leise, ausrichtung: 'center' });
+
+      // D-Werte
+      schreibe('Zeit für 90 % Abtötung', k.x0, k.band + 82, { groesse: 13, fett: true });
+      [[50, 0], [55, 1], [60, 0], [65, 1], [70, 0]].forEach(function (p) {
+        const x = kurveX(p[0]), y = k.band + 108 + p[1] * 20;
+        g.strokeStyle = F.linie; g.beginPath(); g.moveTo(x, k.band + 28); g.lineTo(x, y - 12); g.stroke();
+        schreibe(dauer(dWert(p[0]) * 60), x, y, { groesse: 13, fett: true, farbe: '#0E6B6A', ausrichtung: 'center' });
+      });
+
+      // Zeiger auf der eingestellten Temperatur
+      const x = kurveX(Math.max(0, Math.min(80, w.T)));
+      g.strokeStyle = F.text; g.lineWidth = 2; g.setLineDash([5, 4]);
+      g.beginPath(); g.moveTo(x, k.oben - 6); g.lineTo(x, k.band + 30); g.stroke(); g.setLineDash([]);
+      g.beginPath(); g.arc(x, k.band + 13, 10, 0, 7); g.fillStyle = tempFarbe(w.T); g.fill(); g.lineWidth = 3; g.strokeStyle = '#fff'; g.stroke();
+      schreibe(zahl(w.T, 3) + ' °C', x, k.oben - 12, { groesse: 15, fett: true, ausrichtung: x > k.x1 - 30 ? 'right' : 'center' });
+      schreibe('↔ ziehen', k.x1, k.oben - 30, { groesse: 12, farbe: F.leise, ausrichtung: 'right', technik: false });
+    }
+
+    function zeichneProbe() {
+      const w = werte.temperatur, tJetzt = w.t * fortschritt;
+      const n = begrenzen(ergebnis.lgN0 + lgRate(w.T) * tJetzt);
+
+      // Glas mit Wasser
+      const gx = 20, gy = 40, gb = 150, gh = 290;
+      g.save(); rund(gx, gy, gb, gh, 18); g.clip();
+      g.fillStyle = tempFarbe(w.T, 0.85); g.fillRect(gx, gy + 30, gb, gh);
+      const anzahl = Math.round(Math.max(0, Math.min(1, (n + 1) / 6)) * 70);
+      for (let i = 0; i < anzahl; i++) {
+        const x = gx + 12 + zufall(i) * (gb - 24), y = gy + 44 + zufall(i + 99) * (gh - 60);
+        const wackeln = bewegungAus ? 0 : Math.sin(uhr * 1.5 + i) * 3;
+        legionelle(x + wackeln, y, zufall(i + 7) * 6, 1.2);
+      }
+      g.restore();
+      rund(gx, gy, gb, gh, 18); g.strokeStyle = F.text; g.lineWidth = 2.5; g.stroke();
+      schreibe(zahl(w.T, 3) + ' °C', gx + gb / 2, gy + gh + 30, { groesse: 20, fett: true, ausrichtung: 'center' });
+
+      // Werte
+      const bx = 200, bew = bewertung(n);
+      schreibe('nach ' + dauer(tJetzt * 3600), bx, 62, { groesse: 15, farbe: F.leise });
+      schreibe(kbe(n), bx, 108, { groesse: 44, fett: true });
+      schreibe('KBE / 100 ml', bx, 132, { groesse: 14, farbe: F.leise, technik: false });
+      g.fillStyle = bew.farbe.indexOf('var') === 0 ? '#0E6B6A' : bew.farbe;
+      g.beginPath(); g.arc(bx + 6, 160, 6, 0, 7); g.fill();
+      schreibe(bew.text, bx + 18, 165, { groesse: 15, fett: true });
+
+      // Verlauf lg N über die Zeit
+      const px = bx, pb = 280, py = 200, ph = 130;
+      const yN = function (v) { return py + ph - (v - N_MIN) / (N_MAX - N_MIN) * ph; };
+      g.fillStyle = 'rgba(228,87,46,.12)'; g.fillRect(px, py, pb, yN(2) - py);
+      g.strokeStyle = '#E4572E'; g.lineWidth = 1; g.setLineDash([4, 3]);
+      g.beginPath(); g.moveTo(px, yN(2)); g.lineTo(px + pb, yN(2)); g.stroke(); g.setLineDash([]);
+      schreibe('100', px - 6, yN(2) + 4, { groesse: 11, farbe: '#E4572E', ausrichtung: 'right' });
+      g.strokeStyle = F.linie; g.strokeRect(px, py, pb, ph);
+      g.strokeStyle = LEGIONELLE; g.lineWidth = 2.5; g.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const v = begrenzen(ergebnis.lgN0 + lgRate(w.T) * w.t * i / 100);
+        if (i) g.lineTo(px + pb * i / 100, yN(v)); else g.moveTo(px, yN(v));
+      }
+      g.stroke();
+      g.beginPath(); g.arc(px + pb * fortschritt, yN(n), 5, 0, 7); g.fillStyle = LEGIONELLE; g.fill();
+      schreibe('0', px, py + ph + 16, { groesse: 11, farbe: F.leise });
+      schreibe(dauer(w.t * 3600), px + pb, py + ph + 16, { groesse: 11, farbe: F.leise, ausrichtung: 'right' });
+      schreibe('KBE/100 ml, logarithmisch', px, py - 8, { groesse: 11, farbe: F.leise, technik: false });
+    }
+
+    // Temperatur in der Kurve ziehen
+    function zeigerSetzen(e) {
+      if (modus !== 'temperatur') return false;
+      const r = leinwand.getBoundingClientRect();
+      const lx = (e.clientX - r.left) * L.W / r.width, ly = (e.clientY - r.top) * L.H / r.height;
+      const ax = (lx - L.A.x) / L.A.s, ay = (ly - L.A.y) / L.A.s;
+      if (ax < KURVE.x0 - 20 || ax > KURVE.x1 + 20 || ay < 20 || ay > KURVE.band + 40) return false;
+      const T = Math.round(Math.max(0, Math.min(80, (ax - KURVE.x0) / (KURVE.x1 - KURVE.x0) * 80)));
+      if (T !== werte.temperatur.T) { feldSetzen('T', T); neuRechnen(false); }
+      return true;
+    }
+    let ziehen = false;
+    leinwand.addEventListener('pointerdown', function (e) { if (zeigerSetzen(e)) { ziehen = true; leinwand.setPointerCapture(e.pointerId); e.preventDefault(); } });
+    leinwand.addEventListener('pointermove', function (e) { if (ziehen) zeigerSetzen(e); });
+    leinwand.addEventListener('pointerup', function () { ziehen = false; });
+    leinwand.addEventListener('pointercancel', function () { ziehen = false; });
+
+
+    // ---------- Warmwasseranlage ----------
+    const WEGE = {
+      v:  [[90, 300], [90, 284], [210, 284], [210, 72]],
+      z:  [[210, 72], [232, 72], [232, 336], [140, 336]],
+      sk: [[210, 262], [330, 262], [330, 248]],
+      sb: [[210, 172], [400, 172], [400, 158]],
+      sg: [[210, 82], [490, 82], [490, 66]],
+      kwSteig: [[184, 430], [184, 98]],
+      kw: [[184, 98], [470, 98], [470, 66]]
+    };
+
+    function probeJetzt() {
+      const p = sim.proben;
+      return p[Math.max(0, Math.min(p.length - 1, Math.round(fortschritt * (p.length - 1))))];
+    }
+
+    function zapfstelle(x, y, offen, farbe, name) {
+      g.fillStyle = '#8A97A1'; rund(x - 14, y - 10, 28, 10, 4); g.fill();
+      g.fillRect(x - 3, y - 18, 6, 9);
+      if (offen) {
+        for (let i = 0; i < 5; i++) {
+          const v = bewegungAus ? i / 5 : (uhr * 1.6 + i / 5) % 1;
+          g.fillStyle = farbe; g.beginPath(); g.ellipse(x - 2 + (i % 2) * 4, y + 4 + v * 22, 2, 3.4, 0, 0, 7); g.fill();
+        }
+      }
+      schreibe(name, x, y - 24, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+    }
+
+    function zeichneAnlage() {
+      const w = werte.anlage, p = probeJetzt(), zirk = w.zirk === 1;
+
+      // Geschosse
+      g.strokeStyle = F.linie; g.lineWidth = 1;
+      [[110, 'DG'], [200, 'OG'], [290, 'EG'], [430, 'KG']].forEach(function (e) {
+        g.beginPath(); g.moveTo(20, e[0]); g.lineTo(540, e[0]); g.stroke();
+        schreibe(e[1], 540, e[0] - 6, { groesse: 12, farbe: F.leise, ausrichtung: 'right' });
+      });
+
+      // Kaltwasser-Steigleitung (wird ständig durchflossen)
+      rohr(WEGE.kwSteig, tempFarbe(w.Tkw), 6);
+      rohr(WEGE.kw, tempFarbe(p.T.kw), 6);
+      legionellenAufLeitung(WEGE.kw, p.N.kw, 51);
+
+      // Zirkulation
+      if (zirk) rohr(WEGE.z, tempFarbe(p.T.v), 5);
+      else rohr(WEGE.z, F.linie, 3, [6, 6]);
+
+      // Warmwasser
+      rohr(WEGE.v, tempFarbe(p.T.v), 8);
+      ['sk', 'sb', 'sg'].forEach(function (s, i) { rohr(WEGE[s], tempFarbe(p.T[s]), 7); legionellenAufLeitung(WEGE[s], p.N[s], 11 + i * 17); });
+      legionellenAufLeitung(WEGE.v, p.N.v, 3);
+
+      // Speicher
+      rund(40, 300, 100, 120, 26); g.fillStyle = tempFarbe(p.T.sp, 0.95); g.fill(); g.strokeStyle = F.text; g.lineWidth = 2.5; g.stroke();
+      schreibe(zahl(p.T.sp, 3) + ' °C', 90, 356, { groesse: 20, fett: true, farbe: '#fff', ausrichtung: 'center', schatten: true });
+      schreibe('Speicher', 90, 378, { groesse: 13, farbe: '#fff', ausrichtung: 'center', schatten: true, technik: false });
+      if (p.des) schreibe('Desinfektion 70 °C', 90, 290, { groesse: 13, fett: true, farbe: '#E4572E', ausrichtung: 'center' });
+
+      // Zapfstellen
+      const offen = function (s) { return p.t - p.zuletzt[s] < 0.5; };
+      zapfstelle(330, 248, offen('sk'), tempFarbe(p.T.sk), 'Küche');
+      zapfstelle(400, 158, offen('sb'), tempFarbe(p.T.sb), 'Bad');
+      zapfstelle(480, 66, offen('sg'), tempFarbe(p.T.sg), 'Gäste-WC');
+
+      // Beschriftungen
+      const marke = function (text, x, y, farbe) {
+        g.font = '600 12px ' + SCHRIFT;
+        const b = g.measureText(text).width + 12;
+        rund(x - b / 2, y - 13, b, 18, 6); g.fillStyle = F.flaeche2; g.fill();
+        schreibe(text, x, y, { groesse: 12, fett: true, farbe: farbe || F.text, ausrichtung: 'center' });
+      };
+      marke(zahl(p.T.sk, 2) + ' °C · ' + kbe(p.N.sk), 278, 250);
+      marke(zahl(p.T.sb, 2) + ' °C · ' + kbe(p.N.sb), 310, 160);
+      marke(zahl(p.T.sg, 2) + ' °C · ' + kbe(p.N.sg) + ' KBE', 340, 70);
+      marke('kalt ' + zahl(p.T.kw, 2) + ' °C · ' + kbe(p.N.kw), 330, 122, p.T.kw > 25 ? '#C0392B' : '#2B7BB9');
+      marke((zirk ? 'Zirkulation ' : 'Verteilung ') + zahl(p.T.v, 2) + ' °C', 300, 318);
+      schreibe('Kaltwasser', 192, 424, { groesse: 12, farbe: '#2B7BB9', technik: false });
+      if (!zirk) schreibe('keine Zirkulation', 240, 222, { groesse: 12, farbe: F.leise, technik: false });
+    }
+
+    const REIHEN = [
+      { k: 'sg', name: 'Gäste-WC warm', farbe: '#E4572E' },
+      { k: 'kw', name: 'Gäste-WC kalt', farbe: '#2B7BB9' },
+      { k: 'v', name: 'Verteilung', farbe: '#6E6FA6' },
+      { k: 'sk', name: 'Küche', farbe: '#9AA7B1' }
+    ];
+
+    function zeichneVerlauf() {
+      const pr = sim.proben, x0 = 52, x1 = 488, y0 = 40, y1 = 330;
+      const xT = function (t) { return x0 + t / sim.dauer * (x1 - x0); };
+      const yN = function (n) { return y1 - (n - N_MIN) / (N_MAX - N_MIN) * (y1 - y0); };
+
+      schreibe('Legionellen', x0, 18, { groesse: 17, fett: true });
+      schreibe('KBE/100 ml, logarithmisch', x0 + 100, 18, { groesse: 12, farbe: F.leise, technik: false });
+
+      [[2, 3, 'rgba(242,165,65,.13)'], [3, 4, 'rgba(228,87,46,.13)'], [4, 5, 'rgba(192,57,43,.17)']].forEach(function (b) {
+        g.fillStyle = b[2]; g.fillRect(x0, yN(b[1]), x1 - x0, yN(b[0]) - yN(b[1]));
+      });
+      g.strokeStyle = F.linie; g.lineWidth = 1;
+      ['0,1', '1', '10', '100', '1 000', '10 000', '100 000'].forEach(function (t, i) {
+        const y = yN(i - 1);
+        g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+        schreibe(t, x0 - 6, y + 4, { groesse: 11, farbe: i === 3 ? '#E4572E' : F.leise, ausrichtung: 'right', fett: i === 3 });
+      });
+      g.strokeStyle = '#E4572E'; g.lineWidth = 1.5; g.setLineDash([5, 4]);
+      g.beginPath(); g.moveTo(x0, yN(2)); g.lineTo(x1, yN(2)); g.stroke(); g.setLineDash([]);
+      [0, 7, 14, 21].forEach(function (d) { schreibe('Tag ' + d, xT(d * 24), y1 + 18, { groesse: 11, farbe: F.leise, ausrichtung: d === 21 ? 'right' : 'center' }); });
+
+      // Desinfektion und Zapfungen am Gäste-WC
+      if (werte.anlage.des > 0) {
+        const x = xT(werte.anlage.des * 24);
+        g.fillStyle = 'rgba(14,107,106,.18)'; g.fillRect(x - 2, y0, 4, y1 - y0);
+        schreibe('70 °C', x + 4, y0 + 12, { groesse: 11, fett: true, farbe: '#0E6B6A' });
+      }
+      g.fillStyle = '#2B7BB9';
+      for (let t = werte.anlage.tg; t <= sim.dauer; t += werte.anlage.tg) {
+        g.beginPath(); g.moveTo(xT(t), y1 - 9); g.lineTo(xT(t) - 4, y1 - 1); g.lineTo(xT(t) + 4, y1 - 1); g.closePath(); g.fill();
+      }
+
+      REIHEN.slice().reverse().forEach(function (r) {
+        g.strokeStyle = r.farbe; g.lineWidth = r.k === 'sg' ? 2.6 : 2; g.beginPath();
+        pr.forEach(function (p, i) { const x = xT(p.t), y = yN(p.N[r.k]); if (i) g.lineTo(x, y); else g.moveTo(x, y); });
+        g.stroke();
+      });
+
+      // Zeitmarke
+      const p = probeJetzt(), x = xT(p.t);
+      g.strokeStyle = F.text; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(x, y0); g.lineTo(x, y1); g.stroke();
+      REIHEN.forEach(function (r) { g.beginPath(); g.arc(x, yN(p.N[r.k]), 4, 0, 7); g.fillStyle = r.farbe; g.fill(); });
+
+      let lx = x0;
+      REIHEN.forEach(function (r) {
+        g.fillStyle = r.farbe; g.fillRect(lx, y1 + 34, 14, 4);
+        schreibe(r.name, lx + 18, y1 + 40, { groesse: 12, technik: false, farbe: F.leise });
+        g.font = '12px system-ui, sans-serif';
+        lx += 30 + g.measureText(r.name).width;
+      });
+      schreibe('▲ Gäste-WC benutzt', x1, y1 + 58, { groesse: 11, farbe: '#2B7BB9', ausrichtung: 'right', technik: false });
+    }
+
+
+    // ---------- 3-Liter-Regel ----------
+    function zapfStand() {
+      const w = werte.dreiliter, ende = Math.max(ergebnis.t * 1.3, 6), t = ende * fortschritt;
+      const raus = w.Vp / 60 * t;
+      return { ende: ende, t: t, raus: raus, warm: raus >= ergebnis.V };
+    }
+
+    function zeichneLeitung() {
+      const w = werte.dreiliter, st = zapfStand(), rohrDaten = ROHRE[w.rohr];
+      const di = rohrDaten[1] - 2 * rohrDaten[2], dicke = 6 + di * 0.5;
+      const xa = 56, xe = 470, y = 190, laenge = xe - xa;
+
+      schreibe('Warmwasserleitung ohne Zirkulation', 20, 28, { groesse: 17, fett: true });
+
+      // Steigleitung mit Zirkulation
+      rohr([[xa - 10, 50], [xa - 10, 410]], tempFarbe(w.Tw), 10);
+      rohr([[xa + 6, 60], [xa + 6, 410]], tempFarbe(w.Tw - 4), 5);
+      schreibe('Steigleitung', xa - 18, 420, { groesse: 12, farbe: F.leise, technik: false });
+      schreibe('+ Zirkulation', xa - 18, 434, { groesse: 12, farbe: F.leise, technik: false });
+
+      // Leitungsinhalt: vorn abgekühlt, von hinten schiebt warmes Wasser nach
+      const front = Math.min(1, st.raus / ergebnis.V);
+      rohr([[xa - 10, y], [xe, y]], tempFarbe(w.Tl), dicke);
+      if (front > 0) rohr([[xa - 10, y], [xa + laenge * front, y]], tempFarbe(w.Tw), dicke);
+      g.strokeStyle = F.text; g.lineWidth = 1.5;
+      g.strokeRect(xa - 10, y - dicke / 2 - 1, xe - xa + 10, dicke + 2);
+      if (fortschritt > 0 && fortschritt < 1) {
+        for (let i = 0; i < 16; i++) {
+          const u = ((bewegungAus ? 0 : uhr * w.Vp / 40) + i / 16) % 1;
+          g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(xa + u * laenge, y + Math.sin(i * 3) * dicke * 0.2, 1.8, 0, 7); g.fill();
+        }
+      }
+      if (!st.warm && front > 0.04) legionellenAufLeitung([[xa + laenge * front, y], [xe, y]], 2.5, 5);
+      else if (fortschritt === 0) legionellenAufLeitung([[xa, y], [xe, y]], 2.5, 5);
+
+      // 3-Liter-Grenze
+      if (ergebnis.V > 3) {
+        const x3 = xa + laenge * 3 / ergebnis.V;
+        g.strokeStyle = '#C0392B'; g.lineWidth = 2; g.setLineDash([4, 3]);
+        g.beginPath(); g.moveTo(x3, y - 34); g.lineTo(x3, y + 34); g.stroke(); g.setLineDash([]);
+        schreibe('3 l', x3, y - 40, { groesse: 13, fett: true, farbe: '#C0392B', ausrichtung: 'center' });
+      }
+
+      // Auslauf
+      const Taus = st.warm ? w.Tw : w.Tl;
+      rohr([[xe, y], [xe + 30, y], [xe + 30, y + 30]], '#8A97A1', 9);
+      if (fortschritt > 0 && fortschritt < 1) {
+        for (let i = 0; i < 6; i++) {
+          const v = bewegungAus ? i / 6 : (uhr * 1.8 + i / 6) % 1;
+          g.fillStyle = tempFarbe(Taus, 0.85); g.beginPath(); g.ellipse(xe + 28 + (i % 2) * 4, y + 38 + v * 120, 2.4, 4, 0, 0, 7); g.fill();
+        }
+      }
+      g.strokeStyle = F.text; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(xe - 20, y + 150); g.quadraticCurveTo(xe + 32, y + 200, xe + 84, y + 150); g.stroke();
+      schreibe(zahl(Taus, 3) + ' °C', xe + 30, y - 22, { groesse: 16, fett: true, farbe: tempFarbe(Taus), ausrichtung: 'center' });
+
+      // Maße
+      const ym = y + 46;
+      g.strokeStyle = F.leise; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(xa, ym); g.lineTo(xe, ym); g.moveTo(xa, ym - 6); g.lineTo(xa, ym + 6); g.moveTo(xe, ym - 6); g.lineTo(xe, ym + 6); g.stroke();
+      schreibe('l = ' + zahl(w.l, 3) + ' m', (xa + xe) / 2, ym + 20, { groesse: 15, fett: true, ausrichtung: 'center' });
+      schreibe(rohrDaten[0] + ' · ' + zahl(ergebnis.V, 3) + ' l Inhalt', (xa + xe) / 2, y - 26, { groesse: 14, ausrichtung: 'center', farbe: ergebnis.V > 3 ? '#C0392B' : F.text });
+      schreibe(st.warm ? 'warmes Wasser kommt an' : (fortschritt > 0 ? 'abgekühltes Wasser läuft aus' : 'Wasser stand in der Leitung'), (xa + xe) / 2, ym + 44,
+               { groesse: 13, ausrichtung: 'center', farbe: F.leise, technik: false });
+    }
+
+    function zeichneBecher() {
+      const w = werte.dreiliter, st = zapfStand();
+
+      // Zeit
+      schreibe(dauer(st.t), 20, 52, { groesse: 40, fett: true });
+      schreibe(st.warm ? 'warm nach ' + dauer(ergebnis.t) : 'gezapft', 20, 76, { groesse: 14, farbe: st.warm ? tempFarbe(w.Tw) : F.leise, technik: false });
+      const tx0 = 20, tx1 = 480, skala = Math.max(40, st.ende), xZ = function (t) { return tx0 + t / skala * (tx1 - tx0); };
+      rund(tx0, 92, tx1 - tx0, 12, 6); g.fillStyle = F.flaeche2; g.fill();
+      g.fillStyle = tempFarbe(w.Tl); g.fillRect(tx0, 92, Math.min(xZ(st.t), xZ(ergebnis.t)) - tx0, 12);
+      if (st.warm) { g.fillStyle = tempFarbe(w.Tw); g.fillRect(xZ(ergebnis.t), 92, xZ(st.t) - xZ(ergebnis.t), 12); }
+      g.strokeStyle = ergebnis.t <= 30 ? '#0E6B6A' : '#C0392B'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(xZ(30), 86); g.lineTo(xZ(30), 110); g.stroke();
+      schreibe('30 s', xZ(30), 124, { groesse: 12, fett: true, ausrichtung: 'center', farbe: ergebnis.t <= 30 ? '#0E6B6A' : '#C0392B' });
+
+      // Messbecher
+      const bx = 40, by = 150, bb = 150, bh = 220;
+      const maxL = Math.max(ergebnis.V * 1.3, 4), yL = function (l) { return by + bh - Math.min(1, l / maxL) * bh; };
+      g.save(); rund(bx, by, bb, bh, 10); g.clip();
+      const kalt = Math.min(st.raus, ergebnis.V);
+      g.fillStyle = tempFarbe(w.Tl, 0.85); g.fillRect(bx, yL(kalt), bb, by + bh - yL(kalt));
+      if (st.raus > ergebnis.V) { g.fillStyle = tempFarbe(w.Tw, 0.85); g.fillRect(bx, yL(st.raus), bb, yL(kalt) - yL(st.raus)); }
+      g.restore();
+      rund(bx, by, bb, bh, 10); g.strokeStyle = F.text; g.lineWidth = 2.5; g.stroke();
+      for (let l = 1; l < maxL; l++) {
+        if (l === 3) continue;
+        g.strokeStyle = F.leise; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(bx + bb, yL(l)); g.lineTo(bx + bb + 8, yL(l)); g.stroke();
+        schreibe(l + ' l', bx + bb + 12, yL(l) + 4, { groesse: 11, farbe: F.leise });
+      }
+      g.strokeStyle = '#C0392B'; g.lineWidth = 2; g.setLineDash([6, 4]);
+      g.beginPath(); g.moveTo(bx - 6, yL(3)); g.lineTo(bx + bb + 6, yL(3)); g.stroke(); g.setLineDash([]);
+      schreibe('3 l', bx - 10, yL(3) + 4, { groesse: 13, fett: true, farbe: '#C0392B', ausrichtung: 'right' });
+
+      // Text daneben
+      const x = 250;
+      schreibe(zahl(st.raus, 3) + ' l', x, 190, { groesse: 30, fett: true });
+      schreibe('ausgelaufen', x, 210, { groesse: 13, farbe: F.leise, technik: false });
+      schreibe(zahl(kalt, 3) + ' l abgekühlt', x, 246, { groesse: 15, fett: true, farbe: tempFarbe(w.Tl) });
+      schreibe('stand zwischen den Zapfungen', x, 264, { groesse: 12, farbe: F.leise, technik: false });
+      schreibe('in der Leitung', x, 280, { groesse: 12, farbe: F.leise, technik: false });
+      if (st.raus > ergebnis.V) schreibe(zahl(st.raus - ergebnis.V, 3) + ' l warm', x, 314, { groesse: 15, fett: true, farbe: tempFarbe(w.Tw) });
+    }
+
+
+    // ============================================================
+    // Abspielen
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    const regler = document.getElementById('fortschritt');
+    const anzeige = document.getElementById('zeitanzeige');
+
+    function spieldauer() {
+      if (modus === 'anlage') return 24;
+      if (modus === 'temperatur') return 8;
+      return Math.max(4, Math.min(30, zapfStand().ende));
+    }
+
+    function abspielen(an) {
+      laeuft = an;
+      if (laeuft && fortschritt >= 1) fortschritt = 0;
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : (fortschritt >= 1 || fortschritt === 0 ? '▶ ' + MODI[modus].verb : '▶ Weiter');
+      regler.value = String(Math.round(fortschritt * 1000));
+      zeitText();
+    }
+
+    knopf.addEventListener('click', function () { abspielen(!laeuft); });
+    regler.addEventListener('input', function () { fortschritt = +regler.value / 1000; abspielen(false); });
+
+    function zeitText() {
+      if (modus === 'anlage' && sim) {
+        const t = probeJetzt().t, tag = Math.floor(t / 24) + 1, std = Math.floor(t % 24);
+        anzeige.textContent = 'Tag ' + tag + ', ' + std + ':00 Uhr';
+      } else if (modus === 'temperatur') {
+        anzeige.textContent = dauer(werte.temperatur.t * fortschritt * 3600) + ' von ' + dauer(werte.temperatur.t * 3600) + ' bei ' + zahl(werte.temperatur.T, 3) + ' °C';
+      } else if (modus === 'dreiliter' && isFinite(ergebnis.V)) {
+        const st = zapfStand();
+        anzeige.textContent = dauer(st.t) + ' gezapft, ' + zahl(st.raus, 3) + ' l' + (st.warm ? ', jetzt warm' : '');
+      }
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.max(0, Math.min(0.05, (jetzt - vorher) / 1000));
+      vorher = jetzt;
+      if (laeuft) {
+        fortschritt = Math.min(1, fortschritt + dt / spieldauer());
+        regler.value = String(Math.round(fortschritt * 1000));
+        if (fortschritt >= 1) abspielen(false); else zeitText();
+      }
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    modiAufbauen();
+    anpassen();
+    // Thema direkt verlinkbar, z. B. trinkwasserschutz.html#dreiliter
+    const anker = location.hash.slice(1);
+    modusWaehlen(MODI[anker] ? anker : 'anlage');
+    requestAnimationFrame(schleife);
+  })();
+  </script>
+</body>
+</html>

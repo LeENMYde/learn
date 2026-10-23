@@ -1295,7 +1295,8 @@
 
     const leinwand = document.getElementById('szene');
     const g = leinwand.getContext('2d');
-    const bewegungAus = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Bewegung läuft immer, auch wenn das System „Animationen reduzieren“ meldet; anhalten geht über den Knopf
+    const bewegungAus = false;
     const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
     const DUNKEL = '#13233A';
     const F = { text: DUNKEL, leise: '#5E6B7A', linie: '#D9E0E3', flaeche2: '#F6F8F8', ergebnis: '#0E6B6A', fehler: '#C0392B' };

@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transformator</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .modi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+
+    @media (max-width: 980px) {
+      .modi { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .modi button { flex: 0 0 min(280px, 72%); scroll-snap-align: start; }
+    }
+
+    .modi button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 2px 10px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .modi button:hover { border-color: var(--leise); }
+    .modi button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .modi button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .modi canvas { grid-row: span 2; width: 52px; height: 52px; }
+    .modi b { font-family: var(--technik); font-weight: 600; font-size: 1.04rem; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+    .modi small { color: var(--leise); font-size: .8rem; line-height: 1.3; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitanzeige { flex: 1 1 260px; font-family: var(--technik); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+    /* Ergebnis auf einen Blick */
+    .ergebnis-tafel { margin-top: 18px; }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .titel { color: var(--leise); font-size: .88rem; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.75rem); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .kachel .wert.offen { color: var(--leise); font-weight: 400; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+    .aussage { margin: 14px 0 0; font-size: .98rem; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    .feld .wahl { grid-column: 2 / span 2; }
+    .feld.ungueltig input { background: var(--fehler-flaeche); border-color: var(--fehler); color: var(--fehler); }
+
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Transformator</span></h1>
+      <p>Vom idealen Transformator mit Übersetzung und Hauptgleichung über Verluste, Wirkungsgrad, Kurzschlussspannung und Spannungsfall bis zum Drehstromtransformator mit Schaltgruppe. Werte eintragen, zusehen, nachrechnen.</p>
+    </section>
+
+    <nav class="modi" id="modi" aria-label="Thema wählen"></nav>
+
+    <section class="buehne" aria-label="Animation des Transformators">
+      <canvas id="szene" role="img" aria-label="Animation zum gewählten Thema mit Diagramm"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">❚❚ Anhalten</button>
+        <span class="zeitanzeige" id="zeitanzeige"></span>
+      </div>
+    </section>
+
+    <section class="tafel ergebnis-tafel" aria-labelledby="h-ergebnis">
+      <h2 id="h-ergebnis">Auf einen Blick</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <p class="aussage" id="aussage"></p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe" id="felderhilfe"></p>
+        <div class="zeichenerklaerung" id="legende"><span><i></i>eingetragen</span><span><i class="ergebnis"></i>ausgerechnet</span></div>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="zuruecksetzen">Werte zurücksetzen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte in der Reihenfolge, in der sie sich ergeben.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Zahlen und Einheiten
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (wert === 0) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    function texZahl(w, stellen) {
+      if (w !== 0 && isFinite(w) && Math.abs(w) < 0.001) {
+        const e = Math.floor(Math.log10(Math.abs(w)));
+        return Formel.zahl(zahl(w / Math.pow(10, e), 3)) + ' \\cdot 10^{' + e + '}';
+      }
+      const text = Formel.zahl(zahl(w, stellen || 4));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    function erg(tex) { return '\\htmlClass{ergebnis}{\\boldsymbol{' + tex + '}}'; }
+
+    // Arten: si = Grundeinheit mit Vorsilben, sonst feste Einheit mit Faktor
+    const ARTEN = {
+      U: { si: 'V', tex: '\\text{V}', wahl: [['V', 1], ['kV', 1e3], ['mV', 1e-3]] },
+      I: { si: 'A', tex: '\\text{A}', wahl: [['A', 1], ['mA', 1e-3], ['kA', 1e3]] },
+      S: { si: 'VA', tex: '\\text{VA}', wahl: [['VA', 1], ['kVA', 1e3], ['MVA', 1e6]] },
+      P: { si: 'W', tex: '\\text{W}', wahl: [['W', 1], ['kW', 1e3]] },
+      Z: { si: 'Ω', tex: '\\Omega', wahl: [['Ω', 1], ['kΩ', 1e3], ['mΩ', 1e-3]] },
+      N: { fest: 'Wdg', tex: '\\text{Wdg}', faktor: 1, wahl: [['Wdg', 1]] },
+      ue: { fest: '', tex: '', faktor: 1, wahl: [['–', 1]] },
+      f: { fest: 'Hz', tex: '\\text{Hz}', faktor: 1, wahl: [['Hz', 1]] },
+      B: { fest: 'T', tex: '\\text{T}', faktor: 1, wahl: [['T', 1]] },
+      A: { fest: 'cm²', tex: '\\text{cm}^2', faktor: 1e-4, wahl: [['cm²', 1e-4]] },
+      Uw: { fest: 'V/Wdg', tex: '\\tfrac{\\text{V}}{\\text{Wdg}}', faktor: 1, wahl: [['V/Wdg', 1]] }
+    };
+
+    const VORSILBEN = [[1e6, 'M', '\\text{M}'], [1e3, 'k', '\\text{k}'], [1, '', ''], [1e-3, 'm', '\\text{m}'], [1e-6, 'µ', '\\mu']];
+    function vorsilbe(w) {
+      const a = Math.abs(w);
+      if (!isFinite(a) || a === 0) return VORSILBEN[2];
+      return VORSILBEN.find(function (v) { return a >= v[0] * 0.9995; }) || VORSILBEN[VORSILBEN.length - 1];
+    }
+
+    function si(w, art, stellen) {
+      if (!isFinite(w)) return '?';
+      const a = ARTEN[art];
+      if (a.fest !== undefined) return zahl(w / a.faktor, stellen || 4) + (a.fest ? ' ' + a.fest : '');
+      const v = vorsilbe(w);
+      return zahl(w / v[0], stellen || 3) + ' ' + v[1] + a.si;
+    }
+
+    function texSi(w, art) {
+      const a = ARTEN[art];
+      if (a.fest !== undefined) return texZahl(w / a.faktor, 4) + (a.tex ? '\\,' + a.tex : '');
+      const v = vorsilbe(w);
+      return texZahl(w / v[0], 4) + '\\,' + v[2] + a.tex;
+    }
+
+
+    // ============================================================
+    // Idealer Transformator: Gleichungen, jede nach jeder Größe umgestellt
+    // ============================================================
+
+    const GROESSEN = {
+      U1: { tex: 'U_1', name: 'Primärspannung', art: 'U' }, U2: { tex: 'U_2', name: 'Sekundärspannung', art: 'U' },
+      I1: { tex: 'I_1', name: 'Primärstrom', art: 'I' }, I2: { tex: 'I_2', name: 'Sekundärstrom', art: 'I' },
+      N1: { tex: 'N_1', name: 'Windungen primär', art: 'N' }, N2: { tex: 'N_2', name: 'Windungen sekundär', art: 'N' },
+      ue: { tex: '\\ddot{u}', name: 'Übersetzungsverhältnis', art: 'ue' }, S: { tex: 'S', name: 'Scheinleistung', art: 'S' },
+      Uw: { tex: 'U_\\text{W}', name: 'Windungsspannung', art: 'Uw' }, f: { tex: 'f', name: 'Frequenz', art: 'f' },
+      B: { tex: '\\hat{B}', name: 'Flussdichte (Scheitelwert)', art: 'B' }, A: { tex: 'A_\\text{Fe}', name: 'Eisenquerschnitt', art: 'A' },
+      Z: { tex: 'Z', name: 'Last sekundär', art: 'Z' }, Z1: { tex: "Z_1", name: 'Last von primär gesehen', art: 'Z' }
+    };
+
+    function gl(titel, tex, loese) { return { titel: titel, tex: tex, loese: loese, groessen: Object.keys(loese) }; }
+    function l(tex, rechne) { return { tex: tex, rechne: rechne }; }
+
+    const GL_IDEAL = [
+      gl('Übersetzung aus den Spannungen', '\\ddot{u} = \\frac{U_1}{U_2}', {
+        ue: l('\\frac{@U1}{@U2}', function (v) { return v.U1 / v.U2; }),
+        U1: l('@ue \\cdot @U2', function (v) { return v.ue * v.U2; }),
+        U2: l('\\frac{@U1}{@ue}', function (v) { return v.U1 / v.ue; }) }),
+      gl('Übersetzung aus den Windungszahlen', '\\ddot{u} = \\frac{N_1}{N_2}', {
+        ue: l('\\frac{@N1}{@N2}', function (v) { return v.N1 / v.N2; }),
+        N1: l('@ue \\cdot @N2', function (v) { return v.ue * v.N2; }),
+        N2: l('\\frac{@N1}{@ue}', function (v) { return v.N1 / v.ue; }) }),
+      gl('Die Ströme verhalten sich umgekehrt', '\\ddot{u} = \\frac{I_2}{I_1}', {
+        ue: l('\\frac{@I2}{@I1}', function (v) { return v.I2 / v.I1; }),
+        I2: l('@ue \\cdot @I1', function (v) { return v.ue * v.I1; }),
+        I1: l('\\frac{@I2}{@ue}', function (v) { return v.I2 / v.ue; }) }),
+      gl('Belastung der Sekundärseite', 'I_2 = \\frac{U_2}{Z}', {
+        I2: l('\\frac{@U2}{@Z}', function (v) { return v.U2 / v.Z; }),
+        U2: l('@I2 \\cdot @Z', function (v) { return v.I2 * v.Z; }),
+        Z: l('\\frac{@U2}{@I2}', function (v) { return v.U2 / v.I2; }) }),
+      gl('Scheinleistung sekundär', 'S = U_2 \\cdot I_2', {
+        S: l('@U2 \\cdot @I2', function (v) { return v.U2 * v.I2; }),
+        U2: l('\\frac{@S}{@I2}', function (v) { return v.S / v.I2; }),
+        I2: l('\\frac{@S}{@U2}', function (v) { return v.S / v.U2; }) }),
+      gl('Scheinleistung primär (verlustfrei gleich)', 'S = U_1 \\cdot I_1', {
+        S: l('@U1 \\cdot @I1', function (v) { return v.U1 * v.I1; }),
+        U1: l('\\frac{@S}{@I1}', function (v) { return v.S / v.I1; }),
+        I1: l('\\frac{@S}{@U1}', function (v) { return v.S / v.U1; }) }),
+      gl('Transformatorenhauptgleichung', 'U_\\text{W} = 4{,}44 \\cdot f \\cdot \\hat{B} \\cdot A_\\text{Fe}', {
+        Uw: l('4{,}44 \\cdot @f \\cdot @B \\cdot @A', function (v) { return 4.44 * v.f * v.B * v.A; }),
+        f: l('\\frac{@Uw}{4{,}44 \\cdot @B \\cdot @A}', function (v) { return v.Uw / (4.44 * v.B * v.A); }),
+        B: l('\\frac{@Uw}{4{,}44 \\cdot @f \\cdot @A}', function (v) { return v.Uw / (4.44 * v.f * v.A); }),
+        A: l('\\frac{@Uw}{4{,}44 \\cdot @f \\cdot @B}', function (v) { return v.Uw / (4.44 * v.f * v.B); }) }),
+      gl('Windungsspannung primär', 'U_\\text{W} = \\frac{U_1}{N_1}', {
+        Uw: l('\\frac{@U1}{@N1}', function (v) { return v.U1 / v.N1; }),
+        U1: l('@Uw \\cdot @N1', function (v) { return v.Uw * v.N1; }),
+        N1: l('\\frac{@U1}{@Uw}', function (v) { return v.U1 / v.Uw; }) }),
+      gl('Windungsspannung sekundär', 'U_\\text{W} = \\frac{U_2}{N_2}', {
+        Uw: l('\\frac{@U2}{@N2}', function (v) { return v.U2 / v.N2; }),
+        U2: l('@Uw \\cdot @N2', function (v) { return v.Uw * v.N2; }),
+        N2: l('\\frac{@U2}{@Uw}', function (v) { return v.U2 / v.Uw; }) }),
+      gl('Last von der Primärseite aus gesehen', 'Z_1 = \\ddot{u}^2 \\cdot Z', {
+        Z1: l('@ue^2 \\cdot @Z', function (v) { return v.ue * v.ue * v.Z; }),
+        Z: l('\\frac{@Z1}{@ue^2}', function (v) { return v.Z1 / (v.ue * v.ue); }),
+        ue: l('\\sqrt{\\frac{@Z1}{@Z}}', function (v) { return Math.sqrt(v.Z1 / v.Z); }) })
+    ];
+
+
+    // ============================================================
+    // Themen
+    // ============================================================
+
+    const SCHALTGRUPPEN = [
+      ['Yyn0', 'Y', 'y', 0], ['Dyn5', 'D', 'y', 5], ['Dyn11', 'D', 'y', 11], ['Yzn5', 'Y', 'z', 5], ['Yzn11', 'Y', 'z', 11],
+      ['Yd5', 'Y', 'd', 5], ['Yd11', 'Y', 'd', 11], ['Dd0', 'D', 'd', 0]
+    ];
+
+    const MODI = {
+      ideal: {
+        name: 'Idealer Transformator', kurz: 'Übersetzung, Hauptgleichung', art: 'loeser',
+        hilfe: 'Gesuchtes leer lassen. Ausgerechnete Werte darfst du überschreiben, dann wird von dort aus weitergerechnet.',
+        start: { U1: 230, U2: 24, f: 50, B: 1.2, A: 10e-4, Z: 4 },
+        gruppen: [{ titel: 'Primärseite', farbe: '#2B7BB9', felder: ['U1', 'I1', 'N1'] },
+                  { titel: 'Sekundärseite', farbe: '#E4572E', felder: ['U2', 'I2', 'N2', 'Z'] },
+                  { titel: 'Übersetzung und Leistung', farbe: '#6E6FA6', felder: ['ue', 'S', 'Z1'] },
+                  { titel: 'Kern', farbe: '#8A97A1', felder: ['f', 'B', 'A', 'Uw'] }]
+      },
+      verluste: {
+        name: 'Verluste und Wirkungsgrad', kurz: 'Eisen, Kupfer, beste Auslastung', art: 'vorwaerts',
+        hilfe: 'Leerlaufverluste P₀ (Eisen) und Kurzschlussverluste Pₖ (Kupfer bei Nennstrom) stehen auf dem Typenschild oder im Datenblatt.',
+        felder: [
+          { k: 'Sn', gruppe: 'Transformator', tex: 'S_\\text{N}', name: 'Bemessungsleistung', einheit: 'kVA', std: 630, min: 0.01, max: 1e6 },
+          { k: 'P0', gruppe: 'Transformator', tex: 'P_0', name: 'Leerlaufverluste (Eisen)', einheit: 'W', std: 1000, min: 0, max: 1e7 },
+          { k: 'Pk', gruppe: 'Transformator', tex: 'P_\\text{k}', name: 'Kurzschlussverluste (Kupfer)', einheit: 'W', std: 6500, min: 0, max: 1e7 },
+          { k: 'x', gruppe: 'Betrieb', tex: 'x', name: 'Auslastung', einheit: '%', std: 60, min: 0, max: 200 },
+          { k: 'cos', gruppe: 'Betrieb', tex: '\\cos\\varphi', name: 'Leistungsfaktor der Last', einheit: '', std: 0.9, min: 0.01, max: 1 },
+          { k: 't', gruppe: 'Betrieb', tex: 't', name: 'Betriebsstunden im Jahr', einheit: 'h', std: 8760, min: 0, max: 8784 },
+          { k: 'preis', gruppe: 'Betrieb', tex: 'p', name: 'Energiepreis', einheit: '€/kWh', std: 0.25, min: 0, max: 10 }
+        ]
+      },
+      kurzschluss: {
+        name: 'Kurzschluss und Spannungsfall', kurz: 'uk, Ik, Kapp-Dreieck', art: 'vorwaerts',
+        hilfe: 'Drehstromtransformator. Die Kurzschlussspannung uₖ ist die Spannung, bei der im Kurzschlussversuch gerade Nennstrom fließt.',
+        felder: [
+          { k: 'Sn', gruppe: 'Transformator', tex: 'S_\\text{N}', name: 'Bemessungsleistung', einheit: 'kVA', std: 630, min: 0.01, max: 1e6 },
+          { k: 'U1', gruppe: 'Transformator', tex: 'U_1', name: 'Oberspannung', einheit: 'kV', std: 20, min: 0.001, max: 1000 },
+          { k: 'U2', gruppe: 'Transformator', tex: 'U_2', name: 'Unterspannung (Leerlauf)', einheit: 'V', std: 400, min: 1, max: 1e6 },
+          { k: 'uk', gruppe: 'Transformator', tex: 'u_\\text{k}', name: 'Kurzschlussspannung', einheit: '%', std: 6, min: 0.1, max: 50 },
+          { k: 'Pk', gruppe: 'Transformator', tex: 'P_\\text{k}', name: 'Kurzschlussverluste', einheit: 'W', std: 6500, min: 0, max: 1e7 },
+          { k: 'x', gruppe: 'Last', tex: 'x', name: 'Auslastung', einheit: '%', std: 100, min: 0, max: 200 },
+          { k: 'cos', gruppe: 'Last', tex: '\\cos\\varphi', name: 'Leistungsfaktor (induktiv)', einheit: '', std: 0.9, min: 0.01, max: 1 }
+        ]
+      },
+      drehstrom: {
+        name: 'Drehstrom und Schaltgruppen', kurz: 'Stern, Dreieck, Kennzahl', art: 'vorwaerts',
+        hilfe: 'Großbuchstabe: Oberspannungsseite, Kleinbuchstabe: Unterspannungsseite, n: herausgeführter Sternpunkt, Zahl: Kennzahl (Vielfaches von 30°).',
+        felder: [
+          { k: 'gruppe', gruppe: 'Schaltung', name: 'Schaltgruppe', wahl: SCHALTGRUPPEN.map(function (s, i) { return [s[0], i]; }), std: 1 },
+          { k: 'Sn', gruppe: 'Transformator', tex: 'S_\\text{N}', name: 'Bemessungsleistung', einheit: 'kVA', std: 630, min: 0.01, max: 1e6 },
+          { k: 'U1', gruppe: 'Transformator', tex: 'U_1', name: 'Oberspannung (Leiter)', einheit: 'kV', std: 20, min: 0.001, max: 1000 },
+          { k: 'U2', gruppe: 'Transformator', tex: 'U_2', name: 'Unterspannung (Leiter)', einheit: 'V', std: 400, min: 1, max: 1e6 }
+        ]
+      }
+    };
+
+    let modus = 'ideal';
+    const gegeben = Object.assign({}, MODI.ideal.start), einheitWahl = {};
+    const werte = {};
+    Object.keys(MODI).forEach(function (m) {
+      if (MODI[m].art !== 'vorwaerts') return;
+      werte[m] = {};
+      MODI[m].felder.forEach(function (f) { werte[m][f.k] = f.std; });
+    });
+
+
+    // ============================================================
+    // Rechnen: idealer Transformator (alles ableiten, was mit einer Unbekannten geht)
+    // ============================================================
+
+    let ergebnis = { werte: {}, kacheln: [], schritte: [], meldungen: [], aussage: '', rot: {} };
+
+    function einsetzen(vorlage, ersetze) {
+      return vorlage.replace(/@(\w+)(\^2)?/g, function (_, k, quadrat) { return ersetze(k, !!quadrat); });
+    }
+
+    function rechneIdeal() {
+      const r = { werte: Object.assign({}, gegeben), kacheln: [], schritte: [], meldungen: [], aussage: '', rot: {} };
+      const w = r.werte;
+      let weiter = true;
+      while (weiter) {
+        weiter = false;
+        GL_IDEAL.forEach(function (gleichung, nr) {
+          const offen = gleichung.groessen.filter(function (k) { return !(k in w); });
+          if (offen.length !== 1) return;
+          const ziel = offen[0], wert = gleichung.loese[ziel].rechne(w);
+          if (!isFinite(wert)) return;
+          w[ziel] = wert;
+          const vorlage = gleichung.loese[ziel].tex, stand = Object.assign({}, w);
+          r.schritte.push({ formel: 'g' + nr, titel: gleichung.titel,
+            a: GROESSEN[ziel].tex + ' = ' + einsetzen(vorlage, function (k, q) { return GROESSEN[k].tex + (q ? '^2' : ''); }),
+            b: GROESSEN[ziel].tex + ' = ' + einsetzen(vorlage, function (k, q) { const t = texSi(stand[k], GROESSEN[k].art); return q ? '(' + t + ')^2' : t; }) +
+               ' = ' + erg(texSi(wert, GROESSEN[ziel].art)) });
+          weiter = true;
+        });
+      }
+
+      GL_IDEAL.forEach(function (gleichung) {
+        if (!gleichung.groessen.every(function (k) { return k in w; })) return;
+        const ziel = gleichung.groessen[0], soll = gleichung.loese[ziel].rechne(w), ist = w[ziel];
+        if (Math.abs(soll - ist) > Math.max(Math.abs(ist), Math.abs(soll)) * 0.005 + 1e-12) {
+          gleichung.groessen.forEach(function (k) { if (k in gegeben) r.rot[k] = true; });
+          r.meldungen.push({ fehler: true, text: 'Die Angaben widersprechen sich: Nach „' + gleichung.titel + '“ müsste ' + GROESSEN[ziel].name + ' ' + si(soll, GROESSEN[ziel].art) + ' sein. Lösch eine der rot markierten Angaben.' });
+        }
+      });
+
+      if (w.B > 1.7) r.meldungen.push({ text: 'Über etwa 1,7 T gerät Elektroblech in die Sättigung: Der Magnetisierungsstrom steigt stark an, der Kern wird heiß.' });
+      if (w.ue < 1) r.meldungen.push({ text: 'ü kleiner als 1: Das ist ein Aufwärtstransformator, die Sekundärspannung ist höher als die Primärspannung.' });
+      ['N1', 'N2'].forEach(function (k) {
+        if (k in w && !(k in gegeben) && Math.abs(w[k] - Math.round(w[k])) > 0.02) r.meldungen.push({ text: GROESSEN[k].name + ': ' + zahl(w[k], 5) + ' – in der Praxis auf ' + Math.round(w[k]) + ' Windungen runden.' });
+      });
+      Object.keys(w).forEach(function (k) { if (w[k] <= 0) r.meldungen.push({ fehler: true, text: GROESSEN[k].name + ' muss größer als null sein.' }); });
+
+      const kach = [['ue', 'Übersetzung', '#6E6FA6'], ['U2', 'Sekundärspannung', '#E4572E'], ['I1', 'Primärstrom', '#2B7BB9'], ['I2', 'Sekundärstrom', '#E4572E'], ['N1', 'Windungen primär', '#2B7BB9'], ['S', 'Scheinleistung', 'var(--text)']];
+      r.kacheln = kach.map(function (k) { return { titel: k[1], wert: k[0] in w ? si(w[k[0]], GROESSEN[k[0]].art) : 'offen', farbe: k[2], offen: !(k[0] in w) }; });
+      r.aussage = 'Spannungen verhalten sich wie die Windungszahlen, Ströme umgekehrt. Was auf der einen Seite an Spannung verloren geht, gewinnt die andere an Strom; die Leistung bleibt (ohne Verluste) gleich.';
+      return r;
+    }
+
+
+    // ============================================================
+    // Rechnen: Verluste und Wirkungsgrad
+    // ============================================================
+
+    function rechneVerluste(w) {
+      const r = { werte: {}, kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const x = w.x / 100, Sn = w.Sn * 1000;
+      const P2 = x * Sn * w.cos, Pcu = x * x * w.Pk, PV = w.P0 + Pcu, P1 = P2 + PV, eta = P1 > 0 ? P2 / P1 : 0;
+      const xopt = w.Pk > 0 ? Math.sqrt(w.P0 / w.Pk) : NaN;
+      const P2o = xopt * Sn * w.cos, etaMax = P2o / (P2o + 2 * w.P0);
+      const WV = PV * w.t / 1000, kosten = WV * w.preis;
+
+      r.schritte = [
+        { formel: 'p2', titel: 'Abgegebene Wirkleistung', a: 'P_2 = x \\cdot S_\\text{N} \\cdot \\cos\\varphi',
+          b: 'P_2 = ' + texZahl(x) + ' \\cdot ' + texSi(Sn, 'S') + ' \\cdot ' + texZahl(w.cos) + ' = ' + erg(texSi(P2, 'P')) },
+        { formel: 'pcu', titel: 'Kupferverluste wachsen mit dem Quadrat der Auslastung', a: 'P_\\text{Cu} = x^2 \\cdot P_\\text{k}',
+          b: 'P_\\text{Cu} = ' + texZahl(x) + '^2 \\cdot ' + texSi(w.Pk, 'P') + ' = ' + erg(texSi(Pcu, 'P')) },
+        { formel: 'pv', titel: 'Gesamtverluste (Eisenverluste sind immer da)', a: 'P_\\text{V} = P_0 + P_\\text{Cu}',
+          b: 'P_\\text{V} = ' + texSi(w.P0, 'P') + ' + ' + texSi(Pcu, 'P') + ' = ' + erg(texSi(PV, 'P')) },
+        { formel: 'eta', titel: 'Wirkungsgrad', a: '\\eta = \\frac{P_2}{P_2 + P_\\text{V}}',
+          b: '\\eta = \\frac{' + texSi(P2, 'P') + '}{' + texSi(P2, 'P') + ' + ' + texSi(PV, 'P') + '} = ' + erg(texZahl(eta * 100, 5) + '\\,\\%') }
+      ];
+      if (isFinite(xopt)) {
+        r.schritte.push({ formel: 'xopt', titel: 'Auslastung mit dem besten Wirkungsgrad (P_Cu = P₀)', a: 'x_\\text{opt} = \\sqrt{\\frac{P_0}{P_\\text{k}}}',
+          b: 'x_\\text{opt} = \\sqrt{\\frac{' + texSi(w.P0, 'P') + '}{' + texSi(w.Pk, 'P') + '}} = ' + erg(texZahl(xopt * 100, 3) + '\\,\\%') });
+        r.schritte.push({ formel: 'eta', titel: 'Höchster Wirkungsgrad', a: '\\eta_\\text{max} = \\frac{P_2}{P_2 + 2 P_0} \\quad\\text{bei } x_\\text{opt}',
+          b: '\\eta_\\text{max} = \\frac{' + texSi(P2o, 'P') + '}{' + texSi(P2o, 'P') + ' + 2 \\cdot ' + texSi(w.P0, 'P') + '} = ' + erg(texZahl(etaMax * 100, 5) + '\\,\\%') });
+      }
+      r.schritte.push({ formel: 'wv', titel: 'Verlustenergie im Jahr', a: 'W_\\text{V} = P_\\text{V} \\cdot t',
+        b: 'W_\\text{V} = ' + texSi(PV, 'P') + ' \\cdot ' + texZahl(w.t) + '\\,\\text{h} = ' + erg(texZahl(WV, 4) + '\\,\\text{kWh}') });
+      r.schritte.push({ formel: 'wv', titel: 'Kosten der Verluste', a: 'K = W_\\text{V} \\cdot p',
+        b: 'K = ' + texZahl(WV, 4) + '\\,\\text{kWh} \\cdot ' + texZahl(w.preis) + '\\,\\tfrac{\\text{€}}{\\text{kWh}} = ' + erg(texZahl(kosten, 4) + '\\,\\text{€}') });
+
+      if (x > 1) r.meldungen.push({ fehler: true, text: 'Überlast: Bei ' + zahl(w.x) + ' % steigen die Kupferverluste auf das ' + zahl(x * x, 3) + '-fache. Die Wicklung wird zu warm und altert schneller.' });
+      if (x < 0.15) r.meldungen.push({ text: 'Schwach belastet: Die Eisenverluste laufen trotzdem voll weiter, deshalb ist der Wirkungsgrad schlecht.' });
+
+      r.kacheln = [
+        { titel: 'Wirkungsgrad', wert: zahl(eta * 100, 4) + ' %', farbe: 'var(--ergebnis)' },
+        { titel: 'Verluste', wert: si(PV, 'P'), farbe: '#E4572E', klein: 'Eisen ' + si(w.P0, 'P') + ', Kupfer ' + si(Pcu, 'P') },
+        { titel: 'Beste Auslastung', wert: zahl(xopt * 100, 3) + ' %', farbe: '#6E6FA6', klein: 'η max ' + zahl(etaMax * 100, 4) + ' %' },
+        { titel: 'Verlustkosten im Jahr', wert: zahl(Math.round(kosten), 6) + ' €', farbe: '#F2A541', klein: zahl(WV, 4) + ' kWh' }
+      ];
+      r.aussage = 'Eisenverluste hängen nur von der Spannung ab und laufen auch im Leerlauf. Kupferverluste wachsen mit dem Quadrat des Stroms. Der Wirkungsgrad ist dort am höchsten, wo beide gleich groß sind.';
+      Object.assign(r.werte, { x: x, P2: P2, P1: P1, Pcu: Pcu, PV: PV, eta: eta, xopt: xopt, etaMax: etaMax });
+      return r;
+    }
+
+
+    // ============================================================
+    // Rechnen: Kurzschluss und Spannungsfall
+    // ============================================================
+
+    const W3 = Math.sqrt(3);
+
+    function rechneKurzschluss(w) {
+      const r = { werte: {}, kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const Sn = w.Sn * 1000, U1 = w.U1 * 1000, U2 = w.U2, x = w.x / 100;
+      const In1 = Sn / (W3 * U1), In2 = Sn / (W3 * U2), Ik2 = In2 * 100 / w.uk, Uk1 = w.uk / 100 * U1;
+      const ukR = w.Pk / Sn * 100, ukX = Math.sqrt(Math.max(0, w.uk * w.uk - ukR * ukR));
+      const sin = Math.sqrt(Math.max(0, 1 - w.cos * w.cos));
+      const dU = x * (ukR * w.cos + ukX * sin), U2Last = U2 * (1 - dU / 100), Zk = w.uk / 100 * U2 * U2 / Sn;
+
+      r.schritte = [
+        { formel: 'in', titel: 'Nennstrom auf der Oberspannungsseite', a: 'I_\\text{N1} = \\frac{S_\\text{N}}{\\sqrt{3} \\cdot U_1}',
+          b: 'I_\\text{N1} = \\frac{' + texSi(Sn, 'S') + '}{\\sqrt{3} \\cdot ' + texSi(U1, 'U') + '} = ' + erg(texSi(In1, 'I')) },
+        { formel: 'in', titel: 'Nennstrom auf der Unterspannungsseite', a: 'I_\\text{N2} = \\frac{S_\\text{N}}{\\sqrt{3} \\cdot U_2}',
+          b: 'I_\\text{N2} = \\frac{' + texSi(Sn, 'S') + '}{\\sqrt{3} \\cdot ' + texSi(U2, 'U') + '} = ' + erg(texSi(In2, 'I')) },
+        { formel: 'uk', titel: 'Spannung im Kurzschlussversuch (Nennstrom fließt)', a: 'U_\\text{k} = \\frac{u_\\text{k}}{100\\,\\%} \\cdot U_1',
+          b: 'U_\\text{k} = \\frac{' + texZahl(w.uk) + '\\,\\%}{100\\,\\%} \\cdot ' + texSi(U1, 'U') + ' = ' + erg(texSi(Uk1, 'U')) },
+        { formel: 'ik', titel: 'Dauerkurzschlussstrom an den Unterspannungsklemmen (starres Netz)', a: 'I_\\text{k} = \\frac{I_\\text{N2} \\cdot 100\\,\\%}{u_\\text{k}}',
+          b: 'I_\\text{k} = \\frac{' + texSi(In2, 'I') + ' \\cdot 100\\,\\%}{' + texZahl(w.uk) + '\\,\\%} = ' + erg(texSi(Ik2, 'I')) },
+        { formel: 'zk', titel: 'Kurzschlussimpedanz, auf die Unterspannungsseite bezogen', a: 'Z_\\text{k} = \\frac{u_\\text{k}}{100\\,\\%} \\cdot \\frac{U_2^2}{S_\\text{N}}',
+          b: 'Z_\\text{k} = \\frac{' + texZahl(w.uk) + '\\,\\%}{100\\,\\%} \\cdot \\frac{(' + texSi(U2, 'U') + ')^2}{' + texSi(Sn, 'S') + '} = ' + erg(texSi(Zk, 'Z')) },
+        { formel: 'ukr', titel: 'Wirkanteil der Kurzschlussspannung', a: 'u_\\text{R} = \\frac{P_\\text{k}}{S_\\text{N}} \\cdot 100\\,\\%',
+          b: 'u_\\text{R} = \\frac{' + texSi(w.Pk, 'P') + '}{' + texSi(Sn, 'S') + '} \\cdot 100\\,\\% = ' + erg(texZahl(ukR, 3) + '\\,\\%') },
+        { formel: 'ukr', titel: 'Blindanteil der Kurzschlussspannung', a: 'u_\\text{X} = \\sqrt{u_\\text{k}^2 - u_\\text{R}^2}',
+          b: 'u_\\text{X} = \\sqrt{(' + texZahl(w.uk) + '\\,\\%)^2 - (' + texZahl(ukR, 3) + '\\,\\%)^2} = ' + erg(texZahl(ukX, 3) + '\\,\\%') },
+        { formel: 'du', titel: 'Spannungsfall unter Last (Näherung)', a: '\\Delta u = x \\cdot (u_\\text{R} \\cos\\varphi + u_\\text{X} \\sin\\varphi)',
+          b: '\\Delta u = ' + texZahl(x) + ' \\cdot (' + texZahl(ukR, 3) + '\\,\\% \\cdot ' + texZahl(w.cos) + ' + ' + texZahl(ukX, 3) + '\\,\\% \\cdot ' + texZahl(sin, 3) + ') = ' + erg(texZahl(dU, 3) + '\\,\\%') },
+        { formel: 'du', titel: 'Klemmenspannung unter Last', a: 'U_\\text{2,Last} = U_2 \\cdot \\left(1 - \\frac{\\Delta u}{100\\,\\%}\\right)',
+          b: 'U_\\text{2,Last} = ' + texSi(U2, 'U') + ' \\cdot \\left(1 - \\frac{' + texZahl(dU, 3) + '\\,\\%}{100\\,\\%}\\right) = ' + erg(texSi(U2Last, 'U')) }
+      ];
+
+      if (w.Pk / Sn * 100 > w.uk) r.meldungen.push({ fehler: true, text: 'u_R ist größer als u_k. Das geht nicht: Pₖ ist zu groß oder uₖ zu klein.' });
+      if (w.uk < 4) r.meldungen.push({ text: 'Kleines uₖ: Die Spannung bleibt unter Last stabil, aber der Kurzschlussstrom wird sehr groß. Schaltgeräte müssen ihn beherrschen.' });
+      if (w.uk > 8) r.meldungen.push({ text: 'Großes uₖ begrenzt den Kurzschlussstrom, die Spannung sinkt unter Last aber stärker.' });
+
+      r.kacheln = [
+        { titel: 'Nennstrom unten', wert: si(In2, 'I'), farbe: '#E4572E', klein: 'oben ' + si(In1, 'I') },
+        { titel: 'Dauerkurzschlussstrom', wert: si(Ik2, 'I'), farbe: '#C0392B', klein: zahl(100 / w.uk, 3) + '-facher Nennstrom' },
+        { titel: 'Spannungsfall', wert: zahl(dU, 3) + ' %', farbe: '#F2A541', klein: 'U₂ unter Last ' + si(U2Last, 'U') },
+        { titel: 'uR / uX', wert: zahl(ukR, 2) + ' / ' + zahl(ukX, 2) + ' %', farbe: '#6E6FA6', klein: 'Wirk- und Blindanteil' }
+      ];
+      r.aussage = 'uₖ sagt zweierlei: Wie stark die Spannung unter Last nachgibt und wie groß der Kurzschlussstrom wird. Bei uₖ = ' + zahl(w.uk) + ' % ist der Dauerkurzschlussstrom ' + zahl(100 / w.uk, 3) + '-mal so groß wie der Nennstrom.';
+      Object.assign(r.werte, { In1: In1, In2: In2, Ik2: Ik2, Uk1: Uk1, ukR: ukR, ukX: ukX, dU: dU, U2Last: U2Last, sin: sin });
+      return r;
+    }
+
+
+    // ============================================================
+    // Rechnen: Drehstrom und Schaltgruppen
+    // ============================================================
+
+    function strang(schaltung, U, I) {
+      if (schaltung.toLowerCase() === 'd') return { U: U, I: I / W3, tU: 'U', tI: '\\frac{I}{\\sqrt{3}}' };
+      return { U: U / W3, I: I, tU: '\\frac{U}{\\sqrt{3}}', tI: 'I' };
+    }
+
+    function rechneDrehstrom(w) {
+      const r = { werte: {}, kacheln: [], schritte: [], meldungen: [], aussage: '' };
+      const sg = SCHALTGRUPPEN[w.gruppe], Sn = w.Sn * 1000, U1 = w.U1 * 1000, U2 = w.U2;
+      const I1 = Sn / (W3 * U1), I2 = Sn / (W3 * U2), s1 = strang(sg[1], U1, I1), s2 = strang(sg[2], U2, I2);
+      const ue = U1 / U2, zick = sg[2] === 'z';
+      // Zickzack: jeder Strang besteht aus zwei Hälften auf verschiedenen Schenkeln, jede Hälfte trägt U₂/3
+      const uHaelfte = zick ? U2 / 3 : s2.U, nVerh = s1.U / uHaelfte;
+      const name = { Y: 'Stern', D: 'Dreieck', y: 'Stern', d: 'Dreieck', z: 'Zickzack' };
+
+      r.schritte = [
+        { formel: 'ue3', titel: 'Übersetzung der Leiterspannungen (Bemessungsübersetzung)', a: '\\ddot{u} = \\frac{U_1}{U_2}',
+          b: '\\ddot{u} = \\frac{' + texSi(U1, 'U') + '}{' + texSi(U2, 'U') + '} = ' + erg(texZahl(ue, 4)) },
+        { formel: 'i3', titel: 'Leiterstrom Oberspannung', a: 'I_1 = \\frac{S_\\text{N}}{\\sqrt{3} \\cdot U_1}',
+          b: 'I_1 = \\frac{' + texSi(Sn, 'S') + '}{\\sqrt{3} \\cdot ' + texSi(U1, 'U') + '} = ' + erg(texSi(I1, 'I')) },
+        { formel: 'i3', titel: 'Leiterstrom Unterspannung', a: 'I_2 = \\frac{S_\\text{N}}{\\sqrt{3} \\cdot U_2}',
+          b: 'I_2 = \\frac{' + texSi(Sn, 'S') + '}{\\sqrt{3} \\cdot ' + texSi(U2, 'U') + '} = ' + erg(texSi(I2, 'I')) },
+        { formel: 'strang', titel: 'Strangspannung Oberspannung (' + name[sg[1]] + ')', a: 'U_\\text{1Str} = ' + s1.tU.replace(/U/g, 'U_1'),
+          b: 'U_\\text{1Str} = ' + (sg[1] === 'D' ? texSi(U1, 'U') : '\\frac{' + texSi(U1, 'U') + '}{\\sqrt{3}}') + ' = ' + erg(texSi(s1.U, 'U')) },
+        { formel: 'strang', titel: 'Strangstrom Oberspannung', a: 'I_\\text{1Str} = ' + s1.tI.replace(/I/g, 'I_1'),
+          b: 'I_\\text{1Str} = ' + (sg[1] === 'D' ? '\\frac{' + texSi(I1, 'I') + '}{\\sqrt{3}}' : texSi(I1, 'I')) + ' = ' + erg(texSi(s1.I, 'I')) },
+        { formel: 'strang', titel: 'Strangspannung Unterspannung (' + name[sg[2]] + ')', a: 'U_\\text{2Str} = ' + s2.tU.replace(/U/g, 'U_2'),
+          b: 'U_\\text{2Str} = ' + (sg[2] === 'd' ? texSi(U2, 'U') : '\\frac{' + texSi(U2, 'U') + '}{\\sqrt{3}}') + ' = ' + erg(texSi(s2.U, 'U')) },
+        { formel: 'strang', titel: 'Strangstrom Unterspannung', a: 'I_\\text{2Str} = ' + s2.tI.replace(/I/g, 'I_2'),
+          b: 'I_\\text{2Str} = ' + (sg[2] === 'd' ? '\\frac{' + texSi(I2, 'I') + '}{\\sqrt{3}}' : texSi(I2, 'I')) + ' = ' + erg(texSi(s2.I, 'I')) },
+        zick
+          ? { formel: 'nverh', titel: 'Windungsverhältnis je Halbwicklung (zwei Hälften liegen 60° versetzt)', a: '\\frac{N_1}{N_\\text{2,½}} = \\frac{U_\\text{1Str}}{U_2 / 3}',
+              b: '\\frac{N_1}{N_\\text{2,½}} = \\frac{' + texSi(s1.U, 'U') + '}{' + texSi(uHaelfte, 'U') + '} = ' + erg(texZahl(nVerh, 4)) }
+          : { formel: 'nverh', titel: 'Windungsverhältnis = Verhältnis der Strangspannungen', a: '\\frac{N_1}{N_2} = \\frac{U_\\text{1Str}}{U_\\text{2Str}}',
+              b: '\\frac{N_1}{N_2} = \\frac{' + texSi(s1.U, 'U') + '}{' + texSi(s2.U, 'U') + '} = ' + erg(texZahl(nVerh, 4)) },
+        { formel: 'kennzahl', titel: 'Phasenverschiebung aus der Kennzahl', a: '\\varphi = k \\cdot 30^\\circ',
+          b: '\\varphi = ' + sg[3] + ' \\cdot 30^\\circ = ' + erg(sg[3] * 30 + '^\\circ') + '\\;\\text{(Unterspannung eilt nach)}' }
+      ];
+
+      if (sg[2] === 'y' && sg[0].indexOf('n') > 0 && sg[1] === 'Y') r.meldungen.push({ text: 'Yyn: Der Sternpunkt ist nur begrenzt belastbar (etwa 10 % des Nennstroms). Für ungleichmäßige Last im Ortsnetz sind Dyn oder Yzn besser.' });
+      if (sg[2] === 'd') r.meldungen.push({ text: 'Unterspannung im Dreieck: Es gibt keinen Sternpunkt, also keinen Neutralleiter für 230-V-Verbraucher.' });
+      if (sg[0] === 'Dyn5') r.meldungen.push({ text: 'Dyn5 ist die übliche Schaltgruppe für Ortsnetztransformatoren: Der Sternpunkt unten ist voll belastbar.' });
+
+      r.kacheln = [
+        { titel: 'Schaltgruppe', wert: sg[0], farbe: '#6E6FA6', klein: name[sg[1]] + ' / ' + name[sg[2]] },
+        { titel: 'Phasenverschiebung', wert: sg[3] * 30 + '°', farbe: '#F2A541', klein: 'Kennzahl ' + sg[3] + ' · 30°' },
+        { titel: 'Strom oben / unten', wert: si(I1, 'I') + ' / ' + si(I2, 'I'), farbe: '#2B7BB9' },
+        { titel: zick ? 'N₁ : N₂ (je Hälfte)' : 'Windungsverhältnis', wert: zahl(nVerh, 4), farbe: '#E4572E', klein: 'ü der Leiterspannungen ' + zahl(ue, 4) }
+      ];
+      r.aussage = 'Bei Stern und Dreieck unterscheiden sich Strang- und Leitergrößen um √3. Deshalb ist das Windungsverhältnis nicht immer gleich der Spannungsübersetzung, und die Seiten sind um ein Vielfaches von 30° gegeneinander verdreht.';
+      Object.assign(r.werte, { sg: sg, I1: I1, I2: I2, s1: s1, s2: s2, ue: ue, nVerh: nVerh });
+      return r;
+    }
+
+    const RECHNER = { ideal: rechneIdeal, verluste: rechneVerluste, kurzschluss: rechneKurzschluss, drehstrom: rechneDrehstrom };
+
+
+    // ============================================================
+    // Formelsammlung
+    // ============================================================
+
+    const FORMELN = {
+      ideal: GL_IDEAL.map(function (g, i) { return { id: 'g' + i, tex: g.tex }; }),
+      verluste: [
+        { id: 'p2', tex: 'P_2 = x \\cdot S_\\text{N} \\cdot \\cos\\varphi \\qquad x = \\frac{I}{I_\\text{N}}' },
+        { id: 'pcu', tex: 'P_\\text{Cu} = x^2 \\cdot P_\\text{k} \\qquad P_\\text{Fe} = P_0' },
+        { id: 'pv', tex: 'P_\\text{V} = P_0 + x^2 \\cdot P_\\text{k}' },
+        { id: 'eta', tex: '\\eta = \\frac{P_2}{P_2 + P_\\text{V}} = \\frac{P_2}{P_1}' },
+        { id: 'xopt', tex: 'x_\\text{opt} = \\sqrt{\\frac{P_0}{P_\\text{k}}}' },
+        { id: 'wv', tex: 'W_\\text{V} = P_\\text{V} \\cdot t \\qquad K = W_\\text{V} \\cdot p' }
+      ],
+      kurzschluss: [
+        { id: 'in', tex: 'I_\\text{N} = \\frac{S_\\text{N}}{\\sqrt{3} \\cdot U}' },
+        { id: 'uk', tex: 'u_\\text{k} = \\frac{U_\\text{k}}{U_\\text{N}} \\cdot 100\\,\\%' },
+        { id: 'ik', tex: 'I_\\text{k} = \\frac{I_\\text{N} \\cdot 100\\,\\%}{u_\\text{k}}' },
+        { id: 'zk', tex: 'Z_\\text{k} = \\frac{u_\\text{k}}{100\\,\\%} \\cdot \\frac{U^2}{S_\\text{N}}' },
+        { id: 'ukr', tex: 'u_\\text{R} = \\frac{P_\\text{k}}{S_\\text{N}} \\cdot 100\\,\\% \\qquad u_\\text{k}^2 = u_\\text{R}^2 + u_\\text{X}^2' },
+        { id: 'du', tex: '\\Delta u \\approx x \\cdot (u_\\text{R} \\cos\\varphi + u_\\text{X} \\sin\\varphi)' }
+      ],
+      drehstrom: [
+        { id: 'ue3', tex: '\\ddot{u} = \\frac{U_1}{U_2} \\quad \\text{(Leiterspannungen)}' },
+        { id: 'i3', tex: 'S = \\sqrt{3} \\cdot U \\cdot I' },
+        { id: 'strang', tex: '\\text{Stern: } U_\\text{Str} = \\frac{U}{\\sqrt{3}},\\; I_\\text{Str} = I \\qquad \\text{Dreieck: } U_\\text{Str} = U,\\; I_\\text{Str} = \\frac{I}{\\sqrt{3}}' },
+        { id: 'nverh', tex: '\\frac{N_1}{N_2} = \\frac{U_\\text{1Str}}{U_\\text{2Str}}' },
+        { id: 'kennzahl', tex: '\\varphi = k \\cdot 30^\\circ' }
+      ]
+    };
+
+    const KONSTANTEN = {
+      ideal: ['4{,}44 = \\frac{2\\pi}{\\sqrt{2}} \\quad\\text{(Effektivwert einer Sinusspannung)}', '1\\,\\text{cm}^2 = 10^{-4}\\,\\text{m}^2 \\qquad 1\\,\\text{T} = 1\\,\\tfrac{\\text{Vs}}{\\text{m}^2}'],
+      verluste: ['P_0 \\text{ aus dem Leerlaufversuch} \\qquad P_\\text{k} \\text{ aus dem Kurzschlussversuch}'],
+      kurzschluss: ['\\text{Ortsnetztransformatoren: } u_\\text{k} \\approx 4 \\ldots 6\\,\\%', '\\sin\\varphi = \\sqrt{1 - \\cos^2\\varphi}'],
+      drehstrom: ['\\sqrt{3} \\approx 1{,}732', '\\text{Kennzahl } k: \\text{Uhrzeit des US-Zeigers, wenn der OS-Zeiger auf 12 steht}']
+    };
+
+    function formelnZeigen() {
+      const ziel = document.getElementById('formelsammlung');
+      ziel.innerHTML = '';
+      const abschnitt = document.createElement('section');
+      abschnitt.innerHTML = '<h3></h3>';
+      abschnitt.querySelector('h3').textContent = MODI[modus].name;
+      FORMELN[modus].forEach(function (f) {
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        Formel.setze(d, f.tex, true);
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.formel === f.id; }));
+        abschnitt.append(d);
+      });
+      ziel.append(abschnitt);
+      const konst = document.createElement('section');
+      konst.innerHTML = '<h3>Merksätze und Einheiten</h3>';
+      KONSTANTEN[modus].forEach(function (tex) {
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        Formel.setze(d, tex, true);
+        konst.append(d);
+      });
+      ziel.append(konst);
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const loeserFelder = {};
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      ziel.innerHTML = '';
+      Object.keys(loeserFelder).forEach(function (k) { delete loeserFelder[k]; });
+      document.getElementById('felderhilfe').textContent = MODI[modus].hilfe;
+      document.getElementById('legende').hidden = MODI[modus].art !== 'loeser';
+      if (MODI[modus].art === 'loeser') loeserAufbauen(ziel); else vorwaertsAufbauen(ziel);
+    }
+
+    function feldZeile(symbolTex, name) {
+      const zeile = document.createElement('div');
+      zeile.className = 'feld';
+      const label = document.createElement('label');
+      const symbol = document.createElement('span');
+      symbol.className = 'symbol';
+      if (symbolTex) Formel.setze(symbol, symbolTex);
+      const n = document.createElement('span');
+      n.className = 'name';
+      n.textContent = name; n.title = name;
+      label.append(symbol, n);
+      zeile.append(label);
+      return { zeile: zeile, label: label };
+    }
+
+    function einheitVon(key) { return ARTEN[GROESSEN[key].art].wahl[einheitWahl[key] || 0]; }
+
+    function loeserAufbauen(ziel) {
+      MODI.ideal.gruppen.forEach(function (gruppe) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe';
+        fs.style.setProperty('--farbe', gruppe.farbe);
+        const lg = document.createElement('legend');
+        lg.textContent = gruppe.titel;
+        fs.append(lg);
+        gruppe.felder.forEach(function (key) {
+          const g = GROESSEN[key], z = feldZeile(g.tex, g.name);
+          z.label.htmlFor = 'f-' + key;
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + key; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.placeholder = 'gesucht';
+          const wahl = ARTEN[g.art].wahl;
+          let einheit;
+          if (wahl.length > 1) {
+            einheit = document.createElement('select');
+            einheit.setAttribute('aria-label', 'Einheit für ' + g.name);
+            wahl.forEach(function (e, i) { const o = document.createElement('option'); o.value = String(i); o.textContent = e[0]; einheit.append(o); });
+            einheit.value = String(einheitWahl[key] || 0);
+            einheit.addEventListener('change', function () { einheitWahl[key] = +einheit.value; anzeigen(); });
+          } else {
+            einheit = document.createElement('span');
+            einheit.className = 'einheit';
+            einheit.textContent = wahl[0][0] === '–' ? '' : wahl[0][0];
+          }
+          const leeren = document.createElement('button');
+          leeren.type = 'button'; leeren.className = 'leeren'; leeren.textContent = '✕';
+          leeren.setAttribute('aria-label', g.name + ' löschen');
+          leeren.addEventListener('click', function () { delete gegeben[key]; eingabe.value = ''; neuRechnen(); eingabe.focus(); });
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value);
+            if (eingabe.value.trim() === '') delete gegeben[key];
+            else if (isFinite(w)) gegeben[key] = w * einheitVon(key)[1];
+            else return;
+            neuRechnen(key);
+          });
+          eingabe.addEventListener('blur', function () { anzeigen(); });
+          z.zeile.append(eingabe, einheit, leeren);
+          fs.append(z.zeile);
+          loeserFelder[key] = { zeile: z.zeile, eingabe: eingabe };
+        });
+        ziel.append(fs);
+      });
+    }
+
+    function vorwaertsAufbauen(ziel) {
+      const farben = { Transformator: '#2B7BB9', Betrieb: '#E4572E', Last: '#E4572E', Schaltung: '#6E6FA6' };
+      const gruppen = {};
+      MODI[modus].felder.forEach(function (f) {
+        if (!gruppen[f.gruppe]) {
+          const fs = document.createElement('fieldset');
+          fs.className = 'gruppe';
+          fs.style.setProperty('--farbe', farben[f.gruppe] || 'var(--linie)');
+          const lg = document.createElement('legend');
+          lg.textContent = f.gruppe;
+          fs.append(lg);
+          ziel.append(fs);
+          gruppen[f.gruppe] = fs;
+        }
+        const z = feldZeile(f.tex, f.name);
+        z.zeile.classList.add('gegeben');
+        z.label.htmlFor = 'f-' + f.k;
+        if (f.wahl) {
+          const auswahl = document.createElement('select');
+          auswahl.id = 'f-' + f.k; auswahl.className = 'wahl';
+          f.wahl.forEach(function (o) { const opt = document.createElement('option'); opt.value = String(o[1]); opt.textContent = o[0]; auswahl.append(opt); });
+          auswahl.value = String(werte[modus][f.k]);
+          auswahl.addEventListener('change', function () { werte[modus][f.k] = +auswahl.value; neuRechnen(); });
+          z.zeile.append(auswahl, document.createElement('span'));
+        } else {
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + f.k; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.value = zahl(werte[modus][f.k], 6).replace(/ /g, '');
+          const einheit = document.createElement('span');
+          einheit.className = 'einheit';
+          einheit.textContent = f.einheit;
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value), gut = isFinite(w) && w >= f.min && w <= f.max;
+            z.zeile.classList.toggle('ungueltig', !gut);
+            eingabe.title = gut ? '' : 'erlaubt: ' + zahl(f.min) + ' bis ' + zahl(f.max) + ' ' + f.einheit;
+            if (!gut) return;
+            werte[modus][f.k] = w;
+            neuRechnen();
+          });
+          eingabe.addEventListener('blur', function () { z.zeile.classList.remove('ungueltig'); eingabe.value = zahl(werte[modus][f.k], 6).replace(/ /g, ''); });
+          z.zeile.append(eingabe, einheit);
+        }
+        z.zeile.append(document.createElement('span'));
+        gruppen[f.gruppe].append(z.zeile);
+      });
+    }
+
+    document.getElementById('zuruecksetzen').addEventListener('click', function () {
+      if (MODI[modus].art === 'loeser') {
+        Object.keys(gegeben).forEach(function (k) { delete gegeben[k]; });
+        Object.assign(gegeben, MODI.ideal.start);
+      } else {
+        MODI[modus].felder.forEach(function (f) { werte[modus][f.k] = f.std; });
+      }
+      felderAufbauen();
+      neuRechnen();
+    });
+
+
+    // ============================================================
+    // Anzeigen
+    // ============================================================
+
+    function neuRechnen(gerade) {
+      ergebnis = RECHNER[modus](werte[modus]);
+      anzeigen(gerade);
+    }
+
+    function anzeigen(gerade) {
+      if (MODI[modus].art === 'loeser') {
+        const w = ergebnis.werte;
+        Object.keys(loeserFelder).forEach(function (key) {
+          const f = loeserFelder[key], ist = key in gegeben, berechnet = !ist && key in w;
+          f.zeile.classList.toggle('gegeben', ist);
+          f.zeile.classList.toggle('berechnet', berechnet);
+          f.zeile.classList.toggle('widerspruch', !!ergebnis.rot[key]);
+          if (key === gerade || (document.activeElement === f.eingabe && ist)) return;
+          f.eingabe.value = ist || berechnet ? zahl(w[key] / einheitVon(key)[1], 5).replace(/ /g, '') : '';
+          f.eingabe.title = berechnet ? 'ausgerechnet, zum Ändern überschreiben' : '';
+        });
+      }
+
+      const kz = document.getElementById('kacheln');
+      kz.innerHTML = '';
+      ergebnis.kacheln.forEach(function (k) {
+        const d = document.createElement('div');
+        d.className = 'kachel';
+        d.style.setProperty('--farbe', k.farbe);
+        d.innerHTML = '<div class="titel"></div><div class="wert"></div>' + (k.klein ? '<small></small>' : '');
+        d.querySelector('.titel').textContent = k.titel;
+        d.querySelector('.wert').textContent = k.wert;
+        d.querySelector('.wert').classList.toggle('offen', !!k.offen);
+        if (k.klein) d.querySelector('small').textContent = k.klein;
+        kz.append(d);
+      });
+      document.getElementById('aussage').textContent = ergebnis.aussage;
+
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.meldungen.forEach(function (m) {
+        const d = document.createElement('div');
+        d.className = 'hinweis' + (m.fehler ? ' fehler' : '');
+        d.textContent = m.text;
+        box.append(d);
+      });
+
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        titel.textContent = s.titel;
+        const a = document.createElement('div'); a.className = 'rechnung'; Formel.setze(a, '\\displaystyle ' + s.a);
+        const b = document.createElement('div'); b.className = 'rechnung'; Formel.setze(b, '\\displaystyle ' + s.b);
+        li.append(titel, a, b);
+        liste.append(li);
+      });
+      if (!ergebnis.schritte.length) {
+        const h = document.createElement('div');
+        h.className = 'hilfe';
+        h.textContent = 'Damit lässt sich noch nichts ausrechnen. Trag zum Beispiel U₁, U₂ und N₁ ein.';
+        liste.append(h);
+      }
+      formelnZeigen();
+      zustandText();
+    }
+
+    function zustandText() {
+      const w = ergebnis.werte, el = document.getElementById('zeitanzeige');
+      if (modus === 'ideal') el.textContent = 'ü = ' + (isFinite(w.ue) ? zahl(w.ue, 4) : '?') + ' · ' + si(w.U1, 'U') + ' → ' + si(w.U2, 'U');
+      else if (modus === 'verluste') el.textContent = 'Auslastung ' + zahl(w.x * 100, 3) + ' % · η = ' + zahl(w.eta * 100, 4) + ' %';
+      else if (modus === 'kurzschluss') el.textContent = 'Kurzschlussversuch: Spannung hochdrehen, bis Nennstrom fließt';
+      else el.textContent = w.sg[0] + ': Unterspannung eilt ' + w.sg[3] * 30 + '° nach';
+    }
+
+
+    // ============================================================
+    // Themen wählen
+    // ============================================================
+
+    function modusWaehlen(id) {
+      modus = id;
+      document.querySelectorAll('#modi button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+      felderAufbauen();
+      neuRechnen();
+    }
+
+    function modiAufbauen() {
+      const ziel = document.getElementById('modi');
+      Object.keys(MODI).forEach(function (id) {
+        const d = MODI[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 52 * dichte; bild.height = 52 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { modusWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 52, 52); piktogramm(k, id); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      k.lineWidth = 2; k.strokeStyle = text; k.lineJoin = 'round'; k.lineCap = 'round';
+      if (id === 'ideal') {
+        k.strokeStyle = '#8A97A1'; k.lineWidth = 6; k.strokeRect(12, 10, 28, 32);
+        k.lineWidth = 2;
+        [['#2B7BB9', 12], ['#E4572E', 40]].forEach(function (s) {
+          k.strokeStyle = s[0];
+          for (let y = 16; y <= 36; y += 5) { k.beginPath(); k.ellipse(s[1], y, 6, 2, 0, 0, 7); k.stroke(); }
+        });
+      } else if (id === 'verluste') {
+        k.fillStyle = '#2B7BB9'; k.fillRect(4, 16, 18, 20);
+        k.fillStyle = '#0E6B6A'; k.beginPath(); k.moveTo(22, 16); k.lineTo(48, 18); k.lineTo(48, 32); k.lineTo(22, 34); k.fill();
+        k.fillStyle = '#E4572E'; k.beginPath(); k.moveTo(28, 34); k.lineTo(32, 34); k.lineTo(34, 48); k.lineTo(30, 48); k.fill();
+        k.fillStyle = '#8A97A1'; k.beginPath(); k.moveTo(22, 34); k.lineTo(26, 34); k.lineTo(24, 48); k.lineTo(20, 48); k.fill();
+      } else if (id === 'kurzschluss') {
+        k.beginPath(); k.moveTo(8, 40); k.lineTo(44, 40); k.moveTo(8, 40); k.lineTo(26, 10); k.lineTo(44, 40); k.stroke();
+        k.strokeStyle = '#E4572E'; k.lineWidth = 3; k.beginPath(); k.moveTo(26, 10); k.lineTo(44, 40); k.stroke();
+        k.strokeStyle = '#2B7BB9'; k.beginPath(); k.moveTo(8, 40); k.lineTo(26, 10); k.stroke();
+      } else {
+        const c = [26, 26];
+        ['#E4572E', '#F2A541', '#2B7BB9'].forEach(function (f, i) {
+          const w = -Math.PI / 2 + i * 2 * Math.PI / 3;
+          k.strokeStyle = f; k.lineWidth = 3;
+          k.beginPath(); k.moveTo(c[0], c[1]); k.lineTo(c[0] + 18 * Math.cos(w), c[1] + 18 * Math.sin(w)); k.stroke();
+        });
+        k.strokeStyle = text; k.lineWidth = 1.5; k.beginPath(); k.arc(26, 26, 22, 0, 7); k.stroke();
+      }
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const F = { text: '#13233A', leise: '#5E6B7A', linie: '#D9E0E3', flaeche: '#FFFFFF', flaeche2: '#F6F8F8' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || '#13233A';
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+      F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche = Thema.farbe('--flaeche') || '#FFFFFF';
+      F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const PRIMAER = '#2B7BB9', SEKUNDAER = '#E4572E', KERN = '#8A97A1', FLUSS = '#6E6FA6', GUT = '#0E6B6A';
+    const PHASEN = ['#8B5A2B', '#13233A', '#8A97A1'];   // L1 braun, L2 schwarz, L3 grau
+    function phasenFarbe(i) { return i === 1 ? F.text : PHASEN[i]; }
+
+    let L = { W: 1100, H: 440, schmal: false, m: 1, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+    let laeuft = true, uhr = 0;
+    const OMEGA = 2 * Math.PI * 0.4;   // Darstellung: 0,4 Schwingungen pro Sekunde statt 50 Hz
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720
+        ? { W: 520, H: 860, schmal: true, A: { x: 0, y: 0, s: 520 / 560 }, B: { x: 10, y: 430, s: 1 } }
+        : { W: 1100, H: 440, schmal: false, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      g.fillText(t, x, y);
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function linie(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 2; g.lineJoin = 'round'; g.lineCap = 'round';
+      if (strich) g.setLineDash(strich);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+      g.setLineDash([]);
+    }
+
+    function pfeil(x1, y1, x2, y2, farbe, dicke) {
+      const w = Math.atan2(y2 - y1, x2 - x1), lg = Math.hypot(x2 - x1, y2 - y1), spitze = Math.min(11, lg * 0.4);
+      linie([[x1, y1], [x2, y2]], farbe, dicke || 2);
+      g.fillStyle = farbe; g.beginPath();
+      g.moveTo(x2, y2); g.lineTo(x2 - spitze * Math.cos(w - 0.4), y2 - spitze * Math.sin(w - 0.4)); g.lineTo(x2 - spitze * Math.cos(w + 0.4), y2 - spitze * Math.sin(w + 0.4)); g.closePath(); g.fill();
+    }
+
+    function laenge(p) { let s = 0; for (let i = 1; i < p.length; i++) s += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return s; }
+    function aufLinie(punkte, u) {
+      let s = u * laenge(punkte);
+      for (let i = 1; i < punkte.length; i++) {
+        const a = punkte[i - 1], b = punkte[i], lg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (s <= lg || i === punkte.length - 1) { const v = lg ? Math.min(1, s / lg) : 0; return [a[0] + (b[0] - a[0]) * v, a[1] + (b[1] - a[1]) * v]; }
+        s -= lg;
+      }
+      return punkte[0];
+    }
+
+    // Ladungen, die im Takt des Wechselstroms hin- und herpendeln
+    function pendeln(punkte, staerke, phase, farbe) {
+      const gesamt = laenge(punkte), abstand = 20, hub = 14 * staerke * Math.sin(OMEGA * uhr + phase);
+      g.fillStyle = farbe;
+      for (let s = abstand / 2; s < gesamt; s += abstand) {
+        const p = aufLinie(punkte, Math.max(0, Math.min(1, (s + hub) / gesamt)));
+        g.beginPath(); g.arc(p[0], p[1], 3, 0, 7); g.fill();
+      }
+    }
+
+    function sinusKurve(x0, y0, b, amp, phase, farbe, perioden) {
+      g.strokeStyle = farbe; g.lineWidth = 2.5; g.beginPath();
+      for (let i = 0; i <= 120; i++) {
+        const x = x0 + b * i / 120, w = (i / 120) * perioden * 2 * Math.PI;
+        const y = y0 - amp * Math.sin(w + phase);
+        if (i) g.lineTo(x, y); else g.moveTo(x, y);
+      }
+      g.stroke();
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      if (laeuft) uhr += dt;
+      const z = { ideal: [zeichneKern, zeichneSinus], verluste: [zeichneEnergiefluss, zeichneWirkungsgrad],
+                  kurzschluss: [zeichneVersuch, zeichneKapp], drehstrom: [zeichneZeiger, zeichneUhr] }[modus];
+      [[L.A, z[0]], [L.B, z[1]]].forEach(function (feld) {
+        g.save();
+        g.translate(feld[0].x, feld[0].y);
+        g.scale(feld[0].s, feld[0].s);
+        feld[1]();
+        g.restore();
+      });
+    }
+
+
+    // ---------- Idealer Transformator: Kern, Wicklungen, Fluss ----------
+    function wicklung(x, y0, y1, n, farbe) {
+      const anzahl = Math.max(2, Math.min(16, Math.round(Math.log10(Math.max(n || 10, 1)) * 5)));
+      for (let i = 0; i < anzahl; i++) {
+        const y = y0 + (y1 - y0) * (i + 0.5) / anzahl;
+        g.strokeStyle = farbe; g.lineWidth = 3;
+        g.beginPath(); g.ellipse(x, y, 34, 5, 0, Math.PI, 2 * Math.PI); g.stroke();
+      }
+      return anzahl;
+    }
+
+    function zeichneKern() {
+      const w = ergebnis.werte, phi = Math.sin(OMEGA * uhr), last = isFinite(w.I2);
+      const x0 = 170, x1 = 390, y0 = 70, y1 = 330, d = 44;
+
+      // Kern mit Wechselfluss: Färbung nach Betrag, Pfeile nach Richtung
+      g.fillStyle = KERN; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+      g.fillStyle = 'rgba(110,111,166,' + (0.15 + 0.5 * Math.abs(phi)) + ')'; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+      g.fillStyle = F.flaeche; g.fillRect(x0 + d, y0 + d, x1 - x0 - 2 * d, y1 - y0 - 2 * d);
+      const bahn = [[x0 + d / 2, y1 - d / 2], [x0 + d / 2, y0 + d / 2], [x1 - d / 2, y0 + d / 2], [x1 - d / 2, y1 - d / 2], [x0 + d / 2, y1 - d / 2]];
+      const n = 10, ver = (uhr * 0.15) % 1;
+      for (let i = 0; i < n; i++) {
+        const u = phi >= 0 ? (i / n + ver) % 1 : 1 - ((i / n + ver) % 1);
+        const a = aufLinie(bahn, u), b = aufLinie(bahn, (u + (phi >= 0 ? 0.02 : -0.02) + 1) % 1);
+        if (Math.abs(phi) > 0.12) pfeil(a[0], a[1], b[0], b[1], '#fff', 1.5 + Math.abs(phi) * 1.5);
+      }
+      schreibe('Φ', (x0 + x1) / 2, y0 + d / 2 + 6, { groesse: 18, fett: true, farbe: '#fff', ausrichtung: 'center' });
+
+      // Wicklungen und Stromkreise
+      wicklung(x0 + d / 2, y0 + d + 10, y1 - d - 10, w.N1, PRIMAER);
+      wicklung(x1 - d / 2, y0 + d + 10, y1 - d - 10, w.N2, SEKUNDAER);
+      const prim = [[x0 - 12, y0 + d + 10], [70, y0 + d + 10], [70, y1 - d - 10], [x0 - 12, y1 - d - 10]];
+      const sek = [[x1 + 12, y0 + d + 10], [500, y0 + d + 10], [500, y1 - d - 10], [x1 + 12, y1 - d - 10]];
+      linie(prim, PRIMAER, 2.5); linie(sek, SEKUNDAER, 2.5);
+      const verh = isFinite(w.I1) && isFinite(w.I2) ? Math.min(1, w.I1 / Math.max(w.I1, w.I2)) : 0.5;
+      pendeln(prim, last ? 0.3 + 0.7 * verh : 0.15, 0, PRIMAER);
+      if (last) pendeln(sek, 0.3 + 0.7 * (1 - verh + 0.3), Math.PI, SEKUNDAER);
+
+      // Quelle und Last
+      g.beginPath(); g.arc(70, 200, 22, 0, 7); g.fillStyle = F.flaeche; g.fill(); g.strokeStyle = PRIMAER; g.lineWidth = 2.5; g.stroke();
+      g.beginPath(); for (let i = 0; i <= 20; i++) { const x = 58 + i * 1.2, y = 200 - 7 * Math.sin(i / 20 * 2 * Math.PI); if (i) g.lineTo(x, y); else g.moveTo(x, y); } g.stroke();
+      g.fillStyle = F.flaeche; g.fillRect(486, 170, 28, 60);
+      g.fillStyle = 'rgba(228,87,46,' + (last ? 0.25 + 0.35 * Math.abs(phi) : 0) + ')'; g.fillRect(486, 170, 28, 60);
+      g.strokeStyle = SEKUNDAER; g.lineWidth = 2.5; g.strokeRect(486, 170, 28, 60);
+      schreibe('Z', 500, 206, { groesse: 15, fett: true, ausrichtung: 'center', farbe: SEKUNDAER });
+
+      schreibe('U₁ = ' + si(w.U1, 'U'), 20, 36, { groesse: 15, fett: true, farbe: PRIMAER });
+      schreibe('I₁ = ' + si(w.I1, 'I'), 20, 56, { groesse: 13, farbe: PRIMAER });
+      schreibe('N₁ = ' + (isFinite(w.N1) ? zahl(w.N1, 4) : '?'), 20, 376, { groesse: 14, fett: true, farbe: PRIMAER });
+      schreibe('U₂ = ' + si(w.U2, 'U'), 540, 36, { groesse: 15, fett: true, farbe: SEKUNDAER, ausrichtung: 'right' });
+      schreibe('I₂ = ' + si(w.I2, 'I'), 540, 56, { groesse: 13, farbe: SEKUNDAER, ausrichtung: 'right' });
+      schreibe('N₂ = ' + (isFinite(w.N2) ? zahl(w.N2, 4) : '?'), 540, 376, { groesse: 14, fett: true, farbe: SEKUNDAER, ausrichtung: 'right' });
+      schreibe('B̂ = ' + si(w.B, 'B') + ' · A = ' + si(w.A, 'A'), 280, 360, { groesse: 13, ausrichtung: 'center', farbe: F.leise });
+      schreibe('Wechselfluss Φ im Eisenkern', 280, 400, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+    }
+
+    function zeichneSinus() {
+      const w = ergebnis.werte, x0 = 50, b = 420;
+      schreibe('Spannungen im gleichen Maßstab', 20, 18, { groesse: 15, fett: true });
+      const u1 = w.U1 || 0, u2 = w.U2 || 0, gross = Math.max(u1, u2, 1e-9), amp = 70;
+      const y = 120;
+      linie([[x0, y], [x0 + b, y]], F.linie, 1);
+      linie([[x0, y - amp - 10], [x0, y + amp + 10]], F.linie, 1);
+      const phase = OMEGA * uhr;
+      sinusKurve(x0, y, b, amp * u1 / gross, -phase, PRIMAER, 2);
+      sinusKurve(x0, y, b, amp * u2 / gross, -phase, SEKUNDAER, 2);
+      schreibe('u₁', x0 + b + 6, y - amp - 2, { groesse: 13, fett: true, farbe: PRIMAER });
+      schreibe('u₂', x0 + b + 6, y + 16, { groesse: 13, fett: true, farbe: SEKUNDAER });
+      schreibe('û₁ = ' + si(u1 * Math.SQRT2, 'U') + '   û₂ = ' + si(u2 * Math.SQRT2, 'U'), x0, y + amp + 30, { groesse: 12, farbe: F.leise });
+
+      // Verhältnisse als Balken
+      const reihen = [['U₁ : U₂', u1, u2, PRIMAER, SEKUNDAER], ['N₁ : N₂', w.N1, w.N2, PRIMAER, SEKUNDAER], ['I₁ : I₂', w.I1, w.I2, PRIMAER, SEKUNDAER]];
+      schreibe('Verhältnisse', 20, 248, { groesse: 15, fett: true });
+      reihen.forEach(function (r, i) {
+        const yy = 268 + i * 40, m = Math.max(r[1] || 0, r[2] || 0);
+        schreibe(r[0], 20, yy + 18, { groesse: 13, fett: true });
+        if (!(m > 0) || !isFinite(r[1]) || !isFinite(r[2])) { schreibe('noch offen', 100, yy + 18, { groesse: 12, farbe: F.leise, technik: false }); return; }
+        rund(100, yy + 2, 300 * r[1] / m, 12, 4); g.fillStyle = r[3]; g.fill();
+        rund(100, yy + 18, 300 * r[2] / m, 12, 4); g.fillStyle = r[4]; g.fill();
+        schreibe(zahl(r[1] / r[2], 4) + ' : 1', 470, yy + 18, { groesse: 13, fett: true, ausrichtung: 'right' });
+      });
+    }
+
+
+    // ---------- Verluste: Energiefluss und Wirkungsgradkurve ----------
+    function zeichneEnergiefluss() {
+      const w = ergebnis.werte, v = werte.verluste;
+      schreibe('Energiefluss', 20, 26, { groesse: 17, fett: true });
+      const P1 = Math.max(w.P1, 1e-9), hoehe = 200, y0 = 110;
+      const h2 = hoehe * w.P2 / P1, hFe = Math.max(2, hoehe * v.P0 / P1 * 8), hCu = Math.max(2, hoehe * w.Pcu / P1 * 8);
+      // Verlustströme 8-fach überhöht, sonst wären sie unsichtbar dünn
+      const xs = 40, xm = 260, xe = 520;
+      g.fillStyle = PRIMAER; g.fillRect(xs, y0, xm - xs, hoehe);
+      g.fillStyle = GUT;
+      g.beginPath(); g.moveTo(xm, y0); g.lineTo(xe - 20, y0 + (hoehe - h2) / 2); g.lineTo(xe, y0 + hoehe / 2); g.lineTo(xe - 20, y0 + (hoehe + h2) / 2); g.lineTo(xm, y0 + h2); g.closePath(); g.fill();
+      const abzweig = function (x, b, farbe, text, wert) {
+        g.fillStyle = farbe;
+        g.beginPath(); g.moveTo(x, y0 + hoehe - 2); g.lineTo(x + b, y0 + hoehe - 2); g.lineTo(x + b + 20, 380); g.lineTo(x + b / 2 + 20, 396); g.lineTo(x + 20, 380); g.closePath(); g.fill();
+        schreibe(text, x + b / 2 + 20, 418, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+        schreibe(wert, x + b + 30, 370, { groesse: 13, fett: true, farbe: farbe });
+      };
+      abzweig(xm + 10, hFe, KERN, 'Eisen', si(v.P0, 'P'));
+      abzweig(xm + 110, hCu, SEKUNDAER, 'Kupfer', si(w.Pcu, 'P'));
+      // Wanderstreifen zeigen die Richtung
+      g.save(); g.beginPath(); g.rect(xs, y0, xe - xs, hoehe); g.clip();
+      g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 8;
+      for (let x = xs - 40 + ((uhr * 60) % 40); x < xe; x += 40) { g.beginPath(); g.moveTo(x, y0); g.lineTo(x + 20, y0 + hoehe); g.stroke(); }
+      g.restore();
+      schreibe('P₁ = ' + si(w.P1, 'P'), xs + 10, y0 - 12, { groesse: 15, fett: true, farbe: PRIMAER });
+      schreibe('aufgenommen', xs + 10, y0 + 24, { groesse: 12, farbe: '#fff', technik: false });
+      schreibe('P₂ = ' + si(w.P2, 'P'), xe, y0 - 12, { groesse: 15, fett: true, farbe: GUT, ausrichtung: 'right' });
+      schreibe('η = ' + zahl(w.eta * 100, 4) + ' %', (xm + xe) / 2, y0 + hoehe / 2 + 8, { groesse: 22, fett: true, farbe: '#fff', ausrichtung: 'center' });
+      schreibe('Verluste 8-fach überhöht', xs, 418, { groesse: 11, farbe: F.leise, technik: false });
+    }
+
+    function zeichneWirkungsgrad() {
+      const w = ergebnis.werte, v = werte.verluste, Sn = v.Sn * 1000;
+      const x0 = 60, x1 = 480, xmax = 1.25;
+      const px = function (x) { return x0 + x / xmax * (x1 - x0); };
+      const eta = function (x) { const P2 = x * Sn * v.cos; return P2 / (P2 + v.P0 + x * x * v.Pk); };
+
+      // Wirkungsgrad oben
+      const y0 = 40, y1 = 190;
+      let etaMin = 1;
+      for (let x = 0.1; x <= xmax; x += 0.05) etaMin = Math.min(etaMin, eta(x));
+      const lo = Math.floor(etaMin * 100) / 100, py = function (e) { return y1 - (e - lo) / (1 - lo) * (y1 - y0); };
+      schreibe('Wirkungsgrad über der Auslastung', 20, 18, { groesse: 15, fett: true });
+      linie([[x0, y0], [x0, y1], [x1, y1]], F.text, 1.2);
+      [lo, (lo + 1) / 2, 1].forEach(function (e) { schreibe(zahl(e * 100, 4) + ' %', x0 - 6, py(e) + 4, { groesse: 11, farbe: F.leise, ausrichtung: 'right' }); });
+      // Bei sehr kleiner Auslastung fällt η steil ab; nur den Diagrammbereich zeigen
+      g.save(); g.beginPath(); g.rect(x0, y0 - 4, x1 - x0, y1 - y0 + 4); g.clip();
+      g.strokeStyle = GUT; g.lineWidth = 2.5; g.beginPath();
+      for (let i = 1; i <= 100; i++) { const x = xmax * i / 100, y = py(eta(x)); if (i === 1) g.moveTo(px(x), y); else g.lineTo(px(x), y); }
+      g.stroke(); g.restore();
+      if (isFinite(w.xopt) && w.xopt <= xmax) {
+        linie([[px(w.xopt), y0], [px(w.xopt), 360]], FLUSS, 1.2, [4, 4]);
+        schreibe('beste Auslastung ' + zahl(w.xopt * 100, 3) + ' %', px(w.xopt) + 4, y0 + 10, { groesse: 11, fett: true, farbe: FLUSS });
+      }
+      if (w.x <= xmax) { g.beginPath(); g.arc(px(w.x), py(w.eta), 6, 0, 7); g.fillStyle = GUT; g.fill(); }
+
+      // Verluste unten: P₀ waagerecht, P_Cu als Parabel
+      const v0 = 220, v1 = 360, pmax = Math.max(v.P0, xmax * xmax * v.Pk) * 1.1;
+      const pv = function (p) { return v1 - p / pmax * (v1 - v0); };
+      schreibe('Verluste', 20, v0 - 6, { groesse: 15, fett: true });
+      linie([[x0, v0], [x0, v1], [x1, v1]], F.text, 1.2);
+      linie([[x0, pv(v.P0)], [x1, pv(v.P0)]], KERN, 2.5);
+      g.strokeStyle = SEKUNDAER; g.lineWidth = 2.5; g.beginPath();
+      for (let i = 0; i <= 100; i++) { const x = xmax * i / 100, y = pv(x * x * v.Pk); if (i) g.lineTo(px(x), y); else g.moveTo(px(x), y); }
+      g.stroke();
+      schreibe('Eisen P₀', x1, pv(v.P0) - 6, { groesse: 12, fett: true, farbe: KERN, ausrichtung: 'right' });
+      schreibe('Kupfer x² · Pₖ', x1, pv(xmax * xmax * v.Pk) + 14, { groesse: 12, fett: true, farbe: SEKUNDAER, ausrichtung: 'right' });
+      [0, 0.5, 1].forEach(function (x) { schreibe(zahl(x * 100) + ' %', px(x), v1 + 16, { groesse: 11, farbe: F.leise, ausrichtung: 'center' }); });
+      if (w.x <= xmax) {
+        g.beginPath(); g.arc(px(w.x), pv(w.Pcu), 5, 0, 7); g.fillStyle = SEKUNDAER; g.fill();
+        linie([[px(w.x), v0], [px(w.x), v1]], F.text, 1, [2, 3]);
+      }
+      schreibe('Auslastung x', x1, v1 + 34, { groesse: 12, farbe: F.leise, ausrichtung: 'right', technik: false });
+    }
+
+
+    // ---------- Kurzschluss: Versuch und Kapp'sches Dreieck ----------
+    function zeichneVersuch() {
+      const w = ergebnis.werte, k = werte.kurzschluss;
+      const zyklus = (uhr % 7) / 7, p = Math.min(1, zyklus / 0.6);    // 0 … 1 hochdrehen, dann halten
+      schreibe('Kurzschlussversuch', 20, 26, { groesse: 17, fett: true });
+
+      // Stelltransformator, Oberspannungswicklung, kurzgeschlossene Unterspannungswicklung
+      const kx0 = 220, kx1 = 380, ky0 = 90, ky1 = 300;
+      g.fillStyle = KERN; g.fillRect(kx0, ky0, kx1 - kx0, ky1 - ky0);
+      g.fillStyle = F.flaeche; g.fillRect(kx0 + 36, ky0 + 36, kx1 - kx0 - 72, ky1 - ky0 - 72);
+      wicklung(kx0 + 18, ky0 + 46, ky1 - 46, 300, PRIMAER);
+      wicklung(kx1 - 18, ky0 + 46, ky1 - 46, 30, SEKUNDAER);
+      const prim = [[kx0 - 16, ky0 + 50], [80, ky0 + 50], [80, ky1 - 50], [kx0 - 16, ky1 - 50]];
+      const sek = [[kx1 + 16, ky0 + 50], [470, ky0 + 50], [470, ky1 - 50], [kx1 + 16, ky1 - 50]];
+      linie(prim, PRIMAER, 2.5); linie(sek, SEKUNDAER, 4);
+      pendeln(prim, 0.2 + 0.8 * p, 0, PRIMAER);
+      pendeln(sek, 0.2 + 0.8 * p, Math.PI, SEKUNDAER);
+
+      // Stelltrafo als Kreis mit Pfeil, Messgeräte
+      g.beginPath(); g.arc(80, 190, 26, 0, 7); g.fillStyle = F.flaeche; g.fill(); g.strokeStyle = PRIMAER; g.lineWidth = 2.5; g.stroke();
+      pfeil(62, 212, 98, 168, PRIMAER, 2);
+      const messen = function (x, y, b, farbe) {
+        g.beginPath(); g.arc(x, y, 18, 0, 7); g.fillStyle = F.flaeche; g.fill(); g.strokeStyle = farbe; g.lineWidth = 2.5; g.stroke();
+        schreibe(b, x, y + 6, { groesse: 16, fett: true, ausrichtung: 'center', farbe: farbe });
+      };
+      messen(150, 190, 'V', PRIMAER);
+      linie([[150, ky0 + 50], [150, 172]], PRIMAER, 1.5); linie([[150, 208], [150, ky1 - 50]], PRIMAER, 1.5);
+      messen(470, 190, 'A', SEKUNDAER);
+
+      const Ujetzt = p * w.Uk1, Ijetzt = p * w.In2;
+      schreibe(si(Ujetzt, 'U'), 150, 250 + 20, { groesse: 15, fett: true, ausrichtung: 'center', farbe: PRIMAER });
+      schreibe(zahl(p * k.uk, 3) + ' % von U₁', 150, 290, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+      schreibe(si(Ijetzt, 'I'), 470, 250 + 20, { groesse: 15, fett: true, ausrichtung: 'center', farbe: SEKUNDAER });
+      schreibe(zahl(p * 100, 3) + ' % vom Nennstrom', 470, 290, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+      schreibe('kurzgeschlossen', 470, ky0 + 38, { groesse: 12, ausrichtung: 'center', farbe: SEKUNDAER, technik: false });
+
+      rund(40, 340, 480, 54, 10); g.fillStyle = F.flaeche2; g.fill();
+      schreibe(p >= 1 ? 'Nennstrom erreicht bei ' + si(w.Uk1, 'U') + ' = uₖ ' + zahl(k.uk) + ' %' : 'Spannung wird langsam hochgedreht …', 280, 364, { groesse: 15, fett: true, ausrichtung: 'center' });
+      schreibe('Die Wattmeteranzeige dabei sind die Kupferverluste Pₖ = ' + si(k.Pk, 'P'), 280, 384, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+    }
+
+    function zeichneKapp() {
+      const w = ergebnis.werte, k = werte.kurzschluss, x = k.x / 100;
+      schreibe('Kapp\'sches Dreieck', 20, 18, { groesse: 15, fett: true });
+      schreibe('Spannungsfall 6-fach überhöht', 180, 18, { groesse: 11, farbe: F.leise, technik: false });
+      // Bezug: U₂ waagerecht, Strom eilt um φ nach; Längen in % von U₂
+      const ox = 40, oy = 230, mass = 3.2, ueber = 6;
+      const phi = Math.acos(k.cos), U2 = 100 - w.dU;
+      const uR = x * w.ukR * ueber, uX = x * w.ukX * ueber;
+      const a = [ox + U2 * mass, oy];
+      const b = [a[0] + uR * mass * Math.cos(-phi), a[1] - uR * mass * Math.sin(-phi)];
+      const c = [b[0] + uX * mass * Math.cos(Math.PI / 2 - phi), b[1] - uX * mass * Math.sin(Math.PI / 2 - phi)];
+      pfeil(ox, oy, a[0], a[1], SEKUNDAER, 3);
+      pfeil(a[0], a[1], b[0], b[1], '#F2A541', 3);
+      pfeil(b[0], b[1], c[0], c[1], FLUSS, 3);
+      pfeil(ox, oy, c[0], c[1], PRIMAER, 2.5);
+      pfeil(ox, oy, ox + 130 * Math.cos(phi), oy + 130 * Math.sin(phi), F.leise, 1.5);
+      schreibe('I', ox + 134 * Math.cos(phi) + 4, oy + 134 * Math.sin(phi) + 4, { groesse: 13, fett: true, farbe: F.leise });
+      g.strokeStyle = F.leise; g.lineWidth = 1; g.beginPath(); g.arc(ox, oy, 60, 0, phi); g.stroke();
+      schreibe('φ', ox + 66, oy + 26, { groesse: 13, farbe: F.leise });
+      schreibe('U₂ unter Last', (ox + a[0]) / 2, oy + 18, { groesse: 12, fett: true, ausrichtung: 'center', farbe: SEKUNDAER });
+      schreibe('I·R', (a[0] + b[0]) / 2 + 8, (a[1] + b[1]) / 2 + 14, { groesse: 12, fett: true, farbe: '#F2A541' });
+      schreibe('I·X', (b[0] + c[0]) / 2 + 8, (b[1] + c[1]) / 2, { groesse: 12, fett: true, farbe: FLUSS });
+      schreibe('U₂₀ (Leerlauf)', (ox + c[0]) / 2 - 20, (oy + c[1]) / 2 - 10, { groesse: 12, fett: true, farbe: PRIMAER, ausrichtung: 'right' });
+      schreibe('Δu = ' + zahl(w.dU, 3) + ' %  →  ' + si(w.U2Last, 'U'), 20, 300, { groesse: 15, fett: true });
+
+      // Nennstrom und Kurzschlussstrom im Vergleich
+      const by = 330, bb = 440, f = w.Ik2 / w.In2;
+      schreibe('Nennstrom und Dauerkurzschlussstrom', 20, by, { groesse: 13, fett: true });
+      rund(20, by + 10, bb / f, 16, 4); g.fillStyle = SEKUNDAER; g.fill();
+      rund(20, by + 32, bb, 16, 4); g.fillStyle = '#C0392B'; g.fill();
+      schreibe('Nennstrom ' + si(w.In2, 'I'), 28 + bb / f, by + 23, { groesse: 12, fett: true, farbe: SEKUNDAER });
+      schreibe('Dauerkurzschlussstrom ' + si(w.Ik2, 'I') + ' (' + zahl(f, 3) + '-fach)', 28, by + 45, { groesse: 12, fett: true, farbe: '#fff' });
+    }
+
+
+    // ---------- Drehstrom: drehende Zeiger und Uhrzeitbild ----------
+    function schaltbild(cx, cy, art, farbe) {
+      g.strokeStyle = farbe; g.lineWidth = 2.5;
+      const r = 16;
+      if (art === 'd') {
+        g.beginPath();
+        for (let i = 0; i <= 3; i++) { const w = -Math.PI / 2 + i * 2 * Math.PI / 3; if (i) g.lineTo(cx + r * Math.cos(w), cy + r * Math.sin(w)); else g.moveTo(cx + r * Math.cos(w), cy + r * Math.sin(w)); }
+        g.stroke();
+      } else {
+        for (let i = 0; i < 3; i++) {
+          const w = -Math.PI / 2 + i * 2 * Math.PI / 3;
+          g.beginPath(); g.moveTo(cx, cy);
+          if (art === 'z') { g.lineTo(cx + r * 0.55 * Math.cos(w), cy + r * 0.55 * Math.sin(w)); g.lineTo(cx + r * Math.cos(w + 0.5), cy + r * Math.sin(w + 0.5)); }
+          else g.lineTo(cx + r * Math.cos(w), cy + r * Math.sin(w));
+          g.stroke();
+        }
+      }
+    }
+
+    function zeigerStern(cx, cy, r, drehung, namen, titel, art) {
+      g.strokeStyle = F.linie; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.stroke();
+      const spitzen = [];
+      for (let i = 0; i < 3; i++) {
+        const w = drehung - i * 2 * Math.PI / 3;
+        const p = [cx + r * Math.cos(w), cy - r * Math.sin(w)];
+        spitzen.push(p);
+        pfeil(cx, cy, p[0], p[1], phasenFarbe(i), 3);
+        schreibe(namen[i], cx + (r + 16) * Math.cos(w), cy - (r + 16) * Math.sin(w) + 5, { groesse: 13, fett: true, ausrichtung: 'center', farbe: phasenFarbe(i) });
+      }
+      if (art.toLowerCase() === 'd') linie(spitzen.concat([spitzen[0]]), F.leise, 1.2, [4, 3]);
+      schreibe(titel, cx, cy + r + 46, { groesse: 14, fett: true, ausrichtung: 'center' });
+      schaltbild(cx, cy + r + 76, art.toLowerCase(), F.text);
+    }
+
+    function zeichneZeiger() {
+      const w = ergebnis.werte, sg = w.sg, drehung = Math.PI / 2 + OMEGA * uhr * 0.5;
+      schreibe('Drehende Spannungszeiger', 20, 26, { groesse: 17, fett: true });
+      zeigerStern(140, 180, 100, drehung, ['1U', '1V', '1W'], 'Oberspannung (' + sg[1] + ')', sg[1]);
+      zeigerStern(420, 180, 100, drehung - sg[3] * Math.PI / 6, ['2U', '2V', '2W'], 'Unterspannung (' + sg[2] + ')', sg[2]);
+      // Verdrehung 1U → 2U andeuten
+      g.strokeStyle = '#F2A541'; g.lineWidth = 2; g.setLineDash([4, 4]);
+      g.beginPath(); g.arc(420, 180, 60, -drehung, -(drehung - sg[3] * Math.PI / 6), false); g.stroke(); g.setLineDash([]);
+      schreibe(sg[3] * 30 + '° nach', 420, 186, { groesse: 13, fett: true, ausrichtung: 'center', farbe: '#F2A541' });
+    }
+
+    function zeichneUhr() {
+      const w = ergebnis.werte, sg = w.sg, cx = 120, cy = 150, r = 100;
+      schreibe('Kennzahl als Uhrzeit', 20, 18, { groesse: 15, fett: true });
+      g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = F.flaeche2; g.fill(); g.strokeStyle = F.text; g.lineWidth = 2; g.stroke();
+      for (let h = 1; h <= 12; h++) {
+        const a = h * Math.PI / 6;
+        schreibe(String(h), cx + (r - 16) * Math.sin(a), cy - (r - 16) * Math.cos(a) + 5, { groesse: 13, fett: h === sg[3] || (h === 12 && sg[3] === 0), ausrichtung: 'center', farbe: h === (sg[3] || 12) ? '#F2A541' : F.leise });
+      }
+      pfeil(cx, cy, cx, cy - r + 30, PRIMAER, 5);
+      const a = sg[3] * Math.PI / 6;
+      pfeil(cx, cy, cx + (r - 44) * Math.sin(a), cy - (r - 44) * Math.cos(a), SEKUNDAER, 5);
+      g.beginPath(); g.arc(cx, cy, 6, 0, 7); g.fillStyle = F.text; g.fill();
+      schreibe('lang: OS (1U) auf 12', 240, 120, { groesse: 13, farbe: PRIMAER, technik: false });
+      schreibe('kurz: US (2U) auf ' + sg[3], 240, 142, { groesse: 13, farbe: SEKUNDAER, technik: false });
+      schreibe(sg[0] + ' = ' + sg[3] * 30 + '°', 240, 180, { groesse: 22, fett: true });
+
+      // Leiterspannung L1 oben und unten, gegeneinander verschoben
+      const x0 = 20, b = 460, y = 320, amp = 40, phase = OMEGA * uhr * 0.5;
+      linie([[x0, y], [x0 + b, y]], F.linie, 1);
+      sinusKurve(x0, y, b, amp, -phase, PRIMAER, 2);
+      sinusKurve(x0, y, b, amp * 0.8, -phase - sg[3] * Math.PI / 6, SEKUNDAER, 2);
+      schreibe('u 1U', x0 + b, y - amp - 6, { groesse: 12, fett: true, farbe: PRIMAER, ausrichtung: 'right' });
+      schreibe('u 2U (nacheilend)', x0 + b, y + amp + 18, { groesse: 12, fett: true, farbe: SEKUNDAER, ausrichtung: 'right' });
+    }
+
+
+    // ============================================================
+    // Abspielen
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    knopf.addEventListener('click', function () {
+      laeuft = !laeuft;
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : '▶ Weiter';
+    });
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.max(0, Math.min(0.05, (jetzt - vorher) / 1000));
+      vorher = jetzt;
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    modiAufbauen();
+    anpassen();
+    // Thema direkt verlinkbar, z. B. transformator.html#drehstrom
+    const anker = location.hash.slice(1);
+    modusWaehlen(MODI[anker] ? anker : 'ideal');
+    requestAnimationFrame(schleife);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kräfte</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .modi { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+
+    @media (max-width: 980px) {
+      .modi { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .modi button { flex: 0 0 min(260px, 72%); scroll-snap-align: start; }
+    }
+
+    .modi button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 2px 10px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .modi button:hover { border-color: var(--leise); }
+    .modi button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .modi button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .modi canvas { grid-row: span 2; width: 52px; height: 52px; }
+    .modi b { font-family: var(--technik); font-weight: 600; font-size: 1.04rem; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+    .modi small { color: var(--leise); font-size: .8rem; line-height: 1.3; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitachse { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; }
+    .zustand { font-size: .93rem; color: var(--leise); }
+    .zustand b { color: var(--text); font-family: var(--technik); font-weight: 600; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    /* Ergebnis auf einen Blick */
+    .ergebnis-tafel { margin-top: 18px; }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .sym { font-size: 1.05rem; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.4rem, 3.4vw, 1.9rem); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .kachel .wert.offen { color: var(--leise); font-weight: 400; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+    .aussage { margin: 14px 0 0; font-size: .98rem; }
+
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Kräfte</span></h1>
+      <p>Kräfte zusammensetzen und zerlegen: auf einer Wirkungslinie, rechtwinklig, unter beliebigem Winkel mit dem Kräfteparallelogramm und auf der schiefen Ebene. Bekannte Werte eintragen, der Rest wird ausgerechnet, egal in welche Richtung, und Schritt für Schritt hergeleitet.</p>
+    </section>
+
+    <nav class="modi" id="modi" aria-label="Fall wählen"></nav>
+
+    <section class="buehne" aria-label="Zeichnung der Kräfte">
+      <canvas id="szene" role="img" aria-label="Maßstäbliche Zeichnung der Kräfte mit Konstruktion"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">▶ Konstruktion</button>
+        <div class="zeitachse">
+          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="1000" aria-label="Schritt der Konstruktion">
+          <span class="zustand" id="schritt"></span>
+        </div>
+        <button type="button" class="knopf" id="loslassen" hidden>↘ Loslassen</button>
+        <button type="button" class="knopf" id="ziehen" hidden>↗ Hinaufziehen</button>
+        <button type="button" class="knopf" id="zurueck" hidden>↺ Zurück</button>
+      </div>
+      <p class="zustand" id="zustand" aria-live="polite" style="margin: 0; padding: 0 18px 14px"></p>
+    </section>
+
+    <section class="tafel ergebnis-tafel" aria-labelledby="h-ergebnis">
+      <h2 id="h-ergebnis">Auf einen Blick</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <p class="aussage" id="aussage"></p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Gesuchtes einfach leer lassen. Ausgerechnete Werte darfst du überschreiben, dann wird von dort aus weitergerechnet. Winkel in Grad.</p>
+        <div class="zeichenerklaerung"><span><i></i>eingetragen</span><span><i class="ergebnis"></i>ausgerechnet</span></div>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="allesLeeren">Alle Eingaben löschen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte in der Reihenfolge, in der sie sich ergeben.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Fälle
+    // ============================================================
+
+    const MODI = {
+      gleich: { name: 'Gleiche Richtung', kurz: 'F = F₁ + F₂ · eine Wirkungslinie' },
+      gegen:  { name: 'Entgegen\u00ADgesetzt', kurz: 'F = F₁ − F₂ · eine Wirkungslinie' },
+      recht:  { name: 'Rechtwinklig', kurz: 'Pythagoras · Zerlegen' },
+      winkel: { name: 'Beliebiger Winkel', kurz: 'Kräfteparallelogramm' },
+      ebene:  { name: 'Schiefe Ebene', kurz: 'F_H = F_N · tan α' }
+    };
+    const KRAEFTE = ['gleich', 'gegen', 'recht', 'winkel'];
+    let modus = 'winkel';
+
+
+    // ============================================================
+    // Größen (intern: N, kg, m/s², Grad, m, cm, %)
+    // ============================================================
+
+    const KRAFT = [['N', 1], ['kN', 1000]];
+    const WINKEL = [['°', 1]];
+
+    const GROESSEN = {
+      F1:    { name: 'Teilkraft 1',                     einheiten: KRAFT },
+      F2:    { name: 'Teilkraft 2',                     einheiten: KRAFT },
+      alpha: { name: 'Winkel zwischen F₁ und F₂',       einheiten: WINKEL, modi: ['winkel'] },
+      F:     { name: 'Resultierende (Ersatzkraft)',     einheiten: KRAFT },
+      beta:  { name: 'Winkel zwischen F₁ und F',        einheiten: WINKEL, modi: ['recht', 'winkel'] },
+      Fx:    { name: 'Anteil von F in Richtung F₁',     einheiten: KRAFT },
+      Fy:    { name: 'Anteil von F quer zu F₁',         einheiten: KRAFT },
+      MK:    { name: 'Kräftemaßstab',                   einheiten: [['N/cm', 1], ['kN/cm', 1000]] },
+      l1:    { name: 'Pfeillänge F₁',                   einheiten: [['cm', 1], ['mm', 0.1]] },
+      l2:    { name: 'Pfeillänge F₂',                   einheiten: [['cm', 1], ['mm', 0.1]] },
+      lF:    { name: 'Pfeillänge F',                    einheiten: [['cm', 1], ['mm', 0.1]] },
+      m:     { name: 'Masse des Körpers',               einheiten: [['kg', 1], ['t', 1000], ['g', 0.001]] },
+      g:     { name: 'Fallbeschleunigung',              einheiten: [['m/s²', 1]] },
+      FG:    { name: 'Gewichtskraft',                   einheiten: KRAFT },
+      nw:    { name: 'Neigungswinkel der Ebene',        einheiten: WINKEL },
+      FH:    { name: 'Hangabtriebskraft',               einheiten: KRAFT },
+      FN:    { name: 'Normalkraft',                     einheiten: KRAFT },
+      mu:    { name: 'Reibungszahl',                    einheiten: [['–', 1]] },
+      FR:    { name: 'Reibungskraft',                   einheiten: KRAFT },
+      FZ:    { name: 'Zugkraft zum Hinaufziehen',       einheiten: KRAFT },
+      Fab:   { name: 'Kraft zum Festhalten',            einheiten: KRAFT },
+      h:     { name: 'Höhe der Ebene',                  einheiten: [['m', 1], ['cm', 0.01]] },
+      lE:    { name: 'Länge der Ebene (schräg)',        einheiten: [['m', 1], ['cm', 0.01]] },
+      b:     { name: 'Grundlinie der Ebene',            einheiten: [['m', 1], ['cm', 0.01]] },
+      steig: { name: 'Steigung',                        einheiten: [['%', 1]] }
+    };
+
+    const GRUPPEN = [
+      { titel: 'Kräfte', farbe: '#2B7BB9', modi: KRAEFTE, felder: ['F1', 'F2', 'alpha', 'F', 'beta'] },
+      { titel: 'Zerlegen in Richtung F₁ und quer dazu', farbe: '#6E6FA6', modi: ['winkel'], felder: ['Fx', 'Fy'] },
+      { titel: 'Zeichnen mit Kräftemaßstab', farbe: 'var(--text)', modi: KRAEFTE, felder: ['MK', 'l1', 'l2', 'lF'] },
+      { titel: 'Gewichtskraft', farbe: 'var(--text)', modi: ['ebene'], felder: ['m', 'g', 'FG'] },
+      { titel: 'Zerlegen auf der schiefen Ebene', farbe: '#E4572E', modi: ['ebene'], felder: ['nw', 'FH', 'FN'] },
+      { titel: 'Reibung und Zugkraft', farbe: '#F2A541', modi: ['ebene'], felder: ['mu', 'FR', 'FZ', 'Fab'] },
+      { titel: 'Abmessungen der Ebene', farbe: '#2B7BB9', modi: ['ebene'], felder: ['h', 'lE', 'b', 'steig'] }
+    ];
+
+    const TEX = {
+      F1: 'F_1', F2: 'F_2', alpha: '\\alpha', F: 'F', beta: '\\beta', Fx: 'F_x', Fy: 'F_y',
+      MK: 'M_\\text{K}', l1: 'l_1', l2: 'l_2', lF: 'l_F',
+      m: 'm', g: 'g', FG: 'F_\\text{G}', nw: '\\alpha', FH: 'F_\\text{H}', FN: 'F_\\text{N}',
+      mu: '\\mu', FR: 'F_\\text{R}', FZ: 'F_\\text{Z}', Fab: 'F_\\text{Halt}',
+      h: 'h', lE: 'l', b: 'b', steig: 'p'
+    };
+
+    const TEX_EINHEIT = {
+      F1: '\\text{N}', F2: '\\text{N}', F: '\\text{N}', Fx: '\\text{N}', Fy: '\\text{N}', FG: '\\text{N}', FH: '\\text{N}', FN: '\\text{N}',
+      FR: '\\text{N}', FZ: '\\text{N}', Fab: '\\text{N}', MK: '\\tfrac{\\text{N}}{\\text{cm}}', l1: '\\text{cm}', l2: '\\text{cm}', lF: '\\text{cm}',
+      m: '\\text{kg}', g: '\\tfrac{\\text{m}}{\\text{s}^2}', h: '\\text{m}', lE: '\\text{m}', b: '\\text{m}', steig: '\\%', mu: ''
+    };
+
+    const WINKELGROESSEN = { alpha: true, beta: true, nw: true };
+
+
+    // ============================================================
+    // Gleichungen: jede nach jeder ihrer Größen umgestellt
+    // ============================================================
+
+    const GLEICHUNGEN = [];
+    const rad = function (d) { return d * Math.PI / 180; };
+    const grad = function (r) { return r * 180 / Math.PI; };
+    // Werte, die bei 90° numerisch „fast null“ sind, nicht als Teiler verwenden
+    const teiler = function (x) { return Math.abs(x) < 1e-9 ? NaN : x; };
+    const wurzel = function (x) { return x < -1e-9 ? NaN : Math.sqrt(Math.max(0, x)); };
+
+    function gl(def) { GLEICHUNGEN.push(def); }
+
+    // --- eine Wirkungslinie ---
+    gl({ titel: 'Kräfte in gleicher Richtung', thema: 'linie', nurBei: ['gleich'], formel: '@F = @F1 + @F2', loese: {
+      F:  { tex: '@F1 + @F2', rechne: function (v) { return v.F1 + v.F2; } },
+      F1: { tex: '@F - @F2',  rechne: function (v) { return v.F - v.F2; } },
+      F2: { tex: '@F - @F1',  rechne: function (v) { return v.F - v.F1; } } } });
+
+    gl({ titel: 'Kräfte in entgegengesetzter Richtung', thema: 'linie', nurBei: ['gegen'], formel: '@F = @F1 - @F2', loese: {
+      F:  { tex: '@F1 - @F2', rechne: function (v) { return v.F1 - v.F2; } },
+      F1: { tex: '@F + @F2',  rechne: function (v) { return v.F + v.F2; } },
+      F2: { tex: '@F1 - @F',  rechne: function (v) { return v.F1 - v.F; } } } });
+
+    // --- rechtwinklig ---
+    gl({ titel: 'Resultierende rechtwinkliger Kräfte (Pythagoras)', thema: 'recht', nurBei: ['recht'], formel: '@F = \\sqrt{@F1^2 + @F2^2}', loese: {
+      F:  { tex: '\\sqrt{@F1^2 + @F2^2}', rechne: function (v) { return Math.sqrt(v.F1 * v.F1 + v.F2 * v.F2); } },
+      F1: { tex: '\\sqrt{@F^2 - @F2^2}',  rechne: function (v) { return wurzel(v.F * v.F - v.F2 * v.F2); } },
+      F2: { tex: '\\sqrt{@F^2 - @F1^2}',  rechne: function (v) { return wurzel(v.F * v.F - v.F1 * v.F1); } } } });
+
+    gl({ titel: 'Richtung der Resultierenden', thema: 'recht', nurBei: ['recht'], formel: '\\tan @beta = \\frac{@F2}{@F1}', loese: {
+      beta: { tex: '\\arctan \\frac{@F2}{@F1}', rechne: function (v) { return grad(Math.atan2(v.F2, v.F1)); } },
+      F2:   { tex: '@F1 \\cdot \\tan @beta',    rechne: function (v) { return v.F1 * Math.tan(rad(v.beta)); } },
+      F1:   { tex: '\\frac{@F2}{\\tan @beta}',  rechne: function (v) { return v.F2 / teiler(Math.tan(rad(v.beta))); } } } });
+
+    gl({ titel: 'Zerlegen: Anteil in Richtung F₁', thema: 'recht', nurBei: ['recht'], formel: '@F1 = @F \\cdot \\cos @beta', loese: {
+      F1:   { tex: '@F \\cdot \\cos @beta',         rechne: function (v) { return v.F * Math.cos(rad(v.beta)); } },
+      F:    { tex: '\\frac{@F1}{\\cos @beta}',      rechne: function (v) { return v.F1 / teiler(Math.cos(rad(v.beta))); } },
+      beta: { tex: '\\arccos \\frac{@F1}{@F}',      rechne: function (v) { return grad(Math.acos(v.F1 / v.F)); } } } });
+
+    gl({ titel: 'Zerlegen: Anteil quer dazu', thema: 'recht', nurBei: ['recht'], formel: '@F2 = @F \\cdot \\sin @beta', loese: {
+      F2:   { tex: '@F \\cdot \\sin @beta',         rechne: function (v) { return v.F * Math.sin(rad(v.beta)); } },
+      F:    { tex: '\\frac{@F2}{\\sin @beta}',      rechne: function (v) { return v.F2 / teiler(Math.sin(rad(v.beta))); } },
+      beta: { tex: '\\arcsin \\frac{@F2}{@F}',      rechne: function (v) { return grad(Math.asin(v.F2 / v.F)); } } } });
+
+    // --- beliebiger Winkel ---
+    gl({ titel: 'Resultierende (Kosinussatz im Kräfteparallelogramm)', thema: 'winkel', nurBei: ['winkel'],
+      formel: '@F = \\sqrt{@F1^2 + @F2^2 + 2 \\cdot @F1 \\cdot @F2 \\cdot \\cos @alpha}', loese: {
+      F:     { tex: '\\sqrt{@F1^2 + @F2^2 + 2 \\cdot @F1 \\cdot @F2 \\cdot \\cos @alpha}',
+               rechne: function (v) { return wurzel(v.F1 * v.F1 + v.F2 * v.F2 + 2 * v.F1 * v.F2 * Math.cos(rad(v.alpha))); } },
+      F1:    { tex: '-@F2 \\cdot \\cos @alpha + \\sqrt{@F^2 - @F2^2 \\cdot \\sin^2 @alpha}',
+               rechne: function (v) { const a = rad(v.alpha); return -v.F2 * Math.cos(a) + wurzel(v.F * v.F - Math.pow(v.F2 * Math.sin(a), 2)); } },
+      F2:    { tex: '-@F1 \\cdot \\cos @alpha + \\sqrt{@F^2 - @F1^2 \\cdot \\sin^2 @alpha}',
+               rechne: function (v) { const a = rad(v.alpha); return -v.F1 * Math.cos(a) + wurzel(v.F * v.F - Math.pow(v.F1 * Math.sin(a), 2)); } },
+      alpha: { tex: '\\arccos \\frac{@F^2 - @F1^2 - @F2^2}{2 \\cdot @F1 \\cdot @F2}',
+               rechne: function (v) { return grad(Math.acos((v.F * v.F - v.F1 * v.F1 - v.F2 * v.F2) / (2 * v.F1 * v.F2))); } } } });
+
+    gl({ titel: 'Anteil von F in Richtung F₁', thema: 'winkel', nurBei: ['winkel'], formel: '@Fx = @F1 + @F2 \\cdot \\cos @alpha', loese: {
+      Fx: { tex: '@F1 + @F2 \\cdot \\cos @alpha',          rechne: function (v) { return v.F1 + v.F2 * Math.cos(rad(v.alpha)); } },
+      F1: { tex: '@Fx - @F2 \\cdot \\cos @alpha',          rechne: function (v) { return v.Fx - v.F2 * Math.cos(rad(v.alpha)); } },
+      F2: { tex: '\\frac{@Fx - @F1}{\\cos @alpha}',        rechne: function (v) { return (v.Fx - v.F1) / teiler(Math.cos(rad(v.alpha))); } } } });
+
+    gl({ titel: 'Anteil von F quer zu F₁', thema: 'winkel', nurBei: ['winkel'], formel: '@Fy = @F2 \\cdot \\sin @alpha', loese: {
+      Fy: { tex: '@F2 \\cdot \\sin @alpha',                rechne: function (v) { return v.F2 * Math.sin(rad(v.alpha)); } },
+      F2: { tex: '\\frac{@Fy}{\\sin @alpha}',              rechne: function (v) { return v.Fy / teiler(Math.sin(rad(v.alpha))); } } } });
+
+    gl({ titel: 'Richtung der Resultierenden', thema: 'winkel', nurBei: ['winkel'], formel: '\\tan @beta = \\frac{@Fy}{@Fx}', loese: {
+      beta: { tex: '\\arctan \\frac{@Fy}{@Fx}',            rechne: function (v) { return grad(Math.atan2(v.Fy, v.Fx)); } },
+      Fy:   { tex: '@Fx \\cdot \\tan @beta',               rechne: function (v) { return v.Fx * Math.tan(rad(v.beta)); } },
+      Fx:   { tex: '\\frac{@Fy}{\\tan @beta}',             rechne: function (v) { return v.Fy / teiler(Math.tan(rad(v.beta))); } } } });
+
+    gl({ titel: 'Resultierende aus den Anteilen', thema: 'winkel', nurBei: ['winkel'], formel: '@F = \\sqrt{@Fx^2 + @Fy^2}', loese: {
+      F:  { tex: '\\sqrt{@Fx^2 + @Fy^2}', rechne: function (v) { return Math.sqrt(v.Fx * v.Fx + v.Fy * v.Fy); } },
+      Fy: { tex: '\\sqrt{@F^2 - @Fx^2}',  rechne: function (v) { return wurzel(v.F * v.F - v.Fx * v.Fx); } } } });
+
+    gl({ titel: 'Sinussatz im Kräftedreieck', thema: 'winkel', nurBei: ['winkel'], formel: '\\frac{@F2}{\\sin @beta} = \\frac{@F}{\\sin @alpha}', loese: {
+      F2: { tex: '\\frac{@F \\cdot \\sin @beta}{\\sin @alpha}', rechne: function (v) { return v.F * Math.sin(rad(v.beta)) / teiler(Math.sin(rad(v.alpha))); } },
+      F:  { tex: '\\frac{@F2 \\cdot \\sin @alpha}{\\sin @beta}', rechne: function (v) { return v.F2 * Math.sin(rad(v.alpha)) / teiler(Math.sin(rad(v.beta))); } } } });
+
+    // --- Kräftemaßstab ---
+    [['l1', 'F1'], ['l2', 'F2'], ['lF', 'F']].forEach(function (p) {
+      const l = p[0], f = p[1];
+      gl({ titel: 'Pfeillänge mit dem Kräftemaßstab', thema: 'massstab', nurBei: KRAEFTE, formel: '@' + l + ' = \\frac{@' + f + '}{@MK}', loese: (function () {
+        const o = {};
+        o[l]  = { tex: '\\frac{@' + f + '}{@MK}',    rechne: function (v) { return Math.abs(v[f]) / v.MK; } };
+        o[f]  = { tex: '@' + l + ' \\cdot @MK',      rechne: function (v) { return v[l] * v.MK; } };
+        o.MK  = { tex: '\\frac{@' + f + '}{@' + l + '}', rechne: function (v) { return Math.abs(v[f]) / v[l]; } };
+        return o;
+      })() });
+    });
+
+    // --- schiefe Ebene ---
+    gl({ titel: 'Gewichtskraft', thema: 'ebene', nurBei: ['ebene'], formel: '@FG = @m \\cdot @g', loese: {
+      FG: { tex: '@m \\cdot @g',    rechne: function (v) { return v.m * v.g; } },
+      m:  { tex: '\\frac{@FG}{@g}', rechne: function (v) { return v.FG / v.g; } },
+      g:  { tex: '\\frac{@FG}{@m}', rechne: function (v) { return v.FG / v.m; } } } });
+
+    gl({ titel: 'Hangabtriebskraft', thema: 'ebene', nurBei: ['ebene'], formel: '@FH = @FG \\cdot \\sin @nw', loese: {
+      FH: { tex: '@FG \\cdot \\sin @nw',      rechne: function (v) { return v.FG * Math.sin(rad(v.nw)); } },
+      FG: { tex: '\\frac{@FH}{\\sin @nw}',    rechne: function (v) { return v.FH / teiler(Math.sin(rad(v.nw))); } },
+      nw: { tex: '\\arcsin \\frac{@FH}{@FG}', rechne: function (v) { return grad(Math.asin(v.FH / v.FG)); } } } });
+
+    gl({ titel: 'Normalkraft', thema: 'ebene', nurBei: ['ebene'], formel: '@FN = @FG \\cdot \\cos @nw', loese: {
+      FN: { tex: '@FG \\cdot \\cos @nw',      rechne: function (v) { return v.FG * Math.cos(rad(v.nw)); } },
+      FG: { tex: '\\frac{@FN}{\\cos @nw}',    rechne: function (v) { return v.FN / teiler(Math.cos(rad(v.nw))); } },
+      nw: { tex: '\\arccos \\frac{@FN}{@FG}', rechne: function (v) { return grad(Math.acos(v.FN / v.FG)); } } } });
+
+    gl({ titel: 'Hangabtriebskraft aus der Normalkraft', thema: 'ebene', nurBei: ['ebene'], formel: '@FH = @FN \\cdot \\tan @nw', loese: {
+      FH: { tex: '@FN \\cdot \\tan @nw',      rechne: function (v) { return v.FN * Math.tan(rad(v.nw)); } },
+      FN: { tex: '\\frac{@FH}{\\tan @nw}',    rechne: function (v) { return v.FH / teiler(Math.tan(rad(v.nw))); } },
+      nw: { tex: '\\arctan \\frac{@FH}{@FN}', rechne: function (v) { return grad(Math.atan2(v.FH, v.FN)); } } } });
+
+    gl({ titel: 'Kräftedreieck (Pythagoras)', thema: 'ebene', nurBei: ['ebene'], formel: '@FG = \\sqrt{@FH^2 + @FN^2}', loese: {
+      FG: { tex: '\\sqrt{@FH^2 + @FN^2}', rechne: function (v) { return Math.sqrt(v.FH * v.FH + v.FN * v.FN); } },
+      FH: { tex: '\\sqrt{@FG^2 - @FN^2}', rechne: function (v) { return wurzel(v.FG * v.FG - v.FN * v.FN); } },
+      FN: { tex: '\\sqrt{@FG^2 - @FH^2}', rechne: function (v) { return wurzel(v.FG * v.FG - v.FH * v.FH); } } } });
+
+    gl({ titel: 'Reibungskraft', thema: 'reibung', nurBei: ['ebene'], formel: '@FR = @mu \\cdot @FN', loese: {
+      FR: { tex: '@mu \\cdot @FN',     rechne: function (v) { return v.mu * v.FN; } },
+      mu: { tex: '\\frac{@FR}{@FN}',   rechne: function (v) { return v.FR / v.FN; } },
+      FN: { tex: '\\frac{@FR}{@mu}',   rechne: function (v) { return v.FR / teiler(v.mu); } } } });
+
+    gl({ titel: 'Zugkraft zum gleichmäßigen Hinaufziehen', thema: 'reibung', nurBei: ['ebene'], formel: '@FZ = @FH + @FR', loese: {
+      FZ: { tex: '@FH + @FR', rechne: function (v) { return v.FH + v.FR; } },
+      FH: { tex: '@FZ - @FR', rechne: function (v) { return v.FZ - v.FR; } },
+      FR: { tex: '@FZ - @FH', rechne: function (v) { return v.FZ - v.FH; } } } });
+
+    gl({ titel: 'Kraft zum Festhalten', thema: 'reibung', nurBei: ['ebene'], formel: '@Fab = @FH - @FR', loese: {
+      Fab: { tex: '@FH - @FR',  rechne: function (v) { return v.FH - v.FR; } },
+      FH:  { tex: '@Fab + @FR', rechne: function (v) { return v.Fab + v.FR; } },
+      FR:  { tex: '@FH - @Fab', rechne: function (v) { return v.FH - v.Fab; } } } });
+
+    gl({ titel: 'Neigungswinkel aus Höhe und Länge', thema: 'geometrie', nurBei: ['ebene'], formel: '\\sin @nw = \\frac{@h}{@lE}', loese: {
+      h:  { tex: '@lE \\cdot \\sin @nw',      rechne: function (v) { return v.lE * Math.sin(rad(v.nw)); } },
+      lE: { tex: '\\frac{@h}{\\sin @nw}',     rechne: function (v) { return v.h / teiler(Math.sin(rad(v.nw))); } },
+      nw: { tex: '\\arcsin \\frac{@h}{@lE}',  rechne: function (v) { return grad(Math.asin(v.h / v.lE)); } } } });
+
+    gl({ titel: 'Neigungswinkel aus Höhe und Grundlinie', thema: 'geometrie', nurBei: ['ebene'], formel: '\\tan @nw = \\frac{@h}{@b}', loese: {
+      h:  { tex: '@b \\cdot \\tan @nw',       rechne: function (v) { return v.b * Math.tan(rad(v.nw)); } },
+      b:  { tex: '\\frac{@h}{\\tan @nw}',     rechne: function (v) { return v.h / teiler(Math.tan(rad(v.nw))); } },
+      nw: { tex: '\\arctan \\frac{@h}{@b}',   rechne: function (v) { return grad(Math.atan2(v.h, v.b)); } } } });
+
+    gl({ titel: 'Länge der Ebene (Pythagoras)', thema: 'geometrie', nurBei: ['ebene'], formel: '@lE = \\sqrt{@h^2 + @b^2}', loese: {
+      lE: { tex: '\\sqrt{@h^2 + @b^2}',  rechne: function (v) { return Math.sqrt(v.h * v.h + v.b * v.b); } },
+      h:  { tex: '\\sqrt{@lE^2 - @b^2}', rechne: function (v) { return wurzel(v.lE * v.lE - v.b * v.b); } },
+      b:  { tex: '\\sqrt{@lE^2 - @h^2}', rechne: function (v) { return wurzel(v.lE * v.lE - v.h * v.h); } } } });
+
+    gl({ titel: 'Steigung in Prozent', thema: 'geometrie', nurBei: ['ebene'], formel: '@steig = \\tan @nw \\cdot 100\\,\\%', loese: {
+      steig: { tex: '\\tan @nw \\cdot 100\\,\\%',                 rechne: function (v) { return Math.tan(rad(v.nw)) * 100; } },
+      nw:    { tex: '\\arctan \\frac{@steig}{100\\,\\%}',         rechne: function (v) { return grad(Math.atan(v.steig / 100)); } } } });
+
+    function einsetzen(vorlage, ersetze) {
+      return vorlage.replace(/@(\w+)/g, function (_, k) { return ersetze(k); });
+    }
+
+    GLEICHUNGEN.forEach(function (gl) {
+      gl.groessen = Object.keys(gl.loese);
+      gl.tex = einsetzen(gl.formel, function (k) { return TEX[k]; });
+    });
+
+    const THEMEN = [
+      { id: 'linie', titel: 'Kräfte auf einer Wirkungslinie' },
+      { id: 'recht', titel: 'Rechtwinklige Kräfte zusammensetzen und zerlegen' },
+      { id: 'winkel', titel: 'Kräfte unter beliebigem Winkel (Kräfteparallelogramm)' },
+      { id: 'massstab', titel: 'Zeichnen mit Kräftemaßstab' },
+      { id: 'ebene', titel: 'Schiefe Ebene' },
+      { id: 'reibung', titel: 'Reibung, Zug- und Haltekraft' },
+      { id: 'geometrie', titel: 'Abmessungen der schiefen Ebene' }
+    ];
+
+    const MERKSAETZE = [
+      '\\vec F = \\vec F_1 + \\vec F_2 \\qquad \\text{(Kräfte addieren sich wie Pfeile)}',
+      '\\vec F_\\text{GG} = -\\vec F \\qquad \\text{(Gleichgewichtskraft: gleich groß, entgegengesetzt)}',
+      '\\alpha = 0^\\circ: F = F_1 + F_2 \\qquad \\alpha = 90^\\circ: F = \\sqrt{F_1^2 + F_2^2} \\qquad \\alpha = 180^\\circ: F = F_1 - F_2',
+      '\\text{Körper rutscht von selbst, wenn } F_\\text{H} > F_\\text{R} \\;\\Leftrightarrow\\; \\tan\\alpha > \\mu',
+      'g = 9{,}81\\,\\tfrac{\\text{m}}{\\text{s}^2} \\qquad 1\\,\\text{N} = 1\\,\\tfrac{\\text{kg}\\cdot\\text{m}}{\\text{s}^2}'
+    ];
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (Math.abs(wert) < 1e-10) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    function kraftText(w) {
+      if (!isFinite(w)) return '?';
+      return Math.abs(w) >= 10000 ? zahl(w / 1000, 4) + ' kN' : zahl(w, 4) + ' N';
+    }
+
+
+    // ============================================================
+    // Rechnen
+    // ============================================================
+
+    const gegeben = {};
+    const einheitWahl = {};
+    let ergebnis = { werte: {}, schritte: [], widersprueche: [], warnungen: [] };
+
+    function einheitVon(key) { return GROESSEN[key].einheiten[einheitWahl[key] || 0]; }
+    function gilt(gl) { return !gl.nurBei || gl.nurBei.indexOf(modus) >= 0; }
+    function hat(w, k) { return k in w && isFinite(w[k]); }
+
+    // Nur die Größen des gewählten Falls nehmen teil
+    function imFall(key) {
+      const gruppe = GRUPPEN.filter(function (gr) { return gr.felder.indexOf(key) >= 0; })[0];
+      if (!gruppe || gruppe.modi.indexOf(modus) < 0) return false;
+      return !GROESSEN[key].modi || GROESSEN[key].modi.indexOf(modus) >= 0;
+    }
+
+    function rechnen() {
+      const werte = {};
+      Object.keys(gegeben).forEach(function (k) { if (imFall(k)) werte[k] = gegeben[k]; });
+      const schritte = [];
+
+      for (let runde = 0; runde < 100; runde++) {
+        let weiter = false;
+        GLEICHUNGEN.forEach(function (gl) {
+          if (!gilt(gl)) return;
+          const offen = gl.groessen.filter(function (k) { return !(k in werte); });
+          if (offen.length !== 1) return;
+          const ziel = offen[0], w = gl.loese[ziel].rechne(werte);
+          if (!isFinite(w)) return;
+          werte[ziel] = w;
+          schritte.push({ gleichung: gl, ziel: ziel, vorlage: gl.loese[ziel].tex, werte: Object.assign({}, werte) });
+          weiter = true;
+        });
+        if (!weiter) break;
+      }
+
+      const widersprueche = [];
+      GLEICHUNGEN.forEach(function (gl) {
+        if (!gilt(gl) || !gl.groessen.every(function (k) { return k in werte; })) return;
+        const ziel = gl.groessen[0], soll = gl.loese[ziel].rechne(werte), ist = werte[ziel];
+        if (!isFinite(soll)) return;
+        if (Math.abs(soll - ist) > Math.max(Math.abs(ist), Math.abs(soll)) * 0.005 + 1e-6) {
+          widersprueche.push({ gleichung: gl, ziel: ziel, soll: soll, beteiligt: gl.groessen.filter(function (k) { return k in gegeben; }) });
+        }
+      });
+
+      const warnungen = [];
+      if (modus === 'gegen' && werte.F < 0) warnungen.push('F ist negativ: F<sub>2</sub> ist größer als F<sub>1</sub>, die Resultierende zeigt in Richtung von F<sub>2</sub>.');
+      if (modus === 'winkel' && (werte.alpha < 0 || werte.alpha > 180)) warnungen.push('Der Winkel zwischen den Kräften liegt zwischen 0° und 180°.');
+      if (modus === 'ebene') {
+        if (werte.nw <= 0 || werte.nw >= 90) warnungen.push('Der Neigungswinkel einer schiefen Ebene liegt zwischen 0° und 90°.');
+        if (hat(werte, 'Fab') && werte.Fab <= 0) warnungen.push('F<sub>Halt</sub> ≤ 0: Die Reibung hält den Körper von selbst, er rutscht nicht (tan α ≤ μ).');
+        if (werte.mu > 1.2) warnungen.push('Reibungszahlen über 1 sind selten (z. B. Gummi auf trockenem Beton ≈ 0,8).');
+      }
+      ['F1', 'F2', 'm', 'FG', 'FN', 'FR', 'MK', 'h', 'lE', 'b'].forEach(function (k) {
+        if (werte[k] < 0 && imFall(k)) warnungen.push(GROESSEN[k].name + ' ist negativ. Prüfe die Eingaben.');
+      });
+
+      ergebnis = { werte: werte, schritte: schritte, widersprueche: widersprueche, warnungen: warnungen };
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const felder = {};
+    const gruppenEl = [];
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      GRUPPEN.forEach(function (gruppe) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe';
+        fs.style.setProperty('--farbe', gruppe.farbe);
+        const lg = document.createElement('legend');
+        lg.textContent = gruppe.titel;
+        fs.append(lg);
+        gruppenEl.push({ el: fs, gruppe: gruppe });
+
+        gruppe.felder.forEach(function (key) {
+          const gr = GROESSEN[key];
+          const zeile = document.createElement('div');
+          zeile.className = 'feld';
+
+          const label = document.createElement('label');
+          label.htmlFor = 'f-' + key;
+          const symbol = document.createElement('span');
+          symbol.className = 'symbol';
+          Formel.setze(symbol, TEX[key]);
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = gr.name;
+          name.title = gr.name;
+          label.append(symbol, name);
+
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + key; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.placeholder = 'gesucht';
+
+          let einheit;
+          if (gr.einheiten.length > 1) {
+            einheit = document.createElement('select');
+            einheit.setAttribute('aria-label', 'Einheit für ' + gr.name);
+            gr.einheiten.forEach(function (e, i) {
+              const o = document.createElement('option');
+              o.value = String(i); o.textContent = e[0];
+              einheit.append(o);
+            });
+            einheit.addEventListener('change', function () { einheitWahl[key] = +einheit.value; anzeigen(); });
+          } else {
+            einheit = document.createElement('span');
+            einheit.className = 'einheit';
+            einheit.textContent = gr.einheiten[0][0];
+          }
+
+          const leeren = document.createElement('button');
+          leeren.type = 'button'; leeren.className = 'leeren'; leeren.textContent = '✕';
+          leeren.setAttribute('aria-label', gr.name + ' löschen');
+          leeren.addEventListener('click', function () { delete gegeben[key]; eingabe.value = ''; neuRechnen(); eingabe.focus(); });
+
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value);
+            if (eingabe.value.trim() === '') delete gegeben[key];
+            else if (isFinite(w)) gegeben[key] = w * einheitVon(key)[1];
+            else return;
+            neuRechnen(key);
+          });
+          eingabe.addEventListener('blur', function () { anzeigen(); });
+
+          zeile.append(label, eingabe, einheit, leeren);
+          fs.append(zeile);
+          felder[key] = { zeile: zeile, eingabe: eingabe, einheit: einheit };
+        });
+        ziel.append(fs);
+      });
+    }
+
+    function neuRechnen(gerade) {
+      rechnen();
+      anzeigen(gerade);
+    }
+
+    function anzeigen(gerade) {
+      const werte = ergebnis.werte, rot = {};
+      ergebnis.widersprueche.forEach(function (w) { w.beteiligt.forEach(function (k) { rot[k] = true; }); });
+
+      gruppenEl.forEach(function (g) { g.el.hidden = g.gruppe.modi.indexOf(modus) < 0; });
+      Object.keys(felder).forEach(function (key) {
+        const f = felder[key];
+        f.zeile.hidden = !imFall(key);
+        const ist = key in gegeben, berechnet = !ist && key in werte;
+        f.zeile.classList.toggle('gegeben', ist);
+        f.zeile.classList.toggle('berechnet', berechnet);
+        f.zeile.classList.toggle('widerspruch', !!rot[key]);
+        if (key === gerade || (document.activeElement === f.eingabe && ist)) return;
+        f.eingabe.value = ist || berechnet ? zahl(werte[key] / einheitVon(key)[1], 5).replace(/ /g, '') : '';
+        f.eingabe.title = berechnet ? 'ausgerechnet, zum Ändern überschreiben' : '';
+      });
+
+      meldungenZeigen();
+      kachelnZeigen();
+      rechenwegZeigen();
+      formelnMarkieren();
+      zustandText();
+    }
+
+
+    // ============================================================
+    // Rechenweg (LaTeX)
+    // ============================================================
+
+    function texZahl(w, stellen) {
+      const text = Formel.zahl(zahl(w, stellen || 5));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    function texWert(k, werte) {
+      if (WINKELGROESSEN[k]) return texZahl(werte[k], 4) + '^\\circ';
+      if (k === 'mu') return texZahl(werte[k], 4);
+      return texZahl(werte[k]) + (TEX_EINHEIT[k] ? '\\,' + TEX_EINHEIT[k] : '');
+    }
+
+    function texErgebnis(k, w) {
+      if (WINKELGROESSEN[k]) return texZahl(w, 4) + '^\\circ';
+      if (k === 'mu') return texZahl(w, 4);
+      let text = texZahl(w) + (TEX_EINHEIT[k] ? '\\,' + TEX_EINHEIT[k] : '');
+      if (TEX_EINHEIT[k] === '\\text{N}' && Math.abs(w) >= 10000) text += ' = ' + texZahl(w / 1000, 4) + '\\,\\text{kN}';
+      return text;
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        titel.textContent = s.gleichung.titel;
+
+        // Gleichungen mit Winkelfunktion links (tan β = …) werden nach dem Winkel umgestellt gezeigt
+        const umgestellt = document.createElement('div');
+        umgestellt.className = 'rechnung';
+        Formel.setze(umgestellt, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return TEX[k]; }));
+
+        const eingesetzt = document.createElement('div');
+        eingesetzt.className = 'rechnung';
+        Formel.setze(eingesetzt, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return texWert(k, s.werte); }) +
+          ' = \\htmlClass{ergebnis}{\\boldsymbol{' + texErgebnis(s.ziel, s.werte[s.ziel]) + '}}');
+
+        li.append(titel, umgestellt, eingesetzt);
+        liste.append(li);
+      });
+
+      const hinweis = document.createElement('div');
+      hinweis.className = 'hilfe';
+      if (!ergebnis.schritte.length) {
+        hinweis.innerHTML = modus === 'ebene'
+          ? 'Trag zum Beispiel die Masse m und den Neigungswinkel α ein.'
+          : 'Trag zum Beispiel F<sub>1</sub> und F<sub>2</sub> ein' + (modus === 'winkel' ? ' und den Winkel α dazwischen.' : '.');
+      }
+      if (hinweis.innerHTML) liste.append(hinweis);
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.widersprueche.forEach(function (w) {
+        const d = document.createElement('div');
+        d.className = 'hinweis fehler';
+        d.innerHTML = '<b>Die Angaben widersprechen sich.</b> Nach <span class="f"></span> müsste <span class="z"></span> sein. ' +
+          'Lösch eine der rot markierten Angaben, dann wird sie ausgerechnet.';
+        Formel.setze(d.querySelector('.f'), w.gleichung.tex);
+        Formel.setze(d.querySelector('.z'), TEX[w.ziel] + ' = ' + texErgebnis(w.ziel, w.soll));
+        box.append(d);
+      });
+      ergebnis.warnungen.forEach(function (t) {
+        const d = document.createElement('div');
+        d.className = 'hinweis';
+        d.innerHTML = t;
+        box.append(d);
+      });
+    }
+
+
+    // ============================================================
+    // Auf einen Blick
+    // ============================================================
+
+    const KACHELN = {
+      gleich: [['F', '#0E6B6A', 'Resultierende'], ['F1', '#2B7BB9'], ['F2', '#E4572E'], ['lF', 'var(--text)', 'Pfeillänge von F']],
+      gegen:  [['F', '#0E6B6A', 'Resultierende'], ['F1', '#2B7BB9'], ['F2', '#E4572E'], ['lF', 'var(--text)', 'Pfeillänge von F']],
+      recht:  [['F', '#0E6B6A', 'Resultierende'], ['beta', '#6E6FA6', 'Richtung gegen F₁'], ['F1', '#2B7BB9'], ['F2', '#E4572E']],
+      winkel: [['F', '#0E6B6A', 'Resultierende'], ['beta', '#6E6FA6', 'Richtung gegen F₁'], ['Fx', '#2B7BB9', 'Anteil in Richtung F₁'], ['Fy', '#E4572E', 'Anteil quer zu F₁']],
+      ebene:  [['FH', '#E4572E'], ['FN', '#2B7BB9'], ['FR', '#F2A541'], ['FZ', '#0E6B6A'], ['Fab', 'var(--text)']]
+    };
+
+    function wertText(k, w) {
+      if (!isFinite(w)) return '?';
+      if (WINKELGROESSEN[k]) return zahl(w, 4) + '°';
+      if (TEX_EINHEIT[k] === '\\text{N}') return kraftText(w);
+      const e = einheitVon(k)[0];
+      return zahl(w, 4) + (e === '–' ? '' : ' ' + e);
+    }
+
+    function kachelnZeigen() {
+      const w = ergebnis.werte, ziel = document.getElementById('kacheln');
+      ziel.innerHTML = '';
+      KACHELN[modus].forEach(function (k) {
+        const d = document.createElement('div');
+        d.className = 'kachel';
+        d.style.setProperty('--farbe', k[1]);
+        d.innerHTML = '<div class="sym"></div><div class="wert"></div><small></small>';
+        Formel.setze(d.querySelector('.sym'), TEX[k[0]]);
+        const wt = d.querySelector('.wert');
+        wt.textContent = wertText(k[0], w[k[0]]);
+        wt.classList.toggle('offen', !hat(w, k[0]));
+        d.querySelector('small').textContent = k[2] || GROESSEN[k[0]].name;
+        ziel.append(d);
+      });
+
+      let aussage = '';
+      if (modus === 'ebene') {
+        if (hat(w, 'FH') && hat(w, 'FR')) {
+          aussage = w.FH > w.FR
+            ? 'Der Körper rutscht von selbst hinab, denn F<sub>H</sub> > F<sub>R</sub>. Zum Festhalten braucht es ' + kraftText(w.FH - w.FR) + '.'
+            : 'Der Körper bleibt liegen, die Reibung hält ihn (F<sub>H</sub> ≤ F<sub>R</sub>).';
+          if (hat(w, 'FZ')) aussage += ' Hinaufziehen kostet ' + kraftText(w.FZ) + '.';
+        } else if (hat(w, 'FH')) aussage = 'Ohne Reibung rutscht der Körper mit F<sub>H</sub> = ' + kraftText(w.FH) + ' hinab. Für die Reibung μ eintragen.';
+      } else if (hat(w, 'F')) {
+        aussage = 'Die Gleichgewichtskraft ist genauso groß (' + kraftText(Math.abs(w.F)) + ') und zeigt genau entgegengesetzt.';
+        if (modus === 'gegen' && w.F < 0) aussage = 'Die Resultierende zeigt in Richtung von F<sub>2</sub>. ' + aussage;
+        if (modus === 'gegen' && Math.abs(w.F) < 1e-9) aussage = 'Die Kräfte heben sich auf: Gleichgewicht.';
+      }
+      document.getElementById('aussage').innerHTML = aussage;
+    }
+
+
+    // ============================================================
+    // Formelsammlung
+    // ============================================================
+
+    function formelnAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      THEMEN.forEach(function (thema) {
+        const abschnitt = document.createElement('section');
+        const h = document.createElement('h3');
+        h.textContent = thema.titel;
+        abschnitt.append(h);
+        const schon = {};
+        GLEICHUNGEN.forEach(function (gl, i) {
+          if (gl.thema !== thema.id) return;
+          const f = document.createElement('div');
+          f.className = 'formelblock';
+          f.dataset.nr = String(i);
+          f.title = gl.titel;
+          Formel.setze(f, gl.tex, true);
+          abschnitt.append(f);
+        });
+        ziel.append(abschnitt);
+      });
+      const merk = document.createElement('section');
+      merk.innerHTML = '<h3>Merksätze und Konstanten</h3>';
+      MERKSAETZE.forEach(function (tex) {
+        const f = document.createElement('div');
+        f.className = 'formelblock';
+        Formel.setze(f, tex, true);
+        merk.append(f);
+      });
+      ziel.append(merk);
+    }
+
+    function formelnMarkieren() {
+      document.querySelectorAll('#formelsammlung [data-nr]').forEach(function (d) {
+        const gl = GLEICHUNGEN[+d.dataset.nr];
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.gleichung === gl; }));
+      });
+    }
+
+    document.getElementById('allesLeeren').addEventListener('click', function () {
+      Object.keys(gegeben).forEach(function (k) { delete gegeben[k]; });
+      gegeben.g = 9.81;
+      neuRechnen();
+      fortschritt = 1;
+    });
+
+
+    // ============================================================
+    // Fall wählen
+    // ============================================================
+
+    // Wechselt nur Formeln und Zeichnung; eingetragene Werte bleiben erhalten
+    function modusWaehlen(id) {
+      modus = id;
+      const leiste = document.getElementById('modi');
+      leiste.querySelectorAll('button').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.id === id));
+        if (b.dataset.id === id && leiste.scrollWidth > leiste.clientWidth) leiste.scrollLeft = b.offsetLeft - leiste.offsetLeft - 8;
+      });
+      ebeneZuruecksetzen();
+      document.getElementById('loslassen').hidden = id !== 'ebene';
+      document.getElementById('ziehen').hidden = id !== 'ebene';
+      document.getElementById('zurueck').hidden = id !== 'ebene';
+      neuRechnen();
+      fortschritt = 0;
+      abspielen(true);
+    }
+
+    function modiAufbauen() {
+      const ziel = document.getElementById('modi');
+      Object.keys(MODI).forEach(function (id) {
+        const d = MODI[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 52 * dichte; bild.height = 52 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { modusWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 52, 52); piktogramm(k, id); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      const p = function (x1, y1, x2, y2, farbe) {
+        const w = Math.atan2(y2 - y1, x2 - x1);
+        k.strokeStyle = farbe; k.fillStyle = farbe; k.lineWidth = 3; k.lineCap = 'round';
+        k.beginPath(); k.moveTo(x1, y1); k.lineTo(x2 - 5 * Math.cos(w), y2 - 5 * Math.sin(w)); k.stroke();
+        k.beginPath(); k.moveTo(x2, y2);
+        k.lineTo(x2 - 9 * Math.cos(w - 0.45), y2 - 9 * Math.sin(w - 0.45));
+        k.lineTo(x2 - 9 * Math.cos(w + 0.45), y2 - 9 * Math.sin(w + 0.45)); k.closePath(); k.fill();
+      };
+      if (id === 'gleich') { p(4, 18, 28, 18, '#2B7BB9'); p(28, 18, 48, 18, '#E4572E'); p(4, 36, 48, 36, '#0E6B6A'); }
+      else if (id === 'gegen') { p(14, 18, 46, 18, '#2B7BB9'); p(46, 26, 26, 26, '#E4572E'); p(14, 40, 34, 40, '#0E6B6A'); }
+      else if (id === 'recht' || id === 'winkel') {
+        const tipx = id === 'recht' ? 6 : 20;
+        k.setLineDash([3, 3]); k.strokeStyle = Thema.farbe('--leise') || '#5E6B7A'; k.lineWidth = 1.5;
+        k.beginPath(); k.moveTo(tipx, 8); k.lineTo(tipx + 34, 8); k.lineTo(40, 46); k.stroke(); k.setLineDash([]);
+        p(6, 46, 40, 46, '#2B7BB9'); p(6, 46, tipx, 8, '#E4572E'); p(6, 46, tipx + 34, 8, '#0E6B6A');
+      } else {
+        k.fillStyle = Thema.farbe('--flaeche2') || '#eee'; k.strokeStyle = text; k.lineWidth = 2;
+        k.beginPath(); k.moveTo(2, 48); k.lineTo(50, 48); k.lineTo(50, 18); k.closePath(); k.fill(); k.stroke();
+        k.save(); k.translate(26, 33); k.rotate(-Math.atan2(30, 48));
+        k.fillStyle = '#C8A26B'; k.fillRect(-7, -16, 14, 14); k.strokeRect(-7, -16, 14, 14); k.restore();
+        p(26, 22, 26, 44, text);
+      }
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    // Bewegung läuft immer, auch wenn das System „Animationen reduzieren“ meldet; anhalten geht über den Knopf
+    const bewegungAus = false;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const F = { text: '#13233A', leise: '#5E6B7A', linie: '#D9E0E3', flaeche: '#fff', flaeche2: '#F6F8F8', ergebnis: '#0E6B6A' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || '#13233A';
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+      F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche = Thema.farbe('--flaeche') || '#fff';
+      F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+      F.ergebnis = Thema.farbe('--ergebnis') || '#0E6B6A';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const FARBE = { F1: '#2B7BB9', F2: '#E4572E', Fx: '#2B7BB9', Fy: '#E4572E', FH: '#E4572E', FN: '#2B7BB9', FR: '#F2A541', beta: '#6E6FA6' };
+
+    let L = { W: 1100, H: 470, schmal: false, m: 1 };
+    let fortschritt = 1, laeuft = false, uhr = 0;
+    const DAUER = 6;
+    // Bewegung auf der schiefen Ebene
+    const kiste = { pos: 0.55, v: 0, art: 'ruht' };     // ruht | rutscht | zieht | haftet
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720 ? { W: 520, H: 760, schmal: true } : { W: 1100, H: 470, schmal: false };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function orte() {
+      if (L.schmal) return { bild: { x: 10, y: 10, b: 500, h: 470 }, info: { x: 24, y: 506, b: 472, h: 240 } };
+      return { bild: { x: 16, y: 16, b: 744, h: 438 }, info: { x: 790, y: 30, b: 290, h: 420 } };
+    }
+
+    function wert(k) { return ergebnis.werte[k]; }
+    function bekannt(k) { return hat(ergebnis.werte, k); }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      g.fillText(t, x, y);
+    }
+
+    // Text mit tiefgestellten Teilen: ['F', ['1'], ' = 400 N']
+    function teileBreite(teile, gr, fam) {
+      let breite = 0;
+      teile.forEach(function (t) {
+        g.font = fam + (Array.isArray(t) ? gr * 0.72 : gr) + 'px ' + SCHRIFT;
+        breite += g.measureText(Array.isArray(t) ? t[0] : t).width;
+      });
+      return breite;
+    }
+
+    function schreibeTeile(teile, x, y, o) {
+      o = o || {};
+      const gr = o.groesse || 15, fam = o.fett ? '600 ' : '';
+      const breite = teileBreite(teile, gr, fam);
+      let px = o.ausrichtung === 'right' ? x - breite : o.ausrichtung === 'center' ? x - breite / 2 : x;
+      if (o.hinterlegt) {
+        g.fillStyle = o.hinterlegt;
+        rund(px - 6, y - gr * 0.95, breite + 12, gr * 1.45, 6); g.fill();
+      }
+      g.fillStyle = o.farbe || F.text; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      teile.forEach(function (t) {
+        const tief = Array.isArray(t);
+        g.font = fam + (tief ? gr * 0.72 : gr) + 'px ' + SCHRIFT;
+        const text = tief ? t[0] : t;
+        g.fillText(text, px, y + (tief ? gr * 0.28 : 0));
+        px += g.measureText(text).width;
+      });
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function linie(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 2; g.lineJoin = 'round'; g.lineCap = 'round';
+      g.setLineDash(strich || []);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+      g.setLineDash([]);
+    }
+
+    // Kraftpfeil von (x1, y1) nach (x2, y2); anteil < 1 lässt ihn wachsen
+    function pfeil(x1, y1, x2, y2, farbe, o) {
+      o = o || {};
+      const a = o.anteil === undefined ? 1 : Math.max(0, Math.min(1, o.anteil));
+      if (a <= 0) return;
+      const ex = x1 + (x2 - x1) * a, ey = y1 + (y2 - y1) * a;
+      const lang = Math.hypot(ex - x1, ey - y1);
+      if (lang < 1) return;
+      const w = Math.atan2(ey - y1, ex - x1), spitze = Math.min(16, lang * 0.45), d = o.dicke || 4;
+      linie([[x1, y1], [ex - Math.cos(w) * spitze * 0.6, ey - Math.sin(w) * spitze * 0.6]], farbe, d, o.strich);
+      g.fillStyle = farbe;
+      g.beginPath(); g.moveTo(ex, ey);
+      g.lineTo(ex - spitze * Math.cos(w - 0.38), ey - spitze * Math.sin(w - 0.38));
+      g.lineTo(ex - spitze * Math.cos(w + 0.38), ey - spitze * Math.sin(w + 0.38));
+      g.closePath(); g.fill();
+    }
+
+    // Beschriftung neben der Pfeilmitte, quer versetzt
+    function pfeilText(teile, x1, y1, x2, y2, farbe, seite) {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, w = Math.atan2(y2 - y1, x2 - x1);
+      const s = seite || 1;
+      schreibeTeile(teile, mx - Math.sin(w) * 20 * s, my + Math.cos(w) * 20 * s + 5, { groesse: 15, fett: true, farbe: farbe, ausrichtung: 'center', hinterlegt: F.flaeche });
+    }
+
+    function bogen(x, y, r, von, bis, farbe, teile, textWinkel) {
+      // Weltwinkel gegen den Uhrzeigersinn; auf dem Bildschirm zeigt y nach unten
+      g.strokeStyle = farbe; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y, r, -bis, -von); g.stroke();
+      if (teile) {
+        const m = textWinkel === undefined ? (von + bis) / 2 : textWinkel;
+        schreibeTeile(teile, x + Math.cos(m) * (r + 16), y - Math.sin(m) * (r + 16) + 5, { groesse: 14, fett: true, farbe: farbe, ausrichtung: 'center' });
+      }
+    }
+
+    function schoen(x) {
+      // 1, 2, 2,5, 5 mal Zehnerpotenz, aufgerundet
+      const e = Math.pow(10, Math.floor(Math.log10(x))), f = x / e;
+      return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
+    }
+
+    function raster(R, ox, oy, zelle) {
+      g.save(); rund(R.x, R.y, R.b, R.h, 12); g.clip();
+      g.fillStyle = F.flaeche2; g.fillRect(R.x, R.y, R.b, R.h);
+      g.strokeStyle = F.linie; g.lineWidth = 1;
+      g.beginPath();
+      for (let x = ox - Math.ceil((ox - R.x) / zelle) * zelle; x <= R.x + R.b; x += zelle) { g.moveTo(x, R.y); g.lineTo(x, R.y + R.h); }
+      for (let y = oy - Math.ceil((oy - R.y) / zelle) * zelle; y <= R.y + R.h; y += zelle) { g.moveTo(R.x, y); g.lineTo(R.x + R.b, y); }
+      g.stroke();
+      g.restore();
+    }
+
+    function stufe(p, von, bis) { return Math.max(0, Math.min(1, (p - von) / (bis - von))); }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+      const o = orte();
+      if (modus === 'ebene') zeichneEbene(o.bild, dt);
+      else zeichneKraefte(o.bild);
+      zeichneInfo(o.info);
+    }
+
+    // ---------- Kräfte zusammensetzen ----------
+    function zeichneKraefte(R) {
+      const w = ergebnis.werte;
+      const f1 = bekannt('F1') ? wert('F1') : 400, f2 = bekannt('F2') ? wert('F2') : 300;
+      const al = modus === 'recht' ? 90 : modus === 'gleich' ? 0 : modus === 'gegen' ? 180 : (bekannt('alpha') ? wert('alpha') : 60);
+      const a = rad(al);
+      // Weltkoordinaten in N, y nach oben
+      const A = [f1, 0], B = [f2 * Math.cos(a), f2 * Math.sin(a)], Rv = [A[0] + B[0], A[1] + B[1]];
+      const linear = modus === 'gleich' || modus === 'gegen';
+      const p = fortschritt;
+      const gegen = p >= 0.92 ? stufe(p, 0.92, 1) : 0;
+
+      // Gleichgewichtskraft gleich mit einplanen, damit die Zeichnung beim Erscheinen nicht springt
+      let punkte = [[0, 0], A, Rv, [-Rv[0], -Rv[1]]];
+      if (!linear) punkte.push(B);
+      const minX = Math.min.apply(null, punkte.map(function (q) { return q[0]; })), maxX = Math.max.apply(null, punkte.map(function (q) { return q[0]; }));
+      const minY = Math.min.apply(null, punkte.map(function (q) { return q[1]; })), maxY = Math.max.apply(null, punkte.map(function (q) { return q[1]; }));
+      const rand = 70;
+      const dx = Math.max(maxX - minX, 1), dy = Math.max(maxY - minY, linear ? 0 : 1);
+      let s = Math.min((R.b - 2 * rand) / dx, dy > 0 ? (R.h - 2 * rand - (linear ? 0 : 0)) / dy : Infinity);
+
+      // Raster: ein Kästchen = 1 cm im Kräftemaßstab, falls angegeben
+      const MK = bekannt('MK') ? wert('MK') : NaN;
+      let zelleN = isFinite(MK) && MK > 0 ? MK : schoen(26 / s);
+      while (zelleN * s < 16) zelleN *= 2;
+      const ox = R.x + (R.b - dx * s) / 2 - minX * s;
+      const oy = linear ? R.y + R.h * 0.42 : R.y + (R.h - dy * s) / 2 + maxY * s;
+      const X = function (q) { return ox + q[0] * s; }, Y = function (q) { return oy - q[1] * s; };
+      raster(R, ox, oy, zelleN * s);
+      const massstab = isFinite(MK) ? '1 Kästchen = 1 cm ≙ ' + kraftText(MK) : '1 Kästchen ≙ ' + kraftText(zelleN);
+      schreibe(massstab, R.x + 14, R.y + R.h - 14, { groesse: 13, farbe: F.leise, technik: false });
+
+      const t1 = ['F', ['1'], ' = ' + kraftText(w.F1)], t2 = ['F', ['2'], ' = ' + kraftText(w.F2)], tF = ['F = ' + kraftText(w.F)];
+      const farbeF = F.ergebnis;
+
+      if (linear) {
+        // Krafteck: F₂ hängt an der Spitze von F₁; darunter die Resultierende
+        const y1 = oy, yR = oy + 90;
+        const xA = X(A), xR = X(Rv);
+        // Körper am Angriffspunkt
+        rund(ox - 26, y1 - 22, 22, 44, 5); g.fillStyle = '#C8A26B'; g.fill(); g.strokeStyle = F.text; g.lineWidth = 1.5; g.stroke();
+        pfeil(ox, y1, xA, y1, FARBE.F1, { anteil: stufe(p, 0, 0.3) });
+        if (p > 0.05) pfeilText(t1, ox, y1, xA, y1, FARBE.F1, -1);
+        const yb = modus === 'gegen' ? y1 + 18 : y1;
+        if (modus === 'gegen' && p > 0.3) linie([[xA, y1], [xA, yb]], FARBE.F2, 1.5, [4, 4]);
+        pfeil(xA, yb, X([A[0] + B[0], 0]), yb, FARBE.F2, { anteil: stufe(p, 0.35, 0.65) });
+        if (p > 0.4) pfeilText(t2, xA, yb, X([A[0] + B[0], 0]), yb, FARBE.F2, modus === 'gegen' ? -1 : 1);
+        if (p > 0.68) {
+          linie([[ox, y1 + 26], [ox, yR + 8]], F.leise, 1.2, [4, 4]);
+          linie([[xR, yb + 8], [xR, yR + 8]], F.leise, 1.2, [4, 4]);
+        }
+        pfeil(ox, yR, xR, yR, farbeF, { anteil: stufe(p, 0.7, 0.92), dicke: 5 });
+        if (p > 0.75) pfeilText(tF, ox, yR, xR, yR, farbeF, 1);
+        if (gegen > 0 && Math.abs(Rv[0]) > 1e-9) {
+          const yG = yR + 76;
+          linie([[ox, yR + 8], [ox, yG]], F.leise, 1.2, [4, 4]);
+          pfeil(ox, yG, ox - (xR - ox), yG, F.leise, { anteil: gegen, strich: [8, 6], dicke: 3 });
+          schreibeTeile(['F', ['GG'], ' Gleichgewichtskraft'], ox - (xR - ox) / 2, yG + 26, { groesse: 13, farbe: F.leise, ausrichtung: 'center' });
+        }
+        return;
+      }
+
+      // Kräfteparallelogramm
+      const O = [ox, oy];
+      // Seil und Knoten am Angriffspunkt
+      pfeil(O[0], O[1], X(A), Y(A), FARBE.F1, { anteil: stufe(p, 0, 0.22) });
+      pfeil(O[0], O[1], X(B), Y(B), FARBE.F2, { anteil: stufe(p, 0.22, 0.44) });
+      // Parallelen
+      const par = stufe(p, 0.46, 0.68);
+      if (par > 0) {
+        linie([[X(A), Y(A)], [X(A) + (X(Rv) - X(A)) * par, Y(A) + (Y(Rv) - Y(A)) * par]], FARBE.F2, 1.8, [7, 6]);
+        linie([[X(B), Y(B)], [X(B) + (X(Rv) - X(B)) * par, Y(B) + (Y(Rv) - Y(B)) * par]], FARBE.F1, 1.8, [7, 6]);
+      }
+      if (p > 0.7) {
+        g.fillStyle = 'rgba(14,107,106,.08)';
+        g.beginPath(); g.moveTo(O[0], O[1]); g.lineTo(X(A), Y(A)); g.lineTo(X(Rv), Y(Rv)); g.lineTo(X(B), Y(B)); g.closePath(); g.fill();
+      }
+      pfeil(O[0], O[1], X(Rv), Y(Rv), farbeF, { anteil: stufe(p, 0.7, 0.9), dicke: 5 });
+
+      // Winkel
+      const beta = Math.atan2(Rv[1], Rv[0]);
+      if (p > 0.44) {
+        if (modus === 'recht') {
+          g.strokeStyle = F.leise; g.lineWidth = 1.5; g.strokeRect(O[0], O[1] - 16, 16, 16);
+          g.fillStyle = F.leise; g.beginPath(); g.arc(O[0] + 8, O[1] - 8, 2, 0, 7); g.fill();
+        } else {
+          // Beschriftung zwischen F und F₂, damit sie nicht auf dem Pfeil von F liegt
+          const fWinkel = Math.atan2(Rv[1], Rv[0]);
+          bogen(O[0], O[1], 92, 0, a, F.leise, ['α = ' + zahl(al, 3) + '°'], (fWinkel + a) / 2 + (a - fWinkel) * 0.1);
+        }
+      }
+      if (p > 0.9) bogen(O[0], O[1], 44, 0, beta, FARBE.beta, ['β = ' + zahl(grad(beta), 3) + '°']);
+
+      // Anteile von F (Projektion auf F₁)
+      if (p > 0.9 && modus === 'winkel') {
+        linie([[X(Rv), Y(Rv)], [X(Rv), oy]], F.leise, 1.2, [3, 4]);
+        schreibeTeile(['F', ['x']], X(Rv) + 6, oy + 18, { groesse: 13, farbe: F.leise });
+      }
+
+      if (p > 0.05) pfeilText(t1, O[0], O[1], X(A), Y(A), FARBE.F1, B[1] >= 0 ? 1 : -1);
+      if (p > 0.27) pfeilText(t2, (O[0] + X(B)) / 2, (O[1] + Y(B)) / 2, X(B), Y(B), FARBE.F2, -1);
+      if (p > 0.75) pfeilText(tF, O[0] + (X(Rv) - O[0]) * 0.3, O[1] + (Y(Rv) - O[1]) * 0.3, X(Rv), Y(Rv), farbeF, -1);
+
+      if (gegen > 0) {
+        pfeil(O[0], O[1], O[0] - (X(Rv) - O[0]), O[1] - (Y(Rv) - O[1]), F.leise, { anteil: gegen, strich: [8, 6], dicke: 3 });
+        schreibeTeile(['F', ['GG']], O[0] - (X(Rv) - O[0]) * 0.6 - 10, O[1] - (Y(Rv) - O[1]) * 0.6 + 24, { groesse: 14, farbe: F.leise, ausrichtung: 'center', hinterlegt: F.flaeche2 });
+      }
+
+      // Knoten (Angriffspunkt)
+      g.beginPath(); g.arc(O[0], O[1], 8, 0, 7); g.fillStyle = F.flaeche; g.fill(); g.strokeStyle = F.text; g.lineWidth = 3; g.stroke();
+    }
+
+    // ---------- Schiefe Ebene ----------
+    function zeichneEbene(R, dt) {
+      const w = ergebnis.werte;
+      const al = bekannt('nw') ? Math.max(3, Math.min(75, wert('nw'))) : 30;
+      const a = rad(al);
+      raster(R, R.x, R.y, 24);
+
+      // Dreieck: links unten A, rechts unten C, rechts oben T
+      let B = R.b * (L.schmal ? 0.82 : 0.66), H = B * Math.tan(a);
+      if (H > R.h * 0.62) { H = R.h * 0.62; B = H / Math.tan(a); }
+      const Ax = R.x + (L.schmal ? 30 : 60), Ay = R.y + R.h - 48, Cx = Ax + B, Tx = Cx, Ty = Ay - H;
+      g.beginPath(); g.moveTo(Ax, Ay); g.lineTo(Cx, Ay); g.lineTo(Tx, Ty); g.closePath();
+      g.fillStyle = F.linie; g.fill(); g.strokeStyle = F.text; g.lineWidth = 2.5; g.stroke();
+      // Schraffur am Boden
+      g.strokeStyle = F.leise; g.lineWidth = 1;
+      for (let x = Ax - 10; x < Cx + 20; x += 12) { g.beginPath(); g.moveTo(x, Ay); g.lineTo(x - 8, Ay + 8); g.stroke(); }
+
+      // Abmessungen
+      schreibe('b' + (bekannt('b') ? ' = ' + zahl(wert('b'), 3) + ' m' : ''), (Ax + Cx) / 2, Ay + 28, { groesse: 14, fett: true, ausrichtung: 'center', farbe: F.leise });
+      schreibe('h' + (bekannt('h') ? ' = ' + zahl(wert('h'), 3) + ' m' : ''), Cx + 10, (Ay + Ty) / 2, { groesse: 14, fett: true, farbe: F.leise });
+      bogen(Ax, Ay, 46, 0, a, '#6E6FA6', ['α = ' + zahl(al, 3) + '°']);
+      if (bekannt('steig')) {
+        if (L.schmal) schreibe('Steigung ' + zahl(wert('steig'), 3) + ' %', Cx, Ay + 28, { groesse: 12, farbe: F.leise, technik: false, ausrichtung: 'right' });
+        else schreibe('Steigung ' + zahl(wert('steig'), 3) + ' %', Cx + 10, (Ay + Ty) / 2 + 20, { groesse: 13, farbe: F.leise, technik: false });
+      }
+
+      // Bewegung
+      bewegen(dt);
+      const lang = Math.hypot(B, H);
+      const ux = Math.cos(a), uy = -Math.sin(a);           // hangaufwärts (Bildschirm)
+      const inx = Math.sin(a), iny = Math.cos(a);          // in die Ebene hinein
+      const Px = Ax + ux * lang * kiste.pos, Py = Ay + uy * lang * kiste.pos;
+      const gr = L.schmal ? 50 : 58;
+      const Mx = Px - inx * gr / 2, My = Py - iny * gr / 2;  // Kistenmitte
+
+      // Seil zur Umlenkrolle oben
+      const ziehen = kiste.art === 'zieht' || (fortschritt > 0.75 && kiste.art !== 'rutscht');
+      if (ziehen && bekannt('FZ')) {
+        const sx = Px + ux * gr / 2 - inx * gr / 2, sy = Py + uy * gr / 2 - iny * gr / 2;
+        linie([[sx, sy], [Tx - inx * 10, Ty - iny * 10]], F.leise, 2);
+      }
+      g.beginPath(); g.arc(Tx - inx * 10, Ty - iny * 10, 10, 0, 7); g.fillStyle = F.flaeche; g.fill(); g.strokeStyle = F.text; g.lineWidth = 2; g.stroke();
+
+      // Kiste
+      g.save(); g.translate(Mx, My); g.rotate(-a);
+      g.fillStyle = '#C8A26B'; g.fillRect(-gr / 2, -gr / 2, gr, gr);
+      g.strokeStyle = '#7A5A2E'; g.lineWidth = 2; g.strokeRect(-gr / 2, -gr / 2, gr, gr);
+      linie([[-gr / 2, -gr / 2], [gr / 2, gr / 2]], '#7A5A2E', 1.5); linie([[gr / 2, -gr / 2], [-gr / 2, gr / 2]], '#7A5A2E', 1.5);
+      g.restore();
+      schreibe(bekannt('m') ? zahl(wert('m'), 3) + ' kg' : 'm ?', Mx, My - gr * 0.62 - 4, { groesse: 13, fett: true, ausrichtung: 'center', farbe: F.text });
+
+      // Kräfte: Länge im Kräftemaßstab der Zeichnung
+      const fg = bekannt('FG') ? wert('FG') : 500;
+      const fh = bekannt('FH') ? wert('FH') : fg * Math.sin(a), fn = bekannt('FN') ? wert('FN') : fg * Math.cos(a);
+      const groesste = Math.max(fg, bekannt('FZ') ? wert('FZ') : 0);
+      const s = (L.schmal ? 150 : 170) / groesste;
+      const p = fortschritt;
+
+      const Gx = Mx, Gy = My + fg * s;
+      const Hx = Mx - ux * fh * s, Hy = My - uy * fh * s;
+      const Nx = Mx + inx * fn * s, Ny = My + iny * fn * s;
+      pfeil(Mx, My, Gx, Gy, F.text, { anteil: stufe(p, 0, 0.2), dicke: 4.5 });
+      pfeil(Mx, My, Hx, Hy, FARBE.FH, { anteil: stufe(p, 0.22, 0.42) });
+      pfeil(Mx, My, Nx, Ny, FARBE.FN, { anteil: stufe(p, 0.22, 0.42) });
+      const par = stufe(p, 0.44, 0.6);
+      if (par > 0) {
+        linie([[Hx, Hy], [Hx + (Gx - Hx) * par, Hy + (Gy - Hy) * par]], FARBE.FN, 1.6, [6, 5]);
+        linie([[Nx, Ny], [Nx + (Gx - Nx) * par, Ny + (Gy - Ny) * par]], FARBE.FH, 1.6, [6, 5]);
+      }
+      if (p > 0.6) {
+        // α taucht zwischen F_G und F_N wieder auf
+        bogen(Mx, My, 40, -Math.PI / 2, -Math.PI / 2 + a, '#6E6FA6', ['α']);
+      }
+      // Reibung an der Auflagefläche, gegen die Bewegungsrichtung
+      if (p > 0.62 && bekannt('FR')) {
+        const richtung = kiste.art === 'zieht' ? -1 : 1;
+        const fr = wert('FR') * s;
+        const kx = Px + (kiste.art === 'zieht' ? -1 : 1) * ux * gr * 0.1, ky = Py + (kiste.art === 'zieht' ? -1 : 1) * uy * gr * 0.1;
+        pfeil(kx, ky, kx + richtung * ux * fr, ky + richtung * uy * fr, FARBE.FR, { anteil: stufe(p, 0.62, 0.75), dicke: 4 });
+        if (p > 0.7) schreibeTeile(['F', ['R']], kx + richtung * ux * fr + inx * 18, ky + richtung * uy * fr + iny * 18 + 5, { groesse: 14, fett: true, farbe: FARBE.FR, ausrichtung: 'center', hinterlegt: F.flaeche });
+      }
+      if (ziehen && bekannt('FZ')) {
+        const sx = Mx + ux * gr / 2, sy = My + uy * gr / 2, fz = wert('FZ') * s;
+        pfeil(sx, sy, sx + ux * fz, sy + uy * fz, F.ergebnis, { anteil: kiste.art === 'zieht' ? 1 : stufe(p, 0.76, 0.9), dicke: 4.5 });
+        if (p > 0.82 || kiste.art === 'zieht') schreibeTeile(['F', ['Z']], sx + ux * fz * 0.6 - inx * 20, sy + uy * fz * 0.6 - iny * 20, { groesse: 15, fett: true, farbe: F.ergebnis, ausrichtung: 'center', hinterlegt: F.flaeche });
+      }
+
+      if (p > 0.08) schreibeTeile(['F', ['G']], Gx + 16, Gy - 6, { groesse: 15, fett: true, farbe: F.text, hinterlegt: F.flaeche });
+      if (p > 0.3) {
+        schreibeTeile(['F', ['H']], Hx - 6, Hy - 12, { groesse: 15, fett: true, farbe: FARBE.FH, ausrichtung: 'center', hinterlegt: F.flaeche });
+        schreibeTeile(['F', ['N']], Nx + 20, Ny + 4, { groesse: 15, fett: true, farbe: FARBE.FN, hinterlegt: F.flaeche });
+      }
+      g.fillStyle = F.text; g.beginPath(); g.arc(Mx, My, 4, 0, 7); g.fill();
+    }
+
+    function bewegen(dt) {
+      if (bewegungAus || kiste.art === 'ruht' || kiste.art === 'haftet') return;
+      if (kiste.art === 'rutscht') {
+        // a = (F_H − F_R) / m, im Zeitraffer
+        const m = bekannt('m') ? wert('m') : 1;
+        const beschl = Math.max(0, ((bekannt('FH') ? wert('FH') : 0) - (bekannt('FR') ? wert('FR') : 0)) / m);
+        kiste.v += Math.min(2.2, 0.06 + beschl * 0.03) * dt * 0.45;
+        kiste.pos -= kiste.v * dt;
+        if (kiste.pos <= 0.1) { kiste.pos = 0.1; kiste.v = 0; kiste.art = 'unten'; zustandText(); }
+      } else if (kiste.art === 'zieht') {
+        kiste.pos += 0.12 * dt;
+        if (kiste.pos >= 0.78) { kiste.pos = 0.78; kiste.art = 'oben'; zustandText(); }
+      }
+    }
+
+    function ebeneZuruecksetzen() { kiste.pos = 0.55; kiste.v = 0; kiste.art = 'ruht'; }
+
+    document.getElementById('loslassen').addEventListener('click', function () {
+      ebeneZuruecksetzen();
+      fortschritt = 1; abspielen(false);
+      const w = ergebnis.werte;
+      kiste.art = hat(w, 'FH') && hat(w, 'FR') && w.FH <= w.FR ? 'haftet' : 'rutscht';
+      zustandText();
+    });
+    document.getElementById('ziehen').addEventListener('click', function () {
+      ebeneZuruecksetzen(); kiste.pos = 0.3; fortschritt = 1; abspielen(false);
+      kiste.art = 'zieht'; zustandText();
+    });
+    document.getElementById('zurueck').addEventListener('click', function () { ebeneZuruecksetzen(); zustandText(); });
+
+    // ---------- Werte neben der Zeichnung ----------
+    function zeichneInfo(I) {
+      const w = ergebnis.werte;
+      schreibe(MODI[modus].name, I.x, I.y + 6, { groesse: 18, fett: true });
+      const zeilen = modus === 'ebene'
+        ? [[['F', ['G']], 'FG', F.text], [['F', ['H']], 'FH', FARBE.FH], [['F', ['N']], 'FN', FARBE.FN], [['F', ['R']], 'FR', FARBE.FR], [['F', ['Z']], 'FZ', F.ergebnis], [['α'], 'nw', '#6E6FA6'], [['μ'], 'mu', F.leise]]
+        : [[['F', ['1']], 'F1', FARBE.F1], [['F', ['2']], 'F2', FARBE.F2], [['F'], 'F', F.ergebnis]]
+          .concat(modus === 'winkel' ? [[['α'], 'alpha', F.leise], [['β'], 'beta', FARBE.beta], [['F', ['x']], 'Fx', F.leise], [['F', ['y']], 'Fy', F.leise]] : [])
+          .concat(modus === 'recht' ? [[['β'], 'beta', FARBE.beta]] : [])
+          .concat([[['l', ['F']], 'lF', F.leise]]);
+      const spalten = L.schmal ? 2 : 1;
+      const zh = L.schmal ? 30 : 32;
+      zeilen.forEach(function (z, i) {
+        const sp = i % spalten, ze = Math.floor(i / spalten);
+        const x = I.x + sp * (I.b / spalten), y = I.y + 44 + ze * zh, breite = I.b / spalten - (spalten > 1 ? 16 : 0);
+        g.fillStyle = z[2]; rund(x, y - 13, 5, 18, 2.5); g.fill();
+        schreibeTeile(z[0], x + 14, y + 1, { groesse: 15, farbe: F.leise });
+        const k = z[1];
+        schreibe(bekannt(k) ? wertText(k, wert(k)) : '?', x + breite, y + 1, { groesse: 17, fett: true, ausrichtung: 'right', farbe: bekannt(k) ? F.text : F.leise });
+      });
+      const unten = I.y + 44 + Math.ceil(zeilen.length / spalten) * zh + 12;
+      let text = '';
+      if (modus === 'ebene') {
+        if (bekannt('nw') && bekannt('mu')) text = 'tan α = ' + zahl(Math.tan(rad(wert('nw'))), 3) + (Math.tan(rad(wert('nw'))) > wert('mu') ? ' > μ: rutscht' : ' ≤ μ: haftet');
+      } else if (bekannt('F')) text = 'Gleichgewichtskraft ' + kraftText(Math.abs(wert('F'))) + ', entgegengesetzt';
+      if (text) schreibe(text, I.x, unten, { groesse: 13, farbe: F.leise, technik: false });
+    }
+
+
+    // ============================================================
+    // Abspielen
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    const regler = document.getElementById('fortschritt');
+    const schrittFeld = document.getElementById('schritt');
+
+    function abspielen(an) {
+      laeuft = an;
+      if (laeuft && fortschritt >= 1) fortschritt = 0;
+      regler.value = String(Math.round(fortschritt * 1000));
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : (fortschritt >= 1 ? '▶ Konstruktion' : '▶ Weiter');
+      schrittText();
+    }
+
+    knopf.addEventListener('click', function () { abspielen(!laeuft); });
+    regler.addEventListener('input', function () { fortschritt = +regler.value / 1000; abspielen(false); });
+
+    const SCHRITTE = {
+      linie: [[0.3, '1. F₁ im Maßstab antragen'], [0.68, '2. F₂ an die Spitze von F₁ setzen'], [0.92, '3. Resultierende vom Anfang bis zur letzten Spitze'], [1.01, '4. Gleichgewichtskraft: gleich groß, entgegengesetzt']],
+      flaeche: [[0.22, '1. F₁ vom Angriffspunkt antragen'], [0.45, '2. F₂ unter dem Winkel antragen'], [0.69, '3. Parallelen durch die Pfeilspitzen'], [0.9, '4. Diagonale = Resultierende F'], [1.01, '5. Richtung β ablesen, Gleichgewichtskraft']],
+      ebene: [[0.21, '1. Gewichtskraft senkrecht nach unten'], [0.43, '2. Zerlegen: hangabwärts und senkrecht zur Ebene'], [0.61, '3. Parallelen schließen das Rechteck'], [0.76, '4. Reibung wirkt gegen die Bewegung'], [1.01, '5. Zugkraft = Hangabtrieb + Reibung']]
+    };
+
+    function schrittText() {
+      const liste = modus === 'ebene' ? SCHRITTE.ebene : (modus === 'gleich' || modus === 'gegen') ? SCHRITTE.linie : SCHRITTE.flaeche;
+      const s = liste.filter(function (x) { return fortschritt < x[0]; })[0] || liste[liste.length - 1];
+      schrittFeld.textContent = fortschritt >= 1 && !laeuft ? 'Fertig konstruiert. Regler ziehen, um die Schritte einzeln zu sehen.' : s[1];
+    }
+
+    function zustandText() {
+      const el = document.getElementById('zustand');
+      const w = ergebnis.werte;
+      if (modus !== 'ebene') { el.innerHTML = ''; return; }
+      const texte = {
+        ruht: '<b>Die Kiste liegt auf der Ebene.</b> „Loslassen“ zeigt, ob sie rutscht, „Hinaufziehen“ zieht sie mit F<sub>Z</sub> hinauf.',
+        rutscht: '<b>Die Kiste rutscht.</b> F<sub>H</sub> ist größer als die Reibung' + (hat(w, 'FH') && hat(w, 'FR') ? ', es bleiben ' + kraftText(w.FH - w.FR) + ' zum Beschleunigen.' : '.'),
+        haftet: '<b>Die Kiste bleibt liegen.</b> Die Reibung ' + (hat(w, 'FR') ? '(' + kraftText(w.FR) + ') ' : '') + 'ist mindestens so groß wie F<sub>H</sub>.',
+        zieht: '<b>Hinaufziehen</b> mit F<sub>Z</sub> = ' + kraftText(w.FZ) + ': die Reibung wirkt jetzt hangabwärts.',
+        unten: '<b>Unten angekommen.</b>',
+        oben: '<b>Oben angekommen.</b> Gleichmäßig gezogen, also F<sub>Z</sub> = F<sub>H</sub> + F<sub>R</sub>.'
+      };
+      el.innerHTML = texte[kiste.art] || '';
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.min(0.05, (jetzt - vorher) / 1000);
+      vorher = jetzt;
+      if (laeuft) {
+        fortschritt = Math.min(1, fortschritt + dt / DAUER);
+        regler.value = String(Math.round(fortschritt * 1000));
+        if (fortschritt >= 1) abspielen(false); else schrittText();
+      }
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    felderAufbauen();
+    formelnAufbauen();
+    modiAufbauen();
+    anpassen();
+    // Beispiel: zwei Seile mit 400 N und 300 N unter 60°; Kiste mit 50 kg auf 30°
+    Object.assign(gegeben, { F1: 400, F2: 300, alpha: 60, MK: 100, m: 50, g: 9.81, nw: 30, mu: 0.3 });
+    modusWaehlen('winkel');
+    if (bewegungAus) { fortschritt = 1; abspielen(false); }
+    requestAnimationFrame(schleife);
+
+    window.Kraefte = { gegeben: gegeben, ergebnis: function () { return ergebnis; }, neuRechnen: neuRechnen, modusWaehlen: modusWaehlen,
+                       setzeFortschritt: function (f) { fortschritt = f; abspielen(false); }, kiste: kiste };
+  })();
+  </script>
+</body>
+</html>

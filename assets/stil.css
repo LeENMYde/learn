@@ -196,7 +196,6 @@ h1, h2, h3 { font-family: var(--technik); font-weight: 600; line-height: 1.15; l
 .band-innen span { margin-right: 26px; }
 .band-innen span::before { content: '#'; color: var(--warm); }
 @keyframes band-laufen { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .band-innen { animation: none; } }
 
 /* ---------- Karten (Übersicht) ---------- */
 .raster {
@@ -219,7 +218,6 @@ h1, h2, h3 { font-family: var(--technik); font-weight: 600; line-height: 1.15; l
   transition: border-color .15s, transform .15s;
 }
 .karte:hover { border-color: var(--linie); transform: translateY(-2px); }
-@media (prefers-reduced-motion: reduce) { .karte, .karte:hover { transition: none; transform: none; } }
 
 .karte .bereich { color: var(--leise); font-size: .85rem; }
 .karte h3 { margin: 0; font-size: 1.35rem; }

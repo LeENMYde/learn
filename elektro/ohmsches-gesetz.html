@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ohmsches Gesetz und Kirchhoff</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .modi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+
+    @media (max-width: 760px) {
+      .modi { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .modi button { flex: 0 0 72%; scroll-snap-align: start; }
+    }
+
+    .modi button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 2px 12px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--linie);
+      border-radius: var(--rund);
+      background: var(--flaeche);
+      cursor: pointer;
+    }
+    .modi button:hover { border-color: var(--leise); }
+    .modi button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .modi button[aria-pressed="true"]::after {
+      content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala);
+    }
+    .modi canvas { grid-row: span 2; width: 58px; height: 58px; }
+    .modi b { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+    .modi small { color: var(--leise); font-size: .82rem; line-height: 1.3; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitachse { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; }
+    .zeitanzeige { font-family: var(--technik); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+    /* Ergebnis auf einen Blick */
+    .ergebnis-tafel { margin-top: 18px; }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .titel { color: var(--leise); font-size: .88rem; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.75rem); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .kachel .wert.offen { color: var(--leise); font-weight: 400; }
+    .aussage { margin: 14px 0 0; font-size: .98rem; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Ohmsches Gesetz und Kirchhoff</span></h1>
+      <p>Spannung, Strom und Widerstand, dazu Maschen- und Knotenregel in Reihen- und Parallelschaltung. Bekannte Werte eintragen, der Rest wird ausgerechnet, egal in welche Richtung. Die Ladungen fließen sichtbar, der Maschenumlauf zeigt, warum die Spannungen sich zu null addieren.</p>
+    </section>
+
+    <nav class="modi" id="modi" aria-label="Schaltung wählen"></nav>
+
+    <section class="buehne" aria-label="Animation der Schaltung">
+      <canvas id="szene" role="img" aria-label="Schaltung mit fließenden Ladungen, Messgeräten und Diagramm"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">▶ Masche umlaufen</button>
+        <div class="zeitachse">
+          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="0" aria-label="Fortschritt des Umlaufs">
+          <span class="zeitanzeige" id="zeitanzeige"></span>
+        </div>
+        <button type="button" class="knopf" id="richtung">Elektronen zeigen</button>
+      </div>
+    </section>
+
+    <section class="tafel ergebnis-tafel" aria-labelledby="h-ergebnis">
+      <h2 id="h-ergebnis">Auf einen Blick</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <p class="aussage" id="aussage"></p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Gesuchtes einfach leer lassen. Ausgerechnete Werte darfst du überschreiben, dann wird von dort aus weitergerechnet.</p>
+        <div class="zeichenerklaerung"><span><i></i>eingetragen</span><span><i class="ergebnis"></i>ausgerechnet</span></div>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="allesLeeren">Alle Eingaben löschen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte in der Reihenfolge, in der sie sich ergeben.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Größen (intern in V, A, Ω, W, S)
+    // ============================================================
+
+    const EINHEITEN = {
+      U: [['V', 1], ['mV', 1e-3], ['kV', 1e3]],
+      I: [['mA', 1e-3], ['A', 1], ['µA', 1e-6]],
+      R: [['Ω', 1], ['kΩ', 1e3], ['MΩ', 1e6]],
+      P: [['W', 1], ['mW', 1e-3], ['kW', 1e3]],
+      G: [['mS', 1e-3], ['S', 1]]
+    };
+    const SI = { U: 'V', I: 'A', R: 'Ω', P: 'W', G: 'S' };
+
+    function gr(tex, name, art) { return { tex: tex, name: name, art: art, einheiten: EINHEITEN[art] }; }
+
+    const GROESSEN = {
+      U: gr('U', 'Spannung', 'U'), I: gr('I', 'Strom', 'I'), R: gr('R', 'Widerstand', 'R'),
+      P: gr('P', 'Leistung', 'P'), G: gr('G', 'Leitwert', 'G'),
+      R1: gr('R_1', 'Widerstand 1', 'R'), R2: gr('R_2', 'Widerstand 2', 'R'), R3: gr('R_3', 'Widerstand 3', 'R'),
+      Rg: gr('R_\\text{ges}', 'Gesamtwiderstand', 'R'),
+      U1: gr('U_1', 'Spannung an R₁', 'U'), U2: gr('U_2', 'Spannung an R₂', 'U'), U3: gr('U_3', 'Spannung an R₃', 'U'),
+      I1: gr('I_1', 'Strom durch R₁', 'I'), I2: gr('I_2', 'Strom durch R₂', 'I'), I3: gr('I_3', 'Strom durch R₃', 'I')
+    };
+
+    const FARBE_R = { R: '#E4572E', R1: '#E4572E', R2: '#F2A541', R3: '#6E6FA6' };
+    const KACHELFARBE = { U: '#2B7BB9', R: '#E4572E', P: '#F2A541',
+                          U1: FARBE_R.R1, U2: FARBE_R.R2, U3: FARBE_R.R3, I1: FARBE_R.R1, I2: FARBE_R.R2, I3: FARBE_R.R3 };
+
+
+    // ============================================================
+    // Gleichungen: jede nach jeder ihrer Größen umgestellt
+    // ============================================================
+    //
+    // @x steht für die Größe x, @x^2 für ihr Quadrat (beim Einsetzen geklammert)
+
+    function gl(titel, tex, loese) { return { titel: titel, tex: tex, loese: loese, groessen: Object.keys(loese) }; }
+    function l(tex, rechne) { return { tex: tex, rechne: rechne }; }
+
+    const LEISTUNG = gl('Elektrische Leistung', 'P = U \\cdot I', {
+      P: l('@U \\cdot @I', function (v) { return v.U * v.I; }),
+      U: l('\\frac{@P}{@I}', function (v) { return v.P / v.I; }),
+      I: l('\\frac{@P}{@U}', function (v) { return v.P / v.U; }) });
+
+    const GL_OHM = [
+      gl('Ohmsches Gesetz', 'U = R \\cdot I', {
+        U: l('@R \\cdot @I', function (v) { return v.R * v.I; }),
+        R: l('\\frac{@U}{@I}', function (v) { return v.U / v.I; }),
+        I: l('\\frac{@U}{@R}', function (v) { return v.U / v.R; }) }),
+      LEISTUNG,
+      gl('Leistung aus Strom und Widerstand', 'P = I^2 \\cdot R', {
+        P: l('@I^2 \\cdot @R', function (v) { return v.I * v.I * v.R; }),
+        R: l('\\frac{@P}{@I^2}', function (v) { return v.P / (v.I * v.I); }),
+        I: l('\\sqrt{\\frac{@P}{@R}}', function (v) { return Math.sqrt(v.P / v.R); }) }),
+      gl('Leistung aus Spannung und Widerstand', 'P = \\frac{U^2}{R}', {
+        P: l('\\frac{@U^2}{@R}', function (v) { return v.U * v.U / v.R; }),
+        U: l('\\sqrt{@P \\cdot @R}', function (v) { return Math.sqrt(v.P * v.R); }),
+        R: l('\\frac{@U^2}{@P}', function (v) { return v.U * v.U / v.P; }) }),
+      gl('Leitwert', 'G = \\frac{1}{R}', {
+        G: l('\\frac{1}{@R}', function (v) { return 1 / v.R; }),
+        R: l('\\frac{1}{@G}', function (v) { return 1 / v.G; }) })
+    ];
+
+    const GL_REIHE = [
+      gl('Gesamtwiderstand der Reihenschaltung', 'R_\\text{ges} = R_1 + R_2 + R_3', {
+        Rg: l('@R1 + @R2 + @R3', function (v) { return v.R1 + v.R2 + v.R3; }),
+        R1: l('@Rg - @R2 - @R3', function (v) { return v.Rg - v.R2 - v.R3; }),
+        R2: l('@Rg - @R1 - @R3', function (v) { return v.Rg - v.R1 - v.R3; }),
+        R3: l('@Rg - @R1 - @R2', function (v) { return v.Rg - v.R1 - v.R2; }) }),
+      gl('Ohmsches Gesetz für die ganze Schaltung', 'U = R_\\text{ges} \\cdot I', {
+        U: l('@Rg \\cdot @I', function (v) { return v.Rg * v.I; }),
+        Rg: l('\\frac{@U}{@I}', function (v) { return v.U / v.I; }),
+        I: l('\\frac{@U}{@Rg}', function (v) { return v.U / v.Rg; }) })
+    ].concat([1, 2, 3].map(function (k) {
+      const U = 'U' + k, R = 'R' + k, loese = {};
+      loese[U] = l('@' + R + ' \\cdot @I', function (v) { return v[R] * v.I; });
+      loese[R] = l('\\frac{@' + U + '}{@I}', function (v) { return v[U] / v.I; });
+      loese.I = l('\\frac{@' + U + '}{@' + R + '}', function (v) { return v[U] / v[R]; });
+      return gl('Ohmsches Gesetz an R' + '₁₂₃'[k - 1] + ' (überall derselbe Strom)', 'U_' + k + ' = R_' + k + ' \\cdot I', loese);
+    })).concat([
+      gl('Maschenregel', 'U - U_1 - U_2 - U_3 = 0 \\;\\Rightarrow\\; U = U_1 + U_2 + U_3', {
+        U: l('@U1 + @U2 + @U3', function (v) { return v.U1 + v.U2 + v.U3; }),
+        U1: l('@U - @U2 - @U3', function (v) { return v.U - v.U2 - v.U3; }),
+        U2: l('@U - @U1 - @U3', function (v) { return v.U - v.U1 - v.U3; }),
+        U3: l('@U - @U1 - @U2', function (v) { return v.U - v.U1 - v.U2; }) }),
+      LEISTUNG
+    ]);
+
+    const GL_PARALLEL = [
+      gl('Gesamtwiderstand der Parallelschaltung', '\\frac{1}{R_\\text{ges}} = \\frac{1}{R_1} + \\frac{1}{R_2} + \\frac{1}{R_3}', {
+        Rg: l('\\frac{1}{\\frac{1}{@R1} + \\frac{1}{@R2} + \\frac{1}{@R3}}', function (v) { return 1 / (1 / v.R1 + 1 / v.R2 + 1 / v.R3); }),
+        R1: l('\\frac{1}{\\frac{1}{@Rg} - \\frac{1}{@R2} - \\frac{1}{@R3}}', function (v) { return 1 / (1 / v.Rg - 1 / v.R2 - 1 / v.R3); }),
+        R2: l('\\frac{1}{\\frac{1}{@Rg} - \\frac{1}{@R1} - \\frac{1}{@R3}}', function (v) { return 1 / (1 / v.Rg - 1 / v.R1 - 1 / v.R3); }),
+        R3: l('\\frac{1}{\\frac{1}{@Rg} - \\frac{1}{@R1} - \\frac{1}{@R2}}', function (v) { return 1 / (1 / v.Rg - 1 / v.R1 - 1 / v.R2); }) }),
+      gl('Ohmsches Gesetz für die ganze Schaltung', 'U = R_\\text{ges} \\cdot I', {
+        U: l('@Rg \\cdot @I', function (v) { return v.Rg * v.I; }),
+        Rg: l('\\frac{@U}{@I}', function (v) { return v.U / v.I; }),
+        I: l('\\frac{@U}{@Rg}', function (v) { return v.U / v.Rg; }) })
+    ].concat([1, 2, 3].map(function (k) {
+      const I = 'I' + k, R = 'R' + k, loese = {};
+      loese[I] = l('\\frac{@U}{@' + R + '}', function (v) { return v.U / v[R]; });
+      loese.U = l('@' + I + ' \\cdot @' + R, function (v) { return v[I] * v[R]; });
+      loese[R] = l('\\frac{@U}{@' + I + '}', function (v) { return v.U / v[I]; });
+      return gl('Ohmsches Gesetz im Zweig ' + k + ' (überall dieselbe Spannung)', 'I_' + k + ' = \\frac{U}{R_' + k + '}', loese);
+    })).concat([
+      gl('Knotenregel', 'I = I_1 + I_2 + I_3 \\quad \\left(\\textstyle\\sum I_\\text{zu} = \\sum I_\\text{ab}\\right)', {
+        I: l('@I1 + @I2 + @I3', function (v) { return v.I1 + v.I2 + v.I3; }),
+        I1: l('@I - @I2 - @I3', function (v) { return v.I - v.I2 - v.I3; }),
+        I2: l('@I - @I1 - @I3', function (v) { return v.I - v.I1 - v.I3; }),
+        I3: l('@I - @I1 - @I2', function (v) { return v.I - v.I1 - v.I2; }) }),
+      LEISTUNG
+    ]);
+
+    const MODI = {
+      ohm: {
+        name: 'Ohmsches Gesetz', kurz: 'U = R · I, Leistung, Kennlinie', verb: 'Masche umlaufen',
+        gleichungen: GL_OHM, start: { U: 12, R: 100 },
+        gruppen: [{ titel: 'Ohmsches Gesetz', farbe: '#E4572E', felder: ['U', 'R', 'I'] },
+                  { titel: 'Leistung und Leitwert', farbe: '#F2A541', felder: ['P', 'G'] }],
+        konstanten: ['1\\,\\text{V} = 1\\,\\text{A} \\cdot 1\\,\\Omega \\qquad 1\\,\\text{W} = 1\\,\\text{V} \\cdot 1\\,\\text{A}', '1\\,\\text{S} = \\frac{1}{1\\,\\Omega}']
+      },
+      reihe: {
+        name: 'Reihenschaltung', kurz: 'Maschenregel, Spannungsteiler', verb: 'Masche umlaufen',
+        gleichungen: GL_REIHE, start: { U: 12, R1: 100, R2: 200, R3: 300 },
+        gruppen: [{ titel: 'Quelle und Strom', farbe: '#2B7BB9', felder: ['U', 'I', 'P'] },
+                  { titel: 'Widerstände', farbe: '#E4572E', felder: ['R1', 'R2', 'R3', 'Rg'] },
+                  { titel: 'Teilspannungen', farbe: '#F2A541', felder: ['U1', 'U2', 'U3'] }],
+        konstanten: ['\\frac{U_1}{U_2} = \\frac{R_1}{R_2} \\quad \\text{(Spannungsteiler)}', '\\textstyle\\sum U = 0 \\text{ in jeder Masche}']
+      },
+      parallel: {
+        name: 'Parallelschaltung', kurz: 'Knotenregel, Stromteiler', verb: 'Maschen umlaufen',
+        gleichungen: GL_PARALLEL, start: { U: 12, R1: 100, R2: 200, R3: 300 },
+        gruppen: [{ titel: 'Quelle und Strom', farbe: '#2B7BB9', felder: ['U', 'I', 'P'] },
+                  { titel: 'Widerstände', farbe: '#E4572E', felder: ['R1', 'R2', 'R3', 'Rg'] },
+                  { titel: 'Zweigströme', farbe: '#F2A541', felder: ['I1', 'I2', 'I3'] }],
+        konstanten: ['\\frac{I_1}{I_2} = \\frac{R_2}{R_1} \\quad \\text{(Stromteiler)}', 'G_\\text{ges} = G_1 + G_2 + G_3', '\\textstyle\\sum I_\\text{zu} = \\sum I_\\text{ab} \\text{ an jedem Knoten}']
+      }
+    };
+
+    let modus = 'ohm';
+    const gegebenJe = {}, einheitJe = {};
+    Object.keys(MODI).forEach(function (m) { gegebenJe[m] = Object.assign({}, MODI[m].start); einheitJe[m] = {}; });
+    function gegeben() { return gegebenJe[modus]; }
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (wert === 0) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    // Passende Vorsilbe: 0,02 A → 20 mA
+    const VORSILBEN = [[1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ']];
+    function vorsilbe(w) {
+      const a = Math.abs(w);
+      if (!isFinite(a) || a === 0) return [1, ''];
+      return VORSILBEN.find(function (v) { return a >= v[0] * 0.9995; }) || VORSILBEN[VORSILBEN.length - 1];
+    }
+
+    function si(w, art) {
+      if (!isFinite(w)) return '?';
+      const v = vorsilbe(w);
+      return zahl(w / v[0], 3) + ' ' + v[1] + SI[art];
+    }
+
+    function texZahl(w, stellen) {
+      const text = Formel.zahl(zahl(w, stellen || 4));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+
+    function texSi(w, art) {
+      const v = vorsilbe(w);
+      const vor = v[1] === 'µ' ? '\\mu' : (v[1] ? '\\text{' + v[1] + '}' : '');
+      const einheit = art === 'R' ? '\\Omega' : '\\text{' + SI[art] + '}';
+      return texZahl(w / v[0], 4) + '\\,' + vor + einheit;
+    }
+
+    function erg(tex) { return '\\htmlClass{ergebnis}{\\boldsymbol{' + tex + '}}'; }
+
+
+    // ============================================================
+    // Rechnen: alles ableiten, was mit genau einer Unbekannten geht
+    // ============================================================
+
+    let ergebnis = { werte: {}, schritte: [], widersprueche: [], warnungen: [] };
+
+    function rechnen() {
+      const glListe = MODI[modus].gleichungen, geg = gegeben();
+      const werte = Object.assign({}, geg);
+      const schritte = [];
+      let weiter = true;
+
+      while (weiter) {
+        weiter = false;
+        glListe.forEach(function (gleichung) {
+          const offen = gleichung.groessen.filter(function (k) { return !(k in werte); });
+          if (offen.length !== 1) return;
+          const ziel = offen[0], w = gleichung.loese[ziel].rechne(werte);
+          if (!isFinite(w)) return;
+          werte[ziel] = w;
+          schritte.push({ gleichung: gleichung, ziel: ziel, vorlage: gleichung.loese[ziel].tex, werte: Object.assign({}, werte) });
+          weiter = true;
+        });
+      }
+
+      const widersprueche = [];
+      glListe.forEach(function (gleichung) {
+        if (!gleichung.groessen.every(function (k) { return k in werte; })) return;
+        const ziel = gleichung.groessen[0], soll = gleichung.loese[ziel].rechne(werte), ist = werte[ziel];
+        if (Math.abs(soll - ist) > Math.max(Math.abs(ist), Math.abs(soll)) * 0.005 + 1e-12) {
+          widersprueche.push({ gleichung: gleichung, ziel: ziel, soll: soll, beteiligt: gleichung.groessen.filter(function (k) { return k in geg; }) });
+        }
+      });
+
+      const warnungen = [];
+      Object.keys(werte).forEach(function (k) {
+        if (GROESSEN[k].art === 'R' && werte[k] === 0) warnungen.push('R = 0 Ω bedeutet Kurzschluss: Der Strom würde unendlich groß, deshalb sichern Schutzorgane jeden Stromkreis ab.');
+        else if (werte[k] < 0) warnungen.push(GROESSEN[k].name + ' ist negativ. Prüfe die Eingaben, bei der Teilung bleibt sonst nichts übrig.');
+      });
+      if (modus === 'parallel' && werte.Rg > 0 && ['R1', 'R2', 'R3'].some(function (k) { return werte[k] > 0 && werte.Rg > werte[k] * 1.0001; })) {
+        warnungen.push('Der Gesamtwiderstand einer Parallelschaltung ist immer kleiner als der kleinste Einzelwiderstand.');
+      }
+
+      ergebnis = { werte: werte, schritte: schritte, widersprueche: widersprueche, warnungen: warnungen.filter(function (t, i, a) { return a.indexOf(t) === i; }) };
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const felder = {};
+
+    function einheitVon(key) { return GROESSEN[key].einheiten[einheitJe[modus][key] || 0]; }
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      ziel.innerHTML = '';
+      Object.keys(felder).forEach(function (k) { delete felder[k]; });
+
+      MODI[modus].gruppen.forEach(function (gruppe) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe';
+        fs.style.setProperty('--farbe', gruppe.farbe);
+        const lg = document.createElement('legend');
+        lg.textContent = gruppe.titel;
+        fs.append(lg);
+
+        gruppe.felder.forEach(function (key) {
+          const g = GROESSEN[key];
+          const zeile = document.createElement('div');
+          zeile.className = 'feld';
+
+          const label = document.createElement('label');
+          label.htmlFor = 'f-' + key;
+          const symbol = document.createElement('span');
+          symbol.className = 'symbol';
+          Formel.setze(symbol, g.tex);
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = g.name;
+          label.append(symbol, name);
+
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + key; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off';
+          eingabe.placeholder = 'gesucht';
+
+          const einheit = document.createElement('select');
+          einheit.setAttribute('aria-label', 'Einheit für ' + g.name);
+          g.einheiten.forEach(function (e, i) {
+            const o = document.createElement('option');
+            o.value = String(i); o.textContent = e[0];
+            einheit.append(o);
+          });
+          einheit.value = String(einheitJe[modus][key] || 0);
+          einheit.addEventListener('change', function () { einheitJe[modus][key] = +einheit.value; anzeigen(); });
+
+          const leeren = document.createElement('button');
+          leeren.type = 'button'; leeren.className = 'leeren'; leeren.textContent = '✕';
+          leeren.setAttribute('aria-label', g.name + ' löschen');
+          leeren.addEventListener('click', function () { delete gegeben()[key]; eingabe.value = ''; neuRechnen(); eingabe.focus(); });
+
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value);
+            if (eingabe.value.trim() === '') delete gegeben()[key];
+            else if (isFinite(w)) gegeben()[key] = w * einheitVon(key)[1];
+            else return;
+            neuRechnen(key);
+          });
+          eingabe.addEventListener('blur', function () { anzeigen(); });
+
+          zeile.append(label, eingabe, einheit, leeren);
+          fs.append(zeile);
+          felder[key] = { zeile: zeile, eingabe: eingabe };
+        });
+        ziel.append(fs);
+      });
+    }
+
+    function neuRechnen(gerade) {
+      rechnen();
+      anzeigen(gerade);
+    }
+
+    function anzeigen(gerade) {
+      const werte = ergebnis.werte, geg = gegeben(), rot = {};
+      ergebnis.widersprueche.forEach(function (w) { w.beteiligt.forEach(function (k) { rot[k] = true; }); });
+
+      Object.keys(felder).forEach(function (key) {
+        const f = felder[key];
+        const ist = key in geg, berechnet = !ist && key in werte;
+        f.zeile.classList.toggle('gegeben', ist);
+        f.zeile.classList.toggle('berechnet', berechnet);
+        f.zeile.classList.toggle('widerspruch', !!rot[key]);
+        if (key === gerade || (document.activeElement === f.eingabe && ist)) return;
+        f.eingabe.value = ist || berechnet ? zahl(werte[key] / einheitVon(key)[1], 5).replace(/ /g, '') : '';
+        f.eingabe.title = berechnet ? 'ausgerechnet, zum Ändern überschreiben' : '';
+      });
+
+      meldungenZeigen();
+      kachelnZeigen();
+      rechenwegZeigen();
+      formelnZeigen();
+      zeitText();
+    }
+
+    document.getElementById('allesLeeren').addEventListener('click', function () {
+      const geg = gegeben();
+      Object.keys(geg).forEach(function (k) { delete geg[k]; });
+      neuRechnen();
+    });
+
+
+    // ============================================================
+    // Rechenweg, Meldungen, Formelsammlung
+    // ============================================================
+
+    function einsetzen(vorlage, ersetze) {
+      return vorlage.replace(/@(\w+)(\^2)?/g, function (_, k, quadrat) { return ersetze(k, !!quadrat); });
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        titel.textContent = s.gleichung.titel;
+
+        const umgestellt = document.createElement('div');
+        umgestellt.className = 'rechnung';
+        Formel.setze(umgestellt, '\\displaystyle ' + GROESSEN[s.ziel].tex + ' = ' +
+          einsetzen(s.vorlage, function (k, q) { return GROESSEN[k].tex + (q ? '^2' : ''); }));
+
+        const eingesetzt = document.createElement('div');
+        eingesetzt.className = 'rechnung';
+        Formel.setze(eingesetzt, '\\displaystyle ' + GROESSEN[s.ziel].tex + ' = ' +
+          einsetzen(s.vorlage, function (k, q) { const t = texSi(s.werte[k], GROESSEN[k].art); return q ? '(' + t + ')^2' : t; }) +
+          ' = ' + erg(texSi(s.werte[s.ziel], GROESSEN[s.ziel].art)));
+
+        li.append(titel, umgestellt, eingesetzt);
+        liste.append(li);
+      });
+
+      if (!ergebnis.schritte.length) {
+        const hinweis = document.createElement('div');
+        hinweis.className = 'hilfe';
+        hinweis.textContent = Object.keys(gegeben()).length
+          ? 'Damit lässt sich noch nichts ausrechnen. ' + (modus === 'ohm' ? 'Beim ohmschen Gesetz reichen zwei Größen.' : 'Trag zum Beispiel U und alle drei Widerstände ein.')
+          : 'Noch nichts eingetragen. ' + (modus === 'ohm' ? 'Zum Beispiel U und R eintragen.' : 'Zum Beispiel U, R₁, R₂ und R₃ eintragen.');
+        liste.append(hinweis);
+      }
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.widersprueche.forEach(function (w) {
+        const d = document.createElement('div');
+        d.className = 'hinweis fehler';
+        d.innerHTML = '<b>Die Angaben widersprechen sich.</b> Nach <span class="f"></span> müsste <span class="z"></span> sein. ' +
+          'Lösch eine der rot markierten Angaben, dann wird sie ausgerechnet.';
+        Formel.setze(d.querySelector('.f'), w.gleichung.tex);
+        Formel.setze(d.querySelector('.z'), GROESSEN[w.ziel].tex + ' = ' + texSi(w.soll, GROESSEN[w.ziel].art));
+        box.append(d);
+      });
+      ergebnis.warnungen.forEach(function (t) {
+        const d = document.createElement('div');
+        d.className = 'hinweis';
+        d.textContent = t;
+        box.append(d);
+      });
+    }
+
+    function formelnZeigen() {
+      const ziel = document.getElementById('formelsammlung');
+      ziel.innerHTML = '';
+      const abschnitt = document.createElement('section');
+      abschnitt.innerHTML = '<h3></h3>';
+      abschnitt.querySelector('h3').textContent = MODI[modus].name;
+      const gezeigt = [];
+      MODI[modus].gleichungen.forEach(function (gleichung) {
+        if (gezeigt.indexOf(gleichung.tex) >= 0) return;
+        gezeigt.push(gleichung.tex);
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        d.title = gleichung.titel;
+        Formel.setze(d, gleichung.tex, true);
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.gleichung === gleichung; }));
+        abschnitt.append(d);
+      });
+      ziel.append(abschnitt);
+      const konst = document.createElement('section');
+      konst.innerHTML = '<h3>Merksätze und Einheiten</h3>';
+      MODI[modus].konstanten.forEach(function (tex) {
+        const d = document.createElement('div');
+        d.className = 'formelblock';
+        Formel.setze(d, tex, true);
+        konst.append(d);
+      });
+      ziel.append(konst);
+    }
+
+    function kachelnZeigen() {
+      const w = ergebnis.werte, ziel = document.getElementById('kacheln');
+      const liste = {
+        ohm: [['U', 'Spannung'], ['I', 'Strom'], ['R', 'Widerstand'], ['P', 'Leistung']],
+        reihe: [['I', 'Strom überall'], ['Rg', 'Gesamtwiderstand'], ['U1', 'an R₁'], ['U2', 'an R₂'], ['U3', 'an R₃']],
+        parallel: [['U', 'Spannung überall'], ['Rg', 'Gesamtwiderstand'], ['I1', 'durch R₁'], ['I2', 'durch R₂'], ['I3', 'durch R₃']]
+      }[modus];
+      ziel.innerHTML = '';
+      liste.forEach(function (e) {
+        const d = document.createElement('div');
+        d.className = 'kachel';
+        d.style.setProperty('--farbe', KACHELFARBE[e[0]] || 'var(--text)');
+        d.innerHTML = '<div class="titel"></div><div class="wert"></div>';
+        d.querySelector('.titel').textContent = e[1];
+        const wert = d.querySelector('.wert');
+        wert.textContent = e[0] in w ? si(w[e[0]], GROESSEN[e[0]].art) : 'offen';
+        wert.classList.toggle('offen', !(e[0] in w));
+        ziel.append(d);
+      });
+
+      let aussage = '';
+      if (modus === 'ohm') {
+        aussage = 'Doppelte Spannung, doppelter Strom: Bei gleichem Widerstand sind U und I proportional, die Kennlinie ist eine Gerade durch den Nullpunkt. Ein größerer Widerstand macht sie flacher.';
+      } else if (modus === 'reihe') {
+        aussage = isFinite(w.U1) && isFinite(w.U2) && isFinite(w.U3) && isFinite(w.U)
+          ? 'Der Strom ist überall gleich, die Spannung teilt sich im Verhältnis der Widerstände: ' + si(w.U1, 'U') + ' + ' + si(w.U2, 'U') + ' + ' + si(w.U3, 'U') + ' = ' + si(w.U, 'U') + '. Am größten Widerstand fällt die größte Spannung ab.'
+          : 'In der Reihenschaltung fließt überall derselbe Strom, die Spannungen addieren sich zur Quellenspannung (Maschenregel).';
+      } else {
+        aussage = isFinite(w.I1) && isFinite(w.I2) && isFinite(w.I3) && isFinite(w.I)
+          ? 'An allen Zweigen liegt dieselbe Spannung, der Strom teilt sich: ' + si(w.I1, 'I') + ' + ' + si(w.I2, 'I') + ' + ' + si(w.I3, 'I') + ' = ' + si(w.I, 'I') + '. Durch den kleinsten Widerstand fließt der größte Strom.'
+          : 'In der Parallelschaltung liegt an jedem Zweig dieselbe Spannung, die Zweigströme addieren sich zum Gesamtstrom (Knotenregel).';
+      }
+      document.getElementById('aussage').textContent = aussage;
+    }
+
+
+    // ============================================================
+    // Schaltung wählen
+    // ============================================================
+
+    function modusWaehlen(id) {
+      modus = id;
+      document.querySelectorAll('#modi button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+      felderAufbauen();
+      neuRechnen();
+      fortschritt = 0;
+      abspielen(false);
+    }
+
+    function modiAufbauen() {
+      const ziel = document.getElementById('modi');
+      Object.keys(MODI).forEach(function (id) {
+        const d = MODI[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 58 * dichte; bild.height = 58 * dichte;
+        const k = bild.getContext('2d');
+        k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { modusWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 58, 58); piktogramm(k, id); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A', flaeche = Thema.farbe('--flaeche') || '#fff';
+      k.lineWidth = 2; k.strokeStyle = text; k.lineJoin = 'round';
+      const box = function (x, y, b, h, farbe) { k.fillStyle = flaeche; k.fillRect(x, y, b, h); k.strokeStyle = farbe || text; k.strokeRect(x, y, b, h); k.strokeStyle = text; };
+      if (id === 'ohm') {
+        k.strokeRect(8, 10, 42, 38);
+        box(18, 4, 22, 12, '#E4572E');
+        k.fillStyle = flaeche; k.fillRect(4, 24, 8, 10);
+        k.beginPath(); k.moveTo(2, 26); k.lineTo(14, 26); k.moveTo(5, 32); k.lineTo(11, 32); k.stroke();
+        k.font = '600 16px ' + SCHRIFT; k.fillStyle = text; k.textAlign = 'center'; k.fillText('Ω', 30, 40);
+      } else if (id === 'reihe') {
+        k.strokeRect(8, 12, 42, 36);
+        box(14, 7, 12, 10, '#E4572E'); box(32, 7, 12, 10, '#F2A541'); box(45, 24, 10, 12, '#6E6FA6');
+        k.strokeStyle = '#F2A541'; k.beginPath(); k.arc(29, 32, 9, 0.3, 5.6); k.stroke();
+        k.beginPath(); k.moveTo(37, 26); k.lineTo(38, 31); k.lineTo(33, 31); k.stroke();
+      } else {
+        k.beginPath(); k.moveTo(6, 8); k.lineTo(52, 8); k.moveTo(6, 50); k.lineTo(52, 50);
+        [16, 32, 48].forEach(function (x) { k.moveTo(x, 8); k.lineTo(x, 50); });
+        k.moveTo(6, 8); k.lineTo(6, 50); k.stroke();
+        box(12, 22, 8, 14, '#E4572E'); box(28, 22, 8, 14, '#F2A541'); box(44, 22, 8, 14, '#6E6FA6');
+        k.fillStyle = text; [[16, 8], [32, 8], [16, 50], [32, 50]].forEach(function (p) { k.beginPath(); k.arc(p[0], p[1], 2.6, 0, 7); k.fill(); });
+      }
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    // Bewegung läuft immer, auch wenn das System „Animationen reduzieren“ meldet; anhalten geht über den Knopf
+    const bewegungAus = false;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const F = { text: '#13233A', leise: '#5E6B7A', linie: '#D9E0E3', flaeche: '#FFFFFF', flaeche2: '#F6F8F8' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || '#13233A';
+      F.leise = Thema.farbe('--leise') || '#5E6B7A';
+      F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche = Thema.farbe('--flaeche') || '#FFFFFF';
+      F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    const QUELLE = '#2B7BB9', UMLAUF = '#F2A541';
+
+    // Zwei Felder: A links die Schaltung (560 × 440), B rechts das Diagramm (500 × 400); schmal untereinander
+    let L = { W: 1100, H: 440, schmal: false, m: 1, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+    let fortschritt = 0, laeuft = false, uhr = 0, elektronen = false;
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720
+        ? { W: 520, H: 860, schmal: true, A: { x: 0, y: 0, s: 520 / 560 }, B: { x: 10, y: 430, s: 1 } }
+        : { W: 1100, H: 440, schmal: false, A: { x: 0, y: 0, s: 1 }, B: { x: 580, y: 20, s: 1 } };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte);
+      leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function wert(k) { return ergebnis.werte[k]; }
+    function bekannt(k) { return k in ergebnis.werte && isFinite(ergebnis.werte[k]); }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text;
+      g.textAlign = o.ausrichtung || 'left';
+      g.textBaseline = 'alphabetic';
+      g.fillText(t, x, y);
+    }
+
+    function breite(t, o) {
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 15) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      return g.measureText(t).width;
+    }
+
+    function rund(x, y, b, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function linie(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 3; g.lineJoin = 'round'; g.lineCap = 'round';
+      if (strich) g.setLineDash(strich);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+      g.setLineDash([]);
+    }
+
+    function laenge(punkte) {
+      let s = 0;
+      for (let i = 1; i < punkte.length; i++) s += Math.hypot(punkte[i][0] - punkte[i - 1][0], punkte[i][1] - punkte[i - 1][1]);
+      return s;
+    }
+
+    // Punkt auf einem Linienzug bei Anteil u (0 … 1)
+    function aufLinie(punkte, u) {
+      const gesamt = laenge(punkte);
+      let s = u * gesamt;
+      for (let i = 1; i < punkte.length; i++) {
+        const a = punkte[i - 1], b = punkte[i], lg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (s <= lg || i === punkte.length - 1) { const v = lg ? Math.min(1, s / lg) : 0; return [a[0] + (b[0] - a[0]) * v, a[1] + (b[1] - a[1]) * v]; }
+        s -= lg;
+      }
+      return punkte[0];
+    }
+
+    // Anteil, an dem ein Punkt auf dem Linienzug liegt
+    function anteilVon(punkte, p) {
+      const gesamt = laenge(punkte);
+      let s = 0;
+      for (let i = 1; i < punkte.length; i++) {
+        const a = punkte[i - 1], b = punkte[i], lg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const auf = Math.abs((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])) < 1 &&
+                    p[0] >= Math.min(a[0], b[0]) - 1 && p[0] <= Math.max(a[0], b[0]) + 1 && p[1] >= Math.min(a[1], b[1]) - 1 && p[1] <= Math.max(a[1], b[1]) + 1;
+        if (auf) return (s + Math.hypot(p[0] - a[0], p[1] - a[1])) / gesamt;
+        s += lg;
+      }
+      return 0;
+    }
+
+    // Ladungen entlang eines Leitungsstücks; Tempo nach dem Strom in diesem Stück
+    function ladungen(punkte, strom, imax) {
+      const tempo = isFinite(strom) && imax > 0 ? 14 + 86 * Math.min(1, Math.abs(strom) / imax) : 0;
+      const versatz = (bewegungAus ? 0 : uhr * tempo) * (elektronen ? -1 : 1);
+      const abstand = 22, gesamt = laenge(punkte);
+      g.fillStyle = elektronen ? QUELLE : UMLAUF;
+      for (let s = ((versatz % abstand) + abstand) % abstand; s < gesamt; s += abstand) {
+        const p = aufLinie(punkte, s / gesamt);
+        g.beginPath(); g.arc(p[0], p[1], 3.6, 0, 7); g.fill();
+        if (elektronen) { g.strokeStyle = '#fff'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(p[0] - 2, p[1]); g.lineTo(p[0] + 2, p[1]); g.stroke(); }
+      }
+    }
+
+    function pfeil(x1, y1, x2, y2, farbe, dicke) {
+      const w = Math.atan2(y2 - y1, x2 - x1);
+      linie([[x1, y1], [x2, y2]], farbe, dicke || 2);
+      g.fillStyle = farbe; g.beginPath();
+      g.moveTo(x2, y2); g.lineTo(x2 - 10 * Math.cos(w - 0.4), y2 - 10 * Math.sin(w - 0.4)); g.lineTo(x2 - 10 * Math.cos(w + 0.4), y2 - 10 * Math.sin(w + 0.4)); g.closePath(); g.fill();
+    }
+
+    function quelle(x, y) {
+      g.fillStyle = F.flaeche; g.fillRect(x - 24, y - 14, 48, 28);
+      linie([[x - 22, y - 7], [x + 22, y - 7]], F.text, 3);
+      linie([[x - 11, y + 7], [x + 11, y + 7]], F.text, 7);
+      schreibe('+', x + 30, y - 4, { groesse: 15, fett: true });
+      schreibe('−', x + 30, y + 16, { groesse: 15, fett: true });
+    }
+
+    function widerstand(x, y, senkrecht, glut, farbe) {
+      const b = senkrecht ? 28 : 84, h = senkrecht ? 84 : 28;
+      g.fillStyle = F.flaeche; g.fillRect(x - b / 2, y - h / 2, b, h);
+      if (glut > 0) { g.fillStyle = 'rgba(228,87,46,' + (0.08 + 0.55 * glut) + ')'; g.fillRect(x - b / 2, y - h / 2, b, h); }
+      g.strokeStyle = farbe || F.text; g.lineWidth = 2.5; g.strokeRect(x - b / 2, y - h / 2, b, h);
+    }
+
+    function messgeraet(x, y, buchstabe) {
+      g.beginPath(); g.arc(x, y, 17, 0, 7); g.fillStyle = F.flaeche; g.fill(); g.strokeStyle = F.text; g.lineWidth = 2.5; g.stroke();
+      schreibe(buchstabe, x, y + 6, { groesse: 17, fett: true, ausrichtung: 'center' });
+    }
+
+    function knoten(x, y) { g.fillStyle = F.text; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
+
+    // Erwärmung des Widerstands nach seiner Leistung (logarithmisch, 1 mW … 10 W)
+    function glut(P) { return isFinite(P) && P > 0 ? Math.max(0, Math.min(1, (Math.log10(P) + 3) / 4)) : 0; }
+
+
+    // ---------- Maschen ----------
+    const ROHR_LINKS = [[80, 250], [80, 190]];
+    const ZWEIGE = [220, 340, 460];
+
+    function maschen() {
+      const w = ergebnis.werte;
+      if (modus === 'ohm') {
+        return [{ pfad: ROHR_LINKS.concat([[80, 80], [480, 80], [480, 360], [80, 360], [80, 250]]),
+                  terme: [{ pos: [80, 220], wert: w.U, name: 'U', farbe: QUELLE }, { pos: [280, 80], wert: -w.U, name: 'U_R', farbe: FARBE_R.R }] }];
+      }
+      if (modus === 'reihe') {
+        return [{ pfad: ROHR_LINKS.concat([[80, 80], [480, 80], [480, 360], [80, 360], [80, 250]]),
+                  terme: [{ pos: [80, 220], wert: w.U, name: 'U', farbe: QUELLE }, { pos: [200, 80], wert: -w.U1, name: 'U₁', farbe: FARBE_R.R1 },
+                          { pos: [360, 80], wert: -w.U2, name: 'U₂', farbe: FARBE_R.R2 }, { pos: [480, 220], wert: -w.U3, name: 'U₃', farbe: FARBE_R.R3 }] }];
+      }
+      // Spannung am Zweig aus I·R, damit der Umlauf wirklich etwas nachprüft
+      return ZWEIGE.map(function (x, i) {
+        const R = 'R' + (i + 1), I = 'I' + (i + 1), Uk = bekannt(I) && bekannt(R) ? w[I] * w[R] : w.U;
+        return { pfad: ROHR_LINKS.concat([[80, 80], [x, 80], [x, 360], [80, 360], [80, 250]]),
+                 terme: [{ pos: [80, 220], wert: w.U, name: 'U', farbe: QUELLE }, { pos: [x, 220], wert: -Uk, name: 'U' + '₁₂₃'[i], farbe: FARBE_R[R] }] };
+      });
+    }
+
+    function umlaufStand() {
+      const liste = maschen(), n = liste.length;
+      const nr = Math.min(n - 1, Math.floor(fortschritt * n)), lokal = fortschritt >= 1 ? 1 : fortschritt * n - nr;
+      const m = liste[nr];
+      m.terme.forEach(function (t) { t.anteil = anteilVon(m.pfad, t.pos); });
+      return { masche: m, nr: nr, anzahl: n, lokal: lokal };
+    }
+
+    function maschenText(st) {
+      const vorbei = st.masche.terme.filter(function (t) { return t.anteil <= st.lokal; });
+      if (!vorbei.length) return '';
+      if (vorbei.some(function (t) { return !isFinite(t.wert); })) return 'Werte fehlen noch';
+      const summe = vorbei.reduce(function (s, t) { return s + t.wert; }, 0);
+      return vorbei.map(function (t, i) { return (t.wert < 0 ? '− ' : (i ? '+ ' : '+')) + si(Math.abs(t.wert), 'U'); }).join(' ') +
+        (st.lokal >= 0.999 ? ' = ' + si(Math.abs(summe) < 1e-9 * Math.abs(wert('U') || 1) ? 0 : summe, 'U') : ' …');
+    }
+
+    function zeichneUmlauf(st) {
+      if (fortschritt <= 0 || (fortschritt >= 1 && !laeuft)) return;
+      linie(st.masche.pfad, 'rgba(242,165,65,.28)', 16);
+      st.masche.terme.forEach(function (t) {
+        if (t.anteil > st.lokal || !isFinite(t.wert)) return;
+        const text = (t.wert < 0 ? '−' : '+') + si(Math.abs(t.wert), 'U'), b = breite(text, { groesse: 13, fett: true }) + 12;
+        // Plakette neben dem Bauteil: Quelle rechts oben, oben liegende darunter, R₃ links, Zweige darunter
+        const ort = t.pos[0] < 100 ? [150, 186] : t.pos[1] < 100 ? [t.pos[0], t.pos[1] + 40] : t.pos[0] >= 470 ? [400, 284] : [t.pos[0], 290];
+        rund(ort[0] - b / 2, ort[1] - 12, b, 22, 8); g.fillStyle = t.farbe; g.fill();
+        schreibe(text, ort[0], ort[1] + 4, { groesse: 13, fett: true, farbe: '#fff', ausrichtung: 'center' });
+      });
+      const p = aufLinie(st.masche.pfad, st.lokal);
+      g.beginPath(); g.arc(p[0], p[1], 9, 0, 7); g.fillStyle = UMLAUF; g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke();
+    }
+
+
+    // ---------- Ohmsches Gesetz ----------
+    function zeichneOhm() {
+      const I = wert('I'), U = wert('U'), R = wert('R'), imax = Math.abs(I) || 1;
+      const st = umlaufStand();
+      const kreis = [[80, 190], [80, 80], [480, 80], [480, 360], [80, 360], [80, 250]];
+      linie(kreis, F.text, 3);
+      ladungen(kreis, I, imax);
+
+      // Spannungsmesser parallel zum Widerstand
+      linie([[226, 80], [226, 150], [263, 150]], F.text, 2);
+      linie([[297, 150], [334, 150], [334, 80]], F.text, 2);
+      knoten(226, 80); knoten(334, 80);
+      messgeraet(280, 150, 'V');
+      schreibe(bekannt('U') ? si(U, 'U') : '? V', 280, 192, { groesse: 15, fett: true, ausrichtung: 'center', farbe: QUELLE });
+
+      widerstand(280, 80, false, glut(wert('P')), FARBE_R.R);
+      schreibe(bekannt('R') ? si(R, 'R') : 'R = ?', 280, 85, { groesse: 14, fett: true, ausrichtung: 'center' });
+      pfeil(238, 48, 322, 48, FARBE_R.R, 2);
+      schreibe('U am R = ' + (bekannt('U') ? si(U, 'U') : '?'), 280, 38, { groesse: 13, ausrichtung: 'center', farbe: FARBE_R.R });
+
+      messgeraet(280, 360, 'A');
+      schreibe('I = ' + (bekannt('I') ? si(I, 'I') : '?'), 280, 402, { groesse: 15, fett: true, ausrichtung: 'center' });
+      pfeil(500, 190, 500, 250, F.text, 2);
+      schreibe('I', 508, 226, { groesse: 15, fett: true });
+
+      quelle(80, 220);
+      pfeil(46, 196, 46, 244, QUELLE, 2);
+      schreibe('U = ' + (bekannt('U') ? si(U, 'U') : '?'), 120, 226, { groesse: 15, fett: true, farbe: QUELLE });
+      if (bekannt('P')) schreibe('P = ' + si(wert('P'), 'P'), 280, 240, { groesse: 14, ausrichtung: 'center', farbe: F.leise });
+
+      zeichneUmlauf(st);
+    }
+
+    function schoen(x) {
+      if (!(x > 0)) return 1;
+      const e = Math.pow(10, Math.floor(Math.log10(x))), m = x / e;
+      return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * e;
+    }
+
+    function zeichneKennlinie() {
+      const x0 = 60, x1 = 300, y0 = 40, y1 = 300, U = wert('U'), I = wert('I'), R = wert('R');
+      schreibe('Kennlinie', x0 - 20, 18, { groesse: 17, fett: true });
+      schreibe('I über U', x0 + 66, 18, { groesse: 12, farbe: F.leise, technik: false });
+      linie([[x0, y0 - 10], [x0, y1], [x1 + 10, y1]], F.text, 1.5);
+      schreibe('U', x1 + 14, y1 + 4, { groesse: 14, fett: true });
+      schreibe('I', x0 - 4, y0 - 16, { groesse: 14, fett: true, ausrichtung: 'center' });
+      if (!(R > 0) || !isFinite(U)) {
+        schreibe('U und R (oder I) eintragen', (x0 + x1) / 2, (y0 + y1) / 2, { groesse: 13, farbe: F.leise, ausrichtung: 'center', technik: false });
+      } else {
+        const umax = schoen(Math.abs(U) * 1.3), imax = schoen(umax / R);
+        const px = function (u) { return x0 + u / umax * (x1 - x0); }, py = function (i) { return y1 - i / imax * (y1 - y0); };
+        [0.5, 1, 2].forEach(function (f) {
+          const r = R * f, uEnde = Math.min(umax, imax * r);
+          linie([[px(0), py(0)], [px(uEnde), py(uEnde / r)]], f === 1 ? FARBE_R.R : F.linie, f === 1 ? 3 : 2, f === 1 ? null : [5, 4]);
+          schreibe(f === 1 ? 'R' : f < 1 ? 'R/2' : '2R', px(uEnde) + 4, py(uEnde / r) - 4, { groesse: 12, fett: f === 1, farbe: f === 1 ? FARBE_R.R : F.leise });
+        });
+        [0.5, 1].forEach(function (a) {
+          schreibe(si(umax * a, 'U'), px(umax * a), y1 + 18, { groesse: 11, farbe: F.leise, ausrichtung: 'center' });
+          schreibe(si(imax * a, 'I'), x0 - 6, py(imax * a) + 4, { groesse: 11, farbe: F.leise, ausrichtung: 'right' });
+        });
+        if (isFinite(I) && U >= 0) {
+          linie([[px(U), y1], [px(U), py(I)], [x0, py(I)]], F.leise, 1.2, [3, 3]);
+          g.beginPath(); g.arc(px(U), py(I), 6, 0, 7); g.fillStyle = FARBE_R.R; g.fill();
+        }
+      }
+      schreibe('Gerade durch den Nullpunkt:', x0 - 20, y1 + 50, { groesse: 13, technik: false, farbe: F.leise });
+      schreibe('I wächst proportional mit U.', x0 - 20, y1 + 68, { groesse: 13, technik: false, farbe: F.leise });
+
+      // Formeldreieck: das Gesuchte zuhalten, den Rest ablesen
+      const cx = 410, oben = 50, unten = 170, mitte = 118;
+      const gesucht = ['U', 'R', 'I'].filter(function (k) { return !(k in gegeben()) && k in ergebnis.werte; })[0];
+      g.beginPath(); g.moveTo(cx, oben); g.lineTo(cx - 70, unten); g.lineTo(cx + 70, unten); g.closePath();
+      g.fillStyle = F.flaeche2; g.fill(); g.strokeStyle = F.text; g.lineWidth = 2; g.stroke();
+      linie([[cx - 41, mitte], [cx + 41, mitte]], F.text, 2);
+      linie([[cx, mitte], [cx, unten]], F.text, 2);
+      [['U', cx, mitte - 14], ['R', cx - 24, unten - 16], ['I', cx + 24, unten - 16]].forEach(function (b) {
+        schreibe(b[0], b[1], b[2], { groesse: 26, fett: true, ausrichtung: 'center', farbe: b[0] === gesucht ? FARBE_R.R : F.text });
+      });
+      schreibe('Gesuchtes zuhalten', cx, unten + 24, { groesse: 12, farbe: F.leise, ausrichtung: 'center', technik: false });
+      [['U = R · I', 'U'], ['R = U / I', 'R'], ['I = U / R', 'I']].forEach(function (z, i) {
+        schreibe(z[0], cx, unten + 58 + i * 26, { groesse: 18, fett: z[1] === gesucht, ausrichtung: 'center', farbe: z[1] === gesucht ? FARBE_R.R : F.text });
+      });
+    }
+
+
+    // ---------- Reihenschaltung ----------
+    function zeichneReihe() {
+      const I = wert('I'), st = umlaufStand();
+      const kreis = [[80, 190], [80, 80], [480, 80], [480, 360], [80, 360], [80, 250]];
+      linie(kreis, F.text, 3);
+      ladungen(kreis, I, Math.abs(I) || 1);
+
+      [['R1', 'U1', 200, 80, false], ['R2', 'U2', 360, 80, false], ['R3', 'U3', 480, 220, true]].forEach(function (r) {
+        const R = r[0], U = r[1], farbe = FARBE_R[R];
+        widerstand(r[2], r[3], r[4], glut(wert(U) * I), farbe);
+        const name = 'R' + '₁₂₃'[+R[1] - 1], uName = 'U' + '₁₂₃'[+R[1] - 1];
+        if (!r[4]) {
+          schreibe(bekannt(R) ? si(wert(R), 'R') : name + ' = ?', r[2], r[3] + 5, { groesse: 13, fett: true, ausrichtung: 'center' });
+          pfeil(r[2] - 40, 48, r[2] + 40, 48, farbe, 2);
+          schreibe(uName + ' = ' + (bekannt(U) ? si(wert(U), 'U') : '?'), r[2], 38, { groesse: 13, fett: true, ausrichtung: 'center', farbe: farbe });
+        } else {
+          schreibe(bekannt(R) ? si(wert(R), 'R') : name + ' = ?', r[2] - 22, r[3] - 8, { groesse: 13, fett: true, ausrichtung: 'right' });
+          pfeil(r[2] - 30, r[3] - 38, r[2] - 30, r[3] + 38, farbe, 2);
+          schreibe(uName + ' = ' + (bekannt(U) ? si(wert(U), 'U') : '?'), r[2] - 38, r[3] + 14, { groesse: 13, fett: true, ausrichtung: 'right', farbe: farbe });
+        }
+      });
+
+      messgeraet(280, 360, 'A');
+      schreibe('I = ' + (bekannt('I') ? si(I, 'I') : '?') + ' überall', 280, 402, { groesse: 15, fett: true, ausrichtung: 'center' });
+      quelle(80, 220);
+      pfeil(46, 196, 46, 244, QUELLE, 2);
+      schreibe('U = ' + (bekannt('U') ? si(wert('U'), 'U') : '?'), 120, 226, { groesse: 15, fett: true, farbe: QUELLE });
+      if (bekannt('Rg')) schreibe('Rges = ' + si(wert('Rg'), 'R'), 280, 230, { groesse: 14, ausrichtung: 'center', farbe: F.leise });
+
+      zeichneUmlauf(st);
+    }
+
+    // Potential entlang der Masche: hoch an der Quelle, runter an jedem Widerstand
+    function zeichnePotential() {
+      const st = umlaufStand(), terme = st.masche.terme, x0 = 56, x1 = 480, y0 = 60, y1 = 270;
+      schreibe('Potential entlang der Masche', x0 - 30, 18, { groesse: 17, fett: true });
+      const U = wert('U');
+      if (!terme.every(function (t) { return isFinite(t.wert); }) || !(U > 0)) {
+        schreibe('Für das Diagramm U und alle Teilspannungen ausrechnen lassen', (x0 + x1) / 2, (y0 + y1) / 2, { groesse: 13, farbe: F.leise, ausrichtung: 'center', technik: false });
+        return;
+      }
+      const px = function (a) { return x0 + a * (x1 - x0); }, py = function (phi) { return y1 - phi / (U * 1.15) * (y1 - y0); };
+      linie([[x0, y0 - 16], [x0, y1], [x1 + 8, y1]], F.text, 1.5);
+      schreibe('φ', x0 - 12, y0 - 12, { groesse: 15, fett: true });
+      schreibe('0 V', x0 - 6, y1 + 4, { groesse: 11, farbe: F.leise, ausrichtung: 'right' });
+      schreibe(si(U, 'U'), x0 - 6, py(U) + 4, { groesse: 11, farbe: QUELLE, ausrichtung: 'right' });
+      linie([[x0, py(U)], [x1, py(U)]], F.linie, 1, [4, 4]);
+
+      // Treppe zeichnen, bis zur aktuellen Stelle kräftig
+      let phi = 0, a = 0;
+      const stufen = [];
+      terme.forEach(function (t) { stufen.push({ von: a, bis: t.anteil, phi: phi }); stufen.push({ sprung: t, phi0: phi, phi1: phi + t.wert, bei: t.anteil }); phi += t.wert; a = t.anteil; });
+      stufen.push({ von: a, bis: 1, phi: phi });
+      const zeigeBis = fortschritt > 0 ? st.lokal : 1;
+      stufen.forEach(function (s) {
+        if (s.sprung) {
+          const aktiv = s.bei <= zeigeBis;
+          linie([[px(s.bei), py(s.phi0)], [px(s.bei), py(s.phi1)]], aktiv ? s.sprung.farbe : F.linie, 4);
+          if (aktiv) schreibe((s.sprung.wert < 0 ? '−' : '+') + si(Math.abs(s.sprung.wert), 'U'), px(s.bei) + 6, (py(s.phi0) + py(s.phi1)) / 2 + 4, { groesse: 12, fett: true, farbe: s.sprung.farbe });
+        } else {
+          linie([[px(s.von), py(s.phi)], [px(s.bis), py(s.phi)]], F.linie, 3);
+          if (s.von < zeigeBis) linie([[px(s.von), py(s.phi)], [px(Math.min(s.bis, zeigeBis)), py(s.phi)]], F.text, 3);
+        }
+      });
+      terme.forEach(function (t) { schreibe(t.name === 'U' ? 'Quelle' : t.name.replace('U', 'R'), px(t.anteil), y1 + 18, { groesse: 12, farbe: F.leise, ausrichtung: 'center' }); });
+      if (fortschritt > 0 && fortschritt < 1) linie([[px(st.lokal), y0 - 10], [px(st.lokal), y1]], UMLAUF, 2);
+
+      schreibe('Einmal rundherum:', x0 - 30, y1 + 60, { groesse: 14, fett: true });
+      schreibe(maschenText(fortschritt > 0 ? st : { masche: st.masche, lokal: 1 }) || '…', x0 - 30, y1 + 88, { groesse: 18, fett: true, farbe: UMLAUF });
+      schreibe('Die Summe aller Spannungen in einer Masche ist null.', x0 - 30, y1 + 114, { groesse: 13, technik: false, farbe: F.leise });
+    }
+
+
+    // ---------- Parallelschaltung ----------
+    function zeichneParallel() {
+      const w = ergebnis.werte, st = umlaufStand();
+      const ik = [w.I1, w.I2, w.I3], imax = Math.abs(w.I) || Math.max.apply(null, ik.filter(isFinite).concat([1e-9]));
+      const summe = function (a) { return a.every(isFinite) ? a.reduce(function (s, x) { return s + x; }, 0) : NaN; };
+
+      linie([[80, 190], [80, 80], [460, 80]], F.text, 3);
+      linie([[80, 250], [80, 360], [460, 360]], F.text, 3);
+      ZWEIGE.forEach(function (x) { linie([[x, 80], [x, 360]], F.text, 3); });
+
+      ladungen([[80, 190], [80, 80], [220, 80]], w.I, imax);
+      ladungen([[220, 80], [340, 80]], summe([w.I2, w.I3]), imax);
+      ladungen([[340, 80], [460, 80]], w.I3, imax);
+      ZWEIGE.forEach(function (x, i) { ladungen([[x, 80], [x, 360]], ik[i], imax); });
+      ladungen([[460, 360], [340, 360]], w.I3, imax);
+      ladungen([[340, 360], [220, 360]], summe([w.I2, w.I3]), imax);
+      ladungen([[220, 360], [80, 360], [80, 250]], w.I, imax);
+      [[220, 80], [340, 80], [220, 360], [340, 360]].forEach(function (p) { knoten(p[0], p[1]); });
+
+      ZWEIGE.forEach(function (x, i) {
+        const R = 'R' + (i + 1), I = 'I' + (i + 1), farbe = FARBE_R[R], tief = '₁₂₃'[i];
+        widerstand(x, 220, true, glut(w.U * ik[i]), farbe);
+        schreibe('R' + tief, x + 20, 212, { groesse: 13, fett: true, farbe: farbe });
+        schreibe(bekannt(R) ? si(w[R], 'R') : '?', x + 20, 230, { groesse: 13, fett: true });
+        pfeil(x + 12, 130, x + 12, 160, farbe, 2);
+        schreibe('I' + tief, x + 20, 128, { groesse: 13, fett: true, farbe: farbe });
+        schreibe(bekannt(I) ? si(w[I], 'I') : '?', x + 20, 146, { groesse: 13, fett: true });
+        pfeil(x - 22, 186, x - 22, 254, QUELLE, 1.5);
+      });
+
+      messgeraet(150, 360, 'A');
+      schreibe('I = ' + (bekannt('I') ? si(w.I, 'I') : '?'), 150, 402, { groesse: 15, fett: true, ausrichtung: 'center' });
+      quelle(80, 220);
+      pfeil(46, 196, 46, 244, QUELLE, 2);
+      schreibe('U = ' + (bekannt('U') ? si(w.U, 'U') : '?'), 96, 290, { groesse: 15, fett: true, farbe: QUELLE });
+      schreibe('überall', 96, 308, { groesse: 12, farbe: F.leise, technik: false });
+      schreibe('Knoten', 220, 66, { groesse: 12, farbe: F.leise, ausrichtung: 'center', technik: false });
+
+      zeichneUmlauf(st);
+    }
+
+    function zeichneKnoten() {
+      const w = ergebnis.werte, ik = [w.I1, w.I2, w.I3], farben = [FARBE_R.R1, FARBE_R.R2, FARBE_R.R3];
+      schreibe('Knotenregel', 20, 18, { groesse: 17, fett: true });
+      schreibe('was hineinfließt, fließt auch heraus', 126, 18, { groesse: 12, farbe: F.leise, technik: false });
+
+      // Knoten mit Pfeilen
+      const kx = 120, ky = 110;
+      pfeil(20, ky, kx - 10, ky, F.text, 3);
+      schreibe('I = ' + (bekannt('I') ? si(w.I, 'I') : '?'), 20, ky - 12, { groesse: 13, fett: true });
+      [[-1, -50], [0, 0], [1, 50]].forEach(function (r, i) {
+        pfeil(kx + 10, ky + r[0] * 10, kx + 92, ky + r[1], farben[i], 3);
+        schreibe(bekannt('I' + (i + 1)) ? si(ik[i], 'I') : '?', kx + 100, ky + r[1] + 5, { groesse: 13, fett: true, farbe: farben[i] });
+      });
+      knoten(kx, ky);
+
+      // Balken: zu = ab
+      const bx = 300, bb = 180;
+      if (ik.every(isFinite) && bekannt('I') && w.I > 0) {
+        schreibe('zu', bx - 8, 82, { groesse: 12, farbe: F.leise, ausrichtung: 'right', technik: false });
+        rund(bx, 68, bb, 20, 5); g.fillStyle = F.text; g.fill();
+        schreibe('ab', bx - 8, 122, { groesse: 12, farbe: F.leise, ausrichtung: 'right', technik: false });
+        let x = bx;
+        ik.forEach(function (i, n) {
+          const b = bb * Math.max(0, i) / w.I;
+          g.fillStyle = farben[n]; g.fillRect(x, 108, b, 20); x += b;
+        });
+        schreibe('I = I₁ + I₂ + I₃', bx + bb / 2, 158, { groesse: 15, fett: true, ausrichtung: 'center' });
+      }
+
+      // Widerstände im Vergleich
+      const rs = [['R₁', w.R1, farben[0]], ['R₂', w.R2, farben[1]], ['R₃', w.R3, farben[2]], ['Rges', w.Rg, F.text]];
+      const rmax = Math.max.apply(null, rs.map(function (r) { return isFinite(r[1]) ? r[1] : 0; }));
+      schreibe('Gesamtwiderstand kleiner als jeder Einzelne', 20, 222, { groesse: 14, fett: true });
+      rs.forEach(function (r, i) {
+        const y = 240 + i * 26;
+        schreibe(r[0], 60, y + 14, { groesse: 13, fett: true, ausrichtung: 'right', farbe: r[2] });
+        rund(70, y, 300, 18, 5); g.fillStyle = F.flaeche2; g.fill();
+        if (isFinite(r[1]) && rmax > 0) { rund(70, y, Math.max(4, 300 * r[1] / rmax), 18, 5); g.fillStyle = r[2]; g.fill(); }
+        schreibe(isFinite(r[1]) ? si(r[1], 'R') : '?', 378, y + 14, { groesse: 13, fett: true });
+      });
+
+      // Masche des aktuellen Zweigs
+      const st = umlaufStand();
+      schreibe('Masche über R' + '₁₂₃'[st.nr] + ':', 20, 370, { groesse: 14, fett: true });
+      schreibe(maschenText(fortschritt > 0 ? st : { masche: st.masche, lokal: 1 }) || '…', 170, 370, { groesse: 16, fett: true, farbe: UMLAUF });
+      schreibe('An jedem Zweig liegt dieselbe Spannung.', 20, 392, { groesse: 12, technik: false, farbe: F.leise });
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+      const z = { ohm: [zeichneOhm, zeichneKennlinie], reihe: [zeichneReihe, zeichnePotential], parallel: [zeichneParallel, zeichneKnoten] }[modus];
+      [[L.A, z[0]], [L.B, z[1]]].forEach(function (feld) {
+        g.save();
+        g.translate(feld[0].x, feld[0].y);
+        g.scale(feld[0].s, feld[0].s);
+        feld[1]();
+        g.restore();
+      });
+    }
+
+
+    // ============================================================
+    // Abspielen
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    const regler = document.getElementById('fortschritt');
+    const anzeige = document.getElementById('zeitanzeige');
+    const richtungKnopf = document.getElementById('richtung');
+    const UMLAUFDAUER = { ohm: 5, reihe: 8, parallel: 15 };   // Sekunden
+
+    function abspielen(an) {
+      laeuft = an;
+      if (laeuft && fortschritt >= 1) fortschritt = 0;
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : (fortschritt > 0 && fortschritt < 1 ? '▶ Weiter' : '▶ ' + MODI[modus].verb);
+      regler.value = String(Math.round(fortschritt * 1000));
+      zeitText();
+    }
+
+    knopf.addEventListener('click', function () { abspielen(!laeuft); });
+    regler.addEventListener('input', function () { fortschritt = +regler.value / 1000; abspielen(false); });
+    richtungKnopf.addEventListener('click', function () {
+      elektronen = !elektronen;
+      richtungKnopf.textContent = elektronen ? 'Technische Stromrichtung' : 'Elektronen zeigen';
+      zeitText();
+    });
+
+    function zeitText() {
+      const richtung = elektronen ? 'Elektronen fließen von − nach +' : 'technische Stromrichtung von + nach −';
+      if (fortschritt <= 0) { anzeige.textContent = richtung; return; }
+      const st = umlaufStand();
+      anzeige.textContent = (st.anzahl > 1 ? 'Masche ' + (st.nr + 1) + ' von ' + st.anzahl + ': ' : 'Masche: ') + (maschenText(st) || 'los geht es an der Quelle');
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.max(0, Math.min(0.05, (jetzt - vorher) / 1000));
+      vorher = jetzt;
+      if (laeuft) {
+        fortschritt = Math.min(1, fortschritt + dt / UMLAUFDAUER[modus]);
+        regler.value = String(Math.round(fortschritt * 1000));
+        if (fortschritt >= 1) abspielen(false); else zeitText();
+      }
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    modiAufbauen();
+    anpassen();
+    const anker = location.hash.slice(1);
+    modusWaehlen(MODI[anker] ? anker : 'ohm');
+    requestAnimationFrame(schleife);
+  })();
+  </script>
+</body>
+</html>
