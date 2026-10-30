@@ -9,33 +9,34 @@
   <script src="assets/basis.js"></script>
 
   <style>
-    .suche {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      margin: 26px 0 8px;
+    /* Übersicht: nach Bereichen gegliedert, ohne Hashtags */
+    .werkzeug { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 22px 0 6px; }
+    .werkzeug input {
+      flex: 1 1 260px; padding: 11px 16px; border: 1px solid var(--linie); border-radius: 999px; background: var(--flaeche); font-size: 1.02rem;
     }
-
-    .suche input {
-      flex: 1 1 280px;
-      padding: 12px 16px;
-      border: 1px solid var(--linie);
-      border-radius: 999px;
-      background: var(--flaeche);
-      font-size: 1.05rem;
+    .reiter { display: flex; flex-wrap: wrap; gap: 6px; }
+    .reiter button {
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--linie);
+      background: var(--flaeche); color: var(--text); font-family: var(--technik); font-size: 1rem; cursor: pointer;
     }
+    .reiter button:hover { border-color: var(--leise); }
+    .reiter button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .reiter i { width: 10px; height: 10px; border-radius: 50%; background: var(--farbe, var(--leise)); }
+    .reiter small { color: inherit; opacity: .65; font-size: .85rem; }
 
-    .bereich-kopf {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin: 30px 0 12px;
-    }
+    .bereich { margin: 34px 0 0; }
+    .bereich-kopf { display: flex; align-items: center; gap: 12px; margin: 0 0 4px; padding-bottom: 8px; border-bottom: 1px solid var(--linie); }
+    .bereich-kopf i { width: 14px; height: 14px; border-radius: 4px; background: var(--farbe); flex: none; }
+    .bereich-kopf h2 { margin: 0; font-size: 1.55rem; }
+    .bereich-kopf span { color: var(--leise); margin-left: auto; font-size: .92rem; }
+    .gruppe-titel { margin: 18px 0 10px; font-family: var(--technik); font-weight: 600; font-size: 1rem; color: var(--leise); letter-spacing: .02em; }
 
-    .bereich-kopf h2 { margin: 0; font-size: 1.6rem; }
-    .bereich-kopf h2::before { content: '#'; color: var(--warm); }
-    .bereich-kopf span { color: var(--leise); }
+    .raster { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+    .karte { gap: 8px; border-top: 4px solid var(--farbe); }
+    .karte .formelbild { min-height: 54px; font-size: 1.05rem; padding: 10px; }
+    .karte h3 { font-size: 1.25rem; }
+    .karte p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: .92rem; }
+    .karte .stichworte { margin-top: auto; color: var(--leise); font-size: .84rem; }
 
     .leer { color: var(--leise); padding: 20px 0; }
   </style>
@@ -50,12 +51,10 @@
       <p>Eine Sammlung zum Nachrechnen und Ausprobieren: Wert eintragen, zusehen, was passiert, und den Rechenweg Schritt für Schritt nachlesen. Alles läuft im Browser, auch ohne Internet.</p>
     </section>
 
-    <div class="band" aria-hidden="true"><div class="band-innen" id="band"></div></div>
-
-    <div class="suche" id="bereiche">
-      <input type="search" id="suchfeld" placeholder="Suchen, z. B. Wärme, Drehstrom, Kosten" aria-label="Rechner suchen">
+    <div class="werkzeug" id="bereiche">
+      <div class="reiter" id="reiter" role="group" aria-label="Bereich wählen"></div>
+      <input type="search" id="suchfeld" placeholder="Suchen, z. B. Spannungsfall, Legionellen, Kräfte" aria-label="Seiten durchsuchen">
     </div>
-    <div class="chips" id="chips" role="group" aria-label="Nach Thema filtern"></div>
 
     <div id="liste"></div>
   </main>
@@ -74,14 +73,16 @@
      *
      *   titel    Name auf der Karte
      *   pfad     relativ zu dieser Datei
-     *   bereich  Kategorie, wird zur Überschrift und zum Filter (#Elektrotechnik …)
-     *   themen   Stichwörter, ebenfalls filterbar
+     *   bereich  Kategorie, wird zur Überschrift und zum Reiter oben
+     *   gruppe   Untergruppe im Bereich (darf fehlen)
+     *   themen   Stichwörter für die Suche, die ersten drei stehen auf der Karte
      *   text     ein Satz, was man dort tun kann
      *   tex      eine typische Formel als Erkennungszeichen (LaTeX, darf fehlen)
      */
     const eintraege = [
       {
         titel: 'Warmwasser-Rechner',
+        gruppe: 'Energie und Photovoltaik',
         pfad: 'elektro/warmwasser.html',
         bereich: 'Elektrotechnik',
         themen: ['Wärme', 'Energie', 'Wasserkosten', 'Jahreskosten', 'Wirkungsgrad'],
@@ -90,6 +91,7 @@
       },
       {
         titel: 'Leitungsdimensionierung',
+        gruppe: 'Installation und Schutz',
         pfad: 'elektro/leitungsdimensionierung.html',
         bereich: 'Elektrotechnik',
         themen: ['Leitungen', 'Spannungsfall', 'Schutzorgane', 'Kurzschluss', 'Verlustkosten'],
@@ -98,6 +100,7 @@
       },
       {
         titel: 'Ohmsches Gesetz und Kirchhoff',
+        gruppe: 'Grundlagen',
         pfad: 'elektro/ohmsches-gesetz.html',
         bereich: 'Elektrotechnik',
         themen: ['Ohmsches Gesetz', 'Maschenregel', 'Knotenregel', 'Reihenschaltung', 'Parallelschaltung', 'Leistung'],
@@ -106,6 +109,7 @@
       },
       {
         titel: 'Transformator',
+        gruppe: 'Grundlagen',
         pfad: 'elektro/transformator.html',
         bereich: 'Elektrotechnik',
         themen: ['Übersetzung', 'Hauptgleichung', 'Wirkungsgrad', 'Kurzschlussspannung', 'Spannungsfall', 'Schaltgruppen', 'Drehstrom'],
@@ -114,6 +118,7 @@
       },
       {
         titel: 'PV und Notstrom',
+        gruppe: 'Energie und Photovoltaik',
         pfad: 'elektro/pv-notstrom.html',
         bereich: 'Elektrotechnik',
         themen: ['Photovoltaik', 'Stromspeicher', 'Notstrom', 'Inselbetrieb', 'Autarkie', 'Strings'],
@@ -122,6 +127,7 @@
       },
       {
         titel: 'PV-Dachplaner',
+        gruppe: 'Energie und Photovoltaik',
         pfad: 'elektro/pv-dach.html',
         bereich: 'Elektrotechnik',
         themen: ['Photovoltaik', 'Modulfeld', 'Sparren', 'Schienen', 'Schneelast'],
@@ -130,6 +136,7 @@
       },
       {
         titel: 'Selektivität',
+        gruppe: 'Installation und Schutz',
         pfad: 'elektro/selektivitaet.html',
         bereich: 'Elektrotechnik',
         themen: ['Schutzorgane', 'Selektivität', 'Kennlinien', 'Kurzschluss', 'RCD'],
@@ -170,64 +177,57 @@
       }
     ];
 
-    let filter = '';
+    // Reihenfolge und Farben der Bereiche; Untergruppen in dieser Reihenfolge
+    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Brandschutz': '#E4572E' };
+    const GRUPPEN = ['Grundlagen', 'Installation und Schutz', 'Energie und Photovoltaik'];
+    const farbe = function (b) { return BEREICHE[b] || 'var(--leise)'; };
 
-    // Alle Bereiche und Themen, einmal
-    const themen = [];
-    eintraege.forEach(function (e) {
-      [e.bereich].concat(e.themen).forEach(function (t) { if (themen.indexOf(t) < 0) themen.push(t); });
+    const bereiche = [];
+    Object.keys(BEREICHE).concat(eintraege.map(function (e) { return e.bereich; })).forEach(function (b) {
+      if (bereiche.indexOf(b) < 0 && eintraege.some(function (e) { return e.bereich === b; })) bereiche.push(b);
     });
 
-    // Laufband: eine Hälfte breiter als jeder Bildschirm, zweimal hintereinander, dann schließt die Schleife nahtlos
-    const band = document.getElementById('band');
-    let haelfte = [];
-    while (themen.length && haelfte.length < 40) haelfte = haelfte.concat(themen);
-    haelfte.concat(haelfte).forEach(function (t) {
-      const s = document.createElement('span');
-      s.textContent = t;
-      band.append(s);
-    });
-
-    const chips = document.getElementById('chips');
-    themen.forEach(function (t) {
+    let auswahl = '';
+    const reiter = document.getElementById('reiter');
+    [''].concat(bereiche).forEach(function (b) {
       const k = document.createElement('button');
-      k.type = 'button'; k.className = 'chip'; k.textContent = t;
-      k.setAttribute('aria-pressed', 'false');
+      k.type = 'button';
+      k.style.setProperty('--farbe', b ? farbe(b) : 'var(--leise)');
+      const anzahl = b ? eintraege.filter(function (e) { return e.bereich === b; }).length : eintraege.length;
+      k.innerHTML = (b ? '<i aria-hidden="true"></i>' : '') + '<span></span> <small>' + anzahl + '</small>';
+      k.querySelector('span').textContent = b || 'Alle';
+      k.setAttribute('aria-pressed', String(b === auswahl));
       k.addEventListener('click', function () {
-        filter = filter === t ? '' : t;
-        chips.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c.textContent === filter)); });
+        auswahl = b;
+        reiter.querySelectorAll('button').forEach(function (x, i) { x.setAttribute('aria-pressed', String(([''].concat(bereiche))[i] === auswahl)); });
         zeigen();
       });
-      chips.append(k);
+      reiter.append(k);
     });
 
     document.getElementById('suchfeld').addEventListener('input', zeigen);
 
     function passt(e) {
       const suche = document.getElementById('suchfeld').value.trim().toLowerCase();
-      const alles = [e.titel, e.text, e.bereich].concat(e.themen).join(' ').toLowerCase();
-      const imFilter = !filter || e.bereich === filter || e.themen.indexOf(filter) >= 0;
-      return imFilter && (!suche || suche.split(/\s+/).every(function (w) { return alles.indexOf(w) >= 0; }));
+      const alles = [e.titel, e.text, e.bereich, e.gruppe || ''].concat(e.themen).join(' ').toLowerCase();
+      return (!auswahl || e.bereich === auswahl) && (!suche || suche.split(/\s+/).every(function (w) { return alles.indexOf(w) >= 0; }));
     }
 
     function karte(e) {
       const a = document.createElement('a');
       a.className = 'karte';
       a.href = e.pfad;
-
+      a.style.setProperty('--farbe', farbe(e.bereich));
       if (e.tex) {
         const bild = document.createElement('div');
         bild.className = 'formelbild';
         Formel.setze(bild, e.tex, true);
         a.append(bild);
       }
-
       const h = document.createElement('h3'); h.textContent = e.titel;
       const p = document.createElement('p'); p.textContent = e.text;
-      const tags = document.createElement('div'); tags.className = 'tags';
-      e.themen.forEach(function (t) { const s = document.createElement('span'); s.textContent = t; tags.append(s); });
-
-      a.append(h, p, tags);
+      const w = document.createElement('div'); w.className = 'stichworte'; w.textContent = e.themen.slice(0, 3).join(' · ');
+      a.append(h, p, w);
       return a;
     }
 
@@ -236,22 +236,37 @@
       ziel.innerHTML = '';
       const treffer = eintraege.filter(passt);
       if (!treffer.length) {
-        ziel.innerHTML = '<p class="leer">Nichts gefunden. Anderen Begriff versuchen oder den Filter aufheben.</p>';
+        ziel.innerHTML = '<p class="leer">Nichts gefunden. Anderen Begriff versuchen oder „Alle“ wählen.</p>';
         return;
       }
-      const bereiche = [];
-      treffer.forEach(function (e) { if (bereiche.indexOf(e.bereich) < 0) bereiche.push(e.bereich); });
       bereiche.forEach(function (b) {
         const liste = treffer.filter(function (e) { return e.bereich === b; });
+        if (!liste.length) return;
+        const abschnitt = document.createElement('section');
+        abschnitt.className = 'bereich';
+        abschnitt.style.setProperty('--farbe', farbe(b));
         const kopf = document.createElement('div');
         kopf.className = 'bereich-kopf';
-        kopf.innerHTML = '<h2></h2><span></span>';
+        kopf.innerHTML = '<i aria-hidden="true"></i><h2></h2><span></span>';
         kopf.querySelector('h2').textContent = b;
-        kopf.querySelector('span').textContent = liste.length + (liste.length === 1 ? ' Eintrag' : ' Einträge');
-        const raster = document.createElement('div');
-        raster.className = 'raster';
-        liste.forEach(function (e) { raster.append(karte(e)); });
-        ziel.append(kopf, raster);
+        kopf.querySelector('span').textContent = liste.length + (liste.length === 1 ? ' Seite' : ' Seiten');
+        abschnitt.append(kopf);
+        // Untergruppen, falls vorhanden; sonst ein Raster
+        const gruppen = [];
+        GRUPPEN.concat(liste.map(function (e) { return e.gruppe || ''; })).forEach(function (gr) {
+          if (gruppen.indexOf(gr) < 0 && liste.some(function (e) { return (e.gruppe || '') === gr; })) gruppen.push(gr);
+        });
+        gruppen.forEach(function (gr) {
+          if (gr && gruppen.length > 1) {
+            const t = document.createElement('div'); t.className = 'gruppe-titel'; t.textContent = gr;
+            abschnitt.append(t);
+          }
+          const raster = document.createElement('div');
+          raster.className = 'raster';
+          liste.filter(function (e) { return (e.gruppe || '') === gr; }).forEach(function (e) { raster.append(karte(e)); });
+          abschnitt.append(raster);
+        });
+        ziel.append(abschnitt);
       });
     }
     zeigen();
