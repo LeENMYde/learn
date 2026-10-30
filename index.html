@@ -63,89 +63,12 @@
   <div id="seitenfuss"></div>
 
   <script src="assets/katex/katex.min.js"></script>
+  <script src="assets/katalog.js"></script>
   <script>
   (function () {
     'use strict';
 
-    /*
-     * Alle Rechner, Formelsammlungen und Simulationen
-     * ===============================================
-     * Neue Seite: hier einen Eintrag ergänzen, die Übersicht zeigt ihn dann unter seinem Bereich an.
-     *
-     *   titel    Name auf der Karte
-     *   pfad     relativ zu dieser Datei
-     *   bereich  Kategorie, wird zur Überschrift und zum Filter (#Elektrotechnik …)
-     *   themen   Stichwörter, ebenfalls filterbar
-     *   text     ein Satz, was man dort tun kann
-     *   tex      eine typische Formel als Erkennungszeichen (LaTeX, darf fehlen)
-     */
-    const eintraege = [
-      {
-        titel: 'Warmwasser-Rechner',
-        pfad: 'elektro/warmwasser.html',
-        bereich: 'Elektrotechnik',
-        themen: ['Wärme', 'Energie', 'Wasserkosten', 'Jahreskosten', 'Wirkungsgrad'],
-        text: 'Kochendwassergerät, Boiler, Durchlauferhitzer und druckfester Speicher: Wärmemenge, Heizzeit, Leistung, Strom- und Wasserkosten bis aufs Jahr, in jede Richtung und mit Rechenweg.',
-        tex: 'Q = m_\\text{w} \\cdot c \\cdot \\Delta T'
-      },
-      {
-        titel: 'Leitungsdimensionierung',
-        pfad: 'elektro/leitungsdimensionierung.html',
-        bereich: 'Elektrotechnik',
-        themen: ['Leitungen', 'Spannungsfall', 'Schutzorgane', 'Kurzschluss', 'Verlustkosten'],
-        text: 'Gleich-, Wechsel- und Drehstrom: Betriebsstrom, Schutzorgan, Querschnitt nach Verlegeart, Spannungsfall, Abschaltbedingung und Leitungsverluste, mit allen Nachweisen und Rechenweg.',
-        tex: '\\Delta U = \\frac{2 \\cdot l \\cdot I \\cdot \\cos\\varphi}{\\kappa \\cdot A}'
-      },
-      {
-        titel: 'Ohmsches Gesetz und Kirchhoff',
-        pfad: 'elektro/ohmsches-gesetz.html',
-        bereich: 'Elektrotechnik',
-        themen: ['Ohmsches Gesetz', 'Maschenregel', 'Knotenregel', 'Reihenschaltung', 'Parallelschaltung', 'Leistung'],
-        text: 'Spannung, Strom und Widerstand in jede Richtung rechnen, Reihen- und Parallelschaltung mit fließenden Ladungen, Maschenumlauf mit Potentialdiagramm und Knotenregel.',
-        tex: 'U = R \\cdot I'
-      },
-      {
-        titel: 'Transformator',
-        pfad: 'elektro/transformator.html',
-        bereich: 'Elektrotechnik',
-        themen: ['Übersetzung', 'Hauptgleichung', 'Wirkungsgrad', 'Kurzschlussspannung', 'Spannungsfall', 'Schaltgruppen', 'Drehstrom'],
-        text: 'Idealer Transformator in jede Richtung gerechnet, Eisen- und Kupferverluste mit bester Auslastung, Kurzschlussversuch und Kapp-Dreieck, Drehstrom mit Schaltgruppe und Kennzahl.',
-        tex: '\\ddot{u} = \\frac{U_1}{U_2} = \\frac{N_1}{N_2} = \\frac{I_2}{I_1}'
-      },
-      {
-        titel: 'Kräfte',
-        pfad: 'mechanik/kraefte.html',
-        bereich: 'Mechanik',
-        themen: ['Kräfte', 'Kräfteparallelogramm', 'Zerlegung', 'Resultierende', 'Schiefe Ebene'],
-        text: 'Kräfte zusammensetzen und zerlegen: auf einer Wirkungslinie, rechtwinklig, unter beliebigem Winkel mit dem Kräfteparallelogramm und auf der schiefen Ebene, mit Rechenweg.',
-        tex: 'F_\\text{R} = \\sqrt{F_1^2 + F_2^2 + 2 F_1 F_2 \\cos\\alpha}'
-      },
-      {
-        titel: 'Abwasser bemessen',
-        pfad: 'sanitaer/abwasser.html',
-        bereich: 'Sanitärtechnik',
-        themen: ['Schmutzwasser', 'Regenwasser', 'Anschlusswerte', 'Teilfüllung', 'Gefälle', 'Nennweite'],
-        text: 'Schmutzwasserabfluss aus den Anschlusswerten, Regenabfluss von Dach und Hof, Grundleitung bemessen mit Füllungsgrad, Fließgeschwindigkeit und Mindestgefälle.',
-        tex: 'Q_\\text{ww} = K \\cdot \\sqrt{\\textstyle\\sum DU}'
-      },
-      {
-        titel: 'Trinkwasserschutz',
-        pfad: 'sanitaer/trinkwasserschutz.html',
-        bereich: 'Sanitärtechnik',
-        themen: ['Legionellen', 'Zirkulation', 'Stagnation', '3-Liter-Regel', 'Thermische Desinfektion', 'DIN EN 1717'],
-        text: 'Wann sich Legionellen vermehren und wann sie absterben, eine Warmwasseranlage drei Wochen im Zeitraffer, die 3-Liter-Regel mit Wartezeit am Hahn und der Schutz vor Rückfließen.',
-        tex: 'D(T) = D_{60} \\cdot 10^{(60\\,{}^\\circ\\text{C} - T)/z}'
-      },
-      {
-        titel: 'Brandsimulation',
-        pfad: 'brandschutz/brandsimulation.html',
-        bereich: 'Brandschutz',
-        themen: ['Flashover', 'Rauch', 'Sprinkler', 'Rauchmelder', 'Evakuierung', 'Waldbrand', 'Löschmittel', 'Feuerwiderstand', 'Explosionsgrenzen'],
-        text: 'Raumbrand mit Rauchschicht und Flashover, Gebäudebrand mit Flucht und Feuerwehr, Waldbrand mit Wind und Funkenflug, Löschtrainer, Feuerwiderstand von Stahl, Holz und Beton sowie Gasexplosionen.',
-        tex: '\\dot{Q} = \\alpha \\cdot t^2'
-      }
-    ];
-
+    const eintraege = window.KATALOG || [];
     let filter = '';
 
     // Alle Bereiche und Themen, einmal
@@ -157,7 +80,7 @@
     // Laufband: eine Hälfte breiter als jeder Bildschirm, zweimal hintereinander, dann schließt die Schleife nahtlos
     const band = document.getElementById('band');
     let haelfte = [];
-    while (themen.length && haelfte.length < 40) haelfte = haelfte.concat(themen);
+    while (haelfte.length < 40) haelfte = haelfte.concat(themen);
     haelfte.concat(haelfte).forEach(function (t) {
       const s = document.createElement('span');
       s.textContent = t;
@@ -191,19 +114,16 @@
       a.className = 'karte';
       a.href = e.pfad;
 
-      if (e.tex) {
-        const bild = document.createElement('div');
-        bild.className = 'formelbild';
-        Formel.setze(bild, e.tex, true);
-        a.append(bild);
-      }
+      const bild = document.createElement('div');
+      bild.className = 'formelbild';
+      Formel.setze(bild, e.tex, true);
 
       const h = document.createElement('h3'); h.textContent = e.titel;
       const p = document.createElement('p'); p.textContent = e.text;
       const tags = document.createElement('div'); tags.className = 'tags';
       e.themen.forEach(function (t) { const s = document.createElement('span'); s.textContent = t; tags.append(s); });
 
-      a.append(h, p, tags);
+      a.append(bild, h, p, tags);
       return a;
     }
 
@@ -230,6 +150,7 @@
         ziel.append(kopf, raster);
       });
     }
+
     zeigen();
   })();
   </script>
