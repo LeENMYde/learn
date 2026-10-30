@@ -1440,7 +1440,8 @@
 
     const leinwand = document.getElementById('szene');
     const g = leinwand.getContext('2d');
-    const bewegungAus = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Bewegung läuft immer, auch wenn das System „Animationen reduzieren“ meldet; anhalten geht über den Knopf
+    const bewegungAus = false;
     const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
     const DUNKEL = '#13233A';
     const PHASENFARBE = { L1: '#8B5A2B', L2: '#3A3F45', L3: '#8A8F94' };
