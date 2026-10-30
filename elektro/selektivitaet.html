@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Selektivität</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .vorlagen { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 22px 0 14px; }
+    @media (max-width: 1000px) {
+      .vorlagen { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .vorlagen button { flex: 0 0 min(250px, 72%); scroll-snap-align: start; }
+    }
+    .vorlagen button {
+      position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 2px 10px; align-items: center;
+      text-align: left; padding: 10px 12px; border: 1px solid var(--linie); border-radius: var(--rund); background: var(--flaeche); cursor: pointer;
+    }
+    .vorlagen button:hover { border-color: var(--leise); }
+    .vorlagen button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .vorlagen button[aria-pressed="true"]::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala); }
+    .vorlagen canvas { grid-row: span 2; width: 46px; height: 46px; }
+    .vorlagen b { font-family: var(--technik); font-weight: 600; font-size: 1.02rem; line-height: 1.15; min-width: 0; }
+    .vorlagen small { color: var(--leise); font-size: .8rem; line-height: 1.3; }
+
+    .kette { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 0 0 14px; }
+    .ebene { background: var(--flaeche); border-radius: var(--rund-gross); box-shadow: var(--schatten); padding: 14px 14px 12px; border-top: 5px solid var(--farbe); min-width: 0; }
+    .ebene-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .ebene-kopf b { font-family: var(--technik); font-size: 1.15rem; }
+    .ebene-kopf button { border: none; background: none; color: var(--leise); cursor: pointer; width: 28px; height: 28px; border-radius: 50%; }
+    .ebene-kopf button:hover { background: var(--fehler-flaeche); color: var(--fehler); }
+    .ebene label { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 6px; align-items: center; font-size: .88rem; color: var(--leise); margin: 4px 0; }
+    .ebene select, .ebene input[type="text"] {
+      width: 100%; padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); font-size: .95rem; color: var(--text);
+    }
+    .ebene input[type="text"] { text-align: right; font-family: var(--technik); font-variant-numeric: tabular-nums; }
+    .ebene input:disabled { background: var(--ergebnis-flaeche); color: var(--ergebnis); border-color: transparent; }
+    .ebene .teil { border-top: 1px dashed var(--linie); margin-top: 8px; padding-top: 6px; }
+    .ebene .teil > span { font-family: var(--technik); font-weight: 600; font-size: .92rem; color: var(--text); }
+    .ebene .haken { display: flex; gap: 8px; align-items: center; grid-template-columns: none; color: var(--text); }
+    .ebene .haken input { width: 17px; height: 17px; accent-color: var(--ergebnis); }
+    .neu-ebene { border: 2px dashed var(--linie); border-radius: var(--rund-gross); background: none; color: var(--leise); cursor: pointer; font-family: var(--technik); font-size: 1.05rem; min-height: 120px; }
+    .neu-ebene:hover { border-color: var(--leise); color: var(--text); }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitachse { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; }
+    .zustand { font-size: .93rem; color: var(--leise); }
+    .zustand b { color: var(--text); font-family: var(--technik); font-weight: 600; }
+    .zustand.gut b { color: var(--ergebnis); } .zustand.schlecht b { color: var(--fehler); }
+    .steuerung select { padding: 7px 10px; border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); }
+
+    .tafel.abstand { margin-top: 18px; }
+    .kopf-zeile { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+    .urteil { display: inline-block; padding: 4px 12px; border-radius: 999px; font-family: var(--technik); font-size: 1rem; background: var(--flaeche2); color: var(--leise); }
+    .urteil.gut { background: var(--ergebnis-flaeche); color: var(--ergebnis); }
+    .urteil.mittel { background: var(--achtung-flaeche); color: #B7791F; }
+    .urteil.schlecht { background: var(--fehler-flaeche); color: var(--fehler); }
+
+    .paare { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-top: 12px; }
+    .paar { padding: 12px 14px; border-radius: var(--rund); background: var(--flaeche2); border-left: 5px solid var(--linie); min-width: 0; }
+    .paar.gut { border-left-color: var(--ergebnis); } .paar.mittel { border-left-color: #F2A541; } .paar.schlecht { border-left-color: var(--fehler); }
+    .paar small { color: var(--leise); display: block; font-size: .85rem; }
+    .paar .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.25rem, 3vw, 1.6rem); line-height: 1.15; margin: 2px 0; }
+    .paar.gut .wert { color: var(--ergebnis); } .paar.schlecht .wert { color: var(--fehler); } .paar.mittel .wert { color: #B7791F; }
+
+    .nachweise { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+    .nachweise li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+    .nachweise .marke-n { grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: var(--linie); color: var(--leise); }
+    .nachweise li.gut .marke-n { background: var(--ergebnis); color: var(--flaeche); }
+    .nachweise li.schlecht .marke-n { background: var(--fehler); color: var(--flaeche); }
+    .nachweise .was { font-size: .9rem; color: var(--leise); }
+    .nachweise .was b { color: var(--text); font-family: var(--technik); font-weight: 600; font-size: 1.02rem; margin-right: 6px; }
+    .nachweise .formel { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+    .rcd { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; margin-top: 10px; }
+    .rcd label { display: flex; flex-direction: column; gap: 4px; }
+    .rcd span { font-family: var(--technik); font-weight: 600; font-size: .95rem; }
+    .rcd select { padding: 8px 10px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); }
+
+    h3.zwischen { margin: 22px 0 6px; font-size: 1.15rem; }
+    .rahmen { overflow-x: auto; }
+    .tabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .92rem; }
+    .tabelle th, .tabelle td { padding: 5px 8px; border-bottom: 1px solid var(--linie); text-align: right; white-space: nowrap; }
+    .tabelle th:first-child, .tabelle td:first-child { text-align: left; }
+    .tabelle th { color: var(--leise); font-weight: 400; }
+    .tabelle caption { text-align: left; font-family: var(--technik); font-weight: 600; padding: 4px 0 6px; }
+    .tabelle .treffer td { background: var(--ergebnis-flaeche); color: var(--ergebnis); font-weight: 600; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+    details.formeln { margin-top: 4px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Selektivität</span></h1>
+      <p>Schutzorgane hintereinander: Löst bei einem Fehler nur das Gerät direkt davor aus, oder fliegt auch das nächste? Schmelzsicherungen, LS-Schalter, selektive Hauptleitungsschutzschalter und Leistungsschalter mit ihren Kennlinien, bis zu welchem Strom selektiv, mit Rechenweg.</p>
+    </section>
+
+    <nav class="vorlagen" id="vorlagen" aria-label="Beispiel wählen"></nav>
+
+    <div class="kette" id="kette"></div>
+
+    <section class="buehne" aria-label="Zeit-Strom-Kennlinien">
+      <canvas id="szene" role="img" aria-label="Zeit-Strom-Kennlinien aller Schutzorgane, doppelt logarithmisch, daneben das Schaltbild mit Fehlerort"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="abspielen">▶ Fehlerstrom hochfahren</button>
+        <select id="fehlerort" aria-label="Fehlerort"></select>
+        <div class="zeitachse">
+          <input type="range" class="skala" id="strom" min="0" max="1000" value="600" aria-label="Fehlerstrom">
+          <span class="zustand" id="zustand"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-ergebnis">
+      <div class="kopf-zeile"><h2 id="h-ergebnis">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div class="paare" id="paare"></div>
+      <h3 class="zwischen">Prüfungen je Gerät</h3>
+      <ul class="nachweise" id="nachweise"></ul>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-rcd">
+      <div class="kopf-zeile"><h2 id="h-rcd">Fehlerstromschutzschalter (RCD)</h2><span class="urteil" id="rcdUrteil"></span></div>
+      <p class="hilfe">RCDs arbeiten mit dem Fehlerstrom, nicht mit dem Kurzschlussstrom. Selektiv sind sie nur mit einem zeitverzögerten Gerät (Typ S) davor und genug Abstand im Bemessungsfehlerstrom.</p>
+      <div class="rcd">
+        <label><span>vorgeschaltet: Art</span><select id="r-vor-typ"><option value="S">selektiv (Typ S, zeitverzögert)</option><option value="G">allgemein (unverzögert)</option></select></label>
+        <label><span>vorgeschaltet: I<sub>Δn</sub></span><select id="r-vor-i"></select></label>
+        <label><span>nachgeschaltet: Art</span><select id="r-nach-typ"><option value="G">allgemein (unverzögert)</option><option value="S">selektiv (Typ S)</option></select></label>
+        <label><span>nachgeschaltet: I<sub>Δn</sub></span><select id="r-nach-i"></select></label>
+      </div>
+      <ul class="nachweise" id="rcdNachweise"></ul>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Erst die Kurzschlussströme, dann jedes Paar aus vorgeschaltetem und nachgeschaltetem Gerät.</p>
+        <ol class="weg" id="rechenweg"></ol>
+      </section>
+      <section class="tafel" aria-labelledby="h-formeln">
+        <details class="formeln" open>
+          <summary id="h-formeln">Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+        <details class="formeln">
+          <summary>Tabellen</summary>
+          <p class="hilfe">Prüfgrenzen nach DIN EN 60269-1 (gG), DIN EN 60898-1 (LS) und DIN EN 61008/61009 (RCD), vereinfacht. Für verbindliche Selektivitätswerte gelten die Tabellen der Hersteller.</p>
+          <div id="tabellen"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Geräte und Normwerte
+    // ============================================================
+
+    const ARTEN = {
+      gG:  { name: 'Sicherung gG', kurz: 'gG' },
+      aM:  { name: 'Sicherung aM', kurz: 'aM' },
+      LS:  { name: 'LS-Schalter', kurz: 'LS' },
+      SLS: { name: 'SLS (E)', kurz: 'SLS' },
+      LSI: { name: 'Leistungsschalter', kurz: 'LSI' }
+    };
+    const NENN = {
+      gG: [2, 4, 6, 10, 13, 16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 224, 250, 315, 355, 400, 500, 630],
+      aM: [2, 4, 6, 10, 16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630],
+      LS: [1, 2, 3, 4, 6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125],
+      SLS: [16, 20, 25, 32, 35, 40, 50, 63, 80, 100],
+      LSI: [100, 125, 160, 200, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600]
+    };
+    const ICN = { gG: 120, aM: 80, LS: 6, SLS: 25, LSI: 36 };
+
+    // LS-Kennlinien: Sofortauslösung zwischen lo und hi mal I_n; thermisch kein Auslösen unter x0min, sicher über x0max
+    const LS_CHAR = {
+      B: { lo: 3, hi: 5, x0min: 1.13, x0max: 1.45, text: '3…5 · I_n' },
+      C: { lo: 5, hi: 10, x0min: 1.13, x0max: 1.45, text: '5…10 · I_n' },
+      D: { lo: 10, hi: 20, x0min: 1.13, x0max: 1.45, text: '10…20 · I_n' },
+      K: { lo: 8, hi: 14, x0min: 1.05, x0max: 1.2, text: '8…14 · I_n' },
+      Z: { lo: 2, hi: 3, x0min: 1.05, x0max: 1.2, text: '2…3 · I_n' }
+    };
+
+    // gG-Prüfgrenzen (DIN EN 60269-1): I_min(10 s), I_max(5 s), I_min(0,1 s), I_max(0,1 s)
+    const GG_TORE = {
+      16: [33, 65, 85, 150], 20: [42, 85, 110, 200], 25: [52, 110, 150, 260], 32: [75, 150, 200, 350], 40: [95, 190, 260, 450],
+      50: [125, 250, 350, 610], 63: [160, 320, 450, 820], 80: [215, 425, 610, 1100], 100: [290, 580, 820, 1450], 125: [355, 715, 1100, 1910],
+      160: [465, 950, 1450, 2590], 200: [610, 1250, 1910, 3420], 250: [835, 1650, 2590, 4500], 315: [1050, 2200, 3420, 6000],
+      400: [1420, 2840, 4500, 8060], 500: [1780, 3800, 6000, 10600], 630: [2200, 5100, 8060, 14140]
+    };
+    function ggTore(In) {
+      const k = Object.keys(GG_TORE).map(Number).sort(function (a, b) { return a - b; });
+      if (In <= k[0]) return GG_TORE[16].map(function (v) { return v * In / 16; });
+      if (In >= k[k.length - 1]) return GG_TORE[630].map(function (v) { return v * In / 630; });
+      for (let i = 1; i < k.length; i++) {
+        if (In <= k[i]) {
+          const a = k[i - 1], b = k[i], u = Math.log(In / a) / Math.log(b / a);
+          return GG_TORE[a].map(function (v, j) { return Math.exp(Math.log(v) + (Math.log(GG_TORE[b][j]) - Math.log(v)) * u); });
+        }
+      }
+    }
+
+    // Durchlass-I²t von LS-Schaltern, Energiebegrenzungsklasse 3 (Höchstwerte nach DIN EN 60898-1, Anhang ZA), bei 3 / 4,5 / 6 / 10 kA
+    const KLASSE3 = {
+      B16: [15000, 25000, 35000, 70000], B32: [18000, 32000, 45000, 90000],
+      C16: [17000, 28000, 40000, 80000], C32: [20000, 35000, 50000, 100000]
+    };
+    const KLASSE3_I = [3000, 4500, 6000, 10000];
+
+    // RCD-Abschaltzeiten in s bei 1 / 2 / 5 · I_Δn (Höchst- und Mindestwerte)
+    const RCD_ZEIT = { G: { max: [0.3, 0.15, 0.04], min: [0, 0, 0] }, S: { max: [0.5, 0.2, 0.15], min: [0.13, 0.06, 0.05] } };
+    const RCD_I = [10, 30, 100, 300, 500, 1000];
+
+    const FARBEN = ['#2B7BB9', '#E4572E', '#0E6B6A', '#6E6FA6', '#F2A541', '#8B5A2B'];
+    const UN = 400, U0 = 230;
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (Math.abs(wert) < 1e-10) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+    function strom(I) { return !isFinite(I) ? '–' : I >= 1000 ? zahl(I / 1000, 3) + ' kA' : zahl(I, 3) + ' A'; }
+    function zeit(t) { return !isFinite(t) ? '∞' : t >= 3600 ? zahl(t / 3600, 2) + ' h' : t >= 1 ? zahl(t, 3) + ' s' : zahl(t * 1000, 3) + ' ms'; }
+    function texZahl(w, stellen) { const t = Formel.zahl(zahl(w, stellen || 4)); return w < 0 ? '(' + t + ')' : t; }
+    function texStrom(I) { return I >= 1000 ? texZahl(I / 1000, 3) + '\\,\\text{kA}' : texZahl(I, 3) + '\\,\\text{A}'; }
+
+    // Log-log-Interpolation durch Punkte [I, t]; außerhalb: null
+    function loglin(p, I) {
+      if (I < p[0][0] || I > p[p.length - 1][0]) return null;
+      for (let i = 1; i < p.length; i++) {
+        if (I <= p[i][0]) {
+          const u = Math.log(I / p[i - 1][0]) / Math.log(p[i][0] / p[i - 1][0]);
+          return Math.exp(Math.log(p[i - 1][1]) + (Math.log(p[i][1]) - Math.log(p[i - 1][1])) * u);
+        }
+      }
+      return p[p.length - 1][1];
+    }
+
+
+    // ============================================================
+    // Gerätemodelle: früheste und späteste Auslösezeit, Energie
+    // ============================================================
+
+    function modell(d) {
+      const In = d.In;
+      if (d.art === 'gG') {
+        const g = ggTore(In);
+        const tKonv = In <= 63 ? 3600 : In <= 160 ? 7200 : In <= 400 ? 10800 : 14400;
+        const minP = [[1.25 * In, 1e5], [g[0], 10], [g[2], 0.1]], maxP = [[1.6 * In, tKonv], [g[1], 5], [g[3], 0.1]];
+        return {
+          tMin: function (I) { if (I < 1.25 * In) return Infinity; if (I > g[2]) return g[2] * g[2] * 0.1 / (I * I); return loglin(minP, I); },
+          tMax: function (I) { if (I < 1.6 * In) return Infinity; if (I > g[3]) return g[3] * g[3] * 0.1 / (I * I); return loglin(maxP, I); },
+          i2tVor: 2 * In * In, i2tGesamt: 5 * In * In, sicherung: true, tore: g,
+          i2tDurch: function (I) { return Math.min(5 * In * In, I * I * this.tMax(I)); }
+        };
+      }
+      if (d.art === 'aM') {
+        const minP = [[4 * In, 60], [8 * In, 0.5], [10 * In, 0.2]], maxP = [[6.3 * In, 60], [12.5 * In, 0.5], [19 * In, 0.1]];
+        return {
+          tMin: function (I) { if (I < 4 * In) return Infinity; if (I > 10 * In) return Math.pow(10 * In, 2) * 0.2 / (I * I); return loglin(minP, I); },
+          tMax: function (I) { if (I < 6.3 * In) return Infinity; if (I > 19 * In) return Math.pow(19 * In, 2) * 0.1 / (I * I); return loglin(maxP, I); },
+          i2tVor: 2 * In * In, i2tGesamt: 5 * In * In, sicherung: true,
+          i2tDurch: function (I) { return Math.min(5 * In * In, I * I * this.tMax(I)); }
+        };
+      }
+      if (d.art === 'LS' || d.art === 'SLS') {
+        const c = d.art === 'SLS' ? { lo: 5, hi: 6.25, x0min: 1.13, x0max: 1.45 } : LS_CHAR[d.char];
+        // Thermische Bänder: typische Geräte innerhalb der Normgrenzen (1,13 / 1,45 · I_n, 2,55 · I_n zwischen 1 s und 60/120 s)
+        const T = d.art === 'SLS' ? 60 : In <= 32 ? 60 : 120;
+        const minP = [[c.x0min, 1e5], [c.x0max, 200], [2.55, 3]], maxP = [[c.x0max, 3600], [2.55, T / 2], [c.hi, 1]];
+        const thermMin = function (x) { if (x <= c.x0min) return Infinity; if (x >= 2.55) return 3 * Math.pow(2.55 / x, 2); return loglin(minP, x); };
+        const thermMax = function (x) { if (x <= c.x0max) return Infinity; if (x >= c.hi) return Math.pow(c.hi / x, 2); return loglin(maxP, x); };
+        if (d.art === 'SLS') {
+          const grenze = d.isel * 1000;
+          return {
+            tMin: function (I) { if (I > grenze) return 0.004; const x = I / In; return x >= c.lo ? Math.min(thermMin(x), 0.03) : thermMin(x); },
+            tMax: function (I) { const x = I / In; return x >= c.hi ? Math.min(thermMax(x), 0.2) : thermMax(x); },
+            isel: grenze, i2tGesamt: 5 * In * In,
+            // strombegrenzend, vereinfacht wie eine Sicherung gleicher Größe
+            i2tDurch: function (I) { return Math.min(5 * In * In, I * I * this.tMax(I)); }
+          };
+        }
+        // Durchlassenergie Klasse 3, zwischen den Tabellenwerten log-log
+        const basis = (d.char === 'B' || d.char === 'Z' ? 'B' : 'C') + (In <= 16 ? '16' : '32');
+        let werte = KLASSE3[basis].slice();
+        const faktor = (d.char === 'D' || d.char === 'K' ? 1.4 : d.char === 'Z' ? 0.8 : 1) * (In > 32 ? Math.pow(In / 32, 2) : 1);
+        werte = werte.map(function (v) { return v * faktor; });
+        const start = c.hi * In;
+        const punkte = [[start, start * start * 0.01]];
+        KLASSE3_I.forEach(function (I, i) { if (I > start * 1.05) punkte.push([I, Math.max(werte[i], punkte[punkte.length - 1][1])]); });
+        if (punkte.length === 1) punkte.push([start * 3, start * start * 0.09]);
+        const letzter = punkte[punkte.length - 1];
+        punkte.push([letzter[0] * 10, letzter[1] * Math.pow(10, 1.2)]);
+        return {
+          tMin: function (I) { const x = I / In; return x >= c.lo ? 0.004 : thermMin(x); },
+          tMax: function (I) { const x = I / In; return x >= c.hi ? 0.01 : thermMax(x); },
+          i2tDurch: function (I) { return I <= start ? I * I * this.tMax(I) : loglin(punkte, I) || letzter[1]; },
+          lo: c.lo, hi: c.hi
+        };
+      }
+      // Leistungsschalter mit L-, S- und I-Auslöser
+      const p = d.lsi, Ir = p.kr * In, Isd = p.ksd * Ir, Ii = p.iAn ? p.ki * In : Infinity;
+      return {
+        tMin: function (I) {
+          const x = I / Ir;
+          let t = x <= 1.05 ? Infinity : 0.8 * p.tr * 36 / (x * x);
+          if (I >= 0.9 * Isd) t = Math.min(t, Math.max(0.02, p.tsd - 0.03));
+          if (I >= 0.8 * Ii) t = Math.min(t, 0.005);
+          return t;
+        },
+        tMax: function (I) {
+          const x = I / Ir;
+          let t = x <= 1.3 ? Infinity : 1.2 * p.tr * 36 / (x * x);
+          if (I >= 1.1 * Isd) t = Math.min(t, p.tsd + 0.05);
+          if (I >= 1.2 * Ii) t = Math.min(t, 0.03);
+          return t;
+        },
+        i2tDurch: function (I) { return I * I * this.tMax(I); },
+        Ir: Ir, Isd: Isd, Ii: Ii
+      };
+    }
+
+    function name(d) {
+      if (d.art === 'LS') return d.char + zahl(d.In, 4);
+      if (d.art === 'SLS') return 'E' + zahl(d.In, 4) + ' SLS';
+      if (d.art === 'LSI') return 'LSI ' + zahl(d.In, 4) + ' A';
+      return d.art + ' ' + zahl(d.In, 4) + ' A';
+    }
+
+
+    // ============================================================
+    // Selektivität eines Paares
+    // ============================================================
+
+    // Löst das vorgeschaltete Gerät bei Strom I mit aus?
+    function ueberlappt(vor, nach, mv, mn, I) {
+      const tn = mn.tMax(I), tv = mv.tMin(I);
+      if (!isFinite(tv)) return false;
+      // Im Kurzschlussbereich zählt die Durchlassenergie; ein SLS begrenzt den Strom schon in seiner Verzögerungszeit
+      const strombegrenzt = tn < 0.01 || tv < 0.01 || (nach.art === 'SLS' && I >= 6.25 * nach.In);
+      if (strombegrenzt) {
+        if (mv.sicherung) return mn.i2tDurch(I) >= mv.i2tVor;
+        if (vor.art === 'SLS') return I > mv.isel;
+      }
+      return tv <= tn;
+    }
+
+    function paarPruefen(vor, nach) {
+      const mv = modell(vor), mn = modell(nach);
+      // ab dem Strom, bei dem das nachgeschaltete Gerät sicher auslöst (aM-Sicherungen erst im Kurzschlussbereich)
+      let Ianfang = nach.In;
+      while (!isFinite(mn.tMax(Ianfang)) && Ianfang < nach.In * 50) Ianfang *= 1.01;
+      const Iende = isFinite(nach.ikmax) && nach.ikmax > 0 ? nach.ikmax * 1000 : 100000;
+      let Is = null, vorher = Ianfang;
+      const n = 500;
+      for (let i = 0; i <= n; i++) {
+        const I = Ianfang * Math.pow(Iende / Ianfang, i / n);
+        if (ueberlappt(vor, nach, mv, mn, I)) {
+          // genauer eingrenzen
+          let a = vorher, b = I;
+          for (let k = 0; k < 40 && i > 0; k++) { const m = Math.sqrt(a * b); if (ueberlappt(vor, nach, mv, mn, m)) b = m; else a = m; }
+          Is = i === 0 ? I : b;
+          break;
+        }
+        vorher = I;
+      }
+      let art;
+      if (Is === null) art = 'voll';
+      else if (Is < 3 * nach.In) art = 'nicht';
+      else art = 'teil';
+      return { vor: vor, nach: nach, Is: Is, Iende: Iende, art: art, ikBekannt: isFinite(nach.ikmax) && nach.ikmax > 0, mv: mv, mn: mn };
+    }
+
+
+    // ============================================================
+    // Schutzkette
+    // ============================================================
+
+    let kette = [];
+    function geraet(art, In, extra) {
+      const d = { art: art, In: In, char: 'B', icn: ICN[art], ikmax: NaN, ik1: NaN, tzul: 0.4, isel: 10,
+                  leitung: { an: false, l: 20, A: 16, mat: 'cu' },
+                  lsi: { kr: 1, tr: 10, ksd: 6, tsd: 0.2, ki: 12, iAn: true } };
+      return Object.assign(d, extra || {});
+    }
+
+    const VORLAGEN = {
+      haus: { name: 'Hausinstallation', kurz: 'NH gG 63 → SLS E35 → B16', bau: function () {
+        return [geraet('gG', 63, { ikmax: 10, ik1: 3, tzul: 5 }), geraet('SLS', 35, { ikmax: 8, ik1: 2.5, tzul: 5, isel: 10 }),
+                geraet('LS', 16, { char: 'B', ikmax: 4, ik1: 0.6, tzul: 0.4, leitung: { an: true, l: 18, A: 10, mat: 'cu' } })]; } },
+      verteiler: { name: 'Unterverteilung', kurz: 'gG 250 → gG 100 → C32', bau: function () {
+        return [geraet('gG', 250, { ikmax: 25, ik1: 8, tzul: 5 }), geraet('gG', 100, { ikmax: 15, ik1: 4, tzul: 5, leitung: { an: true, l: 30, A: 50, mat: 'cu' } }),
+                geraet('LS', 32, { char: 'C', icn: 10, ikmax: 6, ik1: 1, tzul: 0.4, leitung: { an: true, l: 25, A: 10, mat: 'cu' } })]; } },
+      gewerbe: { name: 'Leistungsschalter', kurz: 'LSI 630 → gG 160 → C63', bau: function () {
+        return [geraet('LSI', 630, { icn: 50, ikmax: 30, ik1: 12, tzul: 5, lsi: { kr: 0.8, tr: 10, ksd: 6, tsd: 0.2, ki: 12, iAn: true } }),
+                geraet('gG', 160, { ikmax: 22, ik1: 6, tzul: 5, leitung: { an: true, l: 20, A: 95, mat: 'cu' } }),
+                geraet('LS', 63, { char: 'C', icn: 10, ikmax: 9, ik1: 2, tzul: 5, leitung: { an: true, l: 25, A: 16, mat: 'cu' } })]; } },
+      motor: { name: 'Motorabgang', kurz: 'gG 125 → aM 50', bau: function () {
+        return [geraet('gG', 125, { ikmax: 20, ik1: 6, tzul: 5 }), geraet('aM', 50, { ikmax: 12, ik1: 3, tzul: 5, leitung: { an: true, l: 15, A: 25, mat: 'cu' } })]; } },
+      lsls: { name: 'LS hinter LS', kurz: 'C32 → B16: nur bis 160 A', bau: function () {
+        return [geraet('LS', 32, { char: 'C', ikmax: 5, ik1: 1.2, tzul: 5 }), geraet('LS', 16, { char: 'B', ikmax: 3, ik1: 0.5, tzul: 0.4, leitung: { an: true, l: 15, A: 2.5, mat: 'cu' } })]; } }
+    };
+    let vorlage = 'haus';
+
+
+    // ============================================================
+    // Kurzschlussströme aus der Zuleitung
+    // ============================================================
+
+    let schritte = [];
+    function kappa(mat, warm) { return mat === 'al' ? (warm ? 28 : 35) : (warm ? 45 : 56); }
+
+    function kurzschluesse() {
+      kette.forEach(function (d, i) {
+        d.ikRechnung = null;
+        if (i === 0 || !d.leitung.an) return;
+        const v = kette[i - 1], l = d.leitung;
+        if (!(v.ikmax > 0) || !(l.l > 0) || !(l.A > 0)) return;
+        const ZQ = 1.1 * UN / (Math.sqrt(3) * v.ikmax * 1000);
+        const ZL = l.l / (kappa(l.mat, false) * l.A);
+        d.ikmax = 1.1 * UN / (Math.sqrt(3) * (ZQ + ZL)) / 1000;
+        let ik1 = NaN, ZS = NaN, ZL2 = NaN;
+        if (v.ik1 > 0) {
+          ZS = 0.95 * U0 / (v.ik1 * 1000);
+          ZL2 = 2 * l.l / (kappa(l.mat, true) * l.A);
+          ik1 = 0.95 * U0 / (ZS + ZL2) / 1000;
+          d.ik1 = ik1;
+        }
+        d.ikRechnung = { ZQ: ZQ, ZL: ZL, ZS: ZS, ZL2: ZL2, vor: v, ebene: i };
+      });
+    }
+
+
+    // ============================================================
+    // Auswerten
+    // ============================================================
+
+    let paare = [];
+    function auswerten() {
+      kurzschluesse();
+      paare = [];
+      for (let i = 0; i + 1 < kette.length; i++) paare.push(paarPruefen(kette[i], kette[i + 1]));
+      paare.forEach(function (p, i) { p.index = i; });
+    }
+
+
+    // ============================================================
+    // Eingabekarten
+    // ============================================================
+
+    function ketteAufbauen() {
+      const ziel = document.getElementById('kette');
+      ziel.innerHTML = '';
+      kette.forEach(function (d, i) {
+        const k = document.createElement('div');
+        k.className = 'ebene';
+        k.style.setProperty('--farbe', FARBEN[i % FARBEN.length]);
+        const zeile = function (text, inhalt, klasse) { return '<label' + (klasse ? ' class="' + klasse + '"' : '') + '><span>' + text + '</span>' + inhalt + '</label>'; };
+        const opt = function (liste, wert) { return liste.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(wert) ? ' selected' : '') + '>' + o[1] + '</option>'; }).join(''); };
+        let html = '<div class="ebene-kopf"><b>Ebene ' + (i + 1) + (i === 0 ? ' (vorne)' : i === kette.length - 1 ? ' (hinten)' : '') + '</b>' +
+          (kette.length > 2 ? '<button type="button" data-weg aria-label="Ebene entfernen">✕</button>' : '') + '</div>';
+        html += zeile('Art', '<select data-k="art">' + opt(Object.keys(ARTEN).map(function (a) { return [a, ARTEN[a].name]; }), d.art) + '</select>');
+        if (d.art === 'LS') html += zeile('Charakteristik', '<select data-k="char">' + opt(Object.keys(LS_CHAR).map(function (c) { return [c, c + ' · ' + LS_CHAR[c].text.replace(' · I_n', ' In')]; }), d.char) + '</select>');
+        html += zeile('Bemessungsstrom I<sub>n</sub>', '<select data-k="In">' + opt(NENN[d.art].map(function (x) { return [x, x + ' A']; }), d.In) + '</select>');
+        if (d.art === 'LSI') {
+          html += '<div class="teil"><span>Auslöser</span>' +
+            zeile('I<sub>r</sub> = k<sub>r</sub> · I<sub>n</sub>', '<input type="text" data-l="kr" value="' + zahl(d.lsi.kr, 3) + '">') +
+            zeile('t<sub>r</sub> bei 6 · I<sub>r</sub> (s)', '<input type="text" data-l="tr" value="' + zahl(d.lsi.tr, 3) + '">') +
+            zeile('I<sub>sd</sub> = k · I<sub>r</sub>', '<input type="text" data-l="ksd" value="' + zahl(d.lsi.ksd, 3) + '">') +
+            zeile('t<sub>sd</sub> (s)', '<input type="text" data-l="tsd" value="' + zahl(d.lsi.tsd, 3) + '">') +
+            '<label class="haken"><input type="checkbox" data-l="iAn"' + (d.lsi.iAn ? ' checked' : '') + '> I-Auslöser aktiv</label>' +
+            zeile('I<sub>i</sub> = k · I<sub>n</sub>', '<input type="text" data-l="ki" value="' + zahl(d.lsi.ki, 3) + '"' + (d.lsi.iAn ? '' : ' disabled') + '>') + '</div>';
+        }
+        if (d.art === 'SLS') html += zeile('selektiv bis (kA)', '<input type="text" data-k="isel" value="' + zahl(d.isel, 3) + '">');
+        html += zeile('Schaltvermögen (kA)', '<input type="text" data-k="icn" value="' + zahl(d.icn, 3) + '">');
+        html += '<div class="teil"><span>Kurzschluss am Einbauort</span>';
+        if (i > 0) {
+          html += '<label class="haken"><input type="checkbox" data-z="an"' + (d.leitung.an ? ' checked' : '') + '> aus der Zuleitung von Ebene ' + i + ' berechnen</label>';
+          if (d.leitung.an) {
+            html += zeile('Länge (m)', '<input type="text" data-z="l" value="' + zahl(d.leitung.l, 4) + '">') +
+                    zeile('Querschnitt (mm²)', '<input type="text" data-z="A" value="' + zahl(d.leitung.A, 4) + '">') +
+                    zeile('Leiter', '<select data-z="mat">' + opt([['cu', 'Kupfer'], ['al', 'Aluminium']], d.leitung.mat) + '</select>');
+          }
+        }
+        const gesperrt = i > 0 && d.leitung.an ? ' disabled' : '';
+        html += zeile('I<sub>k,max</sub> 3-polig (kA)', '<input type="text" data-k="ikmax" data-ik value="' + (isFinite(d.ikmax) ? zahl(d.ikmax, 4) : '') + '"' + gesperrt + ' placeholder="unbekannt">');
+        html += zeile('I<sub>k,min</sub> 1-polig (kA)', '<input type="text" data-k="ik1" data-ik value="' + (isFinite(d.ik1) ? zahl(d.ik1, 4) : '') + '"' + gesperrt + ' placeholder="unbekannt">');
+        html += zeile('Abschaltzeit höchstens', '<select data-k="tzul">' + opt([[0.4, '0,4 s Endkreis'], [5, '5 s Verteiler'], [0.2, '0,2 s TT'], [1, '1 s']], d.tzul) + '</select>');
+        html += '</div>';
+        k.innerHTML = html;
+
+        k.querySelectorAll('[data-k]').forEach(function (el) {
+          el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', function () {
+            const key = el.dataset.k;
+            if (key === 'art') {
+              d.art = el.value;
+              d.In = NENN[d.art].filter(function (x) { return x >= d.In; })[0] || NENN[d.art][NENN[d.art].length - 1];
+              d.icn = ICN[d.art];
+              ketteAufbauen(); neu(); return;
+            }
+            if (key === 'char') { d.char = el.value; neu(); return; }
+            const v = el.tagName === 'SELECT' ? +el.value : lies(el.value);
+            if (el.value.trim() === '' && (key === 'ikmax' || key === 'ik1')) { d[key] = NaN; neu(); return; }
+            if (isFinite(v) && v > 0) { d[key] = v; neu(el); }
+          });
+        });
+        k.querySelectorAll('[data-l]').forEach(function (el) {
+          el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', function () {
+            if (el.type === 'checkbox') { d.lsi.iAn = el.checked; ketteAufbauen(); neu(); return; }
+            const v = lies(el.value);
+            if (isFinite(v) && v > 0) { d.lsi[el.dataset.l] = v; neu(el); }
+          });
+        });
+        k.querySelectorAll('[data-z]').forEach(function (el) {
+          el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', function () {
+            const key = el.dataset.z;
+            if (key === 'an') { d.leitung.an = el.checked; ketteAufbauen(); neu(); return; }
+            if (key === 'mat') { d.leitung.mat = el.value; neu(); return; }
+            const v = lies(el.value);
+            if (isFinite(v) && v > 0) { d.leitung[key] = v; neu(el); }
+          });
+        });
+        const weg = k.querySelector('[data-weg]');
+        if (weg) weg.addEventListener('click', function () { kette.splice(i, 1); ketteAufbauen(); neu(); });
+        ziel.append(k);
+      });
+      const plus = document.createElement('button');
+      plus.type = 'button'; plus.className = 'neu-ebene'; plus.textContent = '+ Ebene dahinter';
+      plus.addEventListener('click', function () {
+        const letzte = kette[kette.length - 1];
+        const In = NENN.LS.filter(function (x) { return x <= letzte.In / 2; }).pop() || 6;
+        kette.push(geraet('LS', In, { char: 'B', tzul: 0.4, leitung: { an: true, l: 15, A: 2.5, mat: 'cu' } }));
+        ketteAufbauen(); neu();
+      });
+      ziel.append(plus);
+      fehlerortAufbauen();
+    }
+
+    // Felder der berechneten Kurzschlussströme nachführen, ohne die Karten neu zu bauen
+    function ikFelderAktualisieren(aktiv) {
+      document.querySelectorAll('#kette .ebene').forEach(function (k, i) {
+        const d = kette[i];
+        k.querySelectorAll('[data-ik]').forEach(function (el) {
+          if (el === aktiv) return;
+          const v = d[el.dataset.k];
+          el.value = isFinite(v) ? zahl(v, 4) : '';
+        });
+      });
+    }
+
+    function fehlerortAufbauen() {
+      const sel = document.getElementById('fehlerort');
+      const alt = sel.value;
+      sel.innerHTML = '';
+      kette.forEach(function (d, i) {
+        if (i === 0) return;
+        const o = document.createElement('option');
+        o.value = String(i); o.textContent = 'Fehler hinter Ebene ' + (i + 1) + ' (' + name(d) + ')';
+        sel.append(o);
+      });
+      sel.value = alt && +alt < kette.length && +alt > 0 ? alt : String(kette.length - 1);
+    }
+
+    function neu(aktiv) {
+      auswerten();
+      ikFelderAktualisieren(aktiv);
+      ergebnisZeigen();
+      rcdZeigen();
+      rechenwegZeigen();
+      tabellenZeigen();
+      zustandText();
+    }
+
+
+    // ============================================================
+    // Ergebnis
+    // ============================================================
+
+    function ergebnisZeigen() {
+      const ziel = document.getElementById('paare');
+      ziel.innerHTML = '';
+      paare.forEach(function (p, i) {
+        const d = document.createElement('div');
+        const klasse = p.art === 'voll' ? 'gut' : p.art === 'teil' ? 'mittel' : 'schlecht';
+        d.className = 'paar ' + klasse;
+        const titel = 'Ebene ' + (i + 1) + ' → ' + (i + 2) + ': ' + name(p.vor) + ' vor ' + name(p.nach);
+        let wert, text;
+        if (p.art === 'voll') {
+          wert = 'voll selektiv';
+          text = p.ikBekannt ? 'bis zum größten Kurzschlussstrom ' + strom(p.Iende) + ' am Einbauort' : 'bis 100 kA geprüft; I<sub>k,max</sub> eintragen für eine genaue Aussage';
+        } else if (p.art === 'teil') {
+          wert = 'teilselektiv bis ' + strom(p.Is);
+          const ueberlast = p.mn.tMax(p.Is) > 0.1;
+          text = 'Darüber löst ' + name(p.vor) + ' mit aus.' + (p.ikBekannt ? ' Am Einbauort sind bis ' + strom(p.Iende) + ' möglich.' : '') +
+            (ueberlast ? ' Die Grenze liegt im Überlastbereich, wo sich die Toleranzbänder berühren; reale Kennlinien des Herstellers prüfen.' : '');
+        } else {
+          wert = 'nicht selektiv';
+          text = 'Schon ab ' + strom(p.Is) + ' (Überlastbereich) können beide auslösen. Größeres Gerät davor oder andere Kennlinie.';
+        }
+        d.innerHTML = '<small></small><div class="wert"></div><small>' + text + '</small>';
+        d.querySelector('small').textContent = titel;
+        d.querySelector('.wert').textContent = wert;
+        ziel.append(d);
+      });
+
+      // Prüfungen je Gerät
+      const liste = [];
+      kette.forEach(function (d, i) {
+        const m = modell(d);
+        if (isFinite(d.ikmax)) {
+          const ok = d.icn >= d.ikmax - 1e-9;
+          liste.push({ titel: 'Ebene ' + (i + 1) + ': Schaltvermögen', ok: ok, text: ok ? name(d) + ' kann den größten Kurzschlussstrom sicher abschalten.' : name(d) + ' ist dem Kurzschlussstrom nicht gewachsen. Größeres Schaltvermögen oder Back-up-Schutz durch das vorgeschaltete Gerät.',
+                       tex: 'I_\\text{cn} = ' + texZahl(d.icn, 3) + '\\,\\text{kA} \\;' + (ok ? '\\ge' : '<') + '\\; I_\\text{k,max} = ' + texZahl(d.ikmax, 3) + '\\,\\text{kA}' });
+        }
+        if (isFinite(d.ik1)) {
+          const t = m.tMax(d.ik1 * 1000), ok = t <= d.tzul + 1e-9;
+          liste.push({ titel: 'Ebene ' + (i + 1) + ': Abschaltung beim kleinsten Kurzschluss', ok: ok,
+                       text: ok ? 'Auch beim einpoligen Kurzschluss am Ende schaltet ' + name(d) + ' rechtzeitig ab.' : 'Der kleinste Kurzschlussstrom reicht nicht für die geforderte Abschaltzeit. Kleineres Gerät, andere Kennlinie, größerer Querschnitt oder RCD.',
+                       tex: 't_\\text{a}(I_\\text{k,min} = ' + texStrom(d.ik1 * 1000) + ') \\le ' + (isFinite(t) ? texZahl(t * 1000 >= 1000 ? t : t * 1000, 3) + (t >= 1 ? '\\,\\text{s}' : '\\,\\text{ms}') : '\\infty') + ' \\;' + (ok ? '\\le' : '>') + '\\; ' + texZahl(d.tzul, 2) + '\\,\\text{s}' });
+        }
+        if (i > 0 && kette[i - 1].In < d.In) liste.push({ titel: 'Ebene ' + (i + 1) + ': Reihenfolge', ok: false, text: 'Das nachgeschaltete Gerät ist größer als das davor. So kann es nie selektiv sein.' });
+      });
+      const ul = document.getElementById('nachweise');
+      ul.innerHTML = '';
+      liste.forEach(function (x) {
+        const li = document.createElement('li');
+        li.className = x.ok === true ? 'gut' : x.ok === false ? 'schlecht' : '';
+        li.innerHTML = '<span class="marke-n" aria-hidden="true">' + (x.ok ? '✓' : '✗') + '</span><div class="was"><b></b>' + x.text + '</div><div class="formel"></div>';
+        li.querySelector('b').textContent = x.titel;
+        if (x.tex) Formel.setze(li.querySelector('.formel'), x.tex);
+        ul.append(li);
+      });
+
+      const schlecht = paare.filter(function (p) { return p.art === 'nicht'; }).length, teil = paare.filter(function (p) { return p.art === 'teil'; }).length;
+      const fehler = liste.filter(function (x) { return x.ok === false; }).length;
+      const u = document.getElementById('urteil');
+      u.className = 'urteil ' + (schlecht || fehler ? 'schlecht' : teil ? 'mittel' : 'gut');
+      u.textContent = schlecht ? schlecht + ' Paar' + (schlecht > 1 ? 'e' : '') + ' nicht selektiv' : teil ? 'teilselektiv' : 'voll selektiv' + (fehler ? ', aber ' + fehler + ' Prüfung' + (fehler > 1 ? 'en' : '') + ' offen' : '');
+    }
+
+
+    // ============================================================
+    // RCD
+    // ============================================================
+
+    const rcd = { vorTyp: 'S', vorI: 300, nachTyp: 'G', nachI: 30 };
+    function rcdAufbauen() {
+      [['r-vor-i', 'vorI'], ['r-nach-i', 'nachI']].forEach(function (x) {
+        const el = document.getElementById(x[0]);
+        RCD_I.forEach(function (v) { const o = document.createElement('option'); o.value = String(v); o.textContent = v + ' mA'; el.append(o); });
+        el.value = String(rcd[x[1]]);
+        el.addEventListener('change', function () { rcd[x[1]] = +el.value; rcdZeigen(); });
+      });
+      [['r-vor-typ', 'vorTyp'], ['r-nach-typ', 'nachTyp']].forEach(function (x) {
+        const el = document.getElementById(x[0]);
+        el.value = rcd[x[1]];
+        el.addEventListener('change', function () { rcd[x[1]] = el.value; rcdZeigen(); });
+      });
+    }
+    function rcdZeigen() {
+      const liste = [];
+      const okTyp = rcd.vorTyp === 'S' && rcd.nachTyp === 'G';
+      liste.push({ titel: 'Zeitverzögerung', ok: okTyp, text: okTyp ? 'Der vorgeschaltete RCD ist zeitverzögert (Typ S), der nachgeschaltete nicht.' : rcd.vorTyp !== 'S' ? 'Vorne muss ein selektiver RCD (Typ S) sitzen, sonst lösen beide gleich schnell aus.' : 'Hinten sollte ein unverzögerter RCD sitzen; zwei Typ S hintereinander sind nicht gestaffelt.',
+                   tex: 't_\\text{min,vor}(2 I_{\\Delta n}) = ' + texZahl(RCD_ZEIT[rcd.vorTyp].min[1] * 1000, 3) + '\\,\\text{ms} \\;' + (RCD_ZEIT[rcd.vorTyp].min[1] > RCD_ZEIT[rcd.nachTyp].max[1] ? '>' : '\\le') + '\\; t_\\text{max,nach}(2 I_{\\Delta n}) = ' + texZahl(RCD_ZEIT[rcd.nachTyp].max[1] * 1000, 3) + '\\,\\text{ms}' });
+      const okI = rcd.vorI >= 3 * rcd.nachI;
+      liste.push({ titel: 'Bemessungsfehlerstrom', ok: okI, text: okI ? 'Mindestens Faktor 3 zwischen den Bemessungsfehlerströmen.' : 'Der vorgeschaltete RCD braucht mindestens den dreifachen Bemessungsfehlerstrom.',
+                   tex: 'I_{\\Delta n,\\text{vor}} = ' + rcd.vorI + '\\,\\text{mA} \\;' + (okI ? '\\ge' : '<') + '\\; 3 \\cdot I_{\\Delta n,\\text{nach}} = ' + 3 * rcd.nachI + '\\,\\text{mA}' });
+      if (rcd.vorI > 30) liste.push({ titel: 'Hinweis', ok: true, text: 'Über 30 mA schützt der vordere RCD nur gegen Brand und Fehlerschutz, nicht als zusätzlicher Schutz für Steckdosen.' });
+      const ul = document.getElementById('rcdNachweise');
+      ul.innerHTML = '';
+      liste.forEach(function (x) {
+        const li = document.createElement('li');
+        li.className = x.ok ? 'gut' : 'schlecht';
+        li.innerHTML = '<span class="marke-n" aria-hidden="true">' + (x.ok ? '✓' : '✗') + '</span><div class="was"><b></b>' + x.text + '</div><div class="formel"></div>';
+        li.querySelector('b').textContent = x.titel;
+        if (x.tex) Formel.setze(li.querySelector('.formel'), x.tex);
+        ul.append(li);
+      });
+      const u = document.getElementById('rcdUrteil');
+      u.className = 'urteil ' + (okTyp && okI ? 'gut' : 'schlecht');
+      u.textContent = okTyp && okI ? 'selektiv' : 'nicht selektiv';
+    }
+
+
+    // ============================================================
+    // Rechenweg
+    // ============================================================
+
+    function schritt(titel, zeilen, ergebnisTex) { schritte.push({ titel: titel, zeilen: zeilen, ergebnis: ergebnisTex }); }
+
+    function rechenwegZeigen() {
+      schritte = [];
+      kette.forEach(function (d, i) {
+        const r = d.ikRechnung;
+        if (!r) return;
+        const l = d.leitung;
+        schritt('Ebene ' + (i + 1) + ': größter Kurzschlussstrom aus der Zuleitung (3-polig, c = 1,1)', [
+          'Z_\\text{Q} = \\frac{c_\\text{max} \\cdot U_\\text{n}}{\\sqrt{3} \\cdot I_\\text{k,vor}} = \\frac{1{,}1 \\cdot 400\\,\\text{V}}{\\sqrt{3} \\cdot ' + texStrom(r.vor.ikmax * 1000) + '} = ' + texZahl(r.ZQ * 1000, 3) + '\\,\\text{m}\\Omega',
+          'Z_\\text{L} = \\frac{l}{\\kappa \\cdot A} = \\frac{' + texZahl(l.l) + '\\,\\text{m}}{' + kappa(l.mat, false) + ' \\cdot ' + texZahl(l.A) + '\\,\\text{mm}^2} = ' + texZahl(r.ZL * 1000, 3) + '\\,\\text{m}\\Omega'],
+          'I_\\text{k,max} = \\frac{1{,}1 \\cdot 400\\,\\text{V}}{\\sqrt{3} \\cdot (Z_\\text{Q} + Z_\\text{L})} = \\htmlClass{ergebnis}{\\boldsymbol{' + texStrom(d.ikmax * 1000) + '}}');
+        if (isFinite(r.ZS)) schritt('Ebene ' + (i + 1) + ': kleinster Kurzschlussstrom (1-polig, c = 0,95, warmer Leiter)', [
+          'Z_\\text{S,vor} = \\frac{0{,}95 \\cdot 230\\,\\text{V}}{I_\\text{k1,vor}} = ' + texZahl(r.ZS * 1000, 3) + '\\,\\text{m}\\Omega, \\quad Z_\\text{L} = \\frac{2 \\cdot l}{\\kappa_\\text{warm} \\cdot A} = \\frac{2 \\cdot ' + texZahl(l.l) + '\\,\\text{m}}{' + kappa(l.mat, true) + ' \\cdot ' + texZahl(l.A) + '\\,\\text{mm}^2} = ' + texZahl(r.ZL2 * 1000, 3) + '\\,\\text{m}\\Omega'],
+          'I_\\text{k,min} = \\frac{0{,}95 \\cdot 230\\,\\text{V}}{Z_\\text{S,vor} + Z_\\text{L}} = \\htmlClass{ergebnis}{\\boldsymbol{' + texStrom(d.ik1 * 1000) + '}}');
+      });
+
+      paare.forEach(function (p, i) {
+        const v = p.vor, n = p.nach, mv = p.mv, mn = p.mn;
+        const kopf = 'Ebene ' + (i + 1) + ' → ' + (i + 2) + ': ' + name(v) + ' vor ' + name(n);
+        const zeilen = [];
+        if (mv.sicherung && mn.sicherung) {
+          zeilen.push('\\text{Faustregel: } \\frac{I_\\text{n,vor}}{I_\\text{n,nach}} = \\frac{' + v.In + '\\,\\text{A}}{' + n.In + '\\,\\text{A}} = ' + texZahl(v.In / n.In, 3) + ' \\;' + (v.In / n.In >= 1.6 - 1e-9 ? '\\ge' : '<') + '\\; 1{,}6');
+          zeilen.push('I^2t_\\text{gesamt,nach} \\approx 5 \\cdot I_\\text{n,nach}^2 = ' + texZahl(mn.i2tGesamt, 4) + '\\,\\text{A}^2\\text{s} \\;' + (mn.i2tGesamt < mv.i2tVor ? '<' : '\\ge') + '\\; I^2t_\\text{Schmelz,vor} \\approx 2 \\cdot I_\\text{n,vor}^2 = ' + texZahl(mv.i2tVor, 4) + '\\,\\text{A}^2\\text{s}');
+        } else if (mv.sicherung && n.art === 'SLS') {
+          zeilen.push('I^2t_\\text{Durchlass,SLS} \\approx 5 \\cdot I_\\text{n,SLS}^2 = ' + texZahl(mn.i2tGesamt, 4) + '\\,\\text{A}^2\\text{s} \\;' + (mn.i2tGesamt < mv.i2tVor ? '<' : '\\ge') + '\\; I^2t_\\text{Schmelz,vor} \\approx 2 \\cdot I_\\text{n,vor}^2 = ' + texZahl(mv.i2tVor, 4) + '\\,\\text{A}^2\\text{s} \\quad (\\text{Annahme, Herstellerangabe prüfen})');
+        } else if (mv.sicherung && (n.art === 'LS')) {
+          zeilen.push('I^2t_\\text{Schmelz,vor} \\approx 2 \\cdot I_\\text{n,vor}^2 = 2 \\cdot (' + v.In + '\\,\\text{A})^2 = ' + texZahl(mv.i2tVor, 4) + '\\,\\text{A}^2\\text{s}');
+          zeilen.push('\\text{Selektiv, solange der LS weniger durchlässt: } I^2t_\\text{LS}(I_\\text{k}) < I^2t_\\text{Schmelz,vor} \\quad (\\text{Energiebegrenzungsklasse 3})');
+        } else if (v.art === 'LS' && n.art === 'LS') {
+          zeilen.push('\\text{Stromselektivität bis zur Sofortauslösung vorne: } I_\\text{s} \\approx m_\\text{min,vor} \\cdot I_\\text{n,vor} = ' + mv.lo + ' \\cdot ' + v.In + '\\,\\text{A} = ' + texStrom(mv.lo * v.In));
+        } else if (v.art === 'SLS') {
+          zeilen.push('\\text{SLS: Kurzschlussauslösung zeitverzögert, selektiv bis } I_\\text{sel} = ' + texZahl(v.isel, 3) + '\\,\\text{kA (Herstellerangabe)}');
+        } else if (v.art === 'LSI') {
+          zeilen.push('I_\\text{r} = ' + texStrom(mv.Ir) + ', \\; I_\\text{sd} = ' + texStrom(mv.Isd) + ', \\; t_\\text{sd} = ' + texZahl(v.lsi.tsd * 1000, 3) + '\\,\\text{ms}' + (isFinite(mv.Ii) ? ', \\; I_\\text{i} = ' + texStrom(mv.Ii) : ', \\; I\\text{ aus}'));
+          zeilen.push('\\text{Zeitstaffelung: } t_\\text{sd} - \\Delta t \\ge t_\\text{max,nach}, \\quad \\text{Stromgrenze } 0{,}8 \\cdot I_\\text{i}');
+        }
+        zeilen.push('\\text{Vergleich der Kennlinien: früheste Auslösung vorne } t_\\text{min,vor}(I) \\text{ gegen späteste hinten } t_\\text{max,nach}(I)');
+        const erg = p.art === 'voll' ? '\\text{voll selektiv bis } ' + texStrom(p.Iende) : p.art === 'teil' ? 'I_\\text{s} = ' + texStrom(p.Is) : '\\text{nicht selektiv ab } ' + texStrom(p.Is);
+        schritt(kopf, zeilen, '\\htmlClass{ergebnis}{\\boldsymbol{' + erg + '}}');
+      });
+
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div'); titel.className = 'titel'; titel.textContent = s.titel;
+        const erst = document.createElement('div'); erst.className = 'rechnung';
+        s.zeilen.forEach(function (z) { const d = document.createElement('div'); Formel.setze(d, '\\displaystyle ' + z); erst.append(d); });
+        const dann = document.createElement('div'); dann.className = 'rechnung';
+        Formel.setze(dann, '\\displaystyle ' + s.ergebnis);
+        li.append(titel, erst, dann);
+        liste.append(li);
+      });
+    }
+
+
+    // ============================================================
+    // Formelsammlung und Tabellen
+    // ============================================================
+
+    const FORMELN = [
+      ['Grundsatz', 't_\\text{max,nach}(I) < t_\\text{min,vor}(I) \\quad \\text{für alle } I \\le I_\\text{k,max}'],
+      ['Grundsatz', '\\text{Selektivitätsgrenze } I_\\text{s}: \\text{ kleinster Strom, bei dem beide auslösen können}'],
+      ['Sicherung hinter Sicherung', '\\frac{I_\\text{n,vor}}{I_\\text{n,nach}} \\ge 1{,}6 \\qquad I^2t_\\text{gesamt,nach} < I^2t_\\text{Schmelz,vor}'],
+      ['LS hinter Sicherung', 'I^2t_\\text{Durchlass,LS}(I_\\text{k}) < I^2t_\\text{Schmelz,Sicherung}'],
+      ['LS hinter LS', 'I_\\text{s} \\approx m_\\text{min,vor} \\cdot I_\\text{n,vor} \\quad (\\text{B: } 3,\\; \\text{C: } 5,\\; \\text{D: } 10)'],
+      ['Leistungsschalter', 't_\\text{sd,vor} \\ge t_\\text{a,nach} + \\Delta t \\quad (\\Delta t \\approx 0{,}1 \\ldots 0{,}15\\,\\text{s}) \\qquad t_\\text{L} = t_\\text{r} \\cdot \\left(\\frac{6 \\cdot I_\\text{r}}{I}\\right)^2'],
+      ['RCD', '\\text{vorne Typ S}, \\quad I_{\\Delta n,\\text{vor}} \\ge 3 \\cdot I_{\\Delta n,\\text{nach}}'],
+      ['Kurzschlussstrom', 'I_\\text{k3} = \\frac{c \\cdot U_\\text{n}}{\\sqrt{3} \\cdot Z_\\text{k}} \\qquad I_\\text{k1} = \\frac{c \\cdot U_0}{Z_\\text{S}} \\qquad Z_\\text{L} = \\frac{l}{\\kappa \\cdot A}'],
+      ['Kurzschlussstrom', 'c_\\text{max} = 1{,}1, \\; c_\\text{min} = 0{,}95 \\qquad \\kappa_\\text{Cu} = 56 \\text{ (kalt)}, \\; 45 \\text{ (warm)} \\,\\tfrac{\\text{m}}{\\Omega\\,\\text{mm}^2}'],
+      ['LS-Kennlinien', '\\text{B: } 3 \\ldots 5\\,I_\\text{n} \\quad \\text{C: } 5 \\ldots 10\\,I_\\text{n} \\quad \\text{D: } 10 \\ldots 20\\,I_\\text{n} \\quad \\text{K: } 8 \\ldots 14\\,I_\\text{n} \\quad \\text{Z: } 2 \\ldots 3\\,I_\\text{n}'],
+      ['LS-Kennlinien', 'I_1 = 1{,}13 \\cdot I_\\text{n} \\;(\\text{kein Auslösen in 1 h}) \\qquad I_2 = 1{,}45 \\cdot I_\\text{n} \\;(\\text{Auslösen in 1 h})'],
+      ['Sicherungen gG', 'I_\\text{nf} = 1{,}25 \\cdot I_\\text{n} \\qquad I_\\text{f} = 1{,}6 \\cdot I_\\text{n} \\quad (I_\\text{n} \\ge 16\\,\\text{A})']
+    ];
+    function formelnAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      let abschnitt = null, alt = '';
+      FORMELN.forEach(function (f) {
+        if (f[0] !== alt) { abschnitt = document.createElement('section'); abschnitt.innerHTML = '<h3></h3>'; abschnitt.querySelector('h3').textContent = f[0]; ziel.append(abschnitt); alt = f[0]; }
+        const d = document.createElement('div'); d.className = 'formelblock'; Formel.setze(d, f[1], true); abschnitt.append(d);
+      });
+    }
+    function tabellenZeigen() {
+      const genutzt = kette.filter(function (d) { return d.art === 'gG'; }).map(function (d) { return d.In; });
+      let h = '<div class="rahmen"><table class="tabelle"><caption>gG-Sicherungen: Prüfgrenzen (A)</caption><thead><tr><th>I<sub>n</sub></th><th>I<sub>min</sub> 10 s</th><th>I<sub>max</sub> 5 s</th><th>I<sub>min</sub> 0,1 s</th><th>I<sub>max</sub> 0,1 s</th></tr></thead><tbody>';
+      Object.keys(GG_TORE).forEach(function (k) { const g = GG_TORE[k]; h += '<tr' + (genutzt.indexOf(+k) >= 0 ? ' class="treffer"' : '') + '><td>' + k + ' A</td>' + g.map(function (v) { return '<td>' + zahl(v, 5) + '</td>'; }).join('') + '</tr>'; });
+      h += '</tbody></table></div>';
+      h += '<div class="rahmen"><table class="tabelle"><caption>LS-Schalter: Sofortauslösung</caption><thead><tr><th>Kennlinie</th><th>sicher keine</th><th>sicher</th><th>Anwendung</th></tr></thead><tbody>';
+      const anw = { B: 'Leitungsschutz, Haushalt', C: 'Motoren, Lampengruppen', D: 'hohe Einschaltströme', K: 'Motoren, Trafos', Z: 'Halbleiter, Messkreise' };
+      Object.keys(LS_CHAR).forEach(function (c) { const x = LS_CHAR[c]; h += '<tr><td>' + c + '</td><td>' + x.lo + ' · I<sub>n</sub></td><td>' + x.hi + ' · I<sub>n</sub></td><td>' + anw[c] + '</td></tr>'; });
+      h += '</tbody></table></div>';
+      h += '<div class="rahmen"><table class="tabelle"><caption>RCD: Abschaltzeiten</caption><thead><tr><th>Art</th><th>1 · I<sub>Δn</sub></th><th>2 · I<sub>Δn</sub></th><th>5 · I<sub>Δn</sub></th></tr></thead><tbody>' +
+        '<tr><td>allgemein, höchstens</td><td>300 ms</td><td>150 ms</td><td>40 ms</td></tr><tr><td>Typ S, höchstens</td><td>500 ms</td><td>200 ms</td><td>150 ms</td></tr><tr><td>Typ S, mindestens</td><td>130 ms</td><td>60 ms</td><td>50 ms</td></tr></tbody></table></div>';
+      h += '<div class="rahmen"><table class="tabelle"><caption>LS-Schalter: Durchlass-I²t Klasse 3 (A²s, höchstens)</caption><thead><tr><th>Typ</th><th>3 kA</th><th>4,5 kA</th><th>6 kA</th><th>10 kA</th></tr></thead><tbody>';
+      [['B bis 16 A', 'B16'], ['B 20–32 A', 'B32'], ['C bis 16 A', 'C16'], ['C 20–32 A', 'C32']].forEach(function (r) { h += '<tr><td>' + r[0] + '</td>' + KLASSE3[r[1]].map(function (v) { return '<td>' + zahl(v, 6) + '</td>'; }).join('') + '</tr>'; });
+      h += '</tbody></table></div>';
+      document.getElementById('tabellen').innerHTML = h;
+    }
+
+
+    // ============================================================
+    // Vorlagen
+    // ============================================================
+
+    function vorlageWaehlen(id) {
+      vorlage = id;
+      kette = VORLAGEN[id].bau();
+      document.querySelectorAll('#vorlagen button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.id === id)); });
+      ketteAufbauen();
+      neu();
+      document.getElementById('strom').value = '600';
+      abspielen(true);
+    }
+    function vorlagenAufbauen() {
+      const ziel = document.getElementById('vorlagen');
+      Object.keys(VORLAGEN).forEach(function (id) {
+        const v = VORLAGEN[id];
+        const k = document.createElement('button');
+        k.type = 'button'; k.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 46 * dichte; bild.height = 46 * dichte;
+        const c = bild.getContext('2d'); c.scale(dichte, dichte);
+        piktogramm(c, id);
+        const b = document.createElement('b'); b.textContent = v.name;
+        const s = document.createElement('small'); s.textContent = v.kurz;
+        k.append(bild, b, s);
+        k.addEventListener('click', function () { vorlageWaehlen(id); });
+        ziel.append(k);
+        document.addEventListener('themawechsel', function () { c.clearRect(0, 0, 46, 46); piktogramm(c, id); });
+      });
+    }
+    function piktogramm(c, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      const n = id === 'motor' || id === 'lsls' ? 2 : 3;
+      c.strokeStyle = text; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(23, 2); c.lineTo(23, 44); c.stroke();
+      for (let i = 0; i < n; i++) {
+        const y = 8 + i * (34 / n) + 2;
+        c.fillStyle = FARBEN[i]; c.fillRect(15, y, 16, 9); c.strokeRect(15, y, 16, 9);
+      }
+    }
+
+
+    // ============================================================
+    // Bühne: Kennlinien und Schaltbild
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    const bewegungAus = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const DUNKEL = '#13233A';
+    const F = { text: DUNKEL, leise: '#5E6B7A', linie: '#D9E0E3', flaeche: '#fff', flaeche2: '#F6F8F8', ergebnis: '#0E6B6A', fehler: '#C0392B' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || DUNKEL; F.leise = Thema.farbe('--leise') || '#5E6B7A'; F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche = Thema.farbe('--flaeche') || '#fff'; F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+      F.ergebnis = Thema.farbe('--ergebnis') || '#0E6B6A'; F.fehler = Thema.farbe('--fehler') || '#C0392B';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+
+    let L = { W: 1100, H: 580, schmal: false, m: 1 };
+    let laeuft = false, uhr = 0, anteil = 0.6;
+    const T_MIN = 0.001, T_MAX = 10000;
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720 ? { W: 520, H: 1000, schmal: true } : { W: 1100, H: 580, schmal: false };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte); leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+    function orte() {
+      if (L.schmal) return { bild: { x: 62, y: 20, b: 440, h: 540 }, plan: { x: 10, y: 620, b: 500, h: 360 } };
+      return { bild: { x: 72, y: 20, b: 700, h: 500 }, plan: { x: 820, y: 16, b: 266, h: 548 } };
+    }
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 12) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text; g.textAlign = o.ausrichtung || 'left'; g.textBaseline = 'alphabetic';
+      if (o.hinterlegt) {
+        const b = g.measureText(t).width, x0 = o.ausrichtung === 'center' ? x - b / 2 : o.ausrichtung === 'right' ? x - b : x;
+        const fs = g.fillStyle; g.fillStyle = o.hinterlegt; g.fillRect(x0 - 4, y - (o.groesse || 12), b + 8, (o.groesse || 12) + 5); g.fillStyle = fs;
+      }
+      g.fillText(t, x, y);
+    }
+    function linie(p, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 1.5; g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash(strich || []);
+      g.beginPath(); p.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); }); g.stroke(); g.setLineDash([]);
+    }
+    function rund(x, y, b, h, r) {
+      g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+
+    function bereich() {
+      const ins = kette.map(function (d) { return d.In; });
+      const iks = kette.map(function (d) { return isFinite(d.ikmax) ? d.ikmax * 1000 : 0; });
+      const lo = Math.pow(10, Math.floor(Math.log10(Math.min.apply(null, ins) * 0.9)));
+      const hi = Math.pow(10, Math.ceil(Math.log10(Math.max(Math.max.apply(null, iks) * 1.3, Math.max.apply(null, ins) * 40))));
+      return { lo: lo, hi: Math.max(hi, lo * 1000) };
+    }
+
+    function fehlerStrom() {
+      const f = +document.getElementById('fehlerort').value || kette.length - 1;
+      const d = kette[f];
+      const lo = d.In * 1.2, hi = isFinite(d.ikmax) ? Math.max(d.ikmax * 1000, lo * 2) : d.In * 1000;
+      return { f: f, I: lo * Math.pow(hi / lo, anteil), lo: lo, hi: hi };
+    }
+
+    // Wer löst beim Fehlerstrom aus? Das Gerät am Fehlerort und alle davor, die mit ihm überlappen
+    function ausloesung() {
+      const fs = fehlerStrom(), mf = modell(kette[fs.f]);
+      const tf = mf.tMax(fs.I);
+      return kette.map(function (d, j) {
+        const m = modell(d);
+        if (j > fs.f) return { art: 'aus', tMin: Infinity, tMax: Infinity };
+        if (j === fs.f) return { art: isFinite(tf) ? 'loest' : 'nein', tMin: m.tMin(fs.I), tMax: tf };
+        const mit = ueberlappt(d, kette[fs.f], m, mf, fs.I);
+        return { art: mit ? 'mit' : 'bleibt', tMin: m.tMin(fs.I), tMax: m.tMax(fs.I) };
+      });
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+      if (laeuft) {
+        anteil = Math.min(1, anteil + dt / 9);
+        document.getElementById('strom').value = String(Math.round(anteil * 1000));
+        if (anteil >= 1) abspielen(false);
+        zustandText();
+      }
+      const o = orte();
+      zeichneKennlinien(o.bild);
+      zeichneSchaltbild(o.plan);
+    }
+
+    function zeichneKennlinien(R) {
+      const ber = bereich();
+      const X = function (I) { return R.x + Math.log(I / ber.lo) / Math.log(ber.hi / ber.lo) * R.b; };
+      const Y = function (t) { const c = Math.max(T_MIN, Math.min(T_MAX, t)); return R.y + (1 - Math.log(c / T_MIN) / Math.log(T_MAX / T_MIN)) * R.h; };
+      // Raster
+      g.fillStyle = F.flaeche2; g.fillRect(R.x, R.y, R.b, R.h);
+      for (let e = Math.log10(ber.lo); e <= Math.log10(ber.hi); e++) {
+        [1, 2, 5].forEach(function (f) {
+          const I = f * Math.pow(10, e);
+          if (I < ber.lo || I > ber.hi) return;
+          linie([[X(I), R.y], [X(I), R.y + R.h]], f === 1 ? F.linie : 'rgba(127,127,127,.12)', 1);
+          if (f === 1 || (f === 5 && !L.schmal)) schreibe(strom(I), X(I), R.y + R.h + 16, { groesse: 11, ausrichtung: 'center', farbe: F.leise });
+        });
+      }
+      [0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000].forEach(function (t) {
+        linie([[R.x, Y(t)], [R.x + R.b, Y(t)]], F.linie, 1);
+        schreibe(zeit(t), R.x - 6, Y(t) + 4, { groesse: 11, ausrichtung: 'right', farbe: F.leise });
+      });
+      schreibe('Strom I', R.x + R.b, R.y + R.h + 32, { groesse: 12, ausrichtung: 'right', farbe: F.leise, technik: false });
+      schreibe('Zeit t', R.x - 6, R.y - 6, { groesse: 12, ausrichtung: 'right', farbe: F.leise, technik: false });
+
+      g.save(); g.beginPath(); g.rect(R.x, R.y, R.b, R.h); g.clip();
+      // Bänder
+      const n = 360;
+      kette.forEach(function (d, j) {
+        const m = modell(d), farbe = FARBEN[j % FARBEN.length];
+        const oben = [], unten = [];
+        for (let i = 0; i <= n; i++) {
+          const I = ber.lo * Math.pow(ber.hi / ber.lo, i / n);
+          oben.push([X(I), Y(m.tMax(I))]);
+          unten.push([X(I), Y(m.tMin(I))]);
+        }
+        g.beginPath();
+        oben.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); });
+        for (let i = unten.length - 1; i >= 0; i--) g.lineTo(unten[i][0], unten[i][1]);
+        g.closePath();
+        g.globalAlpha = 0.18; g.fillStyle = farbe; g.fill(); g.globalAlpha = 1;
+        linie(oben, farbe, 2.2); linie(unten, farbe, 1.4, [5, 4]);
+        // Kurzschlussstrom am Einbauort
+        if (isFinite(d.ikmax)) {
+          const x = X(d.ikmax * 1000);
+          linie([[x, R.y], [x, R.y + R.h]], farbe, 1.2, [2, 4]);
+        }
+      });
+      // Selektivitätsgrenzen
+      paare.forEach(function (p, i) {
+        if (p.Is === null) return;
+        const x = X(p.Is), farbe = p.art === 'nicht' ? F.fehler : '#B7791F';
+        linie([[x, R.y + 18], [x, R.y + R.h]], farbe, 2, [7, 5]);
+        g.fillStyle = farbe; g.beginPath(); g.arc(x, Y(Math.max(0.001, p.mn.tMax(p.Is))), 5, 0, 7); g.fill();
+        schreibe('I_s ' + (i + 1) + '→' + (i + 2) + ' = ' + strom(p.Is), x + 4, R.y + 16 + i * 16, { groesse: 12, fett: true, farbe: farbe, hinterlegt: F.flaeche });
+      });
+      // Fehlerstrom
+      const fs = fehlerStrom(), ausl = ausloesung();
+      const xf = X(fs.I);
+      linie([[xf, R.y], [xf, R.y + R.h]], '#F2A541', 2.5);
+      ausl.forEach(function (a, j) {
+        if (a.art === 'aus') return;
+        const farbe = FARBEN[j % FARBEN.length];
+        if (isFinite(a.tMax) || isFinite(a.tMin)) {
+          linie([[xf, Y(a.tMin)], [xf, Y(a.tMax)]], farbe, 6);
+          g.fillStyle = farbe; g.beginPath(); g.arc(xf, Y(a.tMax), 5, 0, 7); g.fill();
+        }
+      });
+      g.restore();
+      g.strokeStyle = F.leise; g.lineWidth = 1; g.strokeRect(R.x, R.y, R.b, R.h);
+      schreibe('I_F = ' + strom(fs.I), Math.min(xf + 6, R.x + R.b - 90), R.y + R.h - 8, { groesse: 13, fett: true, farbe: '#B7791F', hinterlegt: F.flaeche });
+
+      // Legende
+      kette.forEach(function (d, j) {
+        const lx = R.x + R.b - 150, ly = R.y + R.h - 30 - (kette.length - 1 - j) * 18 - 22;
+        g.fillStyle = FARBEN[j % FARBEN.length]; g.fillRect(lx, ly - 9, 14, 10);
+        schreibe((j + 1) + ': ' + name(d), lx + 20, ly, { groesse: 12, hinterlegt: F.flaeche });
+      });
+    }
+
+    function zeichneSchaltbild(R) {
+      const ausl = ausloesung(), fs = fehlerStrom();
+      schreibe('Schaltbild', R.x, R.y + 12, { groesse: 15, fett: true });
+      const n = kette.length, x = R.x + (L.schmal ? 120 : 60);
+      const oben = R.y + 46, unten = R.y + R.h - 70, schritt = (unten - oben) / (n + 0.5);
+      // Einspeisung
+      g.strokeStyle = F.text; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, oben - 10, 10, 0, 7); g.stroke(); g.beginPath(); g.arc(x, oben + 4, 10, 0, 7); g.stroke();
+      schreibe('Netz / Trafo', x + 20, oben, { groesse: 12, farbe: F.leise, technik: false });
+      let y = oben + 14, stromlos = false;
+      kette.forEach(function (d, j) {
+        const a = ausl[j], yg = oben + 14 + (j + 0.6) * schritt;
+        const farbe = FARBEN[j % FARBEN.length];
+        const ausgeloest = a.art === 'loest' || a.art === 'mit';
+        linie([[x, y], [x, yg - 16]], stromlos ? F.linie : F.text, 2.5);
+        // Symbol
+        const blink = ausgeloest && !bewegungAus ? 0.5 + 0.5 * Math.sin(uhr * 8) : 1;
+        if (d.art === 'gG' || d.art === 'aM') {
+          g.fillStyle = F.flaeche; g.fillRect(x - 8, yg - 16, 16, 32);
+          g.strokeStyle = ausgeloest ? 'rgba(192,57,43,' + blink + ')' : farbe; g.lineWidth = 2.5; g.strokeRect(x - 8, yg - 16, 16, 32);
+          if (ausgeloest) linie([[x - 8, yg + 8], [x + 8, yg - 8]], F.fehler, 2); else linie([[x, yg - 16], [x, yg + 16]], farbe, 2);
+        } else {
+          rund(x - 14, yg - 16, 28, 32, 5); g.fillStyle = F.flaeche; g.fill();
+          g.strokeStyle = ausgeloest ? 'rgba(192,57,43,' + blink + ')' : farbe; g.lineWidth = 2.5; g.stroke();
+          // Schaltkontakt
+          if (ausgeloest) linie([[x, yg + 10], [x - 10, yg - 8]], F.fehler, 2.5); else linie([[x, yg + 10], [x, yg - 10]], farbe, 2.5);
+          schreibe(d.art === 'LS' ? d.char : d.art === 'SLS' ? 'E' : 'L', x + 8, yg + 14, { groesse: 10, fett: true, farbe: farbe });
+        }
+        const zx = x + 26;
+        schreibe((j + 1) + ': ' + name(d), zx, yg - 2, { groesse: 13, fett: true, farbe: farbe });
+        let st = '';
+        if (a.art === 'loest') st = 'löst aus, ≤ ' + zeit(a.tMax);
+        else if (a.art === 'mit') st = 'löst MIT aus (nicht selektiv)';
+        else if (a.art === 'bleibt') st = 'bleibt ein';
+        else if (a.art === 'nein') st = 'löst bei diesem Strom nicht aus';
+        else st = stromlos ? 'stromlos' : '';
+        schreibe(st, zx, yg + 14, { groesse: 12, fett: a.art === 'mit', farbe: a.art === 'mit' ? F.fehler : a.art === 'loest' ? '#B7791F' : F.leise, technik: false });
+        if (isFinite(d.ikmax)) schreibe('I_k ' + strom(d.ikmax * 1000), zx, yg + 28, { groesse: 11, farbe: F.leise });
+        if (ausgeloest) stromlos = true;
+        y = yg + 16;
+        // Fehlerort hinter dieser Ebene
+        if (j === fs.f) {
+          const yb = y + schritt * 0.45;
+          linie([[x, y], [x, yb]], stromlos ? F.linie : F.text, 2.5);
+          const b = 0.6 + 0.4 * (bewegungAus ? 1 : Math.abs(Math.sin(uhr * 6)));
+          g.fillStyle = 'rgba(242,165,65,' + b + ')';
+          g.beginPath(); g.moveTo(x - 6, yb); g.lineTo(x + 8, yb + 12); g.lineTo(x, yb + 12); g.lineTo(x + 10, yb + 28); g.lineTo(x - 4, yb + 14); g.lineTo(x + 2, yb + 14); g.closePath(); g.fill();
+          schreibe('Kurzschluss, I_F = ' + strom(fs.I), x + 18, yb + 20, { groesse: 12, fett: true, farbe: '#B7791F' });
+          y = yb + 28;
+        }
+      });
+    }
+
+
+    // ============================================================
+    // Steuerung
+    // ============================================================
+
+    const knopf = document.getElementById('abspielen');
+    const regler = document.getElementById('strom');
+    function abspielen(an) {
+      laeuft = an && !bewegungAus;
+      if (laeuft && anteil >= 1) anteil = 0;
+      knopf.textContent = laeuft ? '❚❚ Anhalten' : '▶ Fehlerstrom hochfahren';
+      zustandText();
+    }
+    knopf.addEventListener('click', function () { abspielen(!laeuft); });
+    regler.addEventListener('input', function () { anteil = +regler.value / 1000; abspielen(false); });
+    document.getElementById('fehlerort').addEventListener('change', function () { zustandText(); });
+
+    function zustandText() {
+      const el = document.getElementById('zustand');
+      if (!kette.length) return;
+      const fs = fehlerStrom(), a = ausloesung();
+      const mit = a.filter(function (x) { return x.art === 'mit'; }).length;
+      const f = a[fs.f];
+      let html;
+      if (f.art === 'nein') html = '<b>' + strom(fs.I) + ':</b> ' + name(kette[fs.f]) + ' löst bei diesem Strom (noch) nicht sicher aus.';
+      else if (mit) html = '<b>' + strom(fs.I) + ': nicht selektiv.</b> Neben ' + name(kette[fs.f]) + ' löst auch ' + kette.filter(function (d, j) { return a[j].art === 'mit'; }).map(name).join(', ') + ' aus.';
+      else html = '<b>' + strom(fs.I) + ': selektiv.</b> Nur ' + name(kette[fs.f]) + ' schaltet ab, spätestens nach ' + zeit(f.tMax) + '.';
+      el.innerHTML = html;
+      el.className = 'zustand ' + (mit ? 'schlecht' : f.art === 'loest' ? 'gut' : '');
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.min(0.05, (jetzt - vorher) / 1000);
+      vorher = jetzt;
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    vorlagenAufbauen();
+    formelnAufbauen();
+    rcdAufbauen();
+    anpassen();
+    vorlageWaehlen('haus');
+    requestAnimationFrame(schleife);
+
+    window.Selektiv = { kette: function () { return kette; }, paare: function () { return paare; }, modell: modell, neu: neu, vorlage: vorlageWaehlen,
+                        setzeStrom: function (a) { anteil = a; abspielen(false); }, ausloesung: ausloesung, ketteAufbauen: ketteAufbauen };
+  })();
+  </script>
+</body>
+</html>

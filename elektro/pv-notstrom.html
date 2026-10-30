@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PV und Notstrom</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .konzepte { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 10px; }
+    @media (max-width: 900px) {
+      .konzepte { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+      .konzepte button { flex: 0 0 74%; scroll-snap-align: start; }
+    }
+    .konzepte button {
+      position: relative; display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 2px 12px; align-items: center;
+      text-align: left; padding: 10px 12px; border: 1px solid var(--linie); border-radius: var(--rund); background: var(--flaeche); cursor: pointer;
+    }
+    .konzepte button:hover { border-color: var(--leise); }
+    .konzepte button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--schatten); }
+    .konzepte button[aria-pressed="true"]::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 4px; border-radius: 2px; background: var(--skala); }
+    .konzepte canvas { grid-row: span 2; width: 58px; height: 58px; }
+    .konzepte b { font-family: var(--technik); font-weight: 600; font-size: 1.08rem; line-height: 1.15; min-width: 0; }
+    .konzepte small { color: var(--leise); font-size: .82rem; line-height: 1.3; }
+
+    .optionen { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 14px; margin: 4px 0 12px; }
+    .optionen label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .optionen span { font-family: var(--technik); font-weight: 600; font-size: .98rem; }
+    .optionen select { width: 100%; padding: 9px 10px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); font-size: .95rem; cursor: pointer; }
+    .optionen select:disabled { opacity: .5; cursor: default; }
+    ol.aufbau { margin: 8px 0 0; padding: 0; list-style: none; counter-reset: teil; display: grid; gap: 6px; }
+    ol.aufbau li { counter-increment: teil; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 0 12px; padding: 8px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+    ol.aufbau li::before { content: counter(teil); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; background: var(--text); color: var(--grund); display: flex; align-items: center; justify-content: center; font-family: var(--technik); font-size: .88rem; }
+    ol.aufbau b { font-family: var(--technik); font-weight: 600; }
+    ol.aufbau span { color: var(--leise); font-size: .9rem; }
+    ul.hinweisliste { margin: 8px 0 0; padding-left: 20px; font-size: .93rem; }
+    ul.hinweisliste li { margin: 4px 0; }
+    .schalter-zeile { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 0 0 14px; font-size: .95rem; }
+    .schalter-zeile label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+    .schalter-zeile input { width: 18px; height: 18px; accent-color: var(--ergebnis); }
+    .schalter-zeile .hilfe { color: var(--leise); font-size: .88rem; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); }
+    #szene { display: block; width: 100%; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .zeitachse { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; }
+    .zustand { font-size: .93rem; color: var(--leise); }
+    .zustand b { color: var(--text); font-family: var(--technik); font-weight: 600; }
+    .knopf:disabled { opacity: .45; cursor: default; }
+
+    .tafel.abstand { margin-top: 18px; }
+    .kopf-zeile { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+    .gross { font-family: var(--technik); font-size: clamp(1.6rem, 4.4vw, 2.6rem); font-weight: 600; line-height: 1.1; }
+    .gross small { display: block; font-size: 1rem; color: var(--leise); font-weight: 400; margin-top: 4px; }
+    .urteil { display: inline-block; padding: 4px 12px; border-radius: 999px; font-family: var(--technik); font-size: 1rem; background: var(--flaeche2); color: var(--leise); }
+    .urteil.gut { background: var(--ergebnis-flaeche); color: var(--ergebnis); }
+    .urteil.schlecht { background: var(--fehler-flaeche); color: var(--fehler); }
+
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.75rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .kachel .wert.offen { color: var(--leise); font-weight: 400; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+
+    .nachweise { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+    .nachweise li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+    .nachweise .marke-n { grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: var(--linie); color: var(--leise); }
+    .nachweise li.gut .marke-n { background: var(--ergebnis); color: var(--flaeche); }
+    .nachweise li.schlecht .marke-n { background: var(--fehler); color: var(--flaeche); }
+    .nachweise .was { font-size: .9rem; color: var(--leise); }
+    .nachweise .was b { color: var(--text); font-family: var(--technik); font-weight: 600; font-size: 1.02rem; margin-right: 6px; }
+    .nachweise .formel { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+    h3.zwischen { margin: 22px 0 6px; font-size: 1.15rem; }
+    .rahmen { overflow-x: auto; }
+    .tabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .tabelle th, .tabelle td { padding: 7px 6px; border-bottom: 1px solid var(--linie); text-align: right; white-space: nowrap; }
+    .tabelle th:first-child, .tabelle td:first-child { text-align: left; }
+    .tabelle th { color: var(--leise); font-weight: 400; font-size: .86rem; }
+    .tabelle td { font-family: var(--technik); font-size: 1.02rem; }
+    .tabelle td.schlecht { color: var(--fehler); font-weight: 600; }
+    .tabelle td.gut { color: var(--ergebnis); font-weight: 600; }
+    .phase { display: inline-block; min-width: 34px; padding: 1px 8px; border-radius: 999px; color: #fff; font-family: var(--technik); font-weight: 600; font-size: .9rem; text-align: center; }
+    .phase.L1 { background: #8B5A2B; } .phase.L2 { background: #3A3F45; } .phase.L3 { background: #8A8F94; } .phase.D { background: #6E6FA6; }
+
+    .lasten { min-width: 760px; }
+    .lasten th { text-align: left; }
+    .lasten td { font-family: var(--schrift); font-size: .95rem; padding: 4px 4px; }
+    .lasten input[type="text"], .lasten select {
+      width: 100%; padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); font-size: .95rem;
+    }
+    .lasten input.zahl { text-align: right; font-family: var(--technik); font-variant-numeric: tabular-nums; }
+    .lasten input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--ergebnis); }
+    .lasten tr.aus td { opacity: .5; }
+    .lasten .status { font-size: .86rem; white-space: normal; text-align: left; min-width: 150px; }
+    .lasten .status.gut { color: var(--ergebnis); } .lasten .status.schlecht { color: var(--fehler); } .lasten .status.warn { color: #B7791F; }
+    .lasten .weg-knopf { border: none; background: none; color: var(--leise); cursor: pointer; width: 28px; height: 28px; border-radius: 50%; }
+    .lasten .weg-knopf:hover { background: var(--fehler-flaeche); color: var(--fehler); }
+    .werkzeug { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin: 10px 0 0; }
+    .werkzeug select { padding: 7px 10px; border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); max-width: 100%; }
+    .passt { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin-top: 8px; }
+    .passt div { padding: 8px 12px; border-radius: var(--rund); background: var(--flaeche2); font-size: .9rem; border-left: 4px solid var(--linie); }
+    .passt div.gut { border-left-color: var(--ergebnis); } .passt div.schlecht { border-left-color: var(--fehler); color: var(--leise); }
+    .passt b { font-family: var(--technik); font-weight: 600; display: block; color: var(--text); }
+    .passt button { margin-top: 4px; }
+
+    .rechnen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">PV und Notstrom</span></h1>
+      <p>PV-Anlage auslegen: Leistung, Ertrag, Eigenverbrauch, Wirtschaftlichkeit und Strings. Dazu Stromspeicher und Notstrom: Was läuft bei Netzausfall über welchen Speicher, wie lange, und reicht die Leistung je Phase? Alles in jede Richtung und mit Rechenweg.</p>
+    </section>
+
+    <nav class="konzepte" id="konzepte" aria-label="Speicherkonzept wählen"></nav>
+    <div class="optionen">
+      <label><span>Notstrom</span>
+        <select id="o-art">
+          <option value="ohne">ohne Notstrom (nur netzparallel)</option>
+          <option value="not">Notstrom aus dem Speicher</option>
+          <option value="insel">Ersatzstrom mit Inselbetrieb (PV lädt nach)</option>
+          <option value="dose">Notstromsteckdose am Gerät</option>
+        </select>
+      </label>
+      <label><span>Umschaltung</span>
+        <select id="o-umschaltung">
+          <option value="hand">von Hand: Netz – 0 – Not</option>
+          <option value="auto">automatisch: Netz- und Not-Schütz</option>
+          <option value="geraet">im Speicher eingebaut</option>
+        </select>
+      </label>
+      <label><span>Netzform</span>
+        <select id="o-netzform">
+          <option value="TN-C-S">TN-C-S</option>
+          <option value="TN-S">TN-S</option>
+          <option value="TT">TT</option>
+          <option value="TN-C">TN-C (Altanlage)</option>
+        </select>
+      </label>
+      <label><span>Kopplung</span>
+        <select id="o-kopplung">
+          <option value="ac">AC-gekoppelt (eigener PV-Wechselrichter)</option>
+          <option value="dc">DC-gekoppelt (Hybrid-Wechselrichter)</option>
+        </select>
+      </label>
+      <label><span>PV-Wechselrichter</span>
+        <select id="o-wr">
+          <option value="drei">dreiphasig</option>
+          <option value="eins">einphasig (an L1)</option>
+        </select>
+      </label>
+    </div>
+    <div class="schalter-zeile">
+      <label id="drehZeile"><input type="checkbox" id="o-dreh"> Speicher bilden im Notstrom ein Drehstromnetz (Drehfeld L1–L2–L3)</label>
+      <label><input type="checkbox" id="o-schwarz"> Schwarzstart (Inselnetz startet mit PV auch bei leerem Speicher)</label>
+    </div>
+
+    <section class="buehne" aria-label="Animation der Anlage">
+      <canvas id="szene" role="img" aria-label="Hausanlage mit PV, Netz, Notstrom-Umschalter, Speichern und Verbrauchern je Phase"></canvas>
+      <div class="steuerung">
+        <button type="button" class="knopf-haupt" id="ausfall">⚡ Netzausfall</button>
+        <button type="button" class="knopf" id="abspielen" disabled>▶ Zeit laufen lassen</button>
+        <div class="zeitachse">
+          <input type="range" class="skala" id="zeit" min="0" max="1000" value="0" aria-label="Zeit seit Netzausfall" disabled>
+          <span class="zustand" id="zeittext"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-anlage">
+      <h2 id="h-anlage">Anlage auf einen Blick</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <ul class="nachweise" id="nachweise"></ul>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-anschluss">
+      <div class="kopf-zeile">
+        <div>
+          <h2 id="h-anschluss">Anschluss und Schutz</h2>
+          <div class="gross" id="konzeptName"></div>
+        </div>
+        <span class="urteil" id="schutzUrteil"></span>
+      </div>
+      <h3 class="zwischen">Aufbau vom Netz bis zum Verbraucher</h3>
+      <ol class="aufbau" id="aufbau"></ol>
+      <h3 class="zwischen">Nachweise</h3>
+      <ul class="nachweise" id="schutzNachweise"></ul>
+      <h3 class="zwischen">Hinweise für die Umsetzung</h3>
+      <ul class="hinweisliste" id="hinweise"></ul>
+      <p class="hilfe" style="margin-top:12px">Allgemeine Grundsätze, keine Planung im Einzelfall. Maßgeblich sind die Unterlagen des Herstellers, die TAB des Netzbetreibers und die Normen, u. a. DIN VDE 0100-551, VDE-AR-N 4105 und VDE-AR-E 2510-2.</p>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-notstrom">
+      <div class="kopf-zeile">
+        <div>
+          <h2 id="h-notstrom">Notstrom: Was läuft bei Netzausfall?</h2>
+          <div class="gross" id="laufzeit"></div>
+        </div>
+        <span class="urteil" id="nsUrteil"></span>
+      </div>
+
+      <h3 class="zwischen">Je Phase</h3>
+      <div class="rahmen">
+        <table class="tabelle">
+          <thead><tr><th>Phase</th><th>Dauerlast</th><th>Grenze</th><th>Anlaufspitze</th><th>Grenze</th><th>Bedarf pro Tag</th><th>verfügbar</th><th>Laufzeit</th></tr></thead>
+          <tbody id="phasen"></tbody>
+        </table>
+      </div>
+
+      <h3 class="zwischen">Verbraucher im Notstromkreis</h3>
+      <p class="hilfe">Leistung im Betrieb, Anlauffaktor (Einschaltspitze, z. B. Kühlschrank ≈ 4), Phase und wie viele Stunden am Tag das Gerät wirklich Strom zieht.</p>
+      <div class="rahmen">
+        <table class="tabelle lasten">
+          <thead><tr><th>an</th><th>Gerät</th><th>P in W</th><th>Anlauf ×</th><th>Phase</th><th>h/Tag</th><th>Energie</th><th>Ergebnis</th><th></th></tr></thead>
+          <tbody id="lasten"></tbody>
+        </table>
+      </div>
+      <div class="werkzeug">
+        <select id="vorlage" aria-label="Gerät aus der Liste wählen"></select>
+        <button type="button" class="knopf" id="hinzu">+ Hinzufügen</button>
+        <button type="button" class="knopf" id="verteilen">⇄ Auf Phasen verteilen</button>
+        <button type="button" class="knopf-leise" id="listeZurueck">Beispielliste</button>
+      </div>
+
+      <h3 class="zwischen">Was passt noch dazu?</h3>
+      <p class="hilfe">Geräte aus der Liste, geprüft gegen die Reserve der jeweils besten Phase.</p>
+      <div class="passt" id="passt"></div>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Gesuchtes einfach leer lassen. Ausgerechnete Werte darfst du überschreiben, dann wird von dort aus weitergerechnet. Prozentwerte als Zahl eintragen (90 für 90 %).</p>
+        <div class="zeichenerklaerung"><span><i></i>eingetragen</span><span><i class="ergebnis"></i>ausgerechnet</span></div>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="allesLeeren">Alle Eingaben löschen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte in der Reihenfolge, in der sie sich ergeben.</p>
+        <div id="meldungen"></div>
+        <ol class="weg" id="rechenweg"></ol>
+        <details class="formeln" open>
+          <summary>Formelsammlung</summary>
+          <div class="formelsammlung" id="formelsammlung"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // Speicherkonzepte
+    // ============================================================
+
+    const KONZEPTE = {
+      drei:  { name: '3 × einphasig', kurz: 'je Phase ein Speicher · L1, L2, L3', geraete: 3 },
+      eins3: { name: '1 × dreiphasig', kurz: 'ein Speicher für alle drei Phasen', geraete: 1 },
+      eins1: { name: '1 × einphasig', kurz: 'ein Speicher, ein Notstromkreis (L1)', geraete: 1 },
+      kein:  { name: 'ohne Speicher', kurz: 'nur PV, kein Notstrom', geraete: 0 }
+    };
+    // Voreinstellung wie im typischen Schaltplan: drei einphasige Speicher, Inselbetrieb, Umschalter Netz–0–Not, TT-Netz
+    const einst = { konzept: 'drei', dreh: true, art: 'insel', umschaltung: 'hand', netzform: 'TT', kopplung: 'ac', wr: 'drei', schwarz: false };
+    const ART_NAME = { ohne: 'Ohne Notstrom', not: 'Notstrom aus dem Speicher', insel: 'Ersatzstrom mit Inselbetrieb', dose: 'Notstromsteckdose' };
+    const UMSCHALT_NAME = { hand: 'von Hand (Netz – 0 – Not)', auto: 'automatisch über Schütze', geraet: 'im Speicher' };
+    const LS_STUFEN = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
+    function naechsterLS(I) { return LS_STUFEN.filter(function (x) { return x >= I - 1e-9; })[0] || NaN; }
+    const PHASEN = ['L1', 'L2', 'L3'];
+    const U0 = 230;
+
+
+    // ============================================================
+    // Größen
+    // ============================================================
+
+    const PROZENT = [['%', 1]];
+    const GROESSEN = {
+      Pmod:    { name: 'Modulleistung (STC)',              einheiten: [['Wp', 1]] },
+      nmod:    { name: 'Anzahl Module',                    einheiten: [['Stück', 1]] },
+      Ppv:     { name: 'Generatorleistung',                einheiten: [['kWp', 1]] },
+      Amod:    { name: 'Fläche eines Moduls',              einheiten: [['m²', 1]] },
+      Apv:     { name: 'Modulfläche gesamt',               einheiten: [['m²', 1]] },
+      etaMod:  { name: 'Modulwirkungsgrad',                einheiten: PROZENT },
+      Adach:   { name: 'nutzbare Dachfläche',              einheiten: [['m²', 1]] },
+      nDach:   { name: 'Module, die aufs Dach passen',     einheiten: [['Stück', 1]] },
+      yspez:   { name: 'spezifischer Ertrag (Standort)',   einheiten: [['kWh/kWp', 1]] },
+      fA:      { name: 'Faktor Ausrichtung und Neigung',   einheiten: PROZENT },
+      Epv:     { name: 'PV-Ertrag im Jahr',                einheiten: [['kWh', 1], ['MWh', 1000]] },
+      Ev:      { name: 'Stromverbrauch im Jahr',           einheiten: [['kWh', 1], ['MWh', 1000]] },
+      evq:     { name: 'Eigenverbrauchsquote',             einheiten: PROZENT },
+      Eev:     { name: 'selbst verbrauchter PV-Strom',     einheiten: [['kWh', 1]] },
+      Eein:    { name: 'eingespeister PV-Strom',           einheiten: [['kWh', 1]] },
+      Enetz:   { name: 'Netzbezug im Jahr',                einheiten: [['kWh', 1]] },
+      aut:     { name: 'Autarkiegrad',                     einheiten: PROZENT },
+      kE:      { name: 'Strompreis (Bezug)',               einheiten: [['€/kWh', 1], ['ct/kWh', 0.01]] },
+      kEin:    { name: 'Einspeisevergütung',               einheiten: [['€/kWh', 1], ['ct/kWh', 0.01]] },
+      Ers:     { name: 'Ersparnis und Erlös im Jahr',      einheiten: [['€', 1]] },
+      Inv:     { name: 'Anschaffungskosten',               einheiten: [['€', 1]] },
+      tAm:     { name: 'Amortisationszeit',                einheiten: [['Jahre', 1]] },
+      Uoc:     { name: 'Leerlaufspannung Modul (STC)',     einheiten: [['V', 1]] },
+      Umpp:    { name: 'MPP-Spannung Modul (STC)',         einheiten: [['V', 1]] },
+      Isc:     { name: 'Kurzschlussstrom Modul',           einheiten: [['A', 1]] },
+      TKU:     { name: 'Temperaturkoeffizient der Spannung', einheiten: [['%/K', 1]] },
+      Tmin:    { name: 'tiefste Modultemperatur',          einheiten: [['°C', 1]] },
+      Tmax:    { name: 'höchste Modultemperatur',          einheiten: [['°C', 1]] },
+      UocK:    { name: 'Leerlaufspannung bei Kälte',       einheiten: [['V', 1]] },
+      UmppH:   { name: 'MPP-Spannung bei Hitze',           einheiten: [['V', 1]] },
+      UmppK:   { name: 'MPP-Spannung bei Kälte',           einheiten: [['V', 1]] },
+      UDCmax:  { name: 'max. DC-Eingangsspannung WR',      einheiten: [['V', 1]] },
+      UMPPmin: { name: 'untere MPP-Grenze WR',             einheiten: [['V', 1]] },
+      UMPPmax: { name: 'obere MPP-Grenze WR',              einheiten: [['V', 1]] },
+      nmaxS:   { name: 'höchstens Module je String',       einheiten: [['Stück', 1]] },
+      nmaxM:   { name: 'höchstens (MPP-Bereich)',          einheiten: [['Stück', 1]] },
+      nminS:   { name: 'mindestens Module je String',      einheiten: [['Stück', 1]] },
+      nS:      { name: 'Module je String',                 einheiten: [['Stück', 1]] },
+      nStr:    { name: 'Anzahl Strings',                   einheiten: [['Stück', 1]] },
+      UstrK:   { name: 'Stringspannung bei Kälte',         einheiten: [['V', 1]] },
+      IWRmax:  { name: 'max. Eingangsstrom je MPP-Tracker', einheiten: [['A', 1]] },
+      nSp:     { name: 'Anzahl Speicher',                  einheiten: [['Stück', 1]] },
+      CSp:     { name: 'Kapazität je Speicher (brutto)',   einheiten: [['kWh', 1]] },
+      DoD:     { name: 'nutzbare Entladetiefe',            einheiten: PROZENT },
+      Cnutz:   { name: 'nutzbare Kapazität je Speicher',   einheiten: [['kWh', 1]] },
+      Cges:    { name: 'nutzbare Kapazität gesamt',        einheiten: [['kWh', 1]] },
+      PSp:     { name: 'Lade-/Entladeleistung je Speicher', einheiten: [['kW', 1]] },
+      PSpges:  { name: 'Lade-/Entladeleistung gesamt',     einheiten: [['kW', 1]] },
+      PNS:     { name: 'Notstrom-Dauerleistung je Speicher', einheiten: [['W', 1], ['kW', 1000]] },
+      kSp:     { name: 'Überlastfaktor (kurzzeitig)',      einheiten: [['–', 1]] },
+      Pspitze: { name: 'Spitzenleistung je Speicher',      einheiten: [['W', 1], ['kW', 1000]] },
+      INS:     { name: 'Notstrom-Strom je Phase',          einheiten: [['A', 1]] },
+      SOC:     { name: 'Ladestand bei Netzausfall',        einheiten: PROZENT },
+      etaNS:   { name: 'Wirkungsgrad Entladen',            einheiten: PROZENT },
+      WNS:     { name: 'Notstrom-Energie je Speicher',     einheiten: [['kWh', 1]] },
+      WNSges:  { name: 'Notstrom-Energie gesamt',          einheiten: [['kWh', 1]] },
+      PVnach:  { name: 'PV-Nachladung im Inselbetrieb',    einheiten: [['kWh/Tag', 1]] },
+      PWR:     { name: 'AC-Leistung PV-Wechselrichter',     einheiten: [['kVA', 1]] },
+      IWR:     { name: 'Strom des PV-Wechselrichters',      einheiten: [['A', 1]] },
+      InWR:    { name: 'LS für den PV-Wechselrichter',      einheiten: [['A', 1]] },
+      ISp:     { name: 'Strom je Speicher',                 einheiten: [['A', 1]] },
+      InSp:    { name: 'LS je Speicher',                    einheiten: [['A', 1]] },
+      kIk:     { name: 'Kurzschlussfaktor im Inselbetrieb', einheiten: [['–', 1]] },
+      IkI:     { name: 'Kurzschlussstrom im Inselnetz',     einheiten: [['A', 1]] },
+      InNS:    { name: 'größter LS im Notstromkreis',       einheiten: [['A', 1]] },
+      mNS:     { name: 'Auslösefaktor dieses LS (B = 5)',   einheiten: [['–', 1]] },
+      IaNS:    { name: 'Abschaltstrom dieses LS',           einheiten: [['A', 1]] },
+      RA:      { name: 'Erdungswiderstand (Anlagenerder)',  einheiten: [['Ω', 1]] },
+      IdN:     { name: 'Bemessungsfehlerstrom RCD',         einheiten: [['mA', 0.001], ['A', 1]] },
+      RAmax:   { name: 'höchster zulässiger Erdungswiderstand', einheiten: [['Ω', 1]] },
+      tU:      { name: 'Umschaltzeit',                      einheiten: [['s', 1], ['ms', 0.001]] }
+    };
+
+    const GRUPPEN = [
+      { titel: 'PV-Generator', farbe: '#F2A541', felder: ['Pmod', 'nmod', 'Ppv', 'Amod', 'Apv', 'etaMod', 'Adach', 'nDach'] },
+      { titel: 'Ertrag und Verbrauch', farbe: '#E4572E', felder: ['yspez', 'fA', 'Epv', 'Ev', 'evq', 'Eev', 'Eein', 'Enetz', 'aut'] },
+      { titel: 'Wirtschaftlichkeit', farbe: 'var(--text)', felder: ['kE', 'kEin', 'Ers', 'Inv', 'tAm'] },
+      { titel: 'Strings und Wechselrichter', farbe: '#2B7BB9', felder: ['Uoc', 'Umpp', 'Isc', 'TKU', 'Tmin', 'Tmax', 'UocK', 'UmppH', 'UmppK', 'UDCmax', 'UMPPmin', 'UMPPmax', 'nmaxS', 'nmaxM', 'nminS', 'nS', 'nStr', 'UstrK', 'IWRmax'] },
+      { titel: 'Speicher', farbe: '#0E6B6A', felder: ['nSp', 'CSp', 'DoD', 'Cnutz', 'Cges', 'PSp', 'PSpges'] },
+      { titel: 'Notstrom', farbe: '#C0392B', felder: ['PNS', 'kSp', 'Pspitze', 'INS', 'SOC', 'etaNS', 'WNS', 'WNSges', 'PVnach'] },
+      { titel: 'Anschluss und Schutz', farbe: '#6E6FA6', felder: ['PWR', 'IWR', 'InWR', 'ISp', 'InSp', 'kIk', 'IkI', 'InNS', 'mNS', 'IaNS', 'RA', 'IdN', 'RAmax', 'tU'] }
+    ];
+
+    const TEX = {
+      Pmod: 'P_\\text{Modul}', nmod: 'n_\\text{Modul}', Ppv: 'P_\\text{PV}', Amod: 'A_\\text{Modul}', Apv: 'A_\\text{PV}', etaMod: '\\eta_\\text{Modul}',
+      Adach: 'A_\\text{Dach}', nDach: 'n_\\text{Dach}', yspez: 'y_\\text{spez}', fA: 'f_\\text{A}', Epv: 'E_\\text{PV}', Ev: 'E_\\text{V}',
+      evq: 'q_\\text{EV}', Eev: 'E_\\text{EV}', Eein: 'E_\\text{Ein}', Enetz: 'E_\\text{Netz}', aut: 'a', kE: 'k_\\text{E}', kEin: 'k_\\text{Ein}',
+      Ers: 'K_\\text{Jahr}', Inv: 'K_\\text{Inv}', tAm: 't_\\text{A}', Uoc: 'U_\\text{OC}', Umpp: 'U_\\text{MPP}', Isc: 'I_\\text{SC}', TKU: '\\mathit{TK}_U',
+      Tmin: '\\vartheta_\\text{min}', Tmax: '\\vartheta_\\text{max}', UocK: 'U_\\text{OC,kalt}', UmppH: 'U_\\text{MPP,warm}', UmppK: 'U_\\text{MPP,kalt}',
+      UDCmax: 'U_\\text{DC,max}', UMPPmin: 'U_\\text{MPP,min}', UMPPmax: 'U_\\text{MPP,max}', nmaxS: 'n_\\text{max}', nmaxM: 'n_\\text{max,MPP}',
+      nminS: 'n_\\text{min}', nS: 'n_\\text{S}', nStr: 'n_\\text{Str}', UstrK: 'U_\\text{Str,kalt}', IWRmax: 'I_\\text{WR,max}',
+      nSp: 'n_\\text{Sp}', CSp: 'C_\\text{Sp}', DoD: '\\mathit{DoD}', Cnutz: 'C_\\text{nutz}', Cges: 'C_\\text{ges}', PSp: 'P_\\text{Sp}', PSpges: 'P_\\text{Sp,ges}',
+      PNS: 'P_\\text{NS}', kSp: 'k_\\text{Spitze}', Pspitze: 'P_\\text{Spitze}', INS: 'I_\\text{NS}', SOC: '\\mathit{SOC}', etaNS: '\\eta_\\text{Ent}',
+      WNS: 'W_\\text{NS}', WNSges: 'W_\\text{NS,ges}', PVnach: 'W_\\text{PV,Insel}',
+      PWR: 'S_\\text{WR}', IWR: 'I_\\text{WR}', InWR: 'I_\\text{n,WR}', ISp: 'I_\\text{Sp}', InSp: 'I_\\text{n,Sp}', kIk: 'k_\\text{K}',
+      IkI: 'I_\\text{k,Insel}', InNS: 'I_\\text{n,NS}', mNS: 'm', IaNS: 'I_\\text{a}', RA: 'R_\\text{A}', IdN: 'I_{\\Delta\\text{n}}',
+      RAmax: 'R_\\text{A,max}', tU: 't_\\text{U}'
+    };
+
+    const KWH_A = '\\tfrac{\\text{kWh}}{\\text{a}}', EUR_KWH = '\\tfrac{\\text{€}}{\\text{kWh}}';
+    const TEX_EINHEIT = {
+      Pmod: '\\text{Wp}', nmod: '', Ppv: '\\text{kWp}', Amod: '\\text{m}^2', Apv: '\\text{m}^2', etaMod: '\\%', Adach: '\\text{m}^2', nDach: '',
+      yspez: '\\tfrac{\\text{kWh}}{\\text{kWp}\\cdot\\text{a}}', fA: '\\%', Epv: KWH_A, Ev: KWH_A, evq: '\\%', Eev: KWH_A, Eein: KWH_A, Enetz: KWH_A, aut: '\\%',
+      kE: EUR_KWH, kEin: EUR_KWH, Ers: '\\tfrac{\\text{€}}{\\text{a}}', Inv: '\\text{€}', tAm: '\\text{a}',
+      Uoc: '\\text{V}', Umpp: '\\text{V}', Isc: '\\text{A}', TKU: '\\tfrac{\\%}{\\text{K}}', Tmin: '{}^\\circ\\text{C}', Tmax: '{}^\\circ\\text{C}',
+      UocK: '\\text{V}', UmppH: '\\text{V}', UmppK: '\\text{V}', UDCmax: '\\text{V}', UMPPmin: '\\text{V}', UMPPmax: '\\text{V}',
+      nmaxS: '', nmaxM: '', nminS: '', nS: '', nStr: '', UstrK: '\\text{V}', IWRmax: '\\text{A}',
+      nSp: '', CSp: '\\text{kWh}', DoD: '\\%', Cnutz: '\\text{kWh}', Cges: '\\text{kWh}', PSp: '\\text{kW}', PSpges: '\\text{kW}',
+      PNS: '\\text{W}', kSp: '', Pspitze: '\\text{W}', INS: '\\text{A}', SOC: '\\%', etaNS: '\\%', WNS: '\\text{kWh}', WNSges: '\\text{kWh}',
+      PVnach: '\\tfrac{\\text{kWh}}{\\text{Tag}}',
+      PWR: '\\text{kVA}', IWR: '\\text{A}', InWR: '\\text{A}', ISp: '\\text{A}', InSp: '\\text{A}', kIk: '', IkI: '\\text{A}', InNS: '\\text{A}',
+      mNS: '', IaNS: '\\text{A}', RA: '\\Omega', IdN: '\\text{A}', RAmax: '\\Omega', tU: '\\text{s}'
+    };
+
+
+    // ============================================================
+    // Gleichungen
+    // ============================================================
+
+    const GLEICHUNGEN = [];
+    function gl(def) { GLEICHUNGEN.push(def); }
+    const nz = function (x) { return Math.abs(x) < 1e-12 ? NaN : x; };
+
+    // a = b · c / d  in alle Richtungen (Produktgleichung mit festem Teiler)
+    function produkt(titel, thema, ziel, faktoren, teiler, teilerTex) {
+      const t = teiler || 1, tt = teilerTex ? '\\frac{' : '', tz = teilerTex ? '}{' + teilerTex + '}' : '';
+      const formel = '@' + ziel + ' = ' + tt + faktoren.map(function (f) { return '@' + f; }).join(' \\cdot ') + tz;
+      const loese = {};
+      loese[ziel] = { tex: tt + faktoren.map(function (f) { return '@' + f; }).join(' \\cdot ') + tz,
+                      rechne: function (v) { return faktoren.reduce(function (p, f) { return p * v[f]; }, 1) / t; } };
+      faktoren.forEach(function (f) {
+        const andere = faktoren.filter(function (x) { return x !== f; });
+        loese[f] = { tex: '\\frac{@' + ziel + (teilerTex ? ' \\cdot ' + teilerTex : '') + '}{' + (andere.length ? andere.map(function (x) { return '@' + x; }).join(' \\cdot ') : '1') + '}',
+                     rechne: function (v) { return v[ziel] * t / nz(andere.reduce(function (p, x) { return p * v[x]; }, 1)); } };
+      });
+      gl({ titel: titel, thema: thema, formel: formel, loese: loese });
+    }
+
+    // --- PV-Generator ---
+    produkt('Generatorleistung', 'pv', 'Ppv', ['nmod', 'Pmod'], 1000, '1000\\,\\tfrac{\\text{W}}{\\text{kW}}');
+    produkt('Modulfläche gesamt', 'pv', 'Apv', ['nmod', 'Amod']);
+    gl({ titel: 'Modulwirkungsgrad (bei 1000 W/m²)', thema: 'pv', formel: '@etaMod = \\frac{@Pmod}{@Amod \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{m}^2}} \\cdot 100\\,\\%', loese: {
+      etaMod: { tex: '\\frac{@Pmod}{@Amod \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{m}^2}} \\cdot 100\\,\\%', rechne: function (v) { return v.Pmod / (v.Amod * 1000) * 100; } },
+      Pmod:   { tex: '\\frac{@etaMod}{100\\,\\%} \\cdot @Amod \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{m}^2}', rechne: function (v) { return v.etaMod / 100 * v.Amod * 1000; } },
+      Amod:   { tex: '\\frac{@Pmod \\cdot 100\\,\\%}{@etaMod \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{m}^2}}', rechne: function (v) { return v.Pmod * 100 / nz(v.etaMod * 1000); } } } });
+
+    // --- Ertrag und Verbrauch ---
+    produkt('PV-Ertrag im Jahr', 'ertrag', 'Epv', ['Ppv', 'yspez', 'fA'], 100, '100\\,\\%');
+    produkt('Selbst verbrauchter PV-Strom', 'ertrag', 'Eev', ['Epv', 'evq'], 100, '100\\,\\%');
+    gl({ titel: 'Eingespeister PV-Strom', thema: 'ertrag', formel: '@Eein = @Epv - @Eev', loese: {
+      Eein: { tex: '@Epv - @Eev', rechne: function (v) { return v.Epv - v.Eev; } },
+      Epv:  { tex: '@Eein + @Eev', rechne: function (v) { return v.Eein + v.Eev; } },
+      Eev:  { tex: '@Epv - @Eein', rechne: function (v) { return v.Epv - v.Eein; } } } });
+    gl({ titel: 'Netzbezug', thema: 'ertrag', formel: '@Enetz = @Ev - @Eev', loese: {
+      Enetz: { tex: '@Ev - @Eev',    rechne: function (v) { return v.Ev - v.Eev; } },
+      Ev:    { tex: '@Enetz + @Eev', rechne: function (v) { return v.Enetz + v.Eev; } },
+      Eev:   { tex: '@Ev - @Enetz',  rechne: function (v) { return v.Ev - v.Enetz; } } } });
+    gl({ titel: 'Autarkiegrad', thema: 'ertrag', formel: '@aut = \\frac{@Eev}{@Ev} \\cdot 100\\,\\%', loese: {
+      aut: { tex: '\\frac{@Eev}{@Ev} \\cdot 100\\,\\%',    rechne: function (v) { return v.Eev / v.Ev * 100; } },
+      Eev: { tex: '\\frac{@aut \\cdot @Ev}{100\\,\\%}',    rechne: function (v) { return v.aut * v.Ev / 100; } },
+      Ev:  { tex: '\\frac{@Eev \\cdot 100\\,\\%}{@aut}',   rechne: function (v) { return v.Eev * 100 / nz(v.aut); } } } });
+
+    // --- Wirtschaftlichkeit ---
+    gl({ titel: 'Ersparnis und Erlös im Jahr', thema: 'geld', formel: '@Ers = @Eev \\cdot @kE + @Eein \\cdot @kEin', loese: {
+      Ers:  { tex: '@Eev \\cdot @kE + @Eein \\cdot @kEin',      rechne: function (v) { return v.Eev * v.kE + v.Eein * v.kEin; } },
+      kE:   { tex: '\\frac{@Ers - @Eein \\cdot @kEin}{@Eev}',   rechne: function (v) { return (v.Ers - v.Eein * v.kEin) / nz(v.Eev); } },
+      kEin: { tex: '\\frac{@Ers - @Eev \\cdot @kE}{@Eein}',     rechne: function (v) { return (v.Ers - v.Eev * v.kE) / nz(v.Eein); } } } });
+    gl({ titel: 'Amortisationszeit (ohne Zinsen und Preisänderung)', thema: 'geld', formel: '@tAm = \\frac{@Inv}{@Ers}', loese: {
+      tAm: { tex: '\\frac{@Inv}{@Ers}', rechne: function (v) { return v.Inv / nz(v.Ers); } },
+      Inv: { tex: '@tAm \\cdot @Ers',   rechne: function (v) { return v.tAm * v.Ers; } },
+      Ers: { tex: '\\frac{@Inv}{@tAm}', rechne: function (v) { return v.Inv / nz(v.tAm); } } } });
+
+    // --- Strings: Spannung ändert sich mit der Temperatur ---
+    function temperaturGl(titel, ziel, basis, temp) {
+      const f = function (v) { return 1 + v.TKU / 100 * (v[temp] - 25); };
+      const loese = {};
+      loese[ziel] = { tex: '@' + basis + ' \\cdot \\left(1 + \\frac{@TKU}{100\\,\\%} \\cdot (@' + temp + ' - 25\\,{}^\\circ\\text{C})\\right)', rechne: function (v) { return v[basis] * f(v); } };
+      loese[basis] = { tex: '\\frac{@' + ziel + '}{1 + \\frac{@TKU}{100\\,\\%} \\cdot (@' + temp + ' - 25\\,{}^\\circ\\text{C})}', rechne: function (v) { return v[ziel] / nz(f(v)); } };
+      loese[temp] = { tex: '25\\,{}^\\circ\\text{C} + \\left(\\frac{@' + ziel + '}{@' + basis + '} - 1\\right) \\cdot \\frac{100\\,\\%}{@TKU}', rechne: function (v) { return 25 + (v[ziel] / v[basis] - 1) * 100 / nz(v.TKU); } };
+      gl({ titel: titel, thema: 'string', formel: '@' + ziel + ' = @' + basis + ' \\cdot \\left(1 + \\frac{@TKU}{100\\,\\%} \\cdot (@' + temp + ' - 25\\,{}^\\circ\\text{C})\\right)', loese: loese });
+    }
+    temperaturGl('Leerlaufspannung bei tiefster Temperatur', 'UocK', 'Uoc', 'Tmin');
+    temperaturGl('MPP-Spannung bei höchster Temperatur', 'UmppH', 'Umpp', 'Tmax');
+    temperaturGl('MPP-Spannung bei tiefster Temperatur', 'UmppK', 'Umpp', 'Tmin');
+    produkt('Stringspannung bei Kälte (Leerlauf)', 'string', 'UstrK', ['nS', 'UocK']);
+    gl({ titel: 'Anzahl Strings', thema: 'string', formel: '@nStr = \\frac{@nmod}{@nS}', loese: {
+      nStr: { tex: '\\frac{@nmod}{@nS}',  rechne: function (v) { return v.nmod / nz(v.nS); } },
+      nmod: { tex: '@nStr \\cdot @nS',    rechne: function (v) { return v.nStr * v.nS; } },
+      nS:   { tex: '\\frac{@nmod}{@nStr}', rechne: function (v) { return v.nmod / nz(v.nStr); } } } });
+
+    // --- Speicher ---
+    produkt('Nutzbare Kapazität je Speicher', 'speicher', 'Cnutz', ['CSp', 'DoD'], 100, '100\\,\\%');
+    produkt('Nutzbare Kapazität gesamt', 'speicher', 'Cges', ['nSp', 'Cnutz']);
+    produkt('Speicherleistung gesamt', 'speicher', 'PSpges', ['nSp', 'PSp']);
+
+    // --- Notstrom ---
+    produkt('Spitzenleistung (kurzzeitig, z. B. beim Anlaufen)', 'notstrom', 'Pspitze', ['PNS', 'kSp']);
+    gl({ titel: 'Notstrom-Strom je Phase', thema: 'notstrom', formel: '@INS = \\frac{@PNS}{U_0} \\quad (U_0 = 230\\,\\text{V})', loese: {
+      INS: { tex: '\\frac{@PNS}{230\\,\\text{V}}', rechne: function (v) { return v.PNS / U0; } },
+      PNS: { tex: '@INS \\cdot 230\\,\\text{V}',   rechne: function (v) { return v.INS * U0; } } } });
+    gl({ titel: 'Verfügbare Notstrom-Energie je Speicher', thema: 'notstrom', formel: '@WNS = @Cnutz \\cdot \\frac{@SOC}{100\\,\\%} \\cdot \\frac{@etaNS}{100\\,\\%}', loese: {
+      WNS:   { tex: '@Cnutz \\cdot \\frac{@SOC}{100\\,\\%} \\cdot \\frac{@etaNS}{100\\,\\%}', rechne: function (v) { return v.Cnutz * v.SOC / 100 * v.etaNS / 100; } },
+      Cnutz: { tex: '\\frac{@WNS}{\\frac{@SOC}{100\\,\\%} \\cdot \\frac{@etaNS}{100\\,\\%}}',  rechne: function (v) { return v.WNS / nz(v.SOC / 100 * v.etaNS / 100); } },
+      SOC:   { tex: '\\frac{@WNS \\cdot 100\\,\\%}{@Cnutz \\cdot \\frac{@etaNS}{100\\,\\%}}',  rechne: function (v) { return v.WNS * 100 / nz(v.Cnutz * v.etaNS / 100); } },
+      etaNS: { tex: '\\frac{@WNS \\cdot 100\\,\\%}{@Cnutz \\cdot \\frac{@SOC}{100\\,\\%}}',    rechne: function (v) { return v.WNS * 100 / nz(v.Cnutz * v.SOC / 100); } } } });
+    produkt('Notstrom-Energie gesamt', 'notstrom', 'WNSges', ['nSp', 'WNS']);
+
+    // --- Anschluss und Schutz ---
+    gl({ titel: 'Strom des PV-Wechselrichters (dreiphasig)', thema: 'schutz', nur: function () { return einst.wr === 'drei'; },
+      formel: '@IWR = \\frac{@PWR}{\\sqrt{3} \\cdot 400\\,\\text{V}}', loese: {
+      IWR: { tex: '\\frac{@PWR \\cdot 1000\\,\\tfrac{\\text{VA}}{\\text{kVA}}}{\\sqrt{3} \\cdot 400\\,\\text{V}}', rechne: function (v) { return v.PWR * 1000 / (Math.sqrt(3) * 400); } },
+      PWR: { tex: '\\frac{\\sqrt{3} \\cdot 400\\,\\text{V} \\cdot @IWR}{1000\\,\\tfrac{\\text{VA}}{\\text{kVA}}}', rechne: function (v) { return Math.sqrt(3) * 400 * v.IWR / 1000; } } } });
+    gl({ titel: 'Strom des PV-Wechselrichters (einphasig)', thema: 'schutz', nur: function () { return einst.wr === 'eins'; },
+      formel: '@IWR = \\frac{@PWR}{230\\,\\text{V}}', loese: {
+      IWR: { tex: '\\frac{@PWR \\cdot 1000\\,\\tfrac{\\text{VA}}{\\text{kVA}}}{230\\,\\text{V}}', rechne: function (v) { return v.PWR * 1000 / 230; } },
+      PWR: { tex: '\\frac{230\\,\\text{V} \\cdot @IWR}{1000\\,\\tfrac{\\text{VA}}{\\text{kVA}}}', rechne: function (v) { return 230 * v.IWR / 1000; } } } });
+    gl({ titel: 'Strom je Speicher', thema: 'schutz', nur: function () { return einst.konzept !== 'eins3'; },
+      formel: '@ISp = \\frac{@PSp}{230\\,\\text{V}}', loese: {
+      ISp: { tex: '\\frac{@PSp \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{kW}}}{230\\,\\text{V}}', rechne: function (v) { return v.PSp * 1000 / 230; } },
+      PSp: { tex: '\\frac{230\\,\\text{V} \\cdot @ISp}{1000\\,\\tfrac{\\text{W}}{\\text{kW}}}', rechne: function (v) { return 230 * v.ISp / 1000; } } } });
+    gl({ titel: 'Strom je Phase (dreiphasiger Speicher)', thema: 'schutz', nur: function () { return einst.konzept === 'eins3'; },
+      formel: '@ISp = \\frac{@PSp}{\\sqrt{3} \\cdot 400\\,\\text{V}}', loese: {
+      ISp: { tex: '\\frac{@PSp \\cdot 1000\\,\\tfrac{\\text{W}}{\\text{kW}}}{\\sqrt{3} \\cdot 400\\,\\text{V}}', rechne: function (v) { return v.PSp * 1000 / (Math.sqrt(3) * 400); } },
+      PSp: { tex: '\\frac{\\sqrt{3} \\cdot 400\\,\\text{V} \\cdot @ISp}{1000\\,\\tfrac{\\text{W}}{\\text{kW}}}', rechne: function (v) { return Math.sqrt(3) * 400 * v.ISp / 1000; } } } });
+    produkt('Kurzschlussstrom im Inselnetz (vom Wechselrichter begrenzt)', 'schutz', 'IkI', ['kIk', 'INS']);
+    produkt('Abschaltstrom des LS im Notstromkreis', 'schutz', 'IaNS', ['mNS', 'InNS']);
+    gl({ titel: 'Höchster Erdungswiderstand im TT-Netz', thema: 'schutz', formel: '@RAmax = \\frac{50\\,\\text{V}}{@IdN}', loese: {
+      RAmax: { tex: '\\frac{50\\,\\text{V}}{@IdN}',   rechne: function (v) { return 50 / nz(v.IdN); } },
+      IdN:   { tex: '\\frac{50\\,\\text{V}}{@RAmax}', rechne: function (v) { return 50 / nz(v.RAmax); } } } });
+
+    function einsetzen(vorlage, ersetze) { return vorlage.replace(/@(\w+)/g, function (_, k) { return ersetze(k); }); }
+    GLEICHUNGEN.forEach(function (g) { g.groessen = Object.keys(g.loese); g.tex = einsetzen(g.formel, function (k) { return TEX[k]; }); });
+
+    // Regeln mit Auf- oder Abrunden: gehen nur in eine Richtung, laufen nach den Gleichungen
+    const REGELN = [
+      { ziel: 'InSp', titel: 'LS je Speicher: nächste Normstufe über dem Strom', braucht: ['ISp'],
+        wert: function (w) { return naechsterLS(w.ISp); }, zeilen: function (w) { return ['I_\\text{n,Sp} \\ge I_\\text{Sp} = ' + tw('ISp', w)]; } },
+      { ziel: 'InWR', titel: 'LS für den PV-Wechselrichter: nächste Normstufe', braucht: ['IWR'],
+        wert: function (w) { return naechsterLS(w.IWR); }, zeilen: function (w) { return ['I_\\text{n,WR} \\ge I_\\text{WR} = ' + tw('IWR', w)]; } },
+      { ziel: 'nSp', titel: 'Anzahl Speicher aus dem Konzept', geht: function (w) { return true; },
+        wert: function () { return KONZEPTE[einst.konzept].geraete; }, zeilen: function () { return ['\\text{' + KONZEPTE[einst.konzept].name + '}']; } },
+      { ziel: 'nDach', titel: 'Module, die auf die Dachfläche passen (abgerundet)', braucht: ['Adach', 'Amod'],
+        wert: function (w) { return Math.floor(w.Adach / w.Amod + 1e-9); },
+        zeilen: function (w) { return ['n_\\text{Dach} = \\left\\lfloor \\frac{' + tw('Adach', w) + '}{' + tw('Amod', w) + '} \\right\\rfloor'] } },
+      { ziel: 'nmaxS', titel: 'Höchstzahl Module je String (Leerlauf bei Kälte, abgerundet)', braucht: ['UDCmax', 'UocK'],
+        wert: function (w) { return Math.floor(w.UDCmax / w.UocK + 1e-9); },
+        zeilen: function (w) { return ['n_\\text{max} = \\left\\lfloor \\frac{U_\\text{DC,max}}{U_\\text{OC,kalt}} \\right\\rfloor = \\left\\lfloor \\frac{' + tw('UDCmax', w) + '}{' + tw('UocK', w) + '} \\right\\rfloor']; } },
+      { ziel: 'nmaxM', titel: 'Höchstzahl im MPP-Bereich (abgerundet)', braucht: ['UMPPmax', 'UmppK'],
+        wert: function (w) { return Math.floor(w.UMPPmax / w.UmppK + 1e-9); },
+        zeilen: function (w) { return ['n_\\text{max,MPP} = \\left\\lfloor \\frac{U_\\text{MPP,max}}{U_\\text{MPP,kalt}} \\right\\rfloor = \\left\\lfloor \\frac{' + tw('UMPPmax', w) + '}{' + tw('UmppK', w) + '} \\right\\rfloor']; } },
+      { ziel: 'nminS', titel: 'Mindestzahl Module je String (MPP bei Hitze, aufgerundet)', braucht: ['UMPPmin', 'UmppH'],
+        wert: function (w) { return Math.ceil(w.UMPPmin / w.UmppH - 1e-9); },
+        zeilen: function (w) { return ['n_\\text{min} = \\left\\lceil \\frac{U_\\text{MPP,min}}{U_\\text{MPP,warm}} \\right\\rceil = \\left\\lceil \\frac{' + tw('UMPPmin', w) + '}{' + tw('UmppH', w) + '} \\right\\rceil']; } },
+      { ziel: 'nS', titel: 'Vorschlag: Module gleichmäßig auf möglichst wenige Strings verteilen', braucht: ['nmod', 'nmaxS'],
+        wert: function (w) {
+          const grenze = Math.min(w.nmaxS, hat(w, 'nmaxM') ? w.nmaxM : Infinity), unten = hat(w, 'nminS') ? w.nminS : 1;
+          if (grenze < unten) return NaN;
+          for (let s = Math.ceil(w.nmod / grenze); s <= w.nmod; s++) {
+            const je = w.nmod / s;
+            if (Math.abs(je - Math.round(je)) < 1e-9 && je <= grenze && je >= unten) return je;
+          }
+          return NaN;
+        },
+        zeilen: function (w) { return ['n_\\text{min} \\le n_\\text{S} \\le n_\\text{max}, \\quad n_\\text{Modul} = ' + texZahl(w.nmod) + ' \\text{ gleichmäßig verteilt}']; } }
+    ];
+    function tw(k, w) { return texWert(k, w); }
+
+    const THEMEN = [
+      { id: 'pv', titel: 'PV-Generator' }, { id: 'ertrag', titel: 'Ertrag, Eigenverbrauch und Autarkie' }, { id: 'geld', titel: 'Wirtschaftlichkeit' },
+      { id: 'string', titel: 'Strings und Wechselrichter' }, { id: 'speicher', titel: 'Speicher' }, { id: 'notstrom', titel: 'Notstrom' }, { id: 'schutz', titel: 'Anschluss und Schutz' }
+    ];
+
+    const REGELN_TEX = [
+      ['Strings', 'n_\\text{min} = \\left\\lceil \\frac{U_\\text{MPP,min}}{U_\\text{MPP,warm}} \\right\\rceil \\le n_\\text{S} \\le n_\\text{max} = \\left\\lfloor \\frac{U_\\text{DC,max}}{U_\\text{OC,kalt}} \\right\\rfloor'],
+      ['Strings', 'I_\\text{SC} \\cdot n_\\text{parallel} \\le I_\\text{WR,max}'],
+      ['Notstrom', '\\sum P_\\text{Last,Phase} \\le P_\\text{NS} \\qquad \\sum P_\\text{Last} + \\max\\left(P_i \\cdot (k_i - 1)\\right) \\le P_\\text{Spitze}'],
+      ['Notstrom', 'W_\\text{Tag} = \\sum P_i \\cdot t_i \\qquad t_\\text{Notstrom} = \\frac{W_\\text{NS}}{W_\\text{Tag} - W_\\text{PV,Insel}} \\cdot 24\\,\\text{h}'],
+      ['Notstrom', '\\text{3 einphasige Speicher: jede Phase hat nur ihren eigenen Speicher}'],
+      ['Schutz', '\\text{Schieflast: } \\max(S_\\text{Phase}) - \\min(S_\\text{Phase}) \\le 4{,}6\\,\\text{kVA}'],
+      ['Schutz', 'I_\\text{k,Insel} = k_\\text{K} \\cdot I_\\text{NS} \\ge I_\\text{a} = m \\cdot I_\\text{n} \\quad \\text{sonst Fehlerschutz über RCD}'],
+      ['Schutz', '\\text{TT-Netz: } R_\\text{A} \\cdot I_{\\Delta\\text{n}} \\le 50\\,\\text{V}'],
+      ['Schutz', '\\text{Inselbetrieb (AC): } S_\\text{WR} \\le P_\\text{Sp,ges}'],
+      ['Faustwerte', 'C_\\text{nutz} \\approx 1\\,\\text{kWh je } 1000\\,\\tfrac{\\text{kWh}}{\\text{a}} \\text{ Verbrauch} \\qquad C_\\text{nutz} \\le 1{,}5\\,\\tfrac{\\text{kWh}}{\\text{kWp}}'],
+      ['Faustwerte', 'q_\\text{EV} \\approx 25 \\ldots 35\\,\\% \\text{ ohne, } 50 \\ldots 70\\,\\% \\text{ mit Speicher} \\qquad y_\\text{spez} \\approx 850 \\ldots 1100\\,\\tfrac{\\text{kWh}}{\\text{kWp}\\cdot\\text{a}}']
+    ];
+
+
+    // ============================================================
+    // Verbraucher für den Notstrom
+    // ============================================================
+
+    const VORLAGEN = [
+      ['Kühlschrank', 120, 4, 8], ['Gefrierschrank', 150, 4, 8], ['Heizung (Regelung, Pumpe)', 100, 2, 24], ['Router und WLAN', 20, 1, 24],
+      ['LED-Beleuchtung', 100, 1, 5], ['Fernseher', 120, 1, 4], ['Laptop', 65, 1, 6], ['Handy laden', 15, 1, 3], ['Wasserkocher', 2000, 1, 0.2],
+      ['Kaffeemaschine', 1000, 1, 0.3], ['Mikrowelle', 1200, 1.3, 0.3], ['Waschmaschine', 2200, 1.5, 1], ['Föhn', 1800, 1, 0.2], ['Heizlüfter', 2000, 1, 4],
+      ['Hebeanlage / Tauchpumpe', 800, 3, 1], ['Garagentor', 400, 3, 0.1], ['Aquarium', 150, 1, 24], ['Wärmepumpe', 3000, 3, 10, '3~'],
+      ['Elektroherd', 7000, 1, 1, '3~'], ['Durchlauferhitzer', 21000, 1, 0.5, '3~'], ['Wallbox', 11000, 1, 4, '3~']
+    ];
+
+    let naechsteId = 1;
+    function last(name, P, k, phase, h, an) { return { id: naechsteId++, name: name, P: P, k: k, phase: phase, h: h, an: an !== false }; }
+    function beispielListe() {
+      return [last('Kühlschrank', 120, 4, 'L1', 8), last('Gefrierschrank', 150, 4, 'L2', 8), last('Heizung (Regelung, Pumpe)', 100, 2, 'L3', 24),
+              last('Router und WLAN', 20, 1, 'L1', 24), last('LED-Beleuchtung', 100, 1, 'L2', 5), last('Fernseher', 120, 1, 'L3', 4),
+              last('Wasserkocher', 2000, 1, 'L1', 0.2), last('Waschmaschine', 2200, 1.5, 'L2', 1, false), last('Wärmepumpe', 3000, 3, '3~', 10, false)];
+    }
+    let lasten = beispielListe();
+
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+
+    function zahl(wert, stellen) {
+      if (!isFinite(wert)) return '–';
+      if (Math.abs(wert) < 1e-10) return '0';
+      const gueltig = stellen || 4;
+      const groesse = Math.floor(Math.log10(Math.abs(wert))) + 1;
+      const nachkomma = Math.max(0, Math.min(6, gueltig - groesse));
+      let text = wert.toFixed(nachkomma);
+      if (text.indexOf('.') >= 0) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      const teile = text.split('.');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',').replace('-', '−');
+    }
+
+    function euro(w) { return isFinite(w) ? w.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €' : '–'; }
+    function watt(w) { return !isFinite(w) ? '?' : Math.abs(w) >= 1000 ? zahl(w / 1000, 3) + ' kW' : zahl(w, 3) + ' W'; }
+    function kwh(w) { return !isFinite(w) ? '?' : Math.abs(w) < 1 ? zahl(w * 1000, 3) + ' Wh' : zahl(w, 3) + ' kWh'; }
+    function dauer(h) {
+      if (!isFinite(h)) return 'unbegrenzt';
+      if (h < 1) return Math.round(h * 60) + ' min';
+      if (h < 48) { const s = Math.floor(h), m = Math.round((h - s) * 60); return s + ' h' + (m ? ' ' + m + ' min' : ''); }
+      const gesamt = Math.round(h), t = Math.floor(gesamt / 24), r = gesamt - t * 24;
+      return t + ' Tage' + (r ? ' ' + r + ' h' : '');
+    }
+
+
+    // ============================================================
+    // Rechnen
+    // ============================================================
+
+    const gegeben = {};
+    let ergebnis = { werte: {}, schritte: [], widersprueche: [], warnungen: [] };
+    function hat(w, k) { return k in w && isFinite(w[k]); }
+
+    function rechnen() {
+      const werte = Object.assign({}, gegeben);
+      const schritte = [];
+      for (let runde = 0; runde < 200; runde++) {
+        let weiter = false;
+        GLEICHUNGEN.forEach(function (g) {
+          if (g.nur && !g.nur()) return;
+          const offen = g.groessen.filter(function (k) { return !(k in werte); });
+          if (offen.length !== 1) return;
+          const ziel = offen[0], w = g.loese[ziel].rechne(werte);
+          if (!isFinite(w)) return;
+          werte[ziel] = w;
+          schritte.push({ gleichung: g, ziel: ziel, vorlage: g.loese[ziel].tex, werte: Object.assign({}, werte) });
+          weiter = true;
+        });
+        if (weiter) continue;
+        for (let i = 0; i < REGELN.length; i++) {
+          const r = REGELN[i];
+          if (r.ziel in werte || (r.braucht && !r.braucht.every(function (k) { return hat(werte, k); }))) continue;
+          const w = r.wert(werte);
+          if (!isFinite(w)) continue;
+          werte[r.ziel] = w;
+          schritte.push({ regel: r, ziel: r.ziel, zeilen: r.zeilen(werte), werte: Object.assign({}, werte) });
+          weiter = true;
+          break;
+        }
+        if (!weiter) break;
+      }
+
+      const widersprueche = [];
+      GLEICHUNGEN.forEach(function (g) {
+        if ((g.nur && !g.nur()) || !g.groessen.every(function (k) { return k in werte; })) return;
+        const ziel = g.groessen[0], soll = g.loese[ziel].rechne(werte), ist = werte[ziel];
+        if (isFinite(soll) && Math.abs(soll - ist) > Math.max(Math.abs(ist), Math.abs(soll)) * 0.005 + 1e-6) {
+          widersprueche.push({ gleichung: g, ziel: ziel, soll: soll, beteiligt: g.groessen.filter(function (k) { return k in gegeben; }) });
+        }
+      });
+
+      const warnungen = [];
+      if (werte.evq > 100 || werte.aut > 100) warnungen.push('Eigenverbrauchsquote und Autarkiegrad können nicht über 100 % liegen.');
+      if (hat(werte, 'Eev') && hat(werte, 'Ev') && werte.Eev > werte.Ev) warnungen.push('Es wird mehr PV-Strom selbst verbraucht als der Jahresverbrauch. Eigenverbrauchsquote zu hoch angesetzt?');
+      if (werte.etaMod > 26) warnungen.push('Über 26 % Modulwirkungsgrad gibt es bei handelsüblichen Modulen kaum.');
+      if (werte.TKU > 0) warnungen.push('Der Spannungs-Temperaturkoeffizient ist negativ (z. B. −0,27 %/K): Kälte erhöht die Spannung.');
+      if (hat(werte, 'nStr') && Math.abs(werte.nStr - Math.round(werte.nStr)) > 1e-6) warnungen.push('Die Module lassen sich so nicht gleichmäßig auf Strings verteilen (n<sub>Str</sub> ist keine ganze Zahl).');
+      if (hat(werte, 'nSp') && einst.konzept === 'drei' && Math.round(werte.nSp) !== 3) warnungen.push('Beim Konzept „3 × einphasig“ gehört zu jeder Phase genau ein Speicher, also 3 Stück.');
+      if (werte.SOC > 100 || werte.DoD > 100) warnungen.push('Ladestand und Entladetiefe liegen zwischen 0 und 100 %.');
+      ['Pmod', 'nmod', 'Ppv', 'Epv', 'Ev', 'CSp', 'PNS', 'Inv'].forEach(function (k) { if (werte[k] < 0) warnungen.push(GROESSEN[k].name + ' ist negativ.'); });
+
+      ergebnis = { werte: werte, schritte: schritte, widersprueche: widersprueche, warnungen: warnungen };
+    }
+
+
+    // ============================================================
+    // Notstrom auswerten: Leistung, Spitze und Energie je Phase
+    // ============================================================
+
+    let notstrom = null;
+
+    function notstromAuswerten() {
+      const w = ergebnis.werte, k = einst.konzept;
+      const PNS = hat(w, 'PNS') ? w.PNS : NaN, Psp = hat(w, 'Pspitze') ? w.Pspitze : PNS;
+      const ohne = einst.art === 'ohne' || k === 'kein';
+      const pvAktiv = pvImNotstrom();
+      const WNS = hat(w, 'WNS') ? w.WNS : NaN, PV = pvAktiv && hat(w, 'PVnach') ? w.PVnach : 0;
+      const drehOk = !ohne && (k === 'eins3' || (k === 'drei' && einst.dreh));
+      const gemeinsam = k === 'eins3';
+      // PV im Notstrom: dreiphasig auf alle Phasen, einphasig nur auf L1
+      const pvAnteil = function (p) {
+        if (k === 'eins3' || k === 'eins1') return p === 'L1' || k === 'eins3' ? PV : 0;
+        if (einst.kopplung === 'dc' || einst.wr === 'drei') return PV / 3;
+        return p === 'L1' ? PV : 0;
+      };
+
+      const phasen = {};
+      PHASEN.forEach(function (p) {
+        const versorgt = !ohne && (k !== 'eins1' || p === 'L1');
+        phasen[p] = {
+          name: p, versorgt: versorgt,
+          grenze: !versorgt ? 0 : k === 'eins3' ? PNS / 3 : PNS,
+          spitzeGrenze: !versorgt ? 0 : k === 'eins3' ? Psp / 3 : Psp,
+          energie: !versorgt ? 0 : k === 'eins3' ? WNS : WNS,
+          pv: !versorgt ? 0 : pvAnteil(p),
+          P: 0, zusatz: 0, tag: 0, anzahl: 0
+        };
+      });
+
+      // Lasten verteilen; Drehstrom geht zu je einem Drittel auf jede Phase
+      lasten.forEach(function (l) {
+        l.befund = null;
+        if (!l.an) return;
+        if (l.phase === '3~') {
+          if (!drehOk) { l.befund = { art: 'schlecht', text: ohne ? 'Anlage ohne Notstrom' : 'braucht Drehstrom, im Notstrom nicht verfügbar' }; return; }
+          PHASEN.forEach(function (p) {
+            const ph = phasen[p];
+            ph.P += l.P / 3; ph.zusatz = Math.max(ph.zusatz, l.P * (l.k - 1) / 3); ph.tag += l.P * l.h / 3000; ph.anzahl++;
+          });
+        } else {
+          const ph = phasen[l.phase];
+          if (!ph.versorgt) { l.befund = { art: 'schlecht', text: ohne ? 'Anlage ohne Notstrom' : l.phase + ' hat keinen Notstrom' }; return; }
+          ph.P += l.P; ph.zusatz = Math.max(ph.zusatz, l.P * (l.k - 1)); ph.tag += l.P * l.h / 1000; ph.anzahl++;
+        }
+      });
+
+      PHASEN.forEach(function (p) {
+        const ph = phasen[p];
+        ph.spitze = ph.P + ph.zusatz;
+        ph.ueberlast = ph.versorgt && isFinite(ph.grenze) && ph.P > ph.grenze + 1e-9;
+        ph.spitzeZuViel = ph.versorgt && isFinite(ph.spitzeGrenze) && ph.spitze > ph.spitzeGrenze + 1e-9;
+        ph.netto = ph.tag - ph.pv;
+      });
+
+      // Laufzeit: einzeln je Phase, beim dreiphasigen Speicher gemeinsam
+      if (gemeinsam) {
+        const bedarf = PHASEN.reduce(function (s, p) { return s + phasen[p].tag; }, 0) - PV;
+        const t = bedarf > 1e-9 ? WNS / bedarf * 24 : Infinity;
+        PHASEN.forEach(function (p) { phasen[p].laufzeit = phasen[p].anzahl ? t : Infinity; phasen[p].netto = bedarf; });
+      } else {
+        PHASEN.forEach(function (p) {
+          const ph = phasen[p];
+          ph.laufzeit = !ph.versorgt ? 0 : ph.netto > 1e-9 ? ph.energie / ph.netto * 24 : Infinity;
+        });
+      }
+
+      // Befund je Last
+      lasten.forEach(function (l) {
+        if (!l.an || l.befund) return;
+        const betroffen = l.phase === '3~' ? PHASEN.map(function (p) { return phasen[p]; }) : [phasen[l.phase]];
+        const anteil = l.phase === '3~' ? 1 / 3 : 1;
+        if (betroffen.some(function (ph) { return l.P * anteil > ph.grenze + 1e-9; })) l.befund = { art: 'schlecht', text: 'allein schon zu groß für den Speicher' };
+        else if (betroffen.some(function (ph) { return l.P * l.k * anteil > ph.spitzeGrenze + 1e-9; })) l.befund = { art: 'schlecht', text: 'Anlaufstrom zu hoch, Speicher schaltet ab' };
+        else if (betroffen.some(function (ph) { return ph.ueberlast; })) l.befund = { art: 'warn', text: 'läuft, aber nicht zusammen mit allem anderen auf ' + (l.phase === '3~' ? 'der Phase' : l.phase) };
+        else if (betroffen.some(function (ph) { return ph.spitzeZuViel; })) l.befund = { art: 'warn', text: 'Anlaufspitzen zusammen zu hoch, nicht gleichzeitig einschalten' };
+        else l.befund = { art: 'gut', text: 'läuft im Notstrom' };
+      });
+
+      const versorgt = PHASEN.filter(function (p) { return phasen[p].versorgt && phasen[p].anzahl; });
+      const laufzeit = versorgt.length ? Math.min.apply(null, versorgt.map(function (p) { return phasen[p].laufzeit; })) : NaN;
+      const engpass = versorgt.filter(function (p) { return phasen[p].laufzeit === laufzeit; })[0];
+      notstrom = { phasen: phasen, laufzeit: laufzeit, engpass: engpass, bekannt: isFinite(PNS) && isFinite(WNS), drehOk: drehOk, ohne: ohne, pvAktiv: pvAktiv };
+    }
+
+    // Lädt die PV im Notstrombetrieb nach?
+    function pvImNotstrom() {
+      const k = einst.konzept, a = einst.art;
+      if (a === 'ohne' || k === 'kein') return false;
+      if (einst.kopplung === 'dc') return true;                  // Hybrid: PV hängt DC-seitig am Speicher
+      if (a !== 'insel') return false;                           // ohne Inselbetrieb trennt der NA-Schutz die PV
+      if (einst.wr === 'drei') return k === 'eins3' || (k === 'drei' && einst.dreh);
+      return true;                                               // einphasiger Wechselrichter an L1
+    }
+
+    // Passt ein Gerät noch dazu? Beste Phase suchen
+    function passtDazu(v) {
+      const P = v[1], k = v[2], h = v[3], dreh = v[4] === '3~';
+      const n = notstrom;
+      if (n.ohne) return { art: 'schlecht', text: 'Anlage ohne Notstrom' };
+      if (!n.bekannt) return { art: 'schlecht', text: 'P<sub>NS</sub> und Speicherdaten fehlen' };
+      if (dreh) {
+        if (!n.drehOk) return { art: 'schlecht', text: 'braucht Drehstrom, im Notstrom nicht verfügbar' };
+        const ok = PHASEN.every(function (p) { const ph = n.phasen[p]; return ph.P + P / 3 <= ph.grenze + 1e-9 && ph.P + Math.max(ph.zusatz, P * (k - 1) / 3) + P / 3 <= ph.spitzeGrenze + 1e-9; });
+        return ok ? { art: 'gut', text: 'passt auf alle drei Phasen', phase: '3~' } : { art: 'schlecht', text: 'zu viel Leistung je Phase (' + watt(P / 3) + ')' };
+      }
+      let beste = null;
+      PHASEN.forEach(function (p) {
+        const ph = n.phasen[p];
+        if (!ph.versorgt) return;
+        const ok = ph.P + P <= ph.grenze + 1e-9 && ph.P + P + Math.max(ph.zusatz, P * (k - 1)) <= ph.spitzeGrenze + 1e-9;
+        const reserve = ph.grenze - ph.P - P;
+        if (ok && (!beste || reserve > beste.reserve)) beste = { p: p, reserve: reserve };
+      });
+      if (!beste) {
+        const einzeln = P > n.phasen.L1.grenze + 1e-9 && P > n.phasen.L2.grenze && P > n.phasen.L3.grenze;
+        return { art: 'schlecht', text: einzeln ? 'größer als die Notstromleistung' : 'keine Phase hat genug Reserve' };
+      }
+      const ph = n.phasen[beste.p];
+      const neu = einst.konzept === 'eins3'
+        ? notstrom.laufzeit // gemeinsam: grob neu
+        : (ph.netto + P * h / 1000 > 1e-9 ? ph.energie / (ph.netto + P * h / 1000) * 24 : Infinity);
+      return { art: 'gut', text: 'passt auf ' + beste.p + ', Reserve danach ' + watt(beste.reserve) + (einst.konzept !== 'eins3' ? ', Laufzeit ' + dauer(neu) : ''), phase: beste.p };
+    }
+
+    // Einphasige Lasten so verteilen, dass jede Phase möglichst wenig trägt (größte zuerst)
+    function verteilen() {
+      if (einst.konzept === 'eins1') { lasten.forEach(function (l) { if (l.phase !== '3~') l.phase = 'L1'; }); neuRechnen(); return; }
+      const summe = { L1: 0, L2: 0, L3: 0 };
+      lasten.filter(function (l) { return l.phase === '3~' && l.an; }).forEach(function (l) { PHASEN.forEach(function (p) { summe[p] += l.P / 3; }); });
+      lasten.filter(function (l) { return l.phase !== '3~'; })
+        .sort(function (a, b) { return (b.an - a.an) || (b.P * b.k - a.P * a.k); })
+        .forEach(function (l) {
+          const p = PHASEN.slice().sort(function (a, b) { return summe[a] - summe[b]; })[0];
+          l.phase = p; if (l.an) summe[p] += l.P;
+        });
+      lastenAufbauen();
+      neuRechnen();
+    }
+
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const felder = {};
+    const einheitWahl = {};
+    function einheitVon(key) { return GROESSEN[key].einheiten[einheitWahl[key] || 0]; }
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      GRUPPEN.forEach(function (gruppe) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe';
+        fs.style.setProperty('--farbe', gruppe.farbe);
+        const lg = document.createElement('legend');
+        lg.textContent = gruppe.titel;
+        fs.append(lg);
+        gruppe.felder.forEach(function (key) {
+          const gr = GROESSEN[key];
+          const zeile = document.createElement('div');
+          zeile.className = 'feld';
+          const label = document.createElement('label');
+          label.htmlFor = 'f-' + key;
+          const symbol = document.createElement('span');
+          symbol.className = 'symbol';
+          Formel.setze(symbol, TEX[key]);
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = gr.name; name.title = gr.name;
+          label.append(symbol, name);
+          const eingabe = document.createElement('input');
+          eingabe.type = 'text'; eingabe.id = 'f-' + key; eingabe.inputMode = 'decimal'; eingabe.autocomplete = 'off'; eingabe.placeholder = 'gesucht';
+          let einheit;
+          if (gr.einheiten.length > 1) {
+            einheit = document.createElement('select');
+            einheit.setAttribute('aria-label', 'Einheit für ' + gr.name);
+            gr.einheiten.forEach(function (e, i) { const o = document.createElement('option'); o.value = String(i); o.textContent = e[0]; einheit.append(o); });
+            einheit.addEventListener('change', function () { einheitWahl[key] = +einheit.value; anzeigen(); });
+          } else {
+            einheit = document.createElement('span');
+            einheit.className = 'einheit';
+            einheit.textContent = gr.einheiten[0][0];
+          }
+          const leeren = document.createElement('button');
+          leeren.type = 'button'; leeren.className = 'leeren'; leeren.textContent = '✕';
+          leeren.setAttribute('aria-label', gr.name + ' löschen');
+          leeren.addEventListener('click', function () { delete gegeben[key]; eingabe.value = ''; neuRechnen(); eingabe.focus(); });
+          eingabe.addEventListener('input', function () {
+            const w = lies(eingabe.value);
+            if (eingabe.value.trim() === '') delete gegeben[key];
+            else if (isFinite(w)) gegeben[key] = w * einheitVon(key)[1];
+            else return;
+            neuRechnen(key);
+          });
+          eingabe.addEventListener('blur', function () { anzeigen(); });
+          zeile.append(label, eingabe, einheit, leeren);
+          fs.append(zeile);
+          felder[key] = { zeile: zeile, eingabe: eingabe };
+        });
+        ziel.append(fs);
+      });
+    }
+
+    function neuRechnen(gerade) {
+      rechnen();
+      notstromAuswerten();
+      anzeigen(gerade);
+    }
+
+    function anzeigen(gerade) {
+      const werte = ergebnis.werte, rot = {};
+      ergebnis.widersprueche.forEach(function (w) { w.beteiligt.forEach(function (k) { rot[k] = true; }); });
+      Object.keys(felder).forEach(function (key) {
+        const f = felder[key];
+        const ist = key in gegeben, berechnet = !ist && key in werte;
+        f.zeile.classList.toggle('gegeben', ist);
+        f.zeile.classList.toggle('berechnet', berechnet);
+        f.zeile.classList.toggle('widerspruch', !!rot[key]);
+        if (key === gerade || (document.activeElement === f.eingabe && ist)) return;
+        f.eingabe.value = ist || berechnet ? zahl(werte[key] / einheitVon(key)[1], 5).replace(/ /g, '') : '';
+        f.eingabe.title = berechnet ? 'ausgerechnet, zum Ändern überschreiben' : '';
+      });
+      document.getElementById('drehZeile').hidden = einst.konzept !== 'drei';
+      document.getElementById('o-umschaltung').disabled = einst.art === 'ohne' || einst.art === 'dose' || einst.konzept === 'kein';
+      document.getElementById('o-wr').disabled = einst.kopplung === 'dc';
+      meldungenZeigen();
+      anlageZeigen();
+      anschlussZeigen();
+      notstromZeigen();
+      rechenwegZeigen();
+      formelnMarkieren();
+      zeitText();
+    }
+
+
+    // ============================================================
+    // Rechenweg
+    // ============================================================
+
+    function texZahl(w, stellen) {
+      const text = Formel.zahl(zahl(w, stellen || 5));
+      return w < 0 ? '(' + text + ')' : text;
+    }
+    function texWert(k, w) { return texZahl(w[k]) + (TEX_EINHEIT[k] ? '\\,' + TEX_EINHEIT[k] : ''); }
+    function texErgebnis(k, w) {
+      let text = texZahl(w) + (TEX_EINHEIT[k] ? '\\,' + TEX_EINHEIT[k] : '');
+      if (k === 'tAm' && isFinite(w)) text = texZahl(w, 3) + '\\,\\text{Jahre}';
+      return text;
+    }
+
+    function rechenwegZeigen() {
+      const liste = document.getElementById('rechenweg');
+      liste.innerHTML = '';
+      ergebnis.schritte.forEach(function (s) {
+        const li = document.createElement('li');
+        const titel = document.createElement('div');
+        titel.className = 'titel';
+        const erst = document.createElement('div'); erst.className = 'rechnung';
+        const dann = document.createElement('div'); dann.className = 'rechnung';
+        const fett = ' = \\htmlClass{ergebnis}{\\boldsymbol{' + texErgebnis(s.ziel, s.werte[s.ziel]) + '}}';
+        if (s.regel) {
+          titel.textContent = s.regel.titel;
+          s.zeilen.forEach(function (z) { const d = document.createElement('div'); Formel.setze(d, '\\displaystyle ' + z); erst.append(d); });
+          Formel.setze(dann, '\\displaystyle ' + TEX[s.ziel] + fett);
+        } else {
+          titel.textContent = s.gleichung.titel;
+          Formel.setze(erst, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return TEX[k]; }));
+          Formel.setze(dann, '\\displaystyle ' + TEX[s.ziel] + ' = ' + einsetzen(s.vorlage, function (k) { return texWert(k, s.werte); }) + fett);
+        }
+        li.append(titel, erst, dann);
+        liste.append(li);
+      });
+      if (!ergebnis.schritte.length) {
+        const h = document.createElement('div'); h.className = 'hilfe';
+        h.textContent = 'Trag zum Beispiel Modulleistung und Anzahl Module ein, oder die Speicherdaten für den Notstrom.';
+        liste.append(h);
+      }
+    }
+
+    function meldungenZeigen() {
+      const box = document.getElementById('meldungen');
+      box.innerHTML = '';
+      ergebnis.widersprueche.forEach(function (w) {
+        const d = document.createElement('div');
+        d.className = 'hinweis fehler';
+        d.innerHTML = '<b>Die Angaben widersprechen sich.</b> Nach <span class="f"></span> müsste <span class="z"></span> sein. Lösch eine der rot markierten Angaben, dann wird sie ausgerechnet.';
+        Formel.setze(d.querySelector('.f'), w.gleichung.tex);
+        Formel.setze(d.querySelector('.z'), TEX[w.ziel] + ' = ' + texErgebnis(w.ziel, w.soll));
+        box.append(d);
+      });
+      ergebnis.warnungen.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis'; d.innerHTML = t; box.append(d); });
+    }
+
+
+    // ============================================================
+    // Anlage auf einen Blick
+    // ============================================================
+
+    function anlageZeigen() {
+      const w = ergebnis.werte;
+      const kacheln = [
+        ['Generatorleistung', hat(w, 'Ppv') ? zahl(w.Ppv, 3) + ' kWp' : '?', hat(w, 'nmod') ? zahl(w.nmod, 3) + ' Module' + (hat(w, 'Apv') ? ', ' + zahl(w.Apv, 3) + ' m²' : '') : '', '#F2A541'],
+        ['PV-Ertrag', hat(w, 'Epv') ? zahl(w.Epv, 4) + ' kWh' : '?', 'im Jahr', '#E4572E'],
+        ['Autarkiegrad', hat(w, 'aut') ? zahl(w.aut, 3) + ' %' : '?', hat(w, 'evq') ? 'Eigenverbrauch ' + zahl(w.evq, 3) + ' %' : '', '#0E6B6A'],
+        ['Ersparnis', hat(w, 'Ers') ? euro(w.Ers) : '?', 'pro Jahr', 'var(--text)'],
+        ['Amortisation', hat(w, 'tAm') ? zahl(w.tAm, 3) + ' Jahre' : '?', 'ohne Zinsen', 'var(--text)'],
+        ['Speicher nutzbar', hat(w, 'Cges') ? zahl(w.Cges, 3) + ' kWh' : '?', speicherEmpfehlung(w), '#2B7BB9']
+      ];
+      const ziel = document.getElementById('kacheln');
+      ziel.innerHTML = '';
+      kacheln.forEach(function (k) {
+        const d = document.createElement('div');
+        d.className = 'kachel';
+        d.style.setProperty('--farbe', k[3]);
+        d.innerHTML = '<small></small><div class="wert"></div><small></small>';
+        d.querySelectorAll('small')[0].textContent = k[0];
+        d.querySelector('.wert').textContent = k[1];
+        d.querySelector('.wert').classList.toggle('offen', k[1] === '?');
+        d.querySelectorAll('small')[1].textContent = k[2];
+        ziel.append(d);
+      });
+
+      // Nachweise der Stringauslegung
+      const liste = [];
+      const n = function (titel, ok, text, tex) { liste.push({ titel: titel, ok: ok, text: text, tex: tex }); };
+      if (hat(w, 'nS') && hat(w, 'nmaxS')) {
+        const ok = w.nS <= w.nmaxS;
+        n('Höchstspannung', ok, ok ? 'Auch bei Kälte bleibt die Leerlaufspannung unter der Grenze des Wechselrichters.' : 'Zu viele Module: bei Frost wird der Wechselrichter überlastet.',
+          'n_\\text{S} = ' + texZahl(w.nS) + ' \\;' + (ok ? '\\le' : '>') + '\\; n_\\text{max} = ' + texZahl(w.nmaxS) + (hat(w, 'UstrK') ? ' \\qquad U_\\text{Str,kalt} = ' + texZahl(w.UstrK, 4) + '\\,\\text{V}' : ''));
+      } else n('Höchstspannung', null, 'Braucht U<sub>OC</sub>, TK<sub>U</sub>, ϑ<sub>min</sub>, U<sub>DC,max</sub> und n<sub>S</sub>.', 'n_\\text{S} \\le n_\\text{max}');
+      if (hat(w, 'nS') && hat(w, 'nminS')) {
+        const ok = w.nS >= w.nminS;
+        n('MPP-Bereich unten', ok, ok ? 'Auch bei Hitze reicht die Spannung für den MPP-Bereich.' : 'Zu wenige Module: bei Hitze fällt die Spannung unter den MPP-Bereich.',
+          'n_\\text{S} = ' + texZahl(w.nS) + ' \\;' + (ok ? '\\ge' : '<') + '\\; n_\\text{min} = ' + texZahl(w.nminS));
+      } else n('MPP-Bereich unten', null, 'Braucht U<sub>MPP</sub>, ϑ<sub>max</sub>, U<sub>MPP,min</sub> und n<sub>S</sub>.', 'n_\\text{S} \\ge n_\\text{min}');
+      if (hat(w, 'nS') && hat(w, 'nmaxM')) {
+        const ok = w.nS <= w.nmaxM;
+        n('MPP-Bereich oben', ok, ok ? 'Bei Kälte bleibt die MPP-Spannung im Arbeitsbereich.' : 'Bei Kälte liegt die MPP-Spannung über dem Arbeitsbereich.',
+          'n_\\text{S} = ' + texZahl(w.nS) + ' \\;' + (ok ? '\\le' : '>') + '\\; n_\\text{max,MPP} = ' + texZahl(w.nmaxM));
+      }
+      if (hat(w, 'Isc') && hat(w, 'IWRmax')) {
+        const ok = w.Isc <= w.IWRmax;
+        n('Eingangsstrom', ok, ok ? 'Ein String je MPP-Tracker ist vom Strom her zulässig.' : 'Der Kurzschlussstrom ist größer als der Wechselrichter-Eingang erlaubt.',
+          'I_\\text{SC} = ' + texZahl(w.Isc) + '\\,\\text{A} \\;' + (ok ? '\\le' : '>') + '\\; I_\\text{WR,max} = ' + texZahl(w.IWRmax) + '\\,\\text{A}');
+      }
+      if (hat(w, 'nmod') && hat(w, 'nDach')) {
+        const ok = w.nmod <= w.nDach;
+        n('Dachfläche', ok, ok ? 'Die Module passen aufs Dach.' : 'So viele Module passen nicht aufs Dach.',
+          'n_\\text{Modul} = ' + texZahl(w.nmod) + ' \\;' + (ok ? '\\le' : '>') + '\\; n_\\text{Dach} = ' + texZahl(w.nDach));
+      }
+      const ul = document.getElementById('nachweise');
+      ul.innerHTML = '';
+      liste.forEach(function (x) {
+        const li = document.createElement('li');
+        li.className = x.ok === true ? 'gut' : x.ok === false ? 'schlecht' : '';
+        li.innerHTML = '<span class="marke-n" aria-hidden="true">' + (x.ok === true ? '✓' : x.ok === false ? '✗' : '?') + '</span><div class="was"><b></b>' + x.text + '</div><div class="formel"></div>';
+        li.querySelector('b').textContent = x.titel;
+        Formel.setze(li.querySelector('.formel'), x.tex);
+        ul.append(li);
+      });
+    }
+
+    function anschlussZeigen() {
+      const w = ergebnis.werte, k = einst.konzept, a = einst.art, nf = einst.netzform, n = notstrom;
+      const mitNot = !n.ohne, umschalter = mitNot && a !== 'dose';
+      const anzahl = KONZEPTE[k].geraete;
+      document.getElementById('konzeptName').innerHTML = (k === 'kein' ? 'PV ohne Speicher' : ART_NAME[n.ohne ? 'ohne' : a]) + '<small>' +
+        [KONZEPTE[k].name, nf + '-Netz', einst.kopplung === 'dc' ? 'DC-gekoppelt' : 'AC-gekoppelt, PV-Wechselrichter ' + (einst.wr === 'drei' ? 'dreiphasig' : 'einphasig'),
+         umschalter ? 'Umschaltung ' + UMSCHALT_NAME[einst.umschaltung] : ''].filter(Boolean).join(' · ') + '</small>';
+
+      // Aufbau vom Netz bis zum Verbraucher
+      const teile = [];
+      const t = function (titel, text) { teile.push([titel, text]); };
+      t('Hausanschlusskasten', 'mit den Hausanschlusssicherungen des Netzbetreibers' + (nf === 'TN-C' || nf === 'TN-C-S' ? ', hier kommt der PEN an' : '') + '.');
+      t('Zweirichtungszähler', 'misst Bezug und Einspeisung getrennt.');
+      if (k !== 'kein') t('Leistungsmessung am Netzanschluss', 'Energiezähler mit Busanschluss: Daran sehen die Speicher, wie viel gerade bezogen oder eingespeist wird.');
+      if (nf === 'TN-C-S') t('Aufteilung PEN in PE und N', 'ab dem Aufteilungspunkt getrennte Schutz- und Neutralleiter (TN-S).');
+      if (nf === 'TN-C') t('Aufteilung PEN in PE und N', 'Vor dem Umschalter muss der PEN aufgeteilt werden: Ein PEN darf nicht geschaltet und nicht durch einen RCD geführt werden.');
+      if (nf === 'TT') t('RCD am Anlagenanfang', 'Im TT-Netz übernimmt der RCD den Fehlerschutz: R<sub>A</sub> · I<sub>Δn</sub> ≤ 50 V' + (hat(w, 'RAmax') ? ', also R<sub>A</sub> ≤ ' + zahl(w.RAmax, 4) + ' Ω.' : '.'));
+      if (umschalter) {
+        if (einst.umschaltung === 'hand') t('Umschalter Netz – 0 – Not', 'von Hand, allpolig (vierpolig mit N). Die Nullstellung trennt sicher, Netz und Notstrom kommen nie zusammen.');
+        else if (einst.umschaltung === 'auto') t('Netz-Schütz und Not-Schütz', 'automatische Umschaltung, elektrisch und mechanisch gegenseitig verriegelt, vierpolig.' + (hat(w, 'tU') ? ' Umschaltzeit ' + zahl(w.tU, 3) + ' s.' : ''));
+        else t('Umschaltung im Speicher', 'Der Speicher trennt sich selbst vom Netz und versorgt seinen Notstromausgang. Netz- und Not-Anschluss getrennt verdrahten.');
+        t('Erdung des Notstromnetzes', nf === 'TT' ? 'Das Inselnetz wird über den Anlagenerder geerdet (N-PE-Verbindung auf der Notstromseite), damit der RCD im Notstromkreis auslöst.' :
+          'Im Inselnetz fehlt die Erdung des Netzbetreibers: Eine N-PE-Verbindung, die nur im Notstrombetrieb schließt, erdet den Sternpunkt.');
+      }
+      if (k !== 'kein') {
+        t('Leitungsschutz je Speicher', anzahl + ' × LS ' + (hat(w, 'InSp') ? 'B' + zahl(w.InSp, 3) : '?') + (k === 'eins3' ? ' dreipolig' : ' einpolig') +
+          (hat(w, 'ISp') ? ' für I<sub>Sp</sub> = ' + zahl(w.ISp, 3) + ' A' : '') + (umschalter && einst.umschaltung === 'geraet' ? ', Netz- und Not-Anschluss jeweils eigens abgesichert.' : '.'));
+      }
+      if (einst.kopplung === 'ac') {
+        t('Leitungsschutz PV-Wechselrichter', 'LS ' + (hat(w, 'InWR') ? 'B' + zahl(w.InWR, 3) : '?') + (einst.wr === 'drei' ? ' dreipolig' : ' einpolig') + (hat(w, 'IWR') ? ' für I<sub>WR</sub> = ' + zahl(w.IWR, 3) + ' A' : '') +
+          (a === 'insel' && mitNot ? '; der Wechselrichter hängt auf der Notstromseite und läuft im Inselnetz weiter.' : '; er hängt auf der Netzseite und trennt bei Netzausfall über den NA-Schutz.'));
+      } else t('Hybrid-Wechselrichter', 'PV und Speicher hängen DC-seitig am selben Gerät, die PV lädt auch im Notstrombetrieb.');
+      if (mitNot) {
+        if (a === 'dose') t('Notstromsteckdose am Gerät', 'Geräte werden bei Netzausfall von Hand umgesteckt, keine Einspeisung in die Hausinstallation.');
+        else t('Unterverteilung notstromberechtigte Verbraucher', 'eigene Verteilung mit RCD 30 mA und LS ' + (hat(w, 'InNS') ? 'bis ' + zahl(w.InNS, 3) + ' A' : '') + ' für die Geräte aus der Notstromliste.');
+        t('Übrige Verbraucher', 'bleiben direkt am Netz und sind bei Netzausfall stromlos.');
+      } else t('Verteilung', 'Alle Verbraucher hängen am Netz. Bei Netzausfall ist alles stromlos, auch die PV schaltet ab.');
+      if (k !== 'kein') t('Kommunikation', 'Busleitung zwischen Zähler und Speichern geschirmt (z. B. J-Y(St)Y, LiYCY, CAT5), keine Mantelleitung NYM-J, keine fremden Geräte am Bus.');
+      t('Erdung und Potentialausgleich', 'Fundamenterder, Haupterdungsschiene, Schutzpotentialausgleich' + (nf === 'TT' ? ', Anlagenerder mit ausreichend kleinem R<sub>A</sub>.' : '.'));
+      const ol = document.getElementById('aufbau');
+      ol.innerHTML = '';
+      teile.forEach(function (x) { const li = document.createElement('li'); li.innerHTML = '<b>' + x[0] + '</b><span>' + x[1] + '</span>'; ol.append(li); });
+
+      // Nachweise
+      const liste = [];
+      const nw = function (titel, ok, text, tex) { liste.push({ titel: titel, ok: ok, text: text, tex: tex || '' }); };
+      // Schieflast: einphasige Erzeuger und Speicher je Phase
+      const s = { L1: 0, L2: 0, L3: 0 };
+      let schieflastBekannt = false;
+      if (k !== 'kein' && hat(w, 'PSp') && k !== 'eins3') { schieflastBekannt = true; (k === 'drei' ? PHASEN : ['L1']).forEach(function (p) { s[p] += w.PSp; }); }
+      if (k === 'eins3' && hat(w, 'PSp')) schieflastBekannt = true;
+      if (einst.kopplung === 'ac' && einst.wr === 'eins' && hat(w, 'PWR')) { s.L1 += w.PWR; schieflastBekannt = true; }
+      if (schieflastBekannt) {
+        const d = Math.max(s.L1, s.L2, s.L3) - Math.min(s.L1, s.L2, s.L3), ok = d <= 4.6 + 1e-9;
+        nw('Schieflast', ok, ok ? 'Einphasige Geräte verteilen sich so, dass die Phasen um höchstens 4,6 kVA auseinanderliegen.' : 'Zu viel einphasige Leistung auf einer Phase. Auf mehrere Phasen verteilen oder dreiphasige Geräte nehmen.',
+           '\\Delta S = ' + texZahl(d, 3) + '\\,\\text{kVA} \\;' + (ok ? '\\le' : '>') + '\\; 4{,}6\\,\\text{kVA}');
+      }
+      if (umschalter) {
+        if (hat(w, 'IkI') && hat(w, 'IaNS')) {
+          const ok = w.IkI >= w.IaNS - 1e-9;
+          nw('Abschaltung im Inselnetz', ok, ok ? 'Der Wechselrichter liefert genug Kurzschlussstrom, der LS löst sofort aus.' :
+             'Der Wechselrichter begrenzt den Kurzschlussstrom, der LS löst nicht sofort aus. Den Fehlerschutz übernimmt deshalb ein RCD 30 mA im Notstromkreis (oder kleinere LS).',
+             'I_\\text{k,Insel} = ' + texZahl(w.IkI, 4) + '\\,\\text{A} \\;' + (ok ? '\\ge' : '<') + '\\; I_\\text{a} = ' + texZahl(w.IaNS, 4) + '\\,\\text{A}');
+        } else nw('Abschaltung im Inselnetz', null, 'Braucht k<sub>K</sub>, P<sub>NS</sub>, den größten LS im Notstromkreis und seinen Auslösefaktor.', 'I_\\text{k,Insel} \\ge I_\\text{a}');
+      }
+      if (nf === 'TT' || umschalter) {
+        if (hat(w, 'RA') && hat(w, 'RAmax')) {
+          const ok = w.RA <= w.RAmax + 1e-9;
+          nw('Erdungswiderstand', ok, ok ? 'Der Anlagenerder ist gut genug, damit der RCD bei einem Fehler auslöst.' : 'Der Erdungswiderstand ist zu groß, die Berührungsspannung könnte über 50 V steigen.',
+             'R_\\text{A} \\cdot I_{\\Delta\\text{n}} = ' + texZahl(w.RA * w.IdN, 3) + '\\,\\text{V} \\;' + (ok ? '\\le' : '>') + '\\; 50\\,\\text{V}');
+        } else if (nf === 'TT') nw('Erdungswiderstand', null, 'Braucht R<sub>A</sub> und I<sub>Δn</sub>.', 'R_\\text{A} \\cdot I_{\\Delta\\text{n}} \\le 50\\,\\text{V}');
+      }
+      if (mitNot && (a === 'insel' || einst.kopplung === 'dc')) {
+        let text, ok = n.pvAktiv;
+        if (ok) text = einst.kopplung === 'dc' ? 'Der Hybrid-Wechselrichter lädt den Speicher auch ohne Netz aus der PV.' : 'Der PV-Wechselrichter läuft im Inselnetz weiter und lädt die Speicher.';
+        else if (k === 'eins1') text = 'Nur L1 hat Notstrom, ein dreiphasiger PV-Wechselrichter startet so nicht. Einphasigen Wechselrichter an L1 wählen.';
+        else text = 'Ein dreiphasiger PV-Wechselrichter braucht im Inselnetz alle drei Phasen mit Drehfeld. Die drei Speicher müssen dafür gemeinsam ein Drehstromnetz bilden.';
+        nw('PV im Notstrom', ok, text);
+      }
+      if (mitNot && a === 'insel' && einst.kopplung === 'ac' && hat(w, 'PWR') && hat(w, 'PSpges')) {
+        const ok = w.PWR <= w.PSpges + 1e-9;
+        nw('Leistung im Inselnetz', ok, ok ? 'Die Speicher können die volle PV-Leistung aufnehmen.' : 'Der PV-Wechselrichter ist stärker als die Speicher aufnehmen können. Im Inselnetz wird die PV dann über die Frequenz gedrosselt.',
+           'S_\\text{WR} = ' + texZahl(w.PWR, 3) + '\\,\\text{kVA} \\;' + (ok ? '\\le' : '>') + '\\; P_\\text{Sp,ges} = ' + texZahl(w.PSpges, 3) + '\\,\\text{kW}');
+      }
+      if (umschalter && hat(w, 'tU')) {
+        const ok = w.tU <= 0.02 + 1e-9;
+        nw('Umschaltzeit', ok ? true : null, ok ? 'Praktisch unterbrechungsfrei, Computer und Router laufen durch.' : 'Kurze Unterbrechung: Computer, Router und Uhren starten neu.', 't_\\text{U} = ' + texZahl(w.tU, 3) + '\\,\\text{s}');
+      }
+      if (!mitNot) nw('Notstrom', null, k === 'kein' ? 'Ohne Speicher gibt es keinen Notstrom.' : 'Notstrom ist abgewählt.');
+
+      const ul = document.getElementById('schutzNachweise');
+      ul.innerHTML = '';
+      liste.forEach(function (x) {
+        const li = document.createElement('li');
+        li.className = x.ok === true ? 'gut' : x.ok === false ? 'schlecht' : '';
+        li.innerHTML = '<span class="marke-n" aria-hidden="true">' + (x.ok === true ? '✓' : x.ok === false ? '✗' : 'i') + '</span><div class="was"><b></b>' + x.text + '</div><div class="formel"></div>';
+        li.querySelector('b').textContent = x.titel;
+        if (x.tex) Formel.setze(li.querySelector('.formel'), x.tex);
+        ul.append(li);
+      });
+      const schlecht = liste.filter(function (x) { return x.ok === false; }).length;
+      const urteil = document.getElementById('schutzUrteil');
+      urteil.className = 'urteil' + (schlecht ? ' schlecht' : liste.some(function (x) { return x.ok === true; }) ? ' gut' : '');
+      urteil.textContent = schlecht ? schlecht + ' Punkt' + (schlecht > 1 ? 'e' : '') + ' beachten' : 'passt';
+
+      // Hinweise
+      const h = [];
+      if (umschalter) {
+        h.push('Neutralleiter von Netz- und Notstromseite nicht zusammenfassen: getrennte N-Klemmen.');
+        h.push('Die Umschaltung trennt allpolig (mit N). Eine Rückspeisung ins öffentliche Netz muss sicher ausgeschlossen sein.');
+      }
+      if (mitNot && a === 'insel' && einst.kopplung === 'ac') {
+        h.push('Im Inselbetrieb regelt der Speicher die PV über die Frequenz. Der PV-Wechselrichter muss das können (Frequenz-Leistungs-Regelung).');
+        if (k === 'drei') h.push('Bei drei einphasigen Speichern einen dreiphasigen PV-Wechselrichter verwenden und die Phasenfolge (Drehfeld L1–L2–L3) einhalten.');
+      }
+      if (mitNot && a === 'insel' && !einst.schwarz) h.push('Ohne Schwarzstart startet das Inselnetz bei leerem Speicher nicht wieder, auch wenn die Sonne scheint.');
+      if (mitNot && a === 'insel' && einst.schwarz) h.push('Mit Schwarzstart fährt das Inselnetz am nächsten Morgen mit der PV wieder hoch, auch nach leerem Speicher.');
+      if (k !== 'kein') h.push('Ob je Speicher ein RCBO nötig ist, hängt vom Aufbau ab. Mehrere RCD hintereinander lösen leicht gemeinsam aus (Selektivität beachten).');
+      if (nf === 'TT') h.push('Im TT-Netz können nach TAB des Netzbetreibers weitere Schutzeinrichtungen nötig sein, z. B. ein RCD für die Abschaltbedingung.');
+      if (nf === 'TN-C') h.push('Den PEN weder schalten noch über einen RCD führen. Für die Notstromverteilung ist ein TN-S-Teil nötig.');
+      if (n.ohne) h.push('Ohne Notstrom trennt der NA-Schutz die PV bei Netzausfall vom Netz. Der Speicher steht dann still.');
+      if (einst.kopplung === 'dc') h.push('Beim Hybrid-Wechselrichter teilen sich PV und Speicher die AC-Leistung des Geräts, auch im Notstrom.');
+      if (a === 'dose' && mitNot) h.push('Die Notstromsteckdose ist eine Steckdose am Gerät. Nur einzelne Geräte, keine Verbindung zur Hausinstallation.');
+      h.push('Alle Werte sind Beispiele. Maßgeblich sind die Herstellerangaben, die TAB des Netzbetreibers und die Normen.');
+      const hl = document.getElementById('hinweise');
+      hl.innerHTML = '';
+      h.forEach(function (x) { const li = document.createElement('li'); li.textContent = x; hl.append(li); });
+    }
+
+    function speicherEmpfehlung(w) {
+      if (!hat(w, 'Ev')) return '';
+      let e = w.Ev / 1000;
+      if (hat(w, 'Ppv')) e = Math.min(e, 1.5 * w.Ppv);
+      return 'Faustwert ≈ ' + zahl(e, 2) + ' kWh';
+    }
+
+
+    // ============================================================
+    // Notstrom-Anzeige
+    // ============================================================
+
+    function phaseTag(p) { return '<span class="phase ' + (p === '3~' ? 'D' : p) + '">' + p + '</span>'; }
+
+    function notstromZeigen() {
+      const n = notstrom;
+      const gross = document.getElementById('laufzeit');
+      const urteil = document.getElementById('nsUrteil');
+      const probleme = PHASEN.filter(function (p) { return n.phasen[p].ueberlast || n.phasen[p].spitzeZuViel; });
+      const fehltDreh = lasten.some(function (l) { return l.an && l.befund && l.befund.art === 'schlecht'; });
+      if (n.ohne) {
+        gross.innerHTML = 'kein Notstrom<small>' + (einst.konzept === 'kein' ? 'Ohne Speicher gibt es keinen Notstrom.' : 'Notstrom ist abgewählt.') +
+          ' Bei Netzausfall ist das ganze Haus stromlos, auch die PV trennt sich über den NA-Schutz vom Netz.</small>';
+        urteil.className = 'urteil'; urteil.textContent = 'ohne Notstrom';
+      } else if (!n.bekannt) {
+        gross.innerHTML = 'Speicherdaten fehlen<small>P<sub>NS</sub>, Kapazität, Entladetiefe und Ladestand eintragen</small>';
+        urteil.className = 'urteil'; urteil.textContent = 'noch offen';
+      } else {
+        gross.innerHTML = (isFinite(n.laufzeit) ? 'reicht ≈ ' + dauer(n.laufzeit) : 'reicht dauerhaft') +
+          '<small>' + (n.engpass && isFinite(n.laufzeit) ? (einst.konzept === 'eins3' ? 'gemeinsamer Speicher für alle Phasen' : 'Engpass: Speicher auf ' + n.engpass) : 'PV-Nachladung deckt den Tagesbedarf') +
+          ' · Ladestand bei Ausfall ' + (hat(ergebnis.werte, 'SOC') ? zahl(ergebnis.werte.SOC, 3) + ' %' : '?') +
+          (n.pvAktiv ? ' · PV lädt nach' : hat(ergebnis.werte, 'PVnach') && ergebnis.werte.PVnach > 0 ? ' · PV-Nachladung zählt hier nicht' : '') + '</small>';
+        if (probleme.length) { urteil.className = 'urteil schlecht'; urteil.textContent = 'Überlast auf ' + probleme.join(', '); }
+        else if (fehltDreh) { urteil.className = 'urteil schlecht'; urteil.textContent = 'nicht alles versorgt'; }
+        else { urteil.className = 'urteil gut'; urteil.textContent = 'alles läuft im Notstrom'; }
+      }
+
+      const tb = document.getElementById('phasen');
+      tb.innerHTML = '';
+      PHASEN.forEach(function (p) {
+        const ph = n.phasen[p];
+        const tr = document.createElement('tr');
+        if (!ph.versorgt) {
+          tr.innerHTML = '<td>' + phaseTag(p) + '</td><td colspan="7" style="text-align:left;font-family:var(--schrift)">kein Notstrom auf dieser Phase' + (ph.anzahl ? '' : '') + '</td>';
+        } else {
+          tr.innerHTML = '<td>' + phaseTag(p) + '</td>' +
+            '<td class="' + (ph.ueberlast ? 'schlecht' : '') + '">' + watt(ph.P) + '</td><td>' + watt(ph.grenze) + '</td>' +
+            '<td class="' + (ph.spitzeZuViel ? 'schlecht' : '') + '">' + watt(ph.spitze) + '</td><td>' + watt(ph.spitzeGrenze) + '</td>' +
+            '<td>' + kwh(ph.tag) + (ph.pv > 0 ? ' − ' + kwh(ph.pv) + ' PV' : '') + '</td><td>' + (einst.konzept === 'eins3' ? 'gemeinsam ' : '') + kwh(ph.energie) + '</td>' +
+            '<td class="' + (ph.anzahl && isFinite(ph.laufzeit) && ph.laufzeit < 12 ? 'schlecht' : ph.anzahl ? 'gut' : '') + '">' + (ph.anzahl ? dauer(ph.laufzeit) : '–') + '</td>';
+        }
+        tb.append(tr);
+      });
+
+      // Befunde in die Lastzeilen schreiben
+      lasten.forEach(function (l) {
+        const tr = document.querySelector('#lasten tr[data-id="' + l.id + '"]');
+        if (!tr) return;
+        tr.classList.toggle('aus', !l.an);
+        const st = tr.querySelector('.status');
+        st.className = 'status ' + (l.befund ? l.befund.art : '');
+        st.textContent = !l.an ? 'aus (nicht im Notstrom)' : l.befund ? l.befund.text : '';
+        tr.querySelector('.energie').textContent = kwh(l.P * l.h / 1000) + '/Tag';
+      });
+
+      const passt = document.getElementById('passt');
+      passt.innerHTML = '';
+      VORLAGEN.forEach(function (v) {
+        if (lasten.some(function (l) { return l.an && l.name === v[0]; })) return;
+        const r = passtDazu(v);
+        const d = document.createElement('div');
+        d.className = r.art;
+        d.innerHTML = '<b></b>' + watt(v[1]) + (v[4] ? ' · 3~' : '') + (v[2] > 1 ? ' · Anlauf ×' + zahl(v[2], 2) : '') + '<br>' + r.text;
+        d.querySelector('b').textContent = v[0];
+        if (r.art === 'gut') {
+          const vorhanden = lasten.filter(function (l) { return !l.an && l.name === v[0]; })[0];
+          const k = document.createElement('button');
+          k.type = 'button'; k.className = 'knopf-leise'; k.textContent = vorhanden ? 'einschalten' : 'übernehmen';
+          k.addEventListener('click', function () {
+            if (vorhanden) { vorhanden.an = true; if (vorhanden.phase !== '3~') vorhanden.phase = r.phase; }
+            else lasten.push(last(v[0], v[1], v[2], r.phase, v[3]));
+            lastenAufbauen(); neuRechnen();
+          });
+          d.append(document.createElement('br'), k);
+        }
+        passt.append(d);
+      });
+    }
+
+    function lastenAufbauen() {
+      const tb = document.getElementById('lasten');
+      tb.innerHTML = '';
+      lasten.forEach(function (l) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = String(l.id);
+        tr.innerHTML = '<td><input type="checkbox" aria-label="im Notstrom"></td>' +
+          '<td><input type="text" class="name" aria-label="Gerät"></td>' +
+          '<td style="width:90px"><input type="text" class="zahl P" inputmode="decimal" aria-label="Leistung in W"></td>' +
+          '<td style="width:70px"><input type="text" class="zahl k" inputmode="decimal" aria-label="Anlauffaktor"></td>' +
+          '<td style="width:76px"><select aria-label="Phase"><option>L1</option><option>L2</option><option>L3</option><option>3~</option></select></td>' +
+          '<td style="width:70px"><input type="text" class="zahl h" inputmode="decimal" aria-label="Stunden pro Tag"></td>' +
+          '<td class="energie"></td><td class="status"></td>' +
+          '<td><button type="button" class="weg-knopf" aria-label="entfernen">✕</button></td>';
+        const q = function (s) { return tr.querySelector(s); };
+        q('input[type="checkbox"]').checked = l.an;
+        q('.name').value = l.name;
+        q('.P').value = zahl(l.P, 6).replace(/ /g, '');
+        q('.k').value = zahl(l.k, 4);
+        q('.h').value = zahl(l.h, 4);
+        q('select').value = l.phase;
+        q('input[type="checkbox"]').addEventListener('change', function (e) { l.an = e.target.checked; neuRechnen(); });
+        q('.name').addEventListener('input', function (e) { l.name = e.target.value; });
+        [['.P', 'P'], ['.k', 'k'], ['.h', 'h']].forEach(function (f) {
+          q(f[0]).addEventListener('input', function (e) { const w = lies(e.target.value); if (isFinite(w) && w >= 0) { l[f[1]] = f[1] === 'k' ? Math.max(1, w) : w; neuRechnen(); } });
+        });
+        q('select').addEventListener('change', function (e) { l.phase = e.target.value; neuRechnen(); });
+        q('.weg-knopf').addEventListener('click', function () { lasten = lasten.filter(function (x) { return x !== l; }); lastenAufbauen(); neuRechnen(); });
+        tb.append(tr);
+      });
+    }
+
+    function vorlagenAufbauen() {
+      const sel = document.getElementById('vorlage');
+      VORLAGEN.forEach(function (v, i) { const o = document.createElement('option'); o.value = String(i); o.textContent = v[0] + ' (' + watt(v[1]) + (v[4] ? ', 3~' : '') + ')'; sel.append(o); });
+      const leer = document.createElement('option'); leer.value = 'eigen'; leer.textContent = 'eigenes Gerät …'; sel.append(leer);
+      document.getElementById('hinzu').addEventListener('click', function () {
+        const v = sel.value === 'eigen' ? ['Neues Gerät', 100, 1, 1] : VORLAGEN[+sel.value];
+        const r = passtDazu(v);
+        lasten.push(last(v[0], v[1], v[2], v[4] || r.phase || 'L1', v[3]));
+        lastenAufbauen(); neuRechnen();
+      });
+      document.getElementById('verteilen').addEventListener('click', verteilen);
+      document.getElementById('listeZurueck').addEventListener('click', function () { lasten = beispielListe(); lastenAufbauen(); neuRechnen(); });
+    }
+
+
+    // ============================================================
+    // Formelsammlung
+    // ============================================================
+
+    function formelnAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      THEMEN.forEach(function (thema) {
+        const abschnitt = document.createElement('section');
+        abschnitt.innerHTML = '<h3></h3>';
+        abschnitt.querySelector('h3').textContent = thema.titel;
+        GLEICHUNGEN.forEach(function (g, i) {
+          if (g.thema !== thema.id) return;
+          const f = document.createElement('div');
+          f.className = 'formelblock'; f.dataset.nr = String(i); f.title = g.titel;
+          Formel.setze(f, g.tex, true);
+          abschnitt.append(f);
+        });
+        ziel.append(abschnitt);
+      });
+      const regeln = document.createElement('section');
+      regeln.innerHTML = '<h3>Regeln, Grenzen und Faustwerte</h3>';
+      REGELN_TEX.forEach(function (r) { const f = document.createElement('div'); f.className = 'formelblock'; f.title = r[0]; Formel.setze(f, r[1], true); regeln.append(f); });
+      ziel.append(regeln);
+    }
+
+    function formelnMarkieren() {
+      document.querySelectorAll('#formelsammlung [data-nr]').forEach(function (d) {
+        const g = GLEICHUNGEN[+d.dataset.nr];
+        d.hidden = !!(g.nur && !g.nur());
+        d.classList.toggle('genutzt', ergebnis.schritte.some(function (s) { return s.gleichung === g; }));
+      });
+    }
+
+    document.getElementById('allesLeeren').addEventListener('click', function () {
+      Object.keys(gegeben).forEach(function (k) { delete gegeben[k]; });
+      Object.assign(gegeben, { Tmin: -10, Tmax: 70 });
+      neuRechnen();
+    });
+
+
+    // ============================================================
+    // Konzept wählen
+    // ============================================================
+
+    function konzeptWaehlen(id) {
+      einst.konzept = id;
+      const leiste = document.getElementById('konzepte');
+      leiste.querySelectorAll('button').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.id === id));
+        if (b.dataset.id === id && leiste.scrollWidth > leiste.clientWidth) leiste.scrollLeft = b.offsetLeft - leiste.offsetLeft - 8;
+      });
+      neuRechnen();
+    }
+
+    function konzepteAufbauen() {
+      const ziel = document.getElementById('konzepte');
+      Object.keys(KONZEPTE).forEach(function (id) {
+        const d = KONZEPTE[id];
+        const knopf = document.createElement('button');
+        knopf.type = 'button'; knopf.dataset.id = id;
+        const bild = document.createElement('canvas');
+        const dichte = window.devicePixelRatio || 1;
+        bild.width = 58 * dichte; bild.height = 58 * dichte;
+        const k = bild.getContext('2d'); k.scale(dichte, dichte);
+        piktogramm(k, id);
+        const b = document.createElement('b'); b.textContent = d.name;
+        const s = document.createElement('small'); s.textContent = d.kurz;
+        knopf.append(bild, b, s);
+        knopf.addEventListener('click', function () { konzeptWaehlen(id); });
+        ziel.append(knopf);
+        document.addEventListener('themawechsel', function () { k.clearRect(0, 0, 58, 58); piktogramm(k, id); });
+      });
+      const dreh = document.getElementById('o-dreh');
+      dreh.checked = einst.dreh;
+      dreh.addEventListener('change', function () { einst.dreh = dreh.checked; neuRechnen(); });
+      const schwarz = document.getElementById('o-schwarz');
+      schwarz.checked = einst.schwarz;
+      schwarz.addEventListener('change', function () { einst.schwarz = schwarz.checked; neuRechnen(); });
+      [['o-art', 'art'], ['o-umschaltung', 'umschaltung'], ['o-netzform', 'netzform'], ['o-kopplung', 'kopplung'], ['o-wr', 'wr']].forEach(function (x) {
+        const el = document.getElementById(x[0]);
+        el.value = einst[x[1]];
+        el.addEventListener('change', function () { einst[x[1]] = el.value; neuRechnen(); });
+      });
+    }
+
+    function piktogramm(k, id) {
+      const text = Thema.farbe('--text') || '#13233A';
+      const farben = [PHASENFARBE.L1, text, PHASENFARBE.L3];
+      k.lineWidth = 2.5; k.lineCap = 'round';
+      farben.forEach(function (f, i) { k.strokeStyle = f; k.beginPath(); k.moveTo(4, 8 + i * 7); k.lineTo(54, 8 + i * 7); k.stroke(); });
+      const box = function (x, ziele) {
+        ziele.forEach(function (i) { k.strokeStyle = farben[i]; k.lineWidth = 2; k.beginPath(); k.moveTo(x + 7, 8 + i * 7); k.lineTo(x + 7, 32); k.stroke(); });
+        k.fillStyle = '#0E6B6A'; k.fillRect(x, 32, 14, 22);
+        k.fillStyle = '#7FE0D6'; k.fillRect(x + 3, 38, 8, 12);
+      };
+      if (id === 'kein') {
+        k.strokeStyle = Thema.farbe('--leise') || '#5E6B7A'; k.lineWidth = 2; k.strokeRect(16, 32, 26, 22);
+        k.strokeStyle = '#C0392B'; k.lineWidth = 2.5; k.beginPath(); k.moveTo(12, 30); k.lineTo(46, 56); k.stroke();
+      } else if (id === 'drei') { box(6, [0]); box(22, [1]); box(38, [2]); }
+      else if (id === 'eins3') { k.fillStyle = '#0E6B6A'; k.fillRect(14, 32, 30, 22); k.fillStyle = '#7FE0D6'; k.fillRect(18, 38, 22, 12);
+        [0, 1, 2].forEach(function (i) { k.strokeStyle = farben[i]; k.lineWidth = 2; k.beginPath(); k.moveTo(20 + i * 9, 8 + i * 7); k.lineTo(20 + i * 9, 32); k.stroke(); }); }
+      else box(22, [0]);
+    }
+
+
+    // ============================================================
+    // Bühne
+    // ============================================================
+
+    const leinwand = document.getElementById('szene');
+    const g = leinwand.getContext('2d');
+    const bewegungAus = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const SCHRIFT = 'Bahnschrift, "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif';
+    const DUNKEL = '#13233A';
+    const PHASENFARBE = { L1: '#8B5A2B', L2: '#3A3F45', L3: '#8A8F94' };
+    const F = { text: DUNKEL, leise: '#5E6B7A', linie: '#D9E0E3', flaeche: '#fff', flaeche2: '#F6F8F8', ergebnis: '#0E6B6A', fehler: '#C0392B' };
+    function farbenLesen() {
+      F.text = Thema.farbe('--text') || DUNKEL; F.leise = Thema.farbe('--leise') || '#5E6B7A'; F.linie = Thema.farbe('--linie') || '#D9E0E3';
+      F.flaeche = Thema.farbe('--flaeche') || '#fff'; F.flaeche2 = Thema.farbe('--flaeche2') || '#F6F8F8';
+      F.ergebnis = Thema.farbe('--ergebnis') || '#0E6B6A'; F.fehler = Thema.farbe('--fehler') || '#C0392B';
+    }
+    document.addEventListener('themawechsel', farbenLesen);
+    function phasenFarbe(p) { return p === 'L2' ? F.text : PHASENFARBE[p]; }
+
+    let L = { W: 1100, H: 560, schmal: false, m: 1 };
+    let netzAus = false, stellung = 0, laeuft = false, uhr = 0, versatz = 0;
+    let stunden = 0;                     // Zeit seit Netzausfall
+    let zeitEnde = 24;
+
+    function anpassen() {
+      const breite = leinwand.parentNode.clientWidth;
+      L = breite < 720 ? { W: 520, H: 920, schmal: true } : { W: 1100, H: 560, schmal: false };
+      const dichte = window.devicePixelRatio || 1, m = breite / L.W;
+      leinwand.width = Math.round(L.W * m * dichte); leinwand.height = Math.round(L.H * m * dichte);
+      leinwand.style.height = Math.round(L.H * m) + 'px';
+      L.m = m * dichte;
+    }
+
+    function orte() {
+      if (L.schmal) {
+        return { netz: { x: 2, y: 24, h: 104 }, zaehler: { x: 50, y: 52, b: 46, h: 52 }, rcd: { x: 102, y: 58, b: 32, h: 40 }, schalter: { x: 142, y: 20, b: 124, h: 112 },
+                 pv: { x: 282, y: 10, b: 228, h: 122 }, pvx: 478, bus: { x1: 12, x2: 510, y: [176, 196, 216] }, einspeisung: 'oben',
+                 speicher: { x: 12, y: 250, b: 498, h: 150 }, lasten: { x: 12, y: 432, b: 498, h: 290 }, verlauf: { x: 24, y: 752, b: 470, h: 150 } };
+      }
+      return { netz: { x: 10, y: 120, h: 120 }, zaehler: { x: 66, y: 168, b: 56, h: 60 }, rcd: { x: 132, y: 176, b: 36, h: 44 }, schalter: { x: 176, y: 138, b: 130, h: 124 },
+               uebrige: { x: 56, y: 266, b: 128, h: 36 },
+               pv: { x: 340, y: 10, b: 300, h: 128 }, pvx: 612, bus: { x1: 306, x2: 1084, y: [176, 196, 216] }, einspeisung: 'seite',
+               speicher: { x: 320, y: 256, b: 276, h: 196 }, lasten: { x: 608, y: 256, b: 476, h: 290 }, verlauf: { x: 28, y: 330, b: 264, h: 200 } };
+    }
+
+    function wert(k) { return ergebnis.werte[k]; }
+    function bekannt(k) { return hat(ergebnis.werte, k); }
+
+    function schreibe(t, x, y, o) {
+      o = o || {};
+      g.font = (o.fett ? '600 ' : '') + (o.groesse || 14) + 'px ' + (o.technik === false ? 'system-ui, sans-serif' : SCHRIFT);
+      g.fillStyle = o.farbe || F.text; g.textAlign = o.ausrichtung || 'left'; g.textBaseline = 'alphabetic';
+      g.fillText(t, x, y);
+    }
+    function kuerzen(t, breite, groesse) {
+      g.font = (groesse || 12) + 'px system-ui, sans-serif';
+      if (g.measureText(t).width <= breite) return t;
+      while (t.length > 2 && g.measureText(t + '…').width > breite) t = t.slice(0, -1);
+      return t + '…';
+    }
+    function rund(x, y, b, h, r) {
+      g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath();
+    }
+    function linie(punkte, farbe, dicke, strich) {
+      g.strokeStyle = farbe; g.lineWidth = dicke || 2; g.lineJoin = 'round'; g.lineCap = 'round'; g.setLineDash(strich || []);
+      g.beginPath(); punkte.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke(); g.setLineDash([]);
+    }
+    function wandern(punkte, v, abstand, farbe, r) {
+      let gesamt = 0; const st = [];
+      for (let i = 1; i < punkte.length; i++) { const l = Math.hypot(punkte[i][0] - punkte[i - 1][0], punkte[i][1] - punkte[i - 1][1]); st.push({ a: punkte[i - 1], b: punkte[i], l: l, s: gesamt }); gesamt += l; }
+      g.fillStyle = farbe;
+      for (let s = ((v % abstand) + abstand) % abstand; s < gesamt; s += abstand) {
+        const q = st.filter(function (x) { return s >= x.s && s <= x.s + x.l; })[0];
+        if (!q || q.l === 0) continue;
+        const u = (s - q.s) / q.l;
+        g.beginPath(); g.arc(q.a[0] + (q.b[0] - q.a[0]) * u, q.a[1] + (q.b[1] - q.a[1]) * u, r || 3, 0, 7); g.fill();
+      }
+    }
+
+    // Ladestand einer Phase nach t Stunden (0…1, bezogen auf den Ladestand beim Ausfall)
+    function restAnteil(p, t) {
+      const ph = notstrom.phasen[p];
+      if (!ph.versorgt || !notstrom.bekannt) return 0;
+      if (!isFinite(ph.laufzeit)) return 1;
+      return Math.max(0, 1 - t / ph.laufzeit);
+    }
+    // Phase liefert gerade Strom?
+    function umschalter() { return !notstrom.ohne && einst.art !== 'dose'; }
+    // Liefert der Hausverteiler auf dieser Phase? (bei der Notstromsteckdose nicht)
+    function busAn(p) { return !netzAus || (umschalter() && phaseAn(p)); }
+    function phaseAn(p) {
+      const ph = notstrom.phasen[p];
+      if (!netzAus) return true;
+      if (!ph.versorgt || !notstrom.bekannt || ph.ueberlast || ph.spitzeZuViel) return false;
+      return !ph.anzahl || restAnteil(p, stunden) > 0;
+    }
+
+    function zeichne(dt) {
+      g.setTransform(L.m, 0, 0, L.m, 0, 0);
+      g.clearRect(0, 0, L.W, L.H);
+      uhr += dt;
+      stellung += ((netzAus ? 1 : 0) - stellung) * Math.min(1, dt * 6);
+      if (!bewegungAus) versatz += dt * 46;
+      if (laeuft && netzAus) {
+        stunden = Math.min(zeitEnde, stunden + dt * zeitEnde / 14);
+        document.getElementById('zeit').value = String(Math.round(stunden / zeitEnde * 1000));
+        if (stunden >= zeitEnde) abspielen(false);
+        zeitText();
+      }
+      const o = orte();
+      zeichneBus(o);
+      zeichneNetz(o);
+      zeichnePV(o);
+      // Abgänge zu den Verbrauchern zuerst, damit die Speicher auf schmalen Bildschirmen darüber liegen
+      zeichneLasten(o);
+      zeichneSpeicher(o);
+      zeichneVerlauf(o.verlauf);
+    }
+
+    function zeichneNetz(o) {
+      const n = o.netz, x = n.x + 22, aus = netzAus;
+      const farbe = aus ? F.linie : F.text;
+      // Mast
+      linie([[x, n.y + n.h], [x, n.y + 10]], farbe, 3);
+      linie([[x - 18, n.y + 22], [x + 18, n.y + 22]], farbe, 3);
+      linie([[x - 12, n.y + 40], [x + 12, n.y + 40]], farbe, 3);
+      linie([[x - 14, n.y + n.h], [x, n.y + 40], [x + 14, n.y + n.h]], farbe, 2);
+      schreibe('Netz', x, n.y + n.h + 18, { groesse: 13, fett: true, ausrichtung: 'center', farbe: aus ? F.leise : F.text });
+      if (aus) {
+        linie([[x - 14, n.y + 4], [x + 14, n.y + 32]], F.fehler, 4); linie([[x + 14, n.y + 4], [x - 14, n.y + 32]], F.fehler, 4);
+        schreibe('Ausfall', x, n.y - 4, { groesse: 12, fett: true, ausrichtung: 'center', farbe: F.fehler });
+      }
+      // Zähler
+      const z = o.zaehler, ly = z.y + z.h / 2;
+      linie([[x + 18, n.y + 22], [x + 30, ly], [z.x, ly]], farbe, 3);
+      rund(z.x, z.y, z.b, z.h, 8); g.fillStyle = DUNKEL; g.fill();
+      schreibe('kWh', z.x + z.b / 2, z.y + 22, { groesse: 12, farbe: '#9FB2C4', ausrichtung: 'center' });
+      g.fillStyle = '#2A3B52'; rund(z.x + 8, z.y + z.h - 18, z.b - 16, 8, 4); g.fill();
+      if (!aus) { g.fillStyle = '#E4572E'; g.fillRect(z.x + 8 + (versatz % (z.b - 24)), z.y + z.h - 18, 8, 8); }
+      // RCD im TT-Netz
+      const s = o.schalter;
+      let ein = [z.x + z.b, ly];
+      if (einst.netzform === 'TT') {
+        const r = o.rcd;
+        linie([ein, [r.x, ly]], farbe, 3);
+        rund(r.x, r.y, r.b, r.h, 5); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2; g.stroke();
+        schreibe('RCD', r.x + r.b / 2, r.y + 15, { groesse: 10, fett: true, ausrichtung: 'center', farbe: DUNKEL });
+        g.fillStyle = aus ? '#5E6B7A' : DUNKEL; g.fillRect(r.x + r.b / 2 - 4, r.y + 20, 8, 14);
+        ein = [r.x + r.b, ly];
+      }
+      // Übrige Verbraucher (nicht notstromberechtigt) hängen vor dem Umschalter direkt am Netz
+      if (o.uebrige && umschalter()) {
+        const u = o.uebrige, abzweig = [ein[0] + 2, ly];
+        linie([abzweig, [abzweig[0], u.y]], farbe, 2);
+        g.fillStyle = farbe; g.beginPath(); g.arc(abzweig[0], ly, 3.5, 0, 7); g.fill();
+        rund(u.x, u.y, u.b, u.h, 8); g.fillStyle = F.flaeche2; g.fill(); g.strokeStyle = F.linie; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = aus ? F.linie : '#F2A541'; g.beginPath(); g.arc(u.x + 14, u.y + u.h / 2, 6, 0, 7); g.fill();
+        const rest = lasten.filter(function (l) { return !l.an; }).reduce(function (sum, l) { return sum + l.P; }, 0);
+        schreibe('übrige Verbraucher', u.x + 26, u.y + 15, { groesse: 11.5, technik: false, farbe: aus ? F.leise : F.text });
+        schreibe(aus ? 'stromlos' : rest ? watt(rest) + ' ohne Notstrom' : 'am Netz', u.x + 26, u.y + 29, { groesse: 11, technik: false, farbe: aus ? F.fehler : F.leise });
+      }
+      if (umschalter()) {
+        const kontaktNetz = [s.x + 34, s.y + 42];
+        linie([ein, [s.x + 10, ly], [s.x + 10, kontaktNetz[1]], kontaktNetz], farbe, 3);
+      } else {
+        // ohne Umschalter geht das Netz direkt in den Hausverteiler
+        if (o.einspeisung === 'seite') o.bus.y.forEach(function (y, i) { linie([ein, [s.x + s.b - 20, ly], [s.x + s.b, y]], aus ? F.linie : phasenFarbe(PHASEN[i]), 2); });
+        else { linie([ein, [s.x + s.b / 2 + 31, ly], [s.x + s.b / 2 + 31, o.bus.y[2]]], farbe, 3); o.bus.y.forEach(function (y) { g.fillStyle = farbe; g.beginPath(); g.arc(s.x + s.b / 2 + 31, y, 4, 0, 7); g.fill(); }); }
+        schreibe(einst.art === 'dose' && !notstrom.ohne ? 'Notstrom nur an der Steckdose' : 'ohne Umschalter', s.x + 4, s.y + 10, { groesse: 11, technik: false, farbe: F.leise });
+      }
+      if (!aus) wandern([[x + 18, n.y + 22], [x + 30, ly], [z.x, ly]], versatz, 16, '#FFD45C', 2.6);
+      if (umschalter()) zeichneSchalter(o);
+    }
+
+    function zeichneSchalter(o) {
+      const s = o.schalter;
+      const art = einst.umschaltung;
+      rund(s.x, s.y, s.b, s.h, 12); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2.5;
+      if (art === 'geraet') g.setLineDash([6, 4]);
+      g.stroke(); g.setLineDash([]);
+      const titel = art === 'hand' ? 'Netz – 0 – Not' : art === 'auto' ? 'Schütze Netz/Not' : 'im Speicher';
+      schreibe(titel, s.x + s.b / 2, s.y + 18, { groesse: 13, fett: true, ausrichtung: 'center', farbe: DUNKEL });
+      const kN = [s.x + 34, s.y + 42], kI = [s.x + 34, s.y + s.h - 26], dreh = [s.x + s.b - 30, s.y + s.h / 2 + 8];
+      [[kN, 'Netz'], [kI, 'Notstrom']].forEach(function (k) {
+        g.fillStyle = DUNKEL; g.beginPath(); g.arc(k[0][0], k[0][1], 4.5, 0, 7); g.fill();
+        schreibe(k[1], k[0][0] - 8, k[0][1] + (k[1] === 'Netz' ? -8 : 18), { groesse: 11, farbe: '#5E6B7A', technik: false });
+      });
+      if (art === 'hand') {
+        const k0 = [s.x + 26, (kN[1] + kI[1]) / 2];
+        g.strokeStyle = DUNKEL; g.lineWidth = 1.5; g.beginPath(); g.arc(k0[0], k0[1], 4, 0, 7); g.stroke();
+        schreibe('0', k0[0] - 14, k0[1] + 4, { groesse: 11, fett: true, farbe: '#5E6B7A' });
+      }
+      if (art === 'auto') schreibe('verriegelt', s.x + s.b - 8, s.y + s.h - 8, { groesse: 10, farbe: '#5E6B7A', technik: false, ausrichtung: 'right' });
+      // Notstromseite: vom Speicher-Bus
+      linie([[kI[0], kI[1]], [s.x + 10, kI[1]]], netzAus ? '#0E6B6A' : '#B5C0C8', 2.5);
+      // Schaltkontakt (Hebel) schwenkt zwischen Netz und Notstrom
+      const ziel = [kN[0] + (kI[0] - kN[0]) * stellung, kN[1] + (kI[1] - kN[1]) * stellung];
+      linie([dreh, ziel], netzAus ? '#0E6B6A' : DUNKEL, 4);
+      g.fillStyle = DUNKEL; g.beginPath(); g.arc(dreh[0], dreh[1], 6, 0, 7); g.fill();
+      // Ausgang zum Haus
+      if (o.einspeisung === 'seite') {
+        o.bus.y.forEach(function (y, i) { linie([[dreh[0], dreh[1]], [s.x + s.b, y]], phasenFarbe(PHASEN[i]), 2); });
+      } else {
+        linie([[dreh[0], dreh[1]], [dreh[0], s.y + s.h], [dreh[0], o.bus.y[2]]], F.text, 3);
+        o.bus.y.forEach(function (y) { g.fillStyle = F.text; g.beginPath(); g.arc(dreh[0], y, 4, 0, 7); g.fill(); });
+      }
+    }
+
+    function zeichneBus(o) {
+      const b = o.bus;
+      PHASEN.forEach(function (p, i) {
+        const an = busAn(p);
+        linie([[b.x1, b.y[i]], [b.x2, b.y[i]]], an ? phasenFarbe(p) : F.linie, 3.5);
+        schreibe(p, b.x2 - 2, b.y[i] - 5, { groesse: 11, fett: true, ausrichtung: 'right', farbe: an ? phasenFarbe(p) : F.leise });
+      });
+      if (o.einspeisung === 'seite') schreibe('Hausverteiler', b.x1 + 8, b.y[0] - 12, { groesse: 12, farbe: F.leise, technik: false });
+      else schreibe('Hausverteiler', b.x1, b.y[2] + 18, { groesse: 12, farbe: F.leise, technik: false });
+    }
+
+    function zeichnePV(o) {
+      const p = o.pv, nacht = netzAus && hat(ergebnis.werte, 'PVnach') ? false : false;
+      // Sonne
+      const sx = p.x + p.b - 26, sy = p.y + 24;
+      g.fillStyle = '#F2A541'; g.beginPath(); g.arc(sx, sy, 13, 0, 7); g.fill();
+      for (let i = 0; i < 8; i++) { const w = i * Math.PI / 4 + uhr * 0.3; linie([[sx + Math.cos(w) * 18, sy + Math.sin(w) * 18], [sx + Math.cos(w) * 24, sy + Math.sin(w) * 24]], '#F2A541', 2); }
+      // Dach mit Modulen
+      const dx = p.x + 6, dy = p.y + p.h - 34, db = p.b - 70, dh = p.h - 52;
+      g.fillStyle = F.flaeche2; g.beginPath(); g.moveTo(dx, dy + 18); g.lineTo(dx + db * 0.18, dy - dh + 20); g.lineTo(dx + db, dy - dh + 20); g.lineTo(dx + db * 0.82 + db * 0.18, dy + 18); g.closePath(); g.fill();
+      const n = bekannt('nmod') ? Math.max(1, Math.min(40, Math.round(wert('nmod')))) : 12;
+      const reihen = n > 20 ? 3 : n > 8 ? 2 : 1, jeReihe = Math.ceil(n / reihen);
+      const mb = (db * 0.8) / jeReihe - 3, mh = Math.min(22, (dh - 18) / reihen - 3);
+      for (let i = 0; i < n; i++) {
+        const r = Math.floor(i / jeReihe), c = i % jeReihe;
+        const x = dx + db * 0.16 + c * (mb + 3) - r * 6, y = dy - dh + 24 + r * (mh + 3);
+        g.fillStyle = '#1E3A5F'; g.fillRect(x, y, mb, mh);
+        g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, mb - 1, mh - 1);
+      }
+      schreibe(bekannt('Ppv') ? zahl(wert('Ppv'), 3) + ' kWp' : '? kWp', dx, dy + 34, { groesse: 15, fett: true });
+      if (bekannt('Epv') && !L.schmal) schreibe(zahl(wert('Epv'), 3) + ' kWh/Jahr', dx + 80, dy + 34, { groesse: 12, farbe: F.leise, technik: false });
+      // Wechselrichter und Einspeisung in den Hausverteiler
+      const wx = o.pvx, wy = p.y + p.h - 2;
+      rund(wx - 20, wy - 22, 40, 26, 5); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = DUNKEL; g.lineWidth = 2; g.stroke();
+      schreibe('≂', wx, wy - 4, { groesse: 15, fett: true, ausrichtung: 'center', farbe: DUNKEL });
+      const pvAn = !netzAus || (notstrom.pvAktiv && einst.kopplung === 'ac');
+      linie([[wx, wy + 4], [wx, o.bus.y[2]]], pvAn ? F.text : F.linie, 2.5);
+      o.bus.y.forEach(function (y) { g.fillStyle = pvAn ? F.text : F.linie; g.beginPath(); g.arc(wx, y, 3.5, 0, 7); g.fill(); });
+      if (pvAn) wandern([[wx, wy + 4], [wx, o.bus.y[0]]], versatz, 14, '#F2A541', 2.6);
+      if (netzAus && !pvAn) schreibe(einst.kopplung === 'dc' && notstrom.pvAktiv ? 'lädt DC-seitig' : 'aus (NA-Schutz)', L.schmal ? wx : wx + 26, L.schmal ? wy + 16 : wy - 6, { groesse: 11, farbe: F.leise, technik: false, ausrichtung: L.schmal ? 'center' : 'left' });
+      if (netzAus && pvAn) schreibe('Inselbetrieb', L.schmal ? wx : wx + 26, L.schmal ? wy + 16 : wy - 6, { groesse: 11, fett: true, farbe: '#B7791F', ausrichtung: L.schmal ? 'center' : 'left' });
+      if (einst.kopplung === 'dc') schreibe('Hybrid', wx, wy + 18, { groesse: 10, farbe: F.leise, technik: false, ausrichtung: 'center' });
+    }
+
+    function speicherOrte(o) {
+      const s = o.speicher, k = einst.konzept;
+      if (L.schmal) {
+        const spalte = s.b / 3;
+        if (k === 'drei') return PHASEN.map(function (p, i) { return { x: s.x + spalte * i + spalte / 2 - 44, y: s.y, b: 88, h: s.h - 16, phasen: [p] }; });
+        return [{ x: s.x + 4, y: s.y, b: 110, h: s.h - 16, phasen: k === 'eins3' ? PHASEN : ['L1'] }];
+      }
+      if (k === 'drei') return PHASEN.map(function (p, i) { return { x: s.x + i * (s.b / 3) + 6, y: s.y + 28, b: s.b / 3 - 16, h: s.h - 44, phasen: [p] }; });
+      return [{ x: s.x + s.b / 2 - 70, y: s.y + 28, b: 140, h: s.h - 44, phasen: k === 'eins3' ? PHASEN : ['L1'] }];
+    }
+
+    function zeichneSpeicher(o) {
+      if (einst.konzept === 'kein') {
+        schreibe('kein Speicher', o.speicher.x + o.speicher.b / 2, o.speicher.y + 70, { groesse: 15, fett: true, ausrichtung: 'center', farbe: F.leise });
+        schreibe('PV-Überschuss geht ins Netz', o.speicher.x + o.speicher.b / 2, o.speicher.y + 92, { groesse: 12, ausrichtung: 'center', farbe: F.leise, technik: false });
+        return;
+      }
+      const liste = speicherOrte(o), w = ergebnis.werte;
+      liste.forEach(function (b) {
+        const ph = b.phasen;
+        // Anschluss an die Phase(n)
+        ph.forEach(function (p, j) {
+          const i = PHASEN.indexOf(p), x = b.x + b.b / 2 + (ph.length > 1 ? (j - 1) * 18 : 0);
+          const an = phaseAn(p) && netzAus;
+          linie([[x, o.bus.y[i]], [x, b.y]], phasenFarbe(p), 2.5);
+          g.fillStyle = phasenFarbe(p); g.beginPath(); g.arc(x, o.bus.y[i], 4, 0, 7); g.fill();
+          const pfad = netzAus ? [[x, b.y], [x, o.bus.y[i]]] : [[x, o.bus.y[i]], [x, b.y]];
+          if (an || (!netzAus && (bekannt('Ppv')))) wandern(pfad, versatz, 14, netzAus ? '#7FE0D6' : '#F2A541', 2.6);
+        });
+        // Gehäuse und Ladestand
+        const anteil = netzAus ? Math.min.apply(null, ph.map(function (p) { return restAnteil(p, stunden); })) : 1;
+        const soc = (hat(w, 'SOC') ? w.SOC : 80) * (netzAus && !notstrom.ohne ? anteil : 1);
+        const ueber = netzAus && !notstrom.ohne && ph.some(function (p) { return notstrom.phasen[p].ueberlast || notstrom.phasen[p].spitzeZuViel; });
+        rund(b.x, b.y, b.b, b.h, 10); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = ueber ? '#C0392B' : DUNKEL; g.lineWidth = ueber ? 3.5 : 2.2; g.stroke();
+        const ix = b.x + 12, iy = b.y + 28, ib = b.b - 24, ih = b.h - 62;
+        rund(ix, iy, ib, ih, 6); g.fillStyle = '#E3E9EC'; g.fill();
+        const fh = ih * Math.max(0, Math.min(1, soc / 100));
+        g.fillStyle = soc < 15 ? '#E4572E' : '#0E6B6A'; rund(ix, iy + ih - fh, ib, Math.max(fh, 0.1), 6); g.fill();
+        rund(b.x + b.b / 2 - 26, iy + ih / 2 - 11, 52, 22, 11); g.fillStyle = 'rgba(255,255,255,.9)'; g.fill();
+        schreibe(Math.round(soc) + ' %', b.x + b.b / 2, iy + ih / 2 + 5, { groesse: 15, fett: true, ausrichtung: 'center', farbe: DUNKEL });
+        schreibe(b.phasen.length > 1 ? 'L1 L2 L3' : b.phasen[0], b.x + b.b / 2, b.y + 18, { groesse: 13, fett: true, ausrichtung: 'center', farbe: DUNKEL });
+        const info = hat(w, 'CSp') ? zahl(w.CSp, 3) + ' kWh' : '? kWh';
+        schreibe(info, b.x + b.b / 2, b.y + b.h - 22, { groesse: 12, ausrichtung: 'center', farbe: '#5E6B7A' });
+        if (einst.art === 'dose' && !notstrom.ohne) { g.fillStyle = '#5E6B7A'; g.beginPath(); g.arc(b.x + b.b - 12, b.y + 14, 6, 0, 7); g.fill(); g.fillStyle = '#fff'; g.fillRect(b.x + b.b - 15, b.y + 12, 2, 4); g.fillRect(b.x + b.b - 11, b.y + 12, 2, 4); }
+        schreibe(notstrom.ohne ? (netzAus ? 'steht still' : 'ohne Notstrom') : ueber ? 'Überlast!' : (hat(w, 'PNS') ? watt(w.PNS) + ' NS' : '? W'), b.x + b.b / 2, b.y + b.h - 8, { groesse: 12, fett: ueber, ausrichtung: 'center', farbe: ueber ? '#C0392B' : '#5E6B7A' });
+        if (ueber && Math.sin(uhr * 10) > 0) { rund(b.x - 4, b.y - 4, b.b + 8, b.h + 8, 12); g.strokeStyle = 'rgba(192,57,43,.5)'; g.lineWidth = 3; g.stroke(); }
+      });
+    }
+
+    function zeichneLasten(o) {
+      const a = o.lasten, spalte = a.b / 3;
+      PHASEN.forEach(function (p, i) {
+        const ph = notstrom.phasen[p], an = phaseAn(p), busLeitet = busAn(p);
+        const x = a.x + i * spalte + 4, b = spalte - 12, cx = x + b / 2;
+        // Abgang vom Bus
+        linie([[cx, o.bus.y[i]], [cx, a.y]], busLeitet ? phasenFarbe(p) : F.linie, 2.5);
+        g.fillStyle = busLeitet ? phasenFarbe(p) : F.linie; g.beginPath(); g.arc(cx, o.bus.y[i], 4, 0, 7); g.fill();
+        if (netzAus && an && !busLeitet) schreibe('an der Steckdose', cx, a.y - 6, { groesse: 10.5, ausrichtung: 'center', farbe: F.leise, technik: false });
+        if (busLeitet && an && ph.P > 0) wandern([[cx, o.bus.y[i]], [cx, a.y]], versatz, 14, netzAus ? '#7FE0D6' : '#FFD45C', 2.6);
+
+        rund(x, a.y, b, a.h, 10); g.fillStyle = F.flaeche2; g.fill();
+        if (netzAus && !an) { g.fillStyle = 'rgba(0,0,0,.08)'; g.fill(); }
+        schreibe(p, x + 10, a.y + 20, { groesse: 15, fett: true, farbe: phasenFarbe(p) });
+        // Auslastung gegen die Notstromgrenze
+        const grenze = ph.grenze;
+        const txt = ph.versorgt ? watt(ph.P) + ' / ' + watt(grenze) : 'ohne Notstrom';
+        schreibe(txt, x + b - 8, a.y + 20, { groesse: 12, fett: true, ausrichtung: 'right', farbe: ph.ueberlast ? F.fehler : F.leise });
+        const by = a.y + 28;
+        rund(x + 10, by, b - 20, 8, 4); g.fillStyle = F.linie; g.fill();
+        if (ph.versorgt && isFinite(grenze) && grenze > 0) {
+          const q = Math.min(1, ph.P / grenze);
+          rund(x + 10, by, Math.max(0.1, (b - 20) * q), 8, 4); g.fillStyle = ph.ueberlast ? F.fehler : q > 0.8 ? '#F2A541' : F.ergebnis; g.fill();
+        }
+        // Geräte dieser Phase
+        const geraete = lasten.filter(function (l) { return l.an && (l.phase === p || l.phase === '3~'); });
+        const platz = Math.floor((a.h - 70) / 27);
+        geraete.slice(0, platz).forEach(function (l, j) {
+          const y = a.y + 46 + j * 27;
+          const laeuftNoch = an && !(l.befund && l.befund.art === 'schlecht');
+          rund(x + 8, y, b - 16, 23, 6); g.fillStyle = F.flaeche; g.fill();
+          g.strokeStyle = !netzAus ? F.linie : laeuftNoch ? F.ergebnis : F.fehler; g.lineWidth = 1.5; g.stroke();
+          g.fillStyle = laeuftNoch || !netzAus ? '#F2A541' : F.linie;
+          g.beginPath(); g.arc(x + 19, y + 11.5, 4, 0, 7); g.fill();
+          const pText = l.phase === '3~' ? watt(l.P / 3) + ' ⅓' : watt(l.P);
+          g.font = '600 12px ' + SCHRIFT;
+          const pb = g.measureText(pText).width;
+          schreibe(kuerzen(l.name, b - 46 - pb, 11.5), x + 27, y + 16, { groesse: 11.5, technik: false, farbe: laeuftNoch || !netzAus ? F.text : F.leise });
+          schreibe(pText, x + b - 14, y + 16, { groesse: 12, fett: true, ausrichtung: 'right', farbe: F.leise });
+        });
+        if (geraete.length > platz) schreibe('+ ' + (geraete.length - platz) + ' weitere', x + 10, a.y + a.h - 26, { groesse: 12, farbe: F.leise, technik: false });
+        // Laufzeit
+        let fuss = '';
+        if (!ph.versorgt) fuss = netzAus ? 'dunkel' : notstrom.ohne ? 'am Netz' : 'nur am Netz';
+        else if (ph.ueberlast || ph.spitzeZuViel) fuss = 'Überlast';
+        else if (ph.anzahl) fuss = netzAus ? 'noch ' + dauer(Math.max(0, ph.laufzeit - stunden)) : 'reicht ' + dauer(ph.laufzeit);
+        schreibe(fuss, cx, a.y + a.h - 8, { groesse: 13, fett: true, ausrichtung: 'center', farbe: fuss === 'Überlast' || fuss === 'dunkel' ? F.fehler : F.text });
+      });
+    }
+
+    function zeichneVerlauf(v) {
+      schreibe('Ladestand nach Netzausfall', v.x, v.y, { groesse: 14, fett: true });
+      const ox = v.x + 34, oy = v.y + 16, b = v.b - 44, h = v.h - 48;
+      linie([[ox, oy], [ox, oy + h], [ox + b, oy + h]], F.leise, 1.2);
+      ['100', '50', '0'].forEach(function (t, i) { schreibe(t + ' %', ox - 6, oy + i * h / 2 + 4, { groesse: 11, farbe: F.leise, ausrichtung: 'right' }); });
+      schreibe('0 h', ox, oy + h + 16, { groesse: 11, farbe: F.leise });
+      schreibe(dauer(zeitEnde), ox + b, oy + h + 16, { groesse: 11, farbe: F.leise, ausrichtung: 'right' });
+      if (notstrom.ohne) { schreibe('ohne Notstrom', ox + 10, oy + h / 2, { groesse: 12, farbe: F.leise, technik: false }); return; }
+      if (!notstrom.bekannt) { schreibe('Speicherdaten fehlen', ox + 10, oy + h / 2, { groesse: 12, farbe: F.leise, technik: false }); return; }
+      const soc0 = (bekannt('SOC') ? wert('SOC') : 80) / 100;
+      const reihen = einst.konzept === 'drei' ? PHASEN : ['L1'];
+      reihen.forEach(function (p) {
+        const ph = notstrom.phasen[p];
+        if (!ph.versorgt) return;
+        const kaputt = ph.ueberlast || ph.spitzeZuViel;
+        const pts = [];
+        for (let i = 0; i <= 40; i++) {
+          const t = zeitEnde * i / 40;
+          pts.push([ox + b * i / 40, oy + h * (1 - soc0 * restAnteil(p, t))]);
+        }
+        linie(kaputt ? [[ox, oy + h * (1 - soc0)], [ox + b, oy + h * (1 - soc0)]] : pts, einst.konzept === 'drei' ? phasenFarbe(p) : F.ergebnis, 2.5, kaputt ? [5, 5] : null);
+      });
+      if (netzAus) {
+        const mx = ox + b * stunden / zeitEnde;
+        linie([[mx, oy], [mx, oy + h]], '#F2A541', 2);
+        schreibe(dauer(stunden), mx, oy - 4, { groesse: 11, fett: true, ausrichtung: mx > ox + b - 40 ? 'right' : 'center', farbe: '#B7791F' });
+      }
+      if (einst.konzept === 'drei') PHASEN.forEach(function (p, i) { schreibe(p, ox + 8 + i * 30, oy + h + 32, { groesse: 11, fett: true, farbe: phasenFarbe(p) }); });
+    }
+
+
+    // ============================================================
+    // Steuerung
+    // ============================================================
+
+    const knopfAusfall = document.getElementById('ausfall');
+    const knopfZeit = document.getElementById('abspielen');
+    const regler = document.getElementById('zeit');
+
+    function zeitEndeSetzen() {
+      const lz = notstrom && isFinite(notstrom.laufzeit) ? notstrom.laufzeit : NaN;
+      zeitEnde = isFinite(lz) && lz > 0 ? Math.min(168, Math.max(2, lz * 1.15)) : 24;
+    }
+
+    function abspielen(an) {
+      laeuft = an && netzAus;
+      if (laeuft && stunden >= zeitEnde) stunden = 0;
+      knopfZeit.textContent = laeuft ? '❚❚ Anhalten' : '▶ Zeit laufen lassen';
+    }
+
+    knopfAusfall.addEventListener('click', function () {
+      netzAus = !netzAus;
+      stunden = 0; regler.value = '0';
+      zeitEndeSetzen();
+      knopfAusfall.textContent = netzAus ? '🔌 Netz wieder da' : '⚡ Netzausfall';
+      knopfZeit.disabled = !netzAus; regler.disabled = !netzAus;
+      abspielen(netzAus);
+      zeitText();
+    });
+    knopfZeit.addEventListener('click', function () { abspielen(!laeuft); });
+    regler.addEventListener('input', function () { stunden = +regler.value / 1000 * zeitEnde; abspielen(false); zeitText(); });
+
+    function zeitText() {
+      const el = document.getElementById('zeittext');
+      if (!notstrom) return;
+      zeitEndeSetzen();
+      if (!netzAus) {
+        el.innerHTML = einst.konzept === 'kein' ? '<b>Netzbetrieb.</b> PV versorgt das Haus, der Überschuss geht ins Netz.'
+          : '<b>Netzbetrieb.</b> PV versorgt das Haus und lädt die Speicher, der Rest kommt aus dem Netz.';
+        return;
+      }
+      if (notstrom.ohne) {
+        el.innerHTML = '<b>Netzausfall:</b> Das ganze Haus ist stromlos. Die PV hat sich über den NA-Schutz abgeschaltet' + (einst.konzept === 'kein' ? '.' : ', der Speicher steht still.');
+        return;
+      }
+      const teile = PHASEN.map(function (p) {
+        const ph = notstrom.phasen[p];
+        if (!ph.versorgt) return p + ' aus';
+        if (ph.ueberlast || ph.spitzeZuViel) return p + ' Überlast';
+        if (einst.konzept !== 'drei' && p !== 'L1') return null;
+        return p + ' ' + Math.round((hat(ergebnis.werte, 'SOC') ? ergebnis.werte.SOC : 80) * restAnteil(p, stunden)) + ' %';
+      }).filter(Boolean);
+      el.innerHTML = '<b>Netzausfall, nach ' + dauer(stunden) + ':</b> ' + teile.join(' · ') +
+        (notstrom.pvAktiv ? ' · PV lädt nach' : '') + (einst.art === 'dose' ? ' · nur Geräte an der Notstromsteckdose' : '');
+    }
+
+    let vorher = performance.now();
+    function schleife(jetzt) {
+      const dt = Math.min(0.05, (jetzt - vorher) / 1000);
+      vorher = jetzt;
+      zeichne(dt);
+      requestAnimationFrame(schleife);
+    }
+    window.addEventListener('resize', anpassen);
+
+
+    // ============================================================
+    // Start
+    // ============================================================
+
+    farbenLesen();
+    felderAufbauen();
+    formelnAufbauen();
+    konzepteAufbauen();
+    vorlagenAufbauen();
+    lastenAufbauen();
+    anpassen();
+    // Beispiel: 20 Module à 430 Wp, drei einphasige Speicher mit je 5,6 kWh
+    Object.assign(gegeben, {
+      Pmod: 430, nmod: 20, Amod: 1.95, Adach: 48, yspez: 950, fA: 95, Ev: 4500, evq: 45, kE: 0.35, kEin: 0.08, Inv: 22000,
+      Uoc: 38.5, Umpp: 32, Isc: 13.9, TKU: -0.27, Tmin: -10, Tmax: 70, UDCmax: 1000, UMPPmin: 160, UMPPmax: 850, IWRmax: 16,
+      CSp: 5.6, DoD: 90, PSp: 3.2, PNS: 3000, kSp: 1.5, SOC: 80, etaNS: 93, PVnach: 4,
+      PWR: 8, kIk: 2, InNS: 16, mNS: 5, RA: 30, IdN: 0.03
+    });
+    konzeptWaehlen('drei');
+    requestAnimationFrame(schleife);
+
+    window.PVNotstrom = { gegeben: gegeben, einst: einst, lasten: function () { return lasten; }, ergebnis: function () { return ergebnis; },
+                          notstrom: function () { return notstrom; }, neuRechnen: neuRechnen, konzeptWaehlen: konzeptWaehlen,
+                          ausfall: function () { knopfAusfall.click(); }, setzeStunden: function (h) { stunden = h; abspielen(false); zeitText(); } };
+  })();
+  </script>
+</body>
+</html>
