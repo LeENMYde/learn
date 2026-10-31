@@ -174,11 +174,19 @@
         themen: ['Flashover', 'Rauch', 'Sprinkler', 'Rauchmelder', 'Evakuierung', 'Waldbrand', 'Löschmittel', 'Feuerwiderstand', 'Explosionsgrenzen'],
         text: 'Raumbrand mit Rauchschicht und Flashover, Gebäudebrand mit Flucht und Feuerwehr, Waldbrand mit Wind und Funkenflug, Löschtrainer, Feuerwiderstand von Stahl, Holz und Beton sowie Gasexplosionen.',
         tex: '\\dot{Q} = \\alpha \\cdot t^2'
+      },
+      {
+        titel: 'Gaubenwange bekleiden',
+        pfad: 'dach/gaubenwange.html',
+        bereich: 'Dach und Klempnerei',
+        themen: ['Gaube', 'Stehfalz', 'Scharen', 'Zuschnitt', 'Winkel', 'Blech', 'Spiegeln', 'PDF'],
+        text: 'Gaubenoberkante, vordere Höhe, Scharbreite und Dachneigung eingeben: oberer Winkel, alle Scharen mit Zuschnittlängen, Versatz und Schrägmaß, Zeichnung für links und rechts, als PDF oder E-Mail für die Werkstatt.',
+        tex: '\\gamma = \\arcsin\\frac{H \\cdot \\cos\\alpha}{L_\\text{o}}'
       }
     ];
 
     // Reihenfolge und Farben der Bereiche; Untergruppen in dieser Reihenfolge
-    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Brandschutz': '#E4572E' };
+    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A' };
     const GRUPPEN = ['Grundlagen', 'Installation und Schutz', 'Energie und Photovoltaik'];
     const farbe = function (b) { return BEREICHE[b] || 'var(--leise)'; };
 
