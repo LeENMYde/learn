@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaubenwange bekleiden</title>
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .rechnen { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 960px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+    .zwei { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .zwei { grid-template-columns: minmax(0, 1fr); } }
+    .tafel.abstand { margin-top: 18px; }
+
+    .feld .einheit { white-space: nowrap; }
+    .feld .name { white-space: normal; line-height: 1.25; overflow: visible; text-overflow: clip; hyphens: auto; -webkit-hyphens: auto; }
+    .feld .symbol { min-width: 44px; }
+    .feld select { grid-column: span 2; font-size: .95rem; padding: 7px 6px; cursor: pointer; color: var(--text); }
+    .feld.null input { border-color: var(--linie); }
+
+    .ansicht-kopf { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+    .segment { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+    .segment button { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--linie); background: var(--flaeche); color: var(--text); font-size: .9rem; cursor: pointer; }
+    .segment button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    #wange { display: block; width: 100%; height: auto; margin-top: 10px; border-radius: var(--rund); background: var(--flaeche2); }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 10px; }
+    .steuerung label { display: inline-flex; gap: 6px; align-items: center; font-size: .92rem; cursor: pointer; }
+    .steuerung input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--ergebnis); }
+
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.7rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+
+    .rahmen { overflow-x: auto; }
+    .tabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .tabelle th, .tabelle td { padding: 7px 6px; border-bottom: 1px solid var(--linie); text-align: left; }
+    .tabelle th { color: var(--leise); font-weight: 400; font-size: .84rem; line-height: 1.25; }
+    .tabelle td { font-size: .95rem; }
+    .tabelle .zahl { text-align: right; font-family: var(--technik); font-size: 1.05rem; white-space: nowrap; }
+    .tabelle td.zahl.haupt { font-weight: 700; }
+    .tabelle tr.schmal td { background: var(--achtung-flaeche); }
+    h3.zwischen { margin: 22px 0 6px; font-size: 1.15rem; }
+    .wangentitel { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+    .wangentitel small { color: var(--leise); }
+
+    .teile { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 12px; }
+    .teil { border: 1px solid var(--linie); border-radius: var(--rund); padding: 8px 10px 10px; background: var(--flaeche); break-inside: avoid; page-break-inside: avoid; }
+    .teil b { font-family: var(--technik); font-size: 1.05rem; }
+    .teil svg { display: block; width: 100%; height: auto; margin-top: 4px; }
+
+    .ausgabe { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 16px; }
+    .ausgabe .feldchen { display: inline-flex; flex-direction: column; gap: 2px; font-size: .84rem; color: var(--leise); }
+    .ausgabe .feldchen input { padding: 7px 10px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font-size: .95rem; min-width: 220px; }
+    .meldung { font-size: .9rem; color: var(--ergebnis); }
+
+    .fehlertext { color: var(--fehler); }
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+    .formelsammlung p { margin: 4px 0 0; font-size: .85rem; color: var(--leise); }
+
+    /* SVG-Zeichnung */
+    .z-dach { stroke: #B5533C; stroke-width: 4; fill: none; stroke-linecap: round; }
+    .z-gdach { stroke: var(--text); stroke-width: 4; fill: none; stroke-linecap: round; }
+    .z-fassade { stroke: var(--leise); stroke-width: 2; fill: none; }
+    .z-wange { fill: var(--flaeche); stroke: var(--text); stroke-width: 1.5; }
+    .z-schar { fill: #8FA3B5; stroke: none; }
+    .z-schar.b { fill: #A9BBCB; }
+    .z-schar.schmal { fill: #F2A541; }
+    .z-falz { stroke: #3E5366; stroke-width: 2.4; }
+    .z-mass { stroke: var(--leise); stroke-width: 1; fill: none; }
+    .z-winkel { stroke: var(--warm); stroke-width: 1.6; fill: none; }
+    .z-text { fill: var(--text); font-family: var(--technik); font-size: 14px; }
+    .z-text.klein { font-size: 12px; fill: var(--leise); }
+    .z-text.nr { font-size: 13px; font-weight: 700; fill: #13233A; }
+    .z-text.w { fill: var(--warm); font-weight: 600; }
+    .z-hg { fill: var(--flaeche2); }
+    .z-teil { fill: #C9D5DF; stroke: var(--text); stroke-width: 1.2; }
+    .z-deck { fill: #A9BBCB; }
+    .z-hilf { stroke: var(--leise); stroke-width: .8; stroke-dasharray: 3 3; fill: none; }
+
+    .nur-druck { display: none; }
+    @media print {
+      :root { --grund: #FFFFFF; --flaeche: #FFFFFF; --flaeche2: #F4F6F7; --text: #000000; --leise: #444C55; --linie: #C8D0D5; --ergebnis: #0E6B6A; --ergebnis-flaeche: #E6F3F1; --warm: #C2410C; --achtung-flaeche: #FFF4E0; }
+      body { background: #FFFFFF; }
+      #seitenkopf, #seitenfuss, .held > p, .nicht-drucken, .steuerung, .segment, .ausgabe { display: none !important; }
+      .nur-druck { display: block; }
+      .tafel { box-shadow: none; border: 1px solid #C8D0D5; padding: 10px 12px; }
+      .rechnen, .zwei { display: block; }
+      .tafel.abstand, .rechnen > .tafel { margin-top: 10px; }
+      .held { padding: 0; }
+      .held h1 { font-size: 1.6rem; }
+      .kachel { border: 1px solid #C8D0D5; }
+      .rechenweg-aus { display: none !important; }
+      #wange { max-height: 85mm; }
+      .rahmen { overflow: visible; }
+      .tabelle th, .tabelle td { padding: 3px 4px; font-size: 8.5pt; }
+      .tabelle .zahl { font-size: 9pt; }
+      .teile { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+      .teil { padding: 4px 6px; }
+      .teil span { display: block; margin: 0 !important; font-size: 7pt !important; }
+      .teil svg { max-height: 46mm; }
+      h3.zwischen { margin: 10px 0 4px; }
+      .kacheln { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+      .kachel .wert { font-size: 13pt; }
+      @page { size: A4; margin: 12mm; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Gaubenwange bekleiden</span></h1>
+      <p>Vier Maße eingeben, den Rest rechnet die Seite: oberer Winkel und Gaubendachneigung, alle Scharen mit Sichtmaß, Zuschnittlänge vorne und hinten, Versatz und Schrägmaß. Die Wange wird mit allen Maßen gezeichnet, lässt sich für links und rechts spiegeln und als PDF oder E-Mail an Büro und Werkstatt schicken.</p>
+      <div class="nur-druck" id="druckKopf"></div>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel nicht-drucken" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Alle Längen in Millimetern, Komma oder Punkt geht beides. Die Höhe misst du an der Außenecke vom Dach bis zur Oberkante.</p>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="beispiel">Beispielwerte wiederherstellen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-ansicht">
+        <div class="ansicht-kopf">
+          <h2 id="h-ansicht">Ansicht der Wange</h2>
+          <div class="segment" role="group" aria-label="Welche Wange">
+            <button type="button" data-wange="rechts">rechte Wange</button>
+            <button type="button" data-wange="links">linke Wange</button>
+          </div>
+        </div>
+        <svg id="wange" viewBox="0 0 760 470" role="img" aria-label="Seitenansicht der Gaubenwange mit Scharen, Maßen und Winkeln"></svg>
+        <div class="steuerung">
+          <button type="button" class="knopf-haupt" id="abspielen">▶ Verlegen zeigen</button>
+          <button type="button" class="knopf" id="spiegeln" title="Zwischen linker und rechter Wange wechseln">⇄ Spiegeln</button>
+          <label><input type="checkbox" id="oMasse" checked> Maße</label>
+          <label><input type="checkbox" id="oNummern" checked> Scharnummern</label>
+        </div>
+        <p class="hilfe" id="ansichtHinweis" style="margin:8px 0 0"></p>
+      </section>
+    </div>
+
+    <section class="tafel abstand" aria-labelledby="h-ergebnis">
+      <h2 id="h-ergebnis">Ergebnis</h2>
+      <div id="meldungen" style="margin-top:10px"></div>
+      <div class="kacheln" id="kacheln"></div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-zuschnitt">
+      <h2 id="h-zuschnitt">Zuschnittliste</h2>
+      <p class="hilfe nicht-drucken">Sichtmaß = fertige Schar zwischen den Falzen. Zuschnitt = Blech mit allen Zugaben, Länge gemessen an der vorderen und hinteren Blechkante. Unten zuerst den Versatz Δu anreißen, dann die Längen nach oben abtragen.</p>
+      <div id="listen"></div>
+      <div class="ausgabe">
+        <button type="button" class="knopf-haupt" id="pdf">PDF speichern / drucken</button>
+        <label class="feldchen">E-Mail Büro / Werkstatt
+          <input type="email" id="mail" placeholder="werkstatt@beispiel.de" autocomplete="email"></label>
+        <button type="button" class="knopf" id="senden">Per E-Mail senden</button>
+        <button type="button" class="knopf" id="kopieren">Liste kopieren</button>
+        <label class="feldchen">Bauvorhaben
+          <input type="text" id="projekt" placeholder="z. B. Müller, Gaube Süd"></label>
+        <label style="display:inline-flex;gap:6px;align-items:center;font-size:.9rem"><input type="checkbox" id="mitWeg"> Rechenweg mitdrucken</label>
+        <span class="meldung" id="ausgabeMeldung" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <div class="zwei rechenweg-aus" id="wegBereich">
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte mit deinen Zahlen, Schar 1 als Beispiel.</p>
+        <ol class="weg" id="rechenweg"></ol>
+      </section>
+      <section class="tafel" aria-labelledby="h-formeln">
+        <h2 id="h-formeln">Formelsammlung</h2>
+        <p class="hilfe">Alle Formeln, die der Rechner verwendet.</p>
+        <div class="formelsammlung" id="formelsammlung"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    const bewegungAus = false;
+    const rad = function (d) { return d * Math.PI / 180; };
+    const grad = function (r) { return r * 180 / Math.PI; };
+    const SCHLUESSEL = 'gaubenwange-1';
+
+    // ============================================================
+    // Eingaben
+    // ============================================================
+
+    const BEISPIEL = { L: 2400, lMode: 'kante', H: 1200, alpha: 38, hh: 0, b: 250, rest: 'hinten', zV: 25, zR: 45, zE: 30, zO: 40, zU: 60, dAlpha: 0, dGamma: 0, zS: 0 };
+    const FELDER = [
+      { titel: 'Gaube', farbe: '#A0785A', felder: [
+        { k: 'L', tex: 'L_\\text{o}', name: 'Gaubenoberkante (Länge oben)', e: 'mm', min: 1 },
+        { k: 'lMode', name: 'Oberkante gemessen', wahl: [['kante', 'entlang der Kante'], ['waag', 'waagerecht (Grundriss)']] },
+        { k: 'H', tex: 'H', name: 'vordere Höhe (Außenecke)', e: 'mm', min: 1 },
+        { k: 'alpha', tex: '\\alpha', name: 'Dachneigung', e: '°', min: 1, max: 84 },
+        { k: 'hh', tex: 'h_\\text{h}', name: 'Resthöhe hinten (Spitze = 0)', e: 'mm', min: 0 }
+      ] },
+      { titel: 'Scharen und Zugaben', farbe: '#3E5366', felder: [
+        { k: 'b', tex: 'b', name: 'Scharbreite (Deckbreite)', e: 'mm', min: 20 },
+        { k: 'rest', name: 'Restbreite', wahl: [['hinten', 'letzte Schar schmaler'], ['vorne', 'erste Schar schmaler'], ['beide', 'auf erste und letzte verteilen']] },
+        { k: 'zV', tex: 'z_\\text{V}', name: 'Falzzugabe zur Vorderseite', e: 'mm', min: 0 },
+        { k: 'zR', tex: 'z_\\text{R}', name: 'Falzzugabe zur Rückseite', e: 'mm', min: 0 },
+        { k: 'zE', tex: 'z_\\text{E}', name: 'Eckzugabe vorne (erste Schar)', e: 'mm', min: 0 },
+        { k: 'zO', tex: 'z_\\text{o}', name: 'Zugabe oben (Anschluss Gaubendach)', e: 'mm', min: 0 },
+        { k: 'zU', tex: 'z_\\text{u}', name: 'Zugabe unten (Anschluss Hauptdach)', e: 'mm', min: 0 }
+      ] },
+      { titel: 'Toleranz im Altbau', farbe: '#E4572E', felder: [
+        { k: 'dAlpha', tex: '\\Delta\\alpha', name: 'Korrektur Dachneigung', e: '°', min: -10, max: 10, null: true },
+        { k: 'dGamma', tex: '\\Delta\\gamma', name: 'Korrektur oberer Winkel', e: '°', min: -10, max: 10, null: true },
+        { k: 'zS', tex: 'z_\\text{S}', name: 'Sicherheitszugabe Länge', e: 'mm', min: 0, null: true }
+      ] }
+    ];
+
+    let e = Object.assign({}, BEISPIEL);
+    let wange = 'rechts';
+    let zeigMasse = true, zeigNummern = true;
+    let fortschritt = 1, laeuft = false, start = 0;
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.').replace('−', '-');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+    function zahl(w, n) {
+      if (!isFinite(w)) return '–';
+      const t = (Math.round(w * Math.pow(10, n || 0)) / Math.pow(10, n || 0)).toFixed(n || 0).replace('.', ',').replace('-', '−');
+      const teile = t.split(',');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',');
+    }
+    function mm(w) { return zahl(w, 0) + ' mm'; }
+    function gr(w) { return zahl(w, 1) + '°'; }
+    function tz(w, n) { return Formel.zahl(zahl(w, n || 0)).replace(/ /g, '\\,'); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    const MM = '\\,\\text{mm}';
+
+    // ============================================================
+    // Rechnen
+    // ============================================================
+
+    function rechnen(e) {
+      const r = { warn: [] };
+      const al = e.alpha + e.dAlpha;
+      r.al = al;
+      if (!(e.L > 0 && e.H > 0 && e.b > 0)) return { fehler: 'Oberkante, vordere Höhe und Scharbreite müssen größer als null sein.' };
+      if (!(al > 0 && al < 85)) return { fehler: 'Die Dachneigung muss zwischen 0° und 85° liegen.' };
+      if (!(e.hh >= 0 && e.hh < e.H)) return { fehler: 'Die Resthöhe hinten muss kleiner sein als die vordere Höhe.' };
+      const ta = Math.tan(rad(al));
+      let gam0;
+      if (e.lMode === 'kante') {
+        const s = (e.H - e.hh) * Math.cos(rad(al)) / e.L;
+        if (s >= 1) return { fehler: 'Die Oberkante ist zu kurz: Bei ' + mm(e.H - e.hh) + ' Höhenunterschied und ' + gr(al) + ' Dachneigung muss sie länger als ' + mm((e.H - e.hh) * Math.cos(rad(al))) + ' sein.' };
+        gam0 = grad(Math.asin(s));
+        r.sinGam = s;
+      } else {
+        gam0 = al - grad(Math.atan(ta - (e.H - e.hh) / e.L));
+      }
+      r.gam0 = gam0;
+      const gam = gam0 + e.dGamma, be = al - gam;
+      r.gam = gam; r.be = be;
+      if (gam <= 0.05) return { fehler: 'Der obere Winkel wird null oder negativ. Korrektur Δγ oder Maße prüfen.' };
+      if (be <= -45 || be >= 85) return { fehler: 'Die Gaubendachneigung (' + gr(be) + ') ist unrealistisch. Maße prüfen.' };
+      const tb = Math.tan(rad(be));
+      let a = e.lMode === 'kante' ? e.L * Math.cos(rad(be)) : e.L;
+      // Durch die Winkelkorrektur kann die Spitze früher kommen
+      if (ta > tb && e.H - a * (ta - tb) < 0) { a = e.H / (ta - tb); r.warn.push('Mit der Winkelkorrektur trifft die Oberkante das Dach schon nach ' + mm(a) + ' waagerecht.'); }
+      r.a = a; r.ta = ta; r.tb = tb;
+      r.hhRes = Math.max(0, e.H - a * (ta - tb));
+      r.Lo = a / Math.cos(rad(be)); r.Lu = a / Math.cos(rad(al));
+      r.Ho = e.H + a * tb;
+      r.A = a * (e.H + r.hhRes) / 2;
+      if (be < 0) r.warn.push('Die Gaubenoberkante fällt nach hinten ab (β = ' + gr(be) + '). Bei Schleppgauben ist das ungewöhnlich – Maße prüfen.');
+      if (be < 3 && be >= 0) r.warn.push('Das Gaubendach ist fast flach (β = ' + gr(be) + '). Mindestneigung der Dachdeckung beachten.');
+      if (e.dAlpha || e.dGamma) r.warn.push('Toleranzausgleich aktiv: Δα = ' + gr(e.dAlpha) + ', Δγ = ' + gr(e.dGamma) + '. Ohne Korrektur wäre γ = ' + gr(gam0) + '.');
+
+      // Scharbreiten
+      const b = e.b, n = Math.max(1, Math.ceil(a / b - 1e-6)), rest = a - (n - 1) * b;
+      let breiten = [];
+      for (let i = 0; i < n; i++) breiten.push(b);
+      if (n === 1) breiten = [a];
+      else if (e.rest === 'vorne') breiten[0] = rest;
+      else if (e.rest === 'beide') { breiten[0] = (b + rest) / 2; breiten[n - 1] = (b + rest) / 2; }
+      else breiten[n - 1] = rest;
+      r.n = n; r.rest = rest;
+      const schmal = Math.min(80, b * 0.3);
+      if (n > 1 && Math.min.apply(null, breiten) < schmal) r.warn.push('Eine Schar ist nur ' + mm(Math.min.apply(null, breiten)) + ' breit. „Restbreite auf erste und letzte verteilen“ ergibt gleichmäßigere Ränder.');
+
+      // Zuschnitte: Blech oben bis Oberkante + z_o + z_S, unten bis Dach − z_u (senkrecht gemessen)
+      const D0 = e.H + e.zO + e.zS + e.zU, k = ta - tb;
+      const D = function (x) { return D0 - x * k; };
+      const h = function (x) { return Math.max(0, e.H - x * k); };
+      const xSpitze = k > 0 ? D0 / k : Infinity;
+      let x = 0;
+      r.scharen = breiten.map(function (w, i) {
+        const s = { nr: i + 1, xa: x, xb: x + w, w: w };
+        x += w;
+        s.zl = i === 0 ? e.zE : e.zV; s.zr = e.zR;
+        s.xl = s.xa - s.zl; s.xr = s.xb + s.zr;
+        s.xe = Math.min(s.xr, xSpitze);
+        s.B = s.xr - s.xl;
+        s.Lv = D(s.xl); s.Lh = Math.max(0, D(s.xr)); s.spitz = xSpitze < s.xr;
+        s.hv = h(s.xa); s.hb = h(Math.min(s.xb, a));
+        s.du = s.B * ta; s.do = s.B * tb;
+        s.so = (s.xe - s.xl) / Math.cos(rad(be)); s.su = (s.xe - s.xl) / Math.cos(rad(al));
+        s.flaeche = (D(s.xl) + D(s.xe)) / 2 * (s.xe - s.xl);
+        const yo = function (xx) { return e.H + xx * tb + e.zO + e.zS; }, yu = function (xx) { return xx * ta - e.zU; };
+        s.hoeheTafel = Math.max(yo(s.xl), yo(s.xe)) - Math.min(yu(s.xl), yu(s.xe));
+        s.schmal = n > 1 && w < schmal;
+        return s;
+      });
+      r.blech = r.scharen.reduce(function (p, s) { return p + s.flaeche; }, 0) / 1e6;
+      r.tafel = r.scharen.reduce(function (p, s) { return p + s.B * s.hoeheTafel; }, 0) / 1e6;
+      r.streifen = r.scharen.reduce(function (p, s) { return p + s.hoeheTafel; }, 0) / 1000;
+      r.Bmax = Math.max.apply(null, r.scharen.map(function (s) { return s.B; }));
+      return r;
+    }
+
+    // ============================================================
+    // Eingabefelder
+    // ============================================================
+
+    const inputs = {};
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      ziel.innerHTML = '';
+      FELDER.forEach(function (g) {
+        const fs = document.createElement('fieldset');
+        fs.className = 'gruppe'; fs.style.setProperty('--farbe', g.farbe);
+        const lg = document.createElement('legend'); lg.textContent = g.titel; fs.append(lg);
+        g.felder.forEach(function (f) {
+          const zeile = document.createElement('div');
+          zeile.className = 'feld';
+          const id = 'f-' + f.k;
+          const label = document.createElement('label'); label.htmlFor = id;
+          const sym = document.createElement('span'); sym.className = 'symbol';
+          if (f.tex) Formel.setze(sym, f.tex); else sym.textContent = '';
+          const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = f.name; nm.title = f.name;
+          label.append(sym, nm);
+          zeile.append(label);
+          if (f.wahl) {
+            const s = document.createElement('select'); s.id = id;
+            f.wahl.forEach(function (w) { const o = document.createElement('option'); o.value = w[0]; o.textContent = w[1]; s.append(o); });
+            s.addEventListener('change', function () { e[f.k] = s.value; neu(); });
+            zeile.append(s, document.createElement('span'));
+            inputs[f.k] = { el: s, f: f };
+          } else {
+            const inp = document.createElement('input');
+            inp.id = id; inp.type = 'text'; inp.inputMode = 'decimal'; inp.autocomplete = 'off'; inp.spellcheck = false;
+            const ein = document.createElement('span'); ein.className = 'einheit'; ein.textContent = f.e;
+            inp.addEventListener('input', function () {
+              const w = lies(inp.value);
+              const ok = isFinite(w) && (f.min === undefined || w >= f.min) && (f.max === undefined || w <= f.max);
+              zeile.classList.toggle('widerspruch', !ok);
+              if (!ok) return;
+              e[f.k] = w;
+              zeile.classList.toggle('null', !!f.null && w === 0);
+              neu();
+            });
+            inp.addEventListener('blur', function () { zeile.classList.remove('widerspruch'); zeigeWert(f.k); });
+            zeile.append(inp, ein, document.createElement('span'));
+            inputs[f.k] = { el: inp, f: f, zeile: zeile };
+          }
+          zeile.classList.add('gegeben');
+          fs.append(zeile);
+        });
+        ziel.append(fs);
+      });
+      Object.keys(inputs).forEach(zeigeWert);
+    }
+    function zeigeWert(k) {
+      const i = inputs[k];
+      if (i.f.wahl) { i.el.value = e[k]; return; }
+      i.el.value = String(Math.round(e[k] * 1000) / 1000).replace('.', ',');
+      if (i.zeile) i.zeile.classList.toggle('null', !!i.f.null && e[k] === 0);
+    }
+
+    // ============================================================
+    // Zeichnung der Wange (SVG)
+    // ============================================================
+
+    const NS = 'http://www.w3.org/2000/svg';
+    function s(tag, attr, text) {
+      const n = document.createElementNS(NS, tag);
+      Object.keys(attr || {}).forEach(function (k) { n.setAttribute(k, attr[k]); });
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
+    function zeichneWange(svg, r, gespiegelt, f, masse, nummern) {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      const W = 760, Hh = 470;
+      const a = r.a, H = e.H, Ho = Math.max(r.Ho, H);
+      const ml = 70, mr = 70, mo = 50, mu = 70;
+      const xmin = -0.1 * a, xmax = a * 1.04;
+      const ymin = Math.min(-0.1 * a * r.ta, 0) - 0.02 * Ho, ymax = Ho * 1.06;
+      const k = Math.min((W - ml - mr) / (xmax - xmin), (Hh - mo - mu) / (ymax - ymin));
+      const ox = ml + ((W - ml - mr) - (xmax - xmin) * k) / 2 - xmin * k;
+      const oy = mo + ((Hh - mo - mu) + (ymax - ymin) * k) / 2 + ymin * k;
+      const X = function (x) { return gespiegelt ? W - (ox + x * k) : ox + x * k; };
+      const Y = function (y) { return oy - y * k; };
+      const P = function (x, y) { return X(x).toFixed(1) + ',' + Y(y).toFixed(1); };
+      const yo = function (x) { return H + x * r.tb; }, yu = function (x) { return x * r.ta; };
+      const vor = gespiegelt ? -1 : 1;
+
+      // Umgebung: Hauptdach, Fassade, Gaubendach
+      svg.append(s('line', { class: 'z-dach', x1: X(xmin), y1: Y(yu(xmin)), x2: X(xmax), y2: Y(yu(xmax)) }));
+      svg.append(s('line', { class: 'z-fassade', x1: X(0), y1: Y(0), x2: X(0), y2: Y(yu(xmin)) }));
+      // Wange
+      const pkt = [P(0, 0), P(0, H), P(a, yo(a)), P(a, yu(a))];
+      svg.append(s('polygon', { class: 'z-wange', points: pkt.join(' ') }));
+      // Scharen
+      const n = r.scharen.length, sichtbar = Math.ceil(n * f - 1e-9);
+      r.scharen.forEach(function (sc, i) {
+        if (i >= sichtbar) return;
+        const xa = sc.xa, xb = Math.min(sc.xb, a);
+        const poly = [P(xa, yu(xa)), P(xa, yo(xa)), P(xb, yo(xb)), P(xb, yu(xb))];
+        svg.append(s('polygon', { class: 'z-schar' + (i % 2 ? ' b' : '') + (sc.schmal ? ' schmal' : ''), points: poly.join(' ') }));
+        if (i > 0) svg.append(s('line', { class: 'z-falz', x1: X(xa), y1: Y(yu(xa)), x2: X(xa), y2: Y(yo(xa)) }));
+        if (nummern && (xb - xa) * k > 14) {
+          const xm = (xa + xb) / 2, ym = (yu(xm) + yo(xm)) / 2;
+          if ((yo(xm) - yu(xm)) * k > 18) svg.append(s('text', { class: 'z-text nr', x: X(xm), y: Y(ym) + 5, 'text-anchor': 'middle' }, String(sc.nr)));
+        }
+      });
+      svg.append(s('polygon', { class: 'z-wange', points: pkt.join(' '), style: 'fill:none' }));
+      svg.append(s('line', { class: 'z-gdach', x1: X(-0.06 * a), y1: Y(yo(-0.06 * a)), x2: X(a), y2: Y(yo(a)) }));
+
+      if (!masse) return;
+      const text = function (x, y, t, anker, kl) { svg.append(s('text', { class: 'z-text' + (kl ? ' ' + kl : ''), x: x, y: y, 'text-anchor': anker || 'middle' }, t)); };
+      const hg = function (x, y, t, anker) {
+        const w = t.length * 7.6 + 8;
+        const lx = anker === 'start' ? x - 4 : anker === 'end' ? x - w + 4 : x - w / 2;
+        svg.append(s('rect', { class: 'z-hg', x: lx, y: y - 14, width: w, height: 19, rx: 4 }));
+        text(x, y, t, anker);
+      };
+      // Höhe vorne
+      const xh = X(0) - vor * 34;
+      svg.append(s('path', { class: 'z-mass', d: 'M' + xh + ',' + Y(0) + 'V' + Y(H) + 'M' + (xh - 5) + ',' + Y(0) + 'h10M' + (xh - 5) + ',' + Y(H) + 'h10' }));
+      const th = s('text', { class: 'z-text', x: xh - vor * 8, y: Y(H / 2), 'text-anchor': 'middle', transform: 'rotate(-90 ' + (xh - vor * 8) + ' ' + Y(H / 2) + ')' }, 'H = ' + mm(H));
+      svg.append(th);
+      // waagerechte Tiefe unten
+      const yM = Y(yu(xmin)) + 26;
+      svg.append(s('path', { class: 'z-mass', d: 'M' + X(0) + ',' + yM + 'H' + X(a) + 'M' + X(0) + ',' + (yM - 5) + 'v10M' + X(a) + ',' + (yM - 5) + 'v10' }));
+      svg.append(s('line', { class: 'z-hilf', x1: X(a), y1: Y(yu(a)), x2: X(a), y2: yM }));
+      hg((X(0) + X(a)) / 2, yM + 5, 'a = ' + mm(a) + ' waagerecht');
+      // Oberkante
+      const xm = a / 2;
+      hg(X(xm), Y(yo(xm)) - 30, 'Lo = ' + mm(r.Lo));
+      // Unterkante
+      const xu = a * 0.62;
+      hg(X(xu) + vor * 16, Y(yu(xu)) + 22, 'Lu = ' + mm(r.Lu), gespiegelt ? 'end' : 'start');
+      // Resthöhe hinten
+      if (r.hhRes > 1) hg(X(a) + vor * 8, Y((yu(a) + yo(a)) / 2) + 5, 'hh = ' + mm(r.hhRes), gespiegelt ? 'end' : 'start');
+      // Winkel
+      const bogen = function (x0, y0, w1, w2, rr, label, lw) {
+        const p1 = [X(x0) + vor * rr * Math.cos(rad(w1)), Y(y0) - rr * Math.sin(rad(w1))];
+        const p2 = [X(x0) + vor * rr * Math.cos(rad(w2)), Y(y0) - rr * Math.sin(rad(w2))];
+        const gross = Math.abs(w2 - w1) > 180 ? 1 : 0;
+        const sweep = (w2 > w1) === !gespiegelt ? 0 : 1;
+        svg.append(s('path', { class: 'z-winkel', d: 'M' + p1[0].toFixed(1) + ',' + p1[1].toFixed(1) + 'A' + rr + ',' + rr + ' 0 ' + gross + ' ' + sweep + ' ' + p2[0].toFixed(1) + ',' + p2[1].toFixed(1) }));
+        const wm = (w1 + w2) / 2, lr = rr + (lw || 26);
+        text(X(x0) + vor * lr * Math.cos(rad(wm)), Y(y0) - lr * Math.sin(rad(wm)) + 5, label, 'middle', 'w');
+      };
+      // α vorne unten (Waagerechte zum Dach)
+      svg.append(s('line', { class: 'z-hilf', x1: X(0), y1: Y(0), x2: X(a * 0.32), y2: Y(0) }));
+      bogen(0, 0, 0, r.al, Math.min(70, a * k * 0.22), 'α ' + gr(r.al), 30);
+      // β oben vorne
+      svg.append(s('line', { class: 'z-hilf', x1: X(0), y1: Y(H), x2: X(a * 0.28), y2: Y(H) }));
+      if (Math.abs(r.be) > 0.3) { bogen(0, H, Math.min(0, r.be), Math.max(0, r.be), Math.min(80, a * k * 0.25), '', 0); svg.lastChild.remove(); text(X(a * 0.2), Y(yo(a * 0.2)) - 12, 'β ' + gr(r.be), 'middle', 'w'); }
+      // γ hinten an der Spitze (zwischen Ober- und Unterkante), Text außen
+      bogen(a, yu(a), 180 + r.be, 180 + r.al, Math.min(70, a * k * 0.18), '', 0); svg.lastChild.remove();
+      text(X(a) + vor * 10, Y(yu(a)) + (r.hhRes > 1 ? -8 : 22), 'γ ' + gr(r.gam), gespiegelt ? 'end' : 'start', 'w');
+      // Beschriftung Seiten
+      text(X(0) + vor * 6, Y(yu(xmin)) - 6, 'Vorderkante', gespiegelt ? 'end' : 'start', 'klein');
+      text(X(a * 0.3), Y(yu(a * 0.3)) + 30, 'Hauptdach', gespiegelt ? 'end' : 'start', 'klein');
+      text(X(-0.06 * a) - vor * 4, Y(yo(-0.06 * a)) - 8, 'Gaubendach', gespiegelt ? 'start' : 'end', 'klein');
+      text(gespiegelt ? 12 : W - 12, 22, (gespiegelt ? 'linke' : 'rechte') + ' Wange · Ansicht von außen', gespiegelt ? 'start' : 'end', 'klein');
+    }
+
+    // Skizze eines Zuschnitts
+    function zeichneTeil(sc, r, gespiegelt) {
+      const B = sc.B, top = function (x) { return e.H + x * r.tb + e.zO + e.zS; }, bot = function (x) { return x * r.ta - e.zU; };
+      const ymin = Math.min(bot(sc.xl), bot(sc.xe)), ymax = Math.max(top(sc.xl), top(sc.xe));
+      const W = 220, Hh = 230, ml = 48, mr = 48, mo = 18, mu = 30;
+      const k = Math.min((W - ml - mr) / B, (Hh - mo - mu) / (ymax - ymin));
+      const ox = ml + ((W - ml - mr) - B * k) / 2;
+      const X = function (x) { const v = ox + (x - sc.xl) * k; return gespiegelt ? W - v : v; };
+      const Y = function (y) { return Hh - mu - (y - ymin) * k; };
+      const svg = s('svg', { viewBox: '0 0 ' + W + ' ' + Hh, role: 'img', 'aria-label': 'Zuschnitt Schar ' + sc.nr });
+      const pts = [[sc.xl, bot(sc.xl)], [sc.xl, top(sc.xl)], [sc.xe, top(sc.xe)]];
+      if (!sc.spitz) pts.push([sc.xe, bot(sc.xe)]);
+      svg.append(s('polygon', { class: 'z-teil', points: pts.map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' ') }));
+      // Sichtbereich zwischen den Falzen
+      const xa = sc.xa, xb = Math.min(sc.xb, r.a);
+      const hu = function (x) { return x * r.ta; }, ho = function (x) { return e.H + x * r.tb; };
+      if (xb > xa) svg.append(s('polygon', { class: 'z-deck', points: [[xa, hu(xa)], [xa, ho(xa)], [xb, ho(xb)], [xb, hu(xb)]].map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' ') }));
+      svg.append(s('polygon', { class: 'z-teil', style: 'fill:none', points: pts.map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' ') }));
+      const t = function (x, y, txt, anker, kl) { svg.append(s('text', { class: 'z-text' + (kl ? ' ' + kl : ''), x: x, y: y, 'text-anchor': anker || 'middle' }, txt)); };
+      const v = gespiegelt ? -1 : 1;
+      // Länge vorne / hinten
+      t(X(sc.xl) - v * 6, Y((bot(sc.xl) + top(sc.xl)) / 2) + 5, zahl(sc.Lv, 0), gespiegelt ? 'start' : 'end');
+      if (!sc.spitz) t(X(sc.xe) + v * 6, Y((bot(sc.xe) + top(sc.xe)) / 2) + 5, zahl(sc.Lh, 0), gespiegelt ? 'end' : 'start');
+      // Breite unten
+      t((X(sc.xl) + X(sc.xe)) / 2, Hh - 8, 'B ' + zahl(sc.B, 0) + (sc.spitz ? ' (Spitze ' + zahl(sc.xe - sc.xl, 0) + ')' : ''), 'middle', 'klein');
+      t(X(sc.xl) + v * 4, mo - 4, 'vorne', gespiegelt ? 'end' : 'start', 'klein');
+      return svg;
+    }
+
+    // ============================================================
+    // Ausgabe
+    // ============================================================
+
+    let r = null;
+    function kachel(wert, text, farbe) { return '<div class="kachel" style="--farbe:' + farbe + '"><div class="wert">' + wert + '</div><small>' + text + '</small></div>'; }
+
+    function liste(gespiegelt) {
+      const box = document.createElement('div');
+      const kopf = document.createElement('h3');
+      kopf.className = 'zwischen wangentitel';
+      kopf.innerHTML = (gespiegelt ? 'Linke' : 'Rechte') + ' Wange <small>Ansicht von außen, Vorderkante ' + (gespiegelt ? 'rechts' : 'links') + ', Schar 1 vorne</small>';
+      box.append(kopf);
+      const rahmen = document.createElement('div'); rahmen.className = 'rahmen';
+      const tab = document.createElement('table'); tab.className = 'tabelle';
+      tab.innerHTML = '<thead><tr><th>Schar</th><th class="zahl">Sicht&shy;breite</th><th class="zahl">Sicht vorne</th><th class="zahl">Sicht hinten</th><th class="zahl">Zuschnitt&shy;breite B</th><th class="zahl">Länge vorne</th><th class="zahl">Länge hinten</th><th class="zahl">Versatz unten Δu</th><th class="zahl">Versatz oben Δo</th><th class="zahl">Schräg unten</th><th class="zahl">Schräg oben</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      r.scharen.forEach(function (sc) {
+        const tr = document.createElement('tr');
+        if (sc.schmal) tr.className = 'schmal';
+        const z = function (t, kl) { const td = document.createElement('td'); td.className = 'zahl' + (kl ? ' ' + kl : ''); td.textContent = t; tr.append(td); };
+        const td0 = document.createElement('td'); td0.textContent = sc.nr + (sc.nr === 1 ? ' (Ecke)' : sc.nr === r.n ? ' (hinten)' : ''); tr.append(td0);
+        z(zahl(sc.w, 0)); z(zahl(sc.hv, 0)); z(zahl(sc.hb, 0));
+        z(zahl(sc.B, 0), 'haupt'); z(zahl(sc.Lv, 0), 'haupt'); z(sc.spitz ? 'Spitze' : zahl(sc.Lh, 0), 'haupt');
+        z(zahl(sc.du, 0)); z(zahl(sc.do, 0)); z(zahl(sc.su, 0)); z(zahl(sc.so, 0));
+        tb.append(tr);
+      });
+      tab.append(tb); rahmen.append(tab); box.append(rahmen);
+      const teile = document.createElement('div'); teile.className = 'teile';
+      r.scharen.forEach(function (sc) {
+        const d = document.createElement('div'); d.className = 'teil';
+        const b = document.createElement('b'); b.textContent = 'Schar ' + sc.nr;
+        const sm = document.createElement('span'); sm.style.cssText = 'color:var(--leise);font-size:.85rem;margin-left:8px';
+        sm.textContent = 'unten ' + gr(90 - r.al) + ' · oben ' + gr(90 + r.be) + ' zur vorderen Kante';
+        d.append(b, sm, zeichneTeil(sc, r, gespiegelt));
+        teile.append(d);
+      });
+      box.append(teile);
+      return box;
+    }
+
+    function zeigen() {
+      r = rechnen(e);
+      const mel = document.getElementById('meldungen'); mel.innerHTML = '';
+      const hin = function (t, fehler) { const d = document.createElement('div'); d.className = 'hinweis' + (fehler ? ' fehler' : ''); d.textContent = t; mel.append(d); };
+      if (r.fehler) {
+        hin(r.fehler, true);
+        ['kacheln', 'listen', 'rechenweg'].forEach(function (id) { document.getElementById(id).innerHTML = ''; });
+        const svg = document.getElementById('wange'); while (svg.firstChild) svg.removeChild(svg.firstChild);
+        return;
+      }
+      r.warn.forEach(function (t) { hin(t); });
+      document.getElementById('kacheln').innerHTML =
+        kachel(gr(r.gam), 'oberer Winkel γ (hinten an der Spitze)', '#E4572E') +
+        kachel(gr(r.be), 'Neigung Gaubendach β', '#13233A') +
+        kachel(mm(r.a), 'Tiefe waagerecht a', '#A0785A') +
+        kachel(mm(r.Lo), 'Oberkante Lo', '#A0785A') +
+        kachel(mm(r.Lu), 'Anschluss am Hauptdach Lu', '#B5533C') +
+        kachel(String(r.n), r.n === 1 ? 'Schar' : 'Scharen', '#3E5366') +
+        kachel(zahl(r.A / 1e6, 2) + ' m²', 'Wangenfläche', '#2B7BB9') +
+        kachel(zahl(r.tafel, 2) + ' m²', 'Blechbedarf je Wange (Tafel, ohne Verschnittoptimierung)', '#0E6B6A');
+      zeichnen();
+      const ziel = document.getElementById('listen'); ziel.innerHTML = '';
+      ziel.append(liste(wange === 'links'));
+      const summe = document.createElement('p'); summe.className = 'hilfe'; summe.style.marginTop = '12px';
+      summe.textContent = 'Je Wange: ' + r.n + ' Scharen, Blech ' + zahl(r.blech, 2) + ' m² (Zuschnittfläche), ' + zahl(r.streifen, 2) + ' m Streifen bei höchstens ' + mm(r.Bmax) + ' Breite. Die andere Wange ist spiegelbildlich, dieselben Maße.';
+      ziel.append(summe);
+      rechenweg();
+      druckKopf();
+      speichern();
+    }
+    function zeichnen() {
+      if (!r || r.fehler) return;
+      zeichneWange(document.getElementById('wange'), r, wange === 'links', fortschritt, zeigMasse, zeigNummern);
+      document.getElementById('ansichtHinweis').textContent = 'Blick von außen auf die ' + (wange === 'links' ? 'linke' : 'rechte') + ' Wange. Die Vorderkante (Fassade) liegt ' + (wange === 'links' ? 'rechts' : 'links') + ', die Scharen werden von vorne nach hinten gezählt.';
+      document.querySelectorAll('[data-wange]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.wange === wange)); });
+    }
+
+    // ============================================================
+    // Rechenweg und Formelsammlung
+    // ============================================================
+
+    function schritt(titel, tex) {
+      const li = document.createElement('li');
+      const t = document.createElement('div'); t.className = 'titel'; t.textContent = titel;
+      const rr = document.createElement('div'); rr.className = 'rechnung'; Formel.setze(rr, tex, false);
+      li.append(t, rr);
+      return li;
+    }
+    function rechenweg() {
+      const ol = document.getElementById('rechenweg'); ol.innerHTML = '';
+      const al = tz(r.al, 1) + '^\\circ', be = tz(r.be, 1) + '^\\circ';
+      if (e.dAlpha) ol.append(schritt('Dachneigung mit Korrektur', '\\alpha\' = \\alpha + \\Delta\\alpha = ' + tz(e.alpha, 1) + '^\\circ + ' + tz(e.dAlpha, 1) + '^\\circ = ' + E(al)));
+      if (e.lMode === 'kante') ol.append(schritt('Oberer Winkel aus Höhe, Oberkante und Dachneigung (Sinussatz)', '\\gamma = \\arcsin\\frac{(H - h_\\text{h}) \\cdot \\cos\\alpha}{L_\\text{o}} = \\arcsin\\frac{(' + tz(e.H) + ' - ' + tz(e.hh) + ')' + MM + ' \\cdot \\cos ' + al + '}{' + tz(e.L) + MM + '} = ' + E(tz(r.gam0, 2) + '^\\circ')));
+      else ol.append(schritt('Oberer Winkel aus waagerechter Länge', '\\gamma = \\alpha - \\arctan\\left(\\tan\\alpha - \\frac{H - h_\\text{h}}{a}\\right) = ' + al + ' - \\arctan\\left(\\tan ' + al + ' - \\frac{' + tz(e.H - e.hh) + '}{' + tz(e.L) + '}\\right) = ' + E(tz(r.gam0, 2) + '^\\circ')));
+      if (e.dGamma) ol.append(schritt('Oberer Winkel mit Korrektur (Toleranz)', '\\gamma\' = \\gamma + \\Delta\\gamma = ' + tz(r.gam0, 2) + '^\\circ + ' + tz(e.dGamma, 1) + '^\\circ = ' + E(tz(r.gam, 2) + '^\\circ')));
+      ol.append(schritt('Neigung des Gaubendachs', '\\beta = \\alpha - \\gamma = ' + al + ' - ' + tz(r.gam, 2) + '^\\circ = ' + E(be)));
+      ol.append(schritt('Waagerechte Tiefe der Wange', e.lMode === 'kante' ? 'a = L_\\text{o} \\cdot \\cos\\beta = ' + tz(e.L) + MM + ' \\cdot \\cos ' + be + ' = ' + E(tz(r.a) + MM) : 'a = L_\\text{o} = ' + E(tz(r.a) + MM) + ',\\quad L_\\text{o,Kante} = \\frac{a}{\\cos\\beta} = ' + tz(r.Lo) + MM));
+      ol.append(schritt('Anschlusslänge am Hauptdach', 'L_\\text{u} = \\frac{a}{\\cos\\alpha} = \\frac{' + tz(r.a) + MM + '}{\\cos ' + al + '} = ' + E(tz(r.Lu) + MM)));
+      ol.append(schritt('Höhe der Oberkante hinten über der Vorderkante unten', 'H_\\text{o} = H + a \\cdot \\tan\\beta = ' + tz(e.H) + ' + ' + tz(r.a) + ' \\cdot \\tan ' + be + ' = ' + E(tz(r.Ho) + MM)));
+      ol.append(schritt('Kontrolle Resthöhe hinten', 'h_\\text{h} = H - a \\cdot (\\tan\\alpha - \\tan\\beta) = ' + tz(e.H) + ' - ' + tz(r.a) + ' \\cdot (\\tan ' + al + ' - \\tan ' + be + ') = ' + E(tz(r.hhRes) + MM)));
+      ol.append(schritt('Wangenfläche', 'A = a \\cdot \\frac{H + h_\\text{h}}{2} = ' + tz(r.a) + MM + ' \\cdot \\frac{' + tz(e.H) + ' + ' + tz(r.hhRes) + '}{2}' + MM + ' = ' + E(tz(r.A / 1e6, 3) + '\\,\\text{m}^2')));
+      ol.append(schritt('Anzahl Scharen und Restbreite', 'n = \\left\\lceil \\frac{a}{b} \\right\\rceil = \\left\\lceil \\frac{' + tz(r.a) + '}{' + tz(e.b) + '} \\right\\rceil = ' + E(String(r.n)) + ',\\quad r = a - (n - 1) \\cdot b = ' + E(tz(r.rest) + MM)));
+      const s1 = r.scharen[0];
+      ol.append(schritt('Sichthöhe einer Schar an der Stelle x (Schar 1 vorne und hinten)', 'h(x) = H - x \\cdot (\\tan\\alpha - \\tan\\beta):\\quad h(0) = ' + E(tz(s1.hv) + MM) + ',\\ h(' + tz(s1.xb) + ') = ' + E(tz(s1.hb) + MM)));
+      ol.append(schritt('Zuschnittbreite Schar 1 (Ecke) und folgende', 'B_1 = b_1 + z_\\text{E} + z_\\text{R} = ' + tz(s1.w) + ' + ' + tz(e.zE) + ' + ' + tz(e.zR) + ' = ' + E(tz(s1.B) + MM) + ',\\quad B = b + z_\\text{V} + z_\\text{R} = ' + tz(e.b + e.zV + e.zR) + MM));
+      ol.append(schritt('Zuschnittlänge an der vorderen Blechkante (Schar 1)', 'L_\\text{v} = H + z_\\text{o} + z_\\text{u} + z_\\text{S} - x_\\text{v} \\cdot (\\tan\\alpha - \\tan\\beta) = ' + tz(e.H) + ' + ' + tz(e.zO) + ' + ' + tz(e.zU) + ' + ' + tz(e.zS) + ' + ' + tz(-s1.xl) + ' \\cdot ' + tz(r.ta - r.tb, 4) + ' = ' + E(tz(s1.Lv) + MM)));
+      ol.append(schritt('Zuschnittlänge an der hinteren Blechkante (Schar 1)', 'L_\\text{h} = L_\\text{v} - B \\cdot (\\tan\\alpha - \\tan\\beta) = ' + tz(s1.Lv) + ' - ' + tz(s1.B) + ' \\cdot ' + tz(r.ta - r.tb, 4) + ' = ' + E(s1.spitz ? '\\text{Spitze}' : tz(s1.Lh) + MM)));
+      ol.append(schritt('Versatz zum Anreißen über die Zuschnittbreite', '\\Delta_\\text{u} = B \\cdot \\tan\\alpha = ' + tz(s1.B) + ' \\cdot \\tan ' + al + ' = ' + E(tz(s1.du) + MM) + ',\\quad \\Delta_\\text{o} = B \\cdot \\tan\\beta = ' + E(tz(s1.do) + MM)));
+      ol.append(schritt('Schrägmaße der Schnittkanten', 's_\\text{u} = \\frac{B}{\\cos\\alpha} = ' + E(tz(s1.su) + MM) + ',\\quad s_\\text{o} = \\frac{B}{\\cos\\beta} = ' + E(tz(s1.so) + MM)));
+      ol.append(schritt('Schnittwinkel zur vorderen Falzkante', '\\text{unten: } 90^\\circ - \\alpha = ' + E(tz(90 - r.al, 1) + '^\\circ') + ',\\quad \\text{oben: } 90^\\circ + \\beta = ' + E(tz(90 + r.be, 1) + '^\\circ')));
+      ol.append(schritt('Blechbedarf je Wange', 'A_\\text{Blech} = \\sum \\frac{L_\\text{v} + L_\\text{h}}{2} \\cdot B = ' + E(tz(r.blech, 3) + '\\,\\text{m}^2') + ',\\quad A_\\text{Tafel} = ' + E(tz(r.tafel, 3) + '\\,\\text{m}^2')));
+    }
+
+    const SAMMLUNG = [
+      ['Oberer Winkel (Oberkante entlang der Kante gemessen)', '\\gamma = \\arcsin\\frac{(H - h_\\text{h}) \\cdot \\cos\\alpha}{L_\\text{o}}', 'Sinussatz im Dreieck aus Vorderkante, Oberkante und Dachlinie'],
+      ['Oberer Winkel (waagerecht gemessen)', '\\gamma = \\alpha - \\arctan\\left(\\tan\\alpha - \\frac{H - h_\\text{h}}{a}\\right)'],
+      ['Gaubendachneigung', '\\beta = \\alpha - \\gamma'],
+      ['Tiefe, Ober- und Unterkante', 'a = L_\\text{o} \\cdot \\cos\\beta, \\quad L_\\text{u} = \\frac{a}{\\cos\\alpha}'],
+      ['Höhen', 'H_\\text{o} = H + a \\cdot \\tan\\beta, \\quad h(x) = H - x \\cdot (\\tan\\alpha - \\tan\\beta)'],
+      ['Wangenfläche', 'A = a \\cdot \\frac{H + h_\\text{h}}{2}'],
+      ['Scharen', 'n = \\left\\lceil \\frac{a}{b} \\right\\rceil, \\quad r = a - (n - 1) \\cdot b', 'Rest hinten, vorne oder je zur Hälfte auf erste und letzte Schar'],
+      ['Zuschnittbreite', 'B = b + z_\\text{V} + z_\\text{R}, \\quad B_1 = b_1 + z_\\text{E} + z_\\text{R}'],
+      ['Zuschnittlängen', 'L(x) = H + z_\\text{o} + z_\\text{u} + z_\\text{S} - x \\cdot (\\tan\\alpha - \\tan\\beta)', 'x = Lage der Blechkante ab Vorderkante; Zugaben senkrecht gemessen'],
+      ['Versatz und Schrägmaß', '\\Delta_\\text{u} = B \\cdot \\tan\\alpha, \\quad \\Delta_\\text{o} = B \\cdot \\tan\\beta, \\quad s = \\frac{B}{\\cos\\varphi}'],
+      ['Schnittwinkel zur Falzkante', '\\text{unten } 90^\\circ - \\alpha, \\quad \\text{oben } 90^\\circ + \\beta']
+    ];
+    function sammlungAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      SAMMLUNG.forEach(function (x) {
+        const sec = document.createElement('section');
+        const h = document.createElement('h3'); h.textContent = x[0];
+        const b = document.createElement('div'); b.className = 'formelblock'; Formel.setze(b, x[1], true);
+        sec.append(h, b);
+        if (x[2]) { const p = document.createElement('p'); p.textContent = x[2]; sec.append(p); }
+        ziel.append(sec);
+      });
+    }
+
+    // ============================================================
+    // PDF, E-Mail, Kopieren
+    // ============================================================
+
+    function projektName() { return document.getElementById('projekt').value.trim(); }
+    function datum() { const d = new Date(); return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear(); }
+    function druckKopf() {
+      const z = document.getElementById('druckKopf');
+      if (!r || r.fehler) { z.textContent = ''; return; }
+      z.innerHTML = '';
+      const p = document.createElement('p');
+      p.style.cssText = 'margin:6px 0 0;color:#000;font-size:.95rem;max-width:none';
+      p.textContent = (projektName() ? projektName() + ' · ' : '') + datum() + ' · Oberkante ' + mm(e.L) + (e.lMode === 'waag' ? ' (waagerecht)' : '') + ', vordere Höhe ' + mm(e.H) + ', Dachneigung ' + gr(e.alpha) + (e.hh ? ', Resthöhe ' + mm(e.hh) : '') + ', Scharbreite ' + mm(e.b) +
+        ' · Zugaben: Falz vorne ' + mm(e.zV) + ', hinten ' + mm(e.zR) + ', Ecke ' + mm(e.zE) + ', oben ' + mm(e.zO) + ', unten ' + mm(e.zU) + (e.zS ? ', Sicherheit ' + mm(e.zS) : '') +
+        (e.dAlpha || e.dGamma ? ' · Korrektur Δα ' + gr(e.dAlpha) + ', Δγ ' + gr(e.dGamma) : '');
+      z.append(p);
+    }
+    function textListe() {
+      if (!r || r.fehler) return '';
+      const z = [];
+      z.push('Gaubenwange' + (projektName() ? ' – ' + projektName() : '') + ' (' + datum() + ')');
+      z.push('Oberkante ' + mm(e.L) + (e.lMode === 'waag' ? ' waagerecht' : '') + ', vordere Höhe ' + mm(e.H) + ', Dachneigung ' + gr(r.al) + ', Scharbreite ' + mm(e.b) + (e.hh ? ', Resthöhe hinten ' + mm(e.hh) : ''));
+      z.push('Zugaben: Falz vorne ' + mm(e.zV) + ', Falz hinten ' + mm(e.zR) + ', Ecke ' + mm(e.zE) + ', oben ' + mm(e.zO) + ', unten ' + mm(e.zU) + (e.zS ? ', Sicherheit ' + mm(e.zS) : ''));
+      z.push('Oberer Winkel γ = ' + gr(r.gam) + ', Gaubendach β = ' + gr(r.be) + ', Tiefe a = ' + mm(r.a) + ', Unterkante Lu = ' + mm(r.Lu));
+      z.push('Schnittwinkel zur vorderen Falzkante: unten ' + gr(90 - r.al) + ', oben ' + gr(90 + r.be));
+      z.push('');
+      z.push((wange === 'links' ? 'LINKE' : 'RECHTE') + ' Wange (Ansicht von außen, Vorderkante ' + (wange === 'links' ? 'rechts' : 'links') + '); andere Wange spiegelbildlich');
+      z.push('Schar | Zuschnitt B | Länge vorne | Länge hinten | Versatz unten | Versatz oben | Sichtbreite');
+      r.scharen.forEach(function (sc) {
+        z.push(sc.nr + ' | ' + zahl(sc.B, 0) + ' | ' + zahl(sc.Lv, 0) + ' | ' + (sc.spitz ? 'Spitze' : zahl(sc.Lh, 0)) + ' | ' + zahl(sc.du, 0) + ' | ' + zahl(sc.do, 0) + ' | ' + zahl(sc.w, 0));
+      });
+      z.push('alle Maße in mm');
+      z.push('Blech je Wange ' + zahl(r.blech, 2) + ' m² (Zuschnitt), ' + zahl(r.tafel, 2) + ' m² (Tafel)');
+      return z.join('\n');
+    }
+    document.getElementById('pdf').addEventListener('click', function () {
+      const alt = document.title;
+      document.title = 'Gaubenwange' + (projektName() ? ' ' + projektName() : '') + ' ' + datum();
+      document.getElementById('wegBereich').classList.toggle('rechenweg-aus', !document.getElementById('mitWeg').checked);
+      if (laeuft) { laeuft = false; fortschritt = 1; zeichnen(); knopf(); }
+      druckKopf();
+      window.print();
+      setTimeout(function () { document.title = alt; }, 500);
+    });
+    document.getElementById('senden').addEventListener('click', function () {
+      const an = document.getElementById('mail').value.trim();
+      const betreff = 'Zuschnitt Gaubenwange' + (projektName() ? ' – ' + projektName() : '');
+      const text = textListe() + '\n\nTipp: Das PDF mit Zeichnung über „PDF speichern“ erzeugen und anhängen.';
+      if (navigator.share && !an && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        navigator.share({ title: betreff, text: text }).catch(function () {});
+        return;
+      }
+      window.location.href = 'mailto:' + encodeURIComponent(an) + '?subject=' + encodeURIComponent(betreff) + '&body=' + encodeURIComponent(text);
+      melden('E-Mail-Programm geöffnet. Für die Zeichnung zusätzlich das PDF anhängen.');
+    });
+    document.getElementById('kopieren').addEventListener('click', function () {
+      const t = textListe();
+      const fertig = function () { melden('Zuschnittliste kopiert.'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(fertig, function () { altKopieren(t); fertig(); });
+      else { altKopieren(t); fertig(); }
+    });
+    function altKopieren(t) {
+      const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.append(ta); ta.select();
+      try { document.execCommand('copy'); } catch (x) { /* nicht verfügbar */ }
+      ta.remove();
+    }
+    let meldeUhr = 0;
+    function melden(t) { const m = document.getElementById('ausgabeMeldung'); m.textContent = t; clearTimeout(meldeUhr); meldeUhr = setTimeout(function () { m.textContent = ''; }, 5000); }
+
+    // ============================================================
+    // Bedienung, Speichern, Animation
+    // ============================================================
+
+    function speichern() {
+      try { localStorage.setItem(SCHLUESSEL, JSON.stringify({ e: e, wange: wange, mail: document.getElementById('mail').value, projekt: projektName() })); } catch (x) { /* ohne Speicher */ }
+    }
+    function laden() {
+      try {
+        const d = JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null');
+        if (!d || !d.e) return;
+        Object.keys(BEISPIEL).forEach(function (k) { if (k in d.e && typeof d.e[k] === typeof BEISPIEL[k]) e[k] = d.e[k]; });
+        if (d.wange === 'links' || d.wange === 'rechts') wange = d.wange;
+        document.getElementById('mail').value = d.mail || '';
+        document.getElementById('projekt').value = d.projekt || '';
+      } catch (x) { /* ohne Speicher */ }
+    }
+    function neu() { zeigen(); }
+
+    document.querySelectorAll('[data-wange]').forEach(function (b) { b.addEventListener('click', function () { wange = b.dataset.wange; zeigen(); }); });
+    document.getElementById('spiegeln').addEventListener('click', function () { wange = wange === 'links' ? 'rechts' : 'links'; zeigen(); });
+    document.getElementById('oMasse').addEventListener('change', function (ev) { zeigMasse = ev.target.checked; zeichnen(); });
+    document.getElementById('oNummern').addEventListener('change', function (ev) { zeigNummern = ev.target.checked; zeichnen(); });
+    document.getElementById('beispiel').addEventListener('click', function () { e = Object.assign({}, BEISPIEL); Object.keys(inputs).forEach(zeigeWert); FELDER.forEach(function (g) { g.felder.forEach(function (f) { if (inputs[f.k].zeile) inputs[f.k].zeile.classList.remove('widerspruch'); }); }); zeigen(); });
+    document.getElementById('mitWeg').addEventListener('change', function (ev) { document.getElementById('wegBereich').classList.toggle('rechenweg-aus', !ev.target.checked); });
+    ['mail', 'projekt'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { druckKopf(); speichern(); }); });
+
+    function knopf() { document.getElementById('abspielen').textContent = laeuft ? '■ Anhalten' : '▶ Verlegen zeigen'; }
+    document.getElementById('abspielen').addEventListener('click', function () {
+      if (laeuft) { laeuft = false; fortschritt = 1; zeichnen(); knopf(); return; }
+      laeuft = true; fortschritt = 0; start = performance.now(); knopf();
+      requestAnimationFrame(schleife);
+    });
+    function schleife(t) {
+      if (!laeuft) return;
+      const dauer = 600 + (r && r.n ? r.n : 5) * 450;
+      fortschritt = bewegungAus ? 1 : Math.min(1, (t - start) / dauer);
+      zeichnen();
+      if (fortschritt >= 1) { laeuft = false; knopf(); return; }
+      requestAnimationFrame(schleife);
+    }
+    document.addEventListener('themawechsel', zeichnen);
+
+    laden();
+    felderAufbauen();
+    sammlungAufbauen();
+    zeigen();
+  })();
+  </script>
+</body>
+</html>
