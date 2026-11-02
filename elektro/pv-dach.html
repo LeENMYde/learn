@@ -198,6 +198,7 @@
           <span><i style="--farbe:#C0392B"></i>Konflikt</span>
           <span><i style="--farbe:#E39B2D"></i>Hinweis</span>
           <span><i class="ring" style="--farbe:#E4572E"></i>Sicherheitsabstand</span>
+          <span><i class="ring" style="--farbe:#13233A;border-style:solid;background:#E6EDF3"></i>Halter (orange &gt; 85 %, rot überlastet)</span>
         </div>
         <div class="rechts">
           <label><input type="checkbox" id="oEinrasten" checked> einrasten</label>
@@ -420,7 +421,7 @@
         version: 2,
         modul: { L: 1.762, B: 1.134, P: 430, G: 21.5, fuge: 0.02 },
         standort: { schnee: '2', A: 300, wind: '2', hoehe: 0, phi: 51, y0: 1000, fV: 8 },
-        uk: { kb: 22, ue: 0.05, stab: 4.2, lSmax: 1.6, krag: 0.6, FzD: 1.5, FzS: 1.2, gUK: 3, gZul: 0.6 },
+        uk: { kb: 22, ue: 0.05, stab: 4.2, lSmax: 1.6, krag: 0.6, FzD: 1.5, FzS: 1.2, FzP: 1.0, gUK: 3, gZul: 0.6 },
         flaechen: []
       };
       projekt = p;
@@ -642,7 +643,7 @@
 
     function hakenSetzen(x1, x2, kand, aMax, krag) {
       const fehler = [];
-      if (kand.length < 2) return { haken: kand.slice(), fehler: ['nur ' + kand.length + ' Sparren unter der Schiene'], trib: x2 - x1, krag: 0 };
+      if (kand.length < 2) return { haken: kand.slice(), tribs: kand.map(function () { return x2 - x1; }), fehler: ['nur ' + kand.length + ' Sparren unter der Schiene'], trib: x2 - x1, krag: 0 };
       const wahl = [kand[0]];
       let i = 0;
       while (true) {
@@ -661,22 +662,32 @@
       const kragL = wahl[0] - x1, kragR = x2 - wahl[wahl.length - 1];
       if (Math.max(kragL, kragR) > krag + 1e-9) fehler.push('Schiene kragt ' + m(Math.max(kragL, kragR)) + ' aus');
       let trib = 0;
+      const tribs = [];
       for (let k = 0; k < wahl.length; k++) {
         const links = k === 0 ? wahl[0] - x1 : (wahl[k] - wahl[k - 1]) / 2;
         const rechts = k === wahl.length - 1 ? x2 - wahl[k] : (wahl[k + 1] - wahl[k]) / 2;
+        tribs.push(links + rechts);
         trib = Math.max(trib, links + rechts);
       }
-      return { haken: wahl, fehler: fehler, trib: trib, krag: Math.max(kragL, kragR) };
+      return { haken: wahl, tribs: tribs, fehler: fehler, trib: trib, krag: Math.max(kragL, kragR) };
     }
 
+    // Lasten je m² Dachfläche: senkrecht (Druck), abhebend (Sog) und parallel zur Dachfläche (Schub, hangabwärts)
     function lastenFuer(g, alpha, aufgest) {
       const mu = aufgest ? 0.8 : formbeiwert(alpha);
       const s = mu * g.sk;
-      const c = aufgest ? 1 : Math.cos(rad(alpha));
-      const qD = aufgest ? 1.35 * g.gG + 1.5 * s : 1.35 * g.gG * c + 1.5 * s * c * c;
+      const c = aufgest ? 1 : Math.cos(rad(alpha)), sn = aufgest ? 0 : Math.sin(rad(alpha));
+      // ständige und vorübergehende Bemessungssituation
+      const qD1 = 1.35 * g.gG * c + 1.5 * s * c * c;
+      const qP1 = 1.35 * g.gG * sn + 1.5 * s * c * sn;
+      // außergewöhnliche Situation Norddeutsches Tiefland: s_A = μ1 · 2,3 · s_k, alle Teilsicherheiten 1,0
+      const sA = g.tiefland ? mu * 2.3 * g.sk : 0;
+      const qDA = g.tiefland ? g.gG * c + sA * c * c : 0;
+      const qPA = g.tiefland ? g.gG * sn + sA * c * sn : 0;
       const cp = aufgest ? 0.4 : 1.0;
       const qS = 1.5 * cp * g.qp - g.gG * c;
-      return { alpha: alpha, mu: mu, s: s, c: c, qD: qD, cp: cp, qS: qS };
+      return { alpha: alpha, mu: mu, s: s, c: c, sn: sn, qD1: qD1, qP1: qP1, sA: sA, qDA: qDA, qPA: qPA,
+               qD: Math.max(qD1, qDA), qP: Math.max(qP1, qPA), aussergewoehnlich: qDA > qD1, cp: cp, qS: qS };
     }
 
     function flaecheAuswerten(f, g) {
@@ -734,20 +745,24 @@
         const seg = segmentBei(c, re.y + re.h / 2), L = lastAuf(seg);
         const e = re.H / 2;
         const aDruck = u.FzD / (L.qD * e), aSog = L.qS > 0 ? u.FzS / (L.qS * e) : Infinity;
-        const aMax = Math.min(u.lSmax, aDruck, aSog);
+        const aSchub = L.qP > 0 ? u.FzP / (L.qP * e) : Infinity;
+        const aKomb = 1 / (e * (L.qD / u.FzD + L.qP / u.FzP));
+        const aMax = Math.min(u.lSmax, aKomb, aSog);
         lagen.forEach(function (ys) {
-          const sch = { x1: x1, x2: x2, y: ys, lauf: l, seg: seg, haken: [], fehler: [], e: e, L: L, aDruck: aDruck, aSog: aSog, aMax: aMax };
+          const sch = { x1: x1, x2: x2, y: ys, lauf: l, seg: seg, haken: [], eta: [], fehler: [], e: e, L: L, aDruck: aDruck, aSog: aSog, aSchub: aSchub, aKomb: aKomb, aMax: aMax };
           if (!c.aufgest) {
             const kand = c.sparren.filter(function (x) { return x >= x1 + 0.02 && x <= x2 - 0.02 && punktInPoly(x, ys, c.p); });
             const h = hakenSetzen(x1, x2, kand, aMax, u.krag);
             sch.haken = h.haken; sch.fehler = h.fehler; sch.trib = h.trib;
-            sch.FD = L.qD * e * h.trib; sch.FS = Math.max(0, L.qS) * e * h.trib;
+            sch.FD = L.qD * e * h.trib; sch.FS = Math.max(0, L.qS) * e * h.trib; sch.FP = L.qP * e * h.trib;
+            sch.eta = h.tribs.map(function (t) { return Math.max(L.qD * e * t / u.FzD + L.qP * e * t / u.FzP, Math.max(0, L.qS) * e * t / u.FzS); });
+            sch.etaMax = sch.eta.length ? Math.max.apply(null, sch.eta) : 0;
             sch.aH = 0;
             for (let k = 1; k < h.haken.length; k++) sch.aH = Math.max(sch.aH, h.haken[k] - h.haken[k - 1]);
             nHaken += h.haken.length;
             kragMax = Math.max(kragMax, h.krag);
             if (h.haken.length < 2) ohneHaken++;
-            const quote = Math.max(sch.FD / u.FzD, sch.FS / u.FzS);
+            const quote = sch.etaMax;
             if (!massgebend || quote > massgebend.quote) { massgebend = sch; sch.quote = quote; }
           }
           const lg = x2 - x1;
@@ -798,7 +813,7 @@
       const g = {};
       g.mA = mo.L * mo.B; g.eta = mo.P / (g.mA * 1000) * 100;
       g.sk = schneeBoden(st.schnee, st.A); g.qp = QP[st.hoehe][+st.wind - 1];
-      g.gamS = sonnenhoehe(); g.gM = mo.G * G / g.mA; g.gUK = u.gUK * G; g.gG = g.gM + g.gUK;
+      g.gamS = sonnenhoehe(); g.gM = mo.G * G / g.mA; g.gUK = u.gUK * G; g.gG = g.gM + g.gUK; g.tiefland = !!st.tiefland;
       const fl = projekt.flaechen.map(function (f) { return flaecheAuswerten(f, g); });
       analyse = { g: g, flaechen: fl };
     }
@@ -849,6 +864,9 @@
       allesNeu();
     }
     function idsPruefen() {
+      // ältere Pläne um neue Werte ergänzen
+      if (!(projekt.uk.FzP > 0)) projekt.uk.FzP = 1.0;
+      projekt.standort.tiefland = !!projekt.standort.tiefland;
       let maxId = 0;
       projekt.flaechen.forEach(function (f) {
         maxId = Math.max(maxId, f.id);
@@ -1009,8 +1027,9 @@
           }
           if (tHa > 0) {
             const n = Math.ceil(s.haken.length * tHa), q = Math.max(5, 0.07 * k);
-            s.haken.slice(0, n).forEach(function (x) {
-              cx.fillStyle = s.fehler.length ? farben.fehler : (farben.dunkel ? '#E6EDF3' : '#2E3A46');
+            s.haken.slice(0, n).forEach(function (x, i) {
+              const eta = s.eta[i] || 0;
+              cx.fillStyle = s.fehler.length || eta > 1 + 1e-9 ? farben.fehler : eta > 0.85 ? '#E39B2D' : (farben.dunkel ? '#E6EDF3' : '#2E3A46');
               cx.fillRect(SX(x) - q / 2, SY(s.y) - q / 2, q, q);
             });
           }
@@ -1022,6 +1041,18 @@
       const reihenfolge = a.mods.slice().sort(function (p, q) { return p.y - q.y || p.x - q.x; });
       const nZeigen = Math.ceil(reihenfolge.length * tMo);
       reihenfolge.slice(0, nZeigen).forEach(function (r) { modulZeichnen(r, k, istGewaehlt('modul', r.id)); });
+      // Halter nach dem Aufbau obenauf zeigen, gefärbt nach Auslastung
+      if (zeigeUK && aufbau >= 1 && !durchsichtig) {
+        const q = Math.max(6, 0.08 * k);
+        a.schienen.forEach(function (s) {
+          s.haken.forEach(function (x, i) {
+            const eta = s.eta[i] || 0;
+            cx.fillStyle = s.fehler.length || eta > 1 + 1e-9 ? farben.fehler : eta > 0.85 ? '#E39B2D' : '#E6EDF3';
+            cx.strokeStyle = '#13233A'; cx.lineWidth = 1;
+            cx.beginPath(); cx.arc(SX(x), SY(s.y), q / 2, 0, 7); cx.fill(); cx.stroke();
+          });
+        });
+      }
 
       // Hilfslinien beim Einrasten
       if (fuehrung) {
@@ -2010,6 +2041,7 @@
       g = gruppe('Standort und Lasten', '#C0392B');
       const aus = function (titel, liste, hole, setze) { auswahlFeld(g, titel, liste, hole, setze); };
       aus('Schneelastzone', [['1', 'Zone 1'], ['1a', 'Zone 1a'], ['2', 'Zone 2'], ['2a', 'Zone 2a'], ['3', 'Zone 3']], function () { return st.schnee; }, function (v) { st.schnee = v; });
+      hakenFeld(g, 'Norddeutsches Tiefland (außergewöhnliche Schneelast)', function () { return st.tiefland; }, function (v) { st.tiefland = v; });
       zahlFeld(g, globalFelder, 'Geländehöhe über NN', function () { return st.A; }, function (w) { st.A = w; }, 'm', { min: 0, max: 2000 });
       aus('Windzone', [['1', 'WZ 1'], ['2', 'WZ 2'], ['3', 'WZ 3'], ['4', 'WZ 4']], function () { return st.wind; }, function (v) { st.wind = v; });
       aus('Gebäudehöhe', [['0', 'bis 10 m'], ['1', '10 bis 18 m'], ['2', '18 bis 25 m']], function () { return st.hoehe; }, function (v) { st.hoehe = +v; });
@@ -2021,8 +2053,10 @@
       zahlFeld(g, globalFelder, 'Lieferlänge Schiene', function () { return u.stab; }, function (w) { u.stab = w; }, 'm', { min: 0.5 });
       zahlFeld(g, globalFelder, 'größte Stützweite Schiene', function () { return u.lSmax; }, function (w) { u.lSmax = w; }, 'm', { min: 0.2 });
       zahlFeld(g, globalFelder, 'größte Auskragung', function () { return u.krag; }, function (w) { u.krag = w; }, 'm', { min: 0 });
-      zahlFeld(g, globalFelder, 'Haken trägt Druck', function () { return u.FzD; }, function (w) { u.FzD = w; }, 'kN', { min: 0.05 });
-      zahlFeld(g, globalFelder, 'Haken trägt Sog', function () { return u.FzS; }, function (w) { u.FzS = w; }, 'kN', { min: 0.05 });
+      g.append(el('p', { class: 'klein-hinweis', text: 'Tragfähigkeit eines Dachhakens aus dem Datenblatt (Bemessungswert F_Rd), in Newton:' }));
+      zahlFeld(g, globalFelder, 'Halter senkrecht (Druck)', function () { return u.FzD * 1000; }, function (w) { u.FzD = w / 1000; }, 'N', { min: 50, max: 50000, stellen: 5 });
+      zahlFeld(g, globalFelder, 'Halter abhebend (Sog)', function () { return u.FzS * 1000; }, function (w) { u.FzS = w / 1000; }, 'N', { min: 50, max: 50000, stellen: 5 });
+      zahlFeld(g, globalFelder, 'Halter parallel (Schub)', function () { return u.FzP * 1000; }, function (w) { u.FzP = w / 1000; }, 'N', { min: 50, max: 50000, stellen: 5, titel: 'Last entlang der Dachfläche hangabwärts, aus Eigengewicht und Schnee' });
       zahlFeld(g, globalFelder, 'Gewicht Unterkonstruktion', function () { return u.gUK; }, function (w) { u.gUK = w; }, 'kg/m²', { min: 0 });
 
       g = gruppe('Ertrag', '#F2A541');
@@ -2054,6 +2088,7 @@
         kachel(zahl(Esum, 3) + ' kWh', 'Ertrag im Jahr', '#F2A541') +
         kachel(P ? zahl(Esum / P, 3) : '–', 'kWh je kWp', '#F2A541') +
         kachel(zahl(haken), 'Dachhaken', '#8B5A2B') +
+        (function () { const q = fl.reduce(function (x, a) { return Math.max(x, a.massgebend ? a.massgebend.etaMax : 0); }, 0); return q ? kachel(zahl(q * 100, 3) + ' %', 'Auslastung des stärksten Halters', q > 1 ? '#C0392B' : q > 0.85 ? '#E39B2D' : '#0E6B6A') : ''; })() +
         kachel(zahl(laenge, 3) + ' m', 'Schienen', '#6B7785') +
         kachel(zahl(gewicht, 3) + ' kg', 'Gewicht der Anlage' + (ballast ? ' mit Ballast' : ''), '#C0392B') +
         kachel(zahl(konf), konf === 1 ? 'Modul mit Konflikt' : 'Module mit Konflikt', konf ? '#C0392B' : '#0E6B6A');
@@ -2104,8 +2139,13 @@
         if (!a.c.aufgest) {
           const mg = a.massgebend;
           if (mg) {
-            nachweis(mg.FD <= u.FzD + 1e-9 ? 'gut' : 'schlecht', nm + 'Hakenlast Druck', zahl(mg.FD, 3) + ' kN ≤ ' + zahl(u.FzD, 3) + ' kN (größte Last eines Hakens)');
-            nachweis(mg.FS <= u.FzS + 1e-9 ? 'gut' : 'schlecht', nm + 'Hakenlast Sog', zahl(mg.FS, 3) + ' kN ≤ ' + zahl(u.FzS, 3) + ' kN');
+            const N = function (kn) { return zahl(kn * 1000, 3) + ' N'; };
+            const vg = function (a, b) { return a <= b + 1e-9 ? ' ≤ ' : ' > '; };
+            const komb = mg.FD / u.FzD + mg.FP / u.FzP;
+            nachweis(mg.FD <= u.FzD + 1e-9 ? 'gut' : 'schlecht', nm + 'Halter senkrecht (Druck)', N(mg.FD) + vg(mg.FD, u.FzD) + N(u.FzD) + ' am höchstbelasteten Halter' + (mg.L.aussergewoehnlich ? ', Lastfall Norddeutsches Tiefland' : ''));
+            nachweis(mg.FP <= u.FzP + 1e-9 ? 'gut' : 'schlecht', nm + 'Halter parallel (Schub)', N(mg.FP) + vg(mg.FP, u.FzP) + N(u.FzP) + ' (Eigengewicht und Schnee hangabwärts bei ' + zahl(mg.L.alpha, 3) + '°)');
+            nachweis(komb <= 1 + 1e-9 ? 'gut' : 'schlecht', nm + 'Halter Druck und Schub zusammen', fest(mg.FD / u.FzD, 2) + ' + ' + fest(mg.FP / u.FzP, 2) + ' = ' + fest(komb, 2) + vg(komb, 1) + '1 (lineare Überlagerung)');
+            nachweis(mg.FS <= u.FzS + 1e-9 ? 'gut' : 'schlecht', nm + 'Halter abhebend (Sog)', N(mg.FS) + vg(mg.FS, u.FzS) + N(u.FzS));
           }
           const fehl = a.schienen.filter(function (s) { return s.fehler.length; });
           nachweis(fehl.length ? 'schlecht' : 'gut', nm + 'Schienen auf den Sparren', fehl.length ? fehl.length + (fehl.length === 1 ? ' Schiene: ' : ' Schienen: ') + fehl[0].fehler[0] + '.' : 'Jede Schiene liegt auf mindestens zwei Haken, Auskragung höchstens ' + m(a.kragMax) + '.');
@@ -2206,16 +2246,22 @@
           o.append(schritt('Schneelast aufs Dach' + zus, 's = \\mu_1 \\cdot s_\\text{k} = ' + tz(L.mu, 3) + ' \\cdot ' + tz(g.sk, 3) + KNM + ' = ' + E(tz(L.s, 3) + KNM)));
           if (c.aufgest) o.append(schritt('Bemessungslast Druck' + zus, 'q_\\text{Ed,D} = 1{,}35 \\cdot g_\\text{G} + 1{,}5 \\cdot s = 1{,}35 \\cdot ' + tz(g.gG, 3) + ' + 1{,}5 \\cdot ' + tz(L.s, 3) + ' = ' + E(tz(L.qD, 3) + KNM)));
           else o.append(schritt('Bemessungslast Druck senkrecht zur Dachfläche' + zus, 'q_\\text{Ed,D} = 1{,}35 \\cdot g_\\text{G} \\cdot \\cos\\alpha + 1{,}5 \\cdot s \\cdot \\cos^2\\alpha = 1{,}35 \\cdot ' + tz(g.gG, 3) + ' \\cdot \\cos ' + al + ' + 1{,}5 \\cdot ' + tz(L.s, 3) + ' \\cdot \\cos^2 ' + al + ' = ' + E(tz(L.qD, 3) + KNM)));
+          if (!c.aufgest) o.append(schritt('Bemessungslast parallel zur Dachfläche (hangabwärts)' + zus, 'q_\\text{Ed,P} = 1{,}35 \\cdot g_\\text{G} \\cdot \\sin\\alpha + 1{,}5 \\cdot s \\cdot \\cos\\alpha \\cdot \\sin\\alpha = 1{,}35 \\cdot ' + tz(g.gG, 3) + ' \\cdot \\sin ' + al + ' + 1{,}5 \\cdot ' + tz(L.s, 3) + ' \\cdot \\cos ' + al + ' \\cdot \\sin ' + al + ' = ' + E(tz(L.qP1, 3) + KNM)));
+          if (g.tiefland) o.append(schritt('Außergewöhnlich: Norddeutsches Tiefland, s_A = μ1 · 2,3 · s_k, Teilsicherheit 1,0' + zus, 's_\\text{A} = ' + tz(L.mu, 3) + ' \\cdot 2{,}3 \\cdot ' + tz(g.sk, 3) + ' = ' + tz(L.sA, 3) + KNM + ',\\quad q_\\text{A,D} = g_\\text{G} \\cos\\alpha + s_\\text{A} \\cos^2\\alpha = ' + E(tz(L.qDA, 3) + KNM) + (c.aufgest ? '' : ',\\quad q_\\text{A,P} = g_\\text{G} \\sin\\alpha + s_\\text{A} \\cos\\alpha \\sin\\alpha = ' + E(tz(L.qPA, 3) + KNM)) + (L.aussergewoehnlich ? '\\quad \\text{(maßgebend)}' : '')));
           o.append(schritt('Bemessungslast Sog, Eigengewicht hält dagegen' + zus, 'q_\\text{Ed,S} = 1{,}5 \\cdot c_\\text{p} \\cdot q_\\text{p} - 1{,}0 \\cdot g_\\text{G}' + (c.aufgest ? '' : ' \\cdot \\cos\\alpha') + ' = 1{,}5 \\cdot ' + tz(L.cp) + ' \\cdot ' + tz(g.qp) + ' - ' + tz(g.gG, 3) + (c.aufgest ? '' : ' \\cdot \\cos ' + al) + ' = ' + E(tz(L.qS, 3) + KNM)));
         });
 
         if (!c.aufgest && a.massgebend) {
           const s = a.massgebend, L = s.L;
           o.append(schritt('Einzugsbreite: jede der zwei Schienen trägt die halbe Modullänge', 'e = \\frac{m_y}{2} = \\frac{' + tz(s.e * 2) + MT + '}{2} = ' + E(tz(s.e, 3) + MT)));
-          o.append(schritt('Größter Hakenabstand aus Druck, Sog und Schiene', 'a_\\text{H,max} = \\min\\left(\\frac{F_\\text{Rd,D}}{q_\\text{Ed,D} \\cdot e};\\ \\frac{F_\\text{Rd,S}}{q_\\text{Ed,S} \\cdot e};\\ l_\\text{St,max}\\right) = \\min\\left(' + tz(s.aDruck, 3) + ';\\ ' + (isFinite(s.aSog) ? tz(s.aSog, 3) : '\\infty') + ';\\ ' + tz(u.lSmax, 3) + '\\right)' + MT + ' = ' + E(tz(s.aMax, 3) + MT)));
+          o.append(schritt('Größter Hakenabstand aus Druck und Schub zusammen, Sog und Schiene', 'a_\\text{H,max} = \\min\\left(\\frac{1}{e \\cdot \\left(\\frac{q_\\text{Ed,D}}{F_\\text{Rd,D}} + \\frac{q_\\text{Ed,P}}{F_\\text{Rd,P}}\\right)};\\ \\frac{F_\\text{Rd,S}}{q_\\text{Ed,S} \\cdot e};\\ l_\\text{St,max}\\right) = \\min\\left(' + tz(s.aKomb, 3) + ';\\ ' + (isFinite(s.aSog) ? tz(s.aSog, 3) : '\\infty') + ';\\ ' + tz(u.lSmax, 3) + '\\right)' + MT + ' = ' + E(tz(s.aMax, 3) + MT)));
           o.append(schritt('Haken nur auf Sparren: größter gewählter Abstand im Feld', 'a_\\text{H} = ' + (s.aH <= s.aMax + 1e-9 ? E : F)(tz(s.aH, 3) + MT) + (s.aH <= s.aMax + 1e-9 ? ' \\le ' : ' > ') + 'a_\\text{H,max}\\quad (\\text{Sparren alle } ' + tz(f.sparren.a, 3) + MT + ')'));
-          o.append(schritt('Last am höchstbelasteten Haken, Druck (Einflusslänge l_E)', 'F_\\text{Ed,D} = q_\\text{Ed,D} \\cdot e \\cdot l_\\text{E} = ' + tz(L.qD, 3) + KNM + ' \\cdot ' + tz(s.e, 3) + MT + ' \\cdot ' + tz(s.trib, 3) + MT + ' = ' + (s.FD <= u.FzD + 1e-9 ? E : F)(tz(s.FD, 3) + KN) + vergleich(s.FD, u.FzD, 'F_\\text{Rd,D} = ' + tz(u.FzD, 3) + KN)));
-          o.append(schritt('Last am höchstbelasteten Haken, Sog', 'F_\\text{Ed,S} = q_\\text{Ed,S} \\cdot e \\cdot l_\\text{E} = ' + tz(Math.max(0, L.qS), 3) + KNM + ' \\cdot ' + tz(s.e, 3) + MT + ' \\cdot ' + tz(s.trib, 3) + MT + ' = ' + (s.FS <= u.FzS + 1e-9 ? E : F)(tz(s.FS, 3) + KN) + vergleich(s.FS, u.FzS, 'F_\\text{Rd,S} = ' + tz(u.FzS, 3) + KN)));
+          const NN = '\\,\\text{N}', n = function (kn) { return tz(kn * 1000, 4); };
+          o.append(schritt('Halter senkrecht (Druck), höchstbelasteter Halter mit Einflusslänge l_E', 'F_\\text{Ed,D} = q_\\text{Ed,D} \\cdot e \\cdot l_\\text{E} = ' + tz(L.qD, 3) + KNM + ' \\cdot ' + tz(s.e, 3) + MT + ' \\cdot ' + tz(s.trib, 3) + MT + ' = ' + (s.FD <= u.FzD + 1e-9 ? E : F)(n(s.FD) + NN) + vergleich(s.FD, u.FzD, 'F_\\text{Rd,D} = ' + n(u.FzD) + NN)));
+          o.append(schritt('Halter parallel zur Dachfläche (Schub)', 'F_\\text{Ed,P} = q_\\text{Ed,P} \\cdot e \\cdot l_\\text{E} = ' + tz(L.qP, 3) + KNM + ' \\cdot ' + tz(s.e, 3) + MT + ' \\cdot ' + tz(s.trib, 3) + MT + ' = ' + (s.FP <= u.FzP + 1e-9 ? E : F)(n(s.FP) + NN) + vergleich(s.FP, u.FzP, 'F_\\text{Rd,P} = ' + n(u.FzP) + NN)));
+          const komb = s.FD / u.FzD + s.FP / u.FzP;
+          o.append(schritt('Druck und Schub zusammen (lineare Überlagerung)', '\\frac{F_\\text{Ed,D}}{F_\\text{Rd,D}} + \\frac{F_\\text{Ed,P}}{F_\\text{Rd,P}} = \\frac{' + n(s.FD) + '}{' + n(u.FzD) + '} + \\frac{' + n(s.FP) + '}{' + n(u.FzP) + '} = ' + (komb <= 1 + 1e-9 ? E : F)(tz(komb, 3)) + (komb <= 1 + 1e-9 ? ' \\le 1' : ' > 1')));
+          o.append(schritt('Halter abhebend (Sog)', 'F_\\text{Ed,S} = q_\\text{Ed,S} \\cdot e \\cdot l_\\text{E} = ' + tz(Math.max(0, L.qS), 3) + KNM + ' \\cdot ' + tz(s.e, 3) + MT + ' \\cdot ' + tz(s.trib, 3) + MT + ' = ' + (s.FS <= u.FzS + 1e-9 ? E : F)(n(s.FS) + NN) + vergleich(s.FS, u.FzS, 'F_\\text{Rd,S} = ' + n(u.FzS) + NN)));
           o.append(schritt('Auskragung der Schienen über den letzten Haken', 'l_\\text{K} = ' + (a.kragMax <= u.krag + 1e-9 ? E : F)(tz(a.kragMax, 3) + MT) + vergleich(a.kragMax, u.krag, 'l_\\text{K,max} = ' + tz(u.krag, 3) + MT)));
           o.append(schritt('Schienen in Lieferlängen', 'n_\\text{Stab} = \\sum \\left\\lceil \\frac{l_\\text{Schiene}}{l_\\text{Stab}} \\right\\rceil = ' + E(String(a.stuecke)) + '\\quad (L = ' + tz(a.laenge, 4) + MT + ')'));
           o.append(schritt('Dachlast durch die Anlage', 'g_\\text{G} = ' + (a.qDach <= u.gZul + 1e-9 ? E : F)(tz(a.qDach, 3) + KNM) + vergleich(a.qDach, u.gZul, 'g_\\text{zul} = ' + tz(u.gZul, 3) + KNM)));
@@ -2253,7 +2299,9 @@
       ['Bemessungslast Druck, flach', 'q_\\text{Ed,D} = 1{,}35 \\cdot g_\\text{G} + 1{,}5 \\cdot s'],
       ['Bemessungslast Sog', 'q_\\text{Ed,S} = 1{,}5 \\cdot c_\\text{p} \\cdot q_\\text{p} - 1{,}0 \\cdot g_\\text{G} \\cdot \\cos\\alpha', 'c_p ≈ 1,0 dachparallel, ≈ 0,4 aufgeständert (Richtwerte)'],
       ['Einzugsbreite und Hakenabstand', 'e = \\frac{m_y}{2}, \\quad a_\\text{H,max} = \\min\\left(\\frac{F_\\text{Rd,D}}{q_\\text{Ed,D} \\cdot e};\\ \\frac{F_\\text{Rd,S}}{q_\\text{Ed,S} \\cdot e};\\ l_\\text{St,max}\\right)'],
-      ['Hakenlast', 'F_\\text{Ed} = q_\\text{Ed} \\cdot e \\cdot l_\\text{E} \\le F_\\text{Rd}', 'l_E: halber Abstand zu den Nachbarhaken links und rechts, am Rand mit Auskragung'],
+      ['Bemessungslast parallel zur Dachfläche', 'q_\\text{Ed,P} = 1{,}35 \\cdot g_\\text{G} \\cdot \\sin\\alpha + 1{,}5 \\cdot s \\cdot \\cos\\alpha \\cdot \\sin\\alpha', 'Eigengewicht und Schnee wirken senkrecht nach unten; der Teil entlang der Dachfläche schiebt die Anlage hangabwärts. Schnee s gilt je m² Grundriss, daher cos α.'],
+      ['Außergewöhnliche Schneelast (Norddeutsches Tiefland)', 's_\\text{A} = \\mu_1 \\cdot 2{,}3 \\cdot s_\\text{k}, \\quad q_\\text{A,D} = g_\\text{G} \\cos\\alpha + s_\\text{A} \\cos^2\\alpha', 'alle Teilsicherheitsbeiwerte 1,0; maßgebend ist der größere Wert'],
+      ['Halterlast', 'F_\\text{Ed} = q_\\text{Ed} \\cdot e \\cdot l_\\text{E} \\le F_\\text{Rd}, \\quad \\frac{F_\\text{Ed,D}}{F_\\text{Rd,D}} + \\frac{F_\\text{Ed,P}}{F_\\text{Rd,P}} \\le 1', 'l_E: halber Abstand zu den Nachbarhaken links und rechts, am Rand mit Auskragung. Werte F_Rd in N aus dem Datenblatt des Halters.'],
       ['Klemmen und Schienen', 'n_\\text{MK} = 2 \\cdot (n_\\text{Lauf} - 1), \\quad n_\\text{EK} = 4, \\quad n_\\text{Stab} = \\left\\lceil \\frac{l_\\text{Schiene}}{l_\\text{Stab}} \\right\\rceil', 'je Modulreihe und zusammenhängendem Abschnitt'],
       ['Sonnenhöhe und Reihenabstand', '\\gamma_\\text{S} = 90^\\circ - \\varphi - 23{,}44^\\circ, \\quad d_\\text{R} = m_y \\cdot \\left(\\cos\\beta + \\frac{\\sin\\beta}{\\tan\\gamma_\\text{S}}\\right)', 'Flachdach, aufgeständert'],
       ['Hinterkante und Ballast', 'h_\\text{A} = m_y \\cdot \\sin\\beta, \\quad m_\\text{B} = \\frac{1{,}5 \\cdot c_\\text{p} \\cdot q_\\text{p} \\cdot A_\\text{M} - 1{,}0 \\cdot m_\\text{M} \\cdot g}{g}'],

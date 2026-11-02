@@ -5,7 +5,7 @@
  * Bilder, Schriften, Skripte: sofort aus dem Speicher, im Hintergrund aufgefrischt.
  * Neue Seite? Unten in DATEIEN eintragen und STAND ändern.
  */
-const STAND = '2094d1f53e';
+const STAND = '7ea491d4d8';
 const SPEICHER = 'rechner-' + STAND;
 const DATEIEN = [
   "./",
