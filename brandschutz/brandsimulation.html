@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Brandsimulation</title>
+  <meta name="description" content="Raumbrand mit Rauchschicht und Flashover, Gebäudebrand mit Flucht und Feuerwehr, Waldbrand mit Wind und Funkenflug, Löschtrainer, Feuerwiderstand von Stahl, Holz und Beton sowie Gasexplosionen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -166,7 +172,7 @@
                 <option value="1">Echtzeit</option><option value="5">5 ×</option><option value="15" selected>15 ×</option><option value="60">60 ×</option><option value="180">180 ×</option>
               </select>
               <div class="zeitachse">
-                <input type="range" class="skala" id="r-zeit" min="0" max="1000" value="0" aria-label="Zeitpunkt">
+                <input type="range" class="skala" data-nicht-merken id="r-zeit" min="0" max="1000" value="0" aria-label="Zeitpunkt">
                 <span class="zeitanzeige" id="r-zeitanzeige"></span>
               </div>
             </div>
@@ -366,7 +372,7 @@
             <div class="steuerung">
               <button type="button" class="knopf-haupt" id="f-abspielen">▶ Abspielen</button>
               <div class="zeitachse">
-                <input type="range" class="skala" id="f-zeit" min="0" max="1000" value="300" aria-label="Zeitpunkt">
+                <input type="range" class="skala" data-nicht-merken id="f-zeit" min="0" max="1000" value="300" aria-label="Zeitpunkt">
                 <span class="zeitanzeige" id="f-zeitanzeige"></span>
               </div>
             </div>

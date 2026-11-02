@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PV-Dachplaner</title>
+  <meta name="description" content="Dach mit Knick, Gauben und mehreren Seiten zeichnen, Fenster, Schornstein und Co. mit Sicherheitsabstand setzen, Module verschieben oder automatisch verlegen. Konflikte werden rot, Haken, Lasten und Ertrag mit Formeln.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -528,7 +534,7 @@
       segmente.push({ y0: y0, y1: bb.y1, neigung: n });
       const aufgest = istAufgestaendert(f);
       const sparren = [];
-      if (!aufgest && f.sparren.a >= 0.1) for (let x = bb.x0 + f.sparren.x0; x <= bb.x1 + 1e-9; x += f.sparren.a) if (x >= bb.x0 - 1e-9) sparren.push(x);
+      if (!aufgest && f.sparren.a >= 0.1 && (bb.x1 - bb.x0) / f.sparren.a < 5000) for (let x = bb.x0 + f.sparren.x0; x <= bb.x1 + 1e-9; x += f.sparren.a) if (x >= bb.x0 - 1e-9) sparren.push(x);
       return { f: f, p: p, ccw: ccw, bb: bb, kanten: kanten, knicke: knicke, segmente: segmente, aufgest: aufgest, sparren: sparren, A: Math.abs(flaecheVorz(p)) };
     }
     function segmentBei(c, y) {
@@ -931,7 +937,7 @@
       cx.strokeStyle = farben.linie; cx.lineWidth = 1; cx.globalAlpha = 0.5;
       cx.beginPath();
       const w0 = welt(0, hoehe), w1 = welt(breite, 0);
-      const schritt = k < 18 ? 5 : 1;
+      const schritt = k < 3 ? 50 : k < 18 ? 5 : 1;
       for (let x = Math.ceil(w0.x / schritt) * schritt; x <= w1.x; x += schritt) { cx.moveTo(Math.round(SX(x)) + 0.5, 0); cx.lineTo(Math.round(SX(x)) + 0.5, hoehe); }
       for (let y = Math.ceil(w0.y / schritt) * schritt; y <= w1.y; y += schritt) { cx.moveTo(0, Math.round(SY(y)) + 0.5); cx.lineTo(breite, Math.round(SY(y)) + 0.5); }
       cx.stroke(); cx.globalAlpha = 1;
@@ -943,7 +949,8 @@
       cx.save(); polyPfad(f.punkte); cx.clip();
       // Eindeckung andeuten
       cx.strokeStyle = dk.farbe; cx.globalAlpha = 0.28; cx.lineWidth = 1; cx.beginPath();
-      if (f.deckung === 'trapez') for (let x = c.bb.x0; x <= c.bb.x1; x += 0.2) { cx.moveTo(SX(x), SY(c.bb.y0)); cx.lineTo(SX(x), SY(c.bb.y1)); }
+      if (c.bb.x1 - c.bb.x0 > 300 || c.bb.y1 - c.bb.y0 > 300) { /* zu groß zum Andeuten */ }
+      else if (f.deckung === 'trapez') for (let x = c.bb.x0; x <= c.bb.x1; x += 0.2) { cx.moveTo(SX(x), SY(c.bb.y0)); cx.lineTo(SX(x), SY(c.bb.y1)); }
       else if (f.deckung !== 'folie') for (let y = c.bb.y0 + 0.34; y <= c.bb.y1; y += 0.34) { cx.moveTo(SX(c.bb.x0), SY(y)); cx.lineTo(SX(c.bb.x1), SY(y)); }
       cx.stroke(); cx.globalAlpha = 1;
       // Randabstände als Band an jeder Kante
@@ -1813,11 +1820,11 @@
       ziel.append(el('p', { class: 'unter', text: 'Ziehen verschiebt, die Ecken ändern die Größe. Maße auf der Dachfläche gemessen.' }));
       auswahlFeld(ziel, 'Art', Object.keys(HINDERNISSE).map(function (k) { return [k, HINDERNISSE[k].name]; }), function () { return o.typ; },
         function (v) { const n = HINDERNISSE[v]; o.typ = v; o.rund = !!n.rund; o.a = n.a; if (n.rund) o.h = o.b; }, { panel: true });
-      zahlFeld(ziel, panelFelder, 'Abstand vom linken Rand', function () { return o.x - fa().c.bb.x0; }, function (w) { o.x = rund3(w + fa().c.bb.x0); }, 'm');
-      zahlFeld(ziel, panelFelder, 'Abstand von der Traufe', function () { return o.y - fa().c.bb.y0; }, function (w) { o.y = rund3(w + fa().c.bb.y0); }, 'm');
-      zahlFeld(ziel, panelFelder, o.rund ? 'Durchmesser' : 'Breite (entlang Traufe)', function () { return o.b; }, function (w) { o.b = w; if (o.rund) o.h = w; }, 'm', { min: 0.01 });
-      if (!o.rund) zahlFeld(ziel, panelFelder, 'Länge (in Hangrichtung)', function () { return o.h; }, function (w) { o.h = w; }, 'm', { min: 0.01 });
-      zahlFeld(ziel, panelFelder, 'Sicherheitsabstand rundum', function () { return o.a; }, function (w) { o.a = w; }, 'm', { min: 0 });
+      zahlFeld(ziel, panelFelder, 'Abstand vom linken Rand', function () { return o.x - fa().c.bb.x0; }, function (w) { o.x = rund3(w + fa().c.bb.x0); }, 'm', { min: -50, max: 250 });
+      zahlFeld(ziel, panelFelder, 'Abstand von der Traufe', function () { return o.y - fa().c.bb.y0; }, function (w) { o.y = rund3(w + fa().c.bb.y0); }, 'm', { min: -50, max: 250 });
+      zahlFeld(ziel, panelFelder, o.rund ? 'Durchmesser' : 'Breite (entlang Traufe)', function () { return o.b; }, function (w) { o.b = w; if (o.rund) o.h = w; }, 'm', { min: 0.01, max: 100 });
+      if (!o.rund) zahlFeld(ziel, panelFelder, 'Länge (in Hangrichtung)', function () { return o.h; }, function (w) { o.h = w; }, 'm', { min: 0.01, max: 200 });
+      zahlFeld(ziel, panelFelder, 'Sicherheitsabstand rundum', function () { return o.a; }, function (w) { o.a = w; }, 'm', { min: 0, max: 10 });
       ziel.append(el('p', { class: 'klein-hinweis', text: 'Üblich: ' + zahl(kat.a, 2) + ' m. ' + kat.grund + '.' }));
       const n = fa().mods.filter(function (r) { return r.gruende.some(function (g) { return g.id === o.id; }); }).length;
       ziel.append(el('ul', { class: 'gruende' }, [el('li', { class: n ? '' : 'gut', text: n ? n + (n === 1 ? ' Modul hält' : ' Module halten') + ' den Abstand nicht ein.' : 'Alle Module halten den Abstand ein.' })]));
@@ -1841,8 +1848,8 @@
       ziel.append(el('p', { class: 'unter', text: (ms.length ? ms.length + ' Modul' + (ms.length === 1 ? '' : 'e') + ', ' + zahl(ms.length * projekt.modul.P / 1000, 3) + ' kWp' : '') + (hs.length ? (ms.length ? ' · ' : '') + hs.length + ' Hindernis' + (hs.length === 1 ? '' : 'se') : '') }));
       if (ms.length === 1 && !hs.length) {
         const mo = ms[0];
-        zahlFeld(ziel, panelFelder, 'Abstand vom linken Rand', function () { return mo.x - a.c.bb.x0; }, function (w) { mo.x = rund3(w + fa().c.bb.x0); }, 'm');
-        zahlFeld(ziel, panelFelder, 'Abstand von der Traufe', function () { return mo.y - a.c.bb.y0; }, function (w) { mo.y = rund3(w + fa().c.bb.y0); }, 'm');
+        zahlFeld(ziel, panelFelder, 'Abstand vom linken Rand', function () { return mo.x - a.c.bb.x0; }, function (w) { mo.x = rund3(w + fa().c.bb.x0); }, 'm', { min: -50, max: 250 });
+        zahlFeld(ziel, panelFelder, 'Abstand von der Traufe', function () { return mo.y - a.c.bb.y0; }, function (w) { mo.y = rund3(w + fa().c.bb.y0); }, 'm', { min: -50, max: 250 });
         ziel.append(el('p', { class: 'klein-hinweis', text: mo.quer ? 'liegt quer' : 'steht hochkant' }));
       }
       const gruende = {};
@@ -1884,10 +1891,10 @@
       if (f.form.typ === 'frei') ziel.append(el('p', { class: 'klein-hinweis', text: 'Freie Form: Ecken im Werkzeug „Dachform“ ziehen, ⊕ auf einer Kante fügt eine Ecke ein.' }));
       else {
         const neu = function () { formAnwenden(f); };
-        zahlFeld(ziel, panelFelder, f.form.typ === 'stufe' ? 'Breite unten (Traufe)' : 'Breite an der Traufe', function () { return f.form.bu; }, function (w) { f.form.bu = w; neu(); }, 'm', { min: 0.5, ansicht: true });
-        if (f.form.typ === 'trapez' || f.form.typ === 'stufe') zahlFeld(ziel, panelFelder, f.form.typ === 'stufe' ? 'Breite oben' : 'Breite am First', function () { return f.form.bo; }, function (w) { f.form.bo = w; neu(); }, 'm', { min: 0.1, ansicht: true });
-        zahlFeld(ziel, panelFelder, 'Länge Traufe bis First', function () { return f.form.l; }, function (w) { f.form.l = w; neu(); }, 'm', { min: 0.5, ansicht: true, titel: 'auf der Dachfläche gemessen (Sparrenlänge), bei Knicken über alle Abschnitte' });
-        if (f.form.typ === 'stufe') zahlFeld(ziel, panelFelder, 'Stufe auf Höhe', function () { return f.form.st; }, function (w) { f.form.st = w; neu(); }, 'm', { min: 0.1, ansicht: true });
+        zahlFeld(ziel, panelFelder, f.form.typ === 'stufe' ? 'Breite unten (Traufe)' : 'Breite an der Traufe', function () { return f.form.bu; }, function (w) { f.form.bu = w; neu(); }, 'm', { min: 0.5, max: 200, ansicht: true });
+        if (f.form.typ === 'trapez' || f.form.typ === 'stufe') zahlFeld(ziel, panelFelder, f.form.typ === 'stufe' ? 'Breite oben' : 'Breite am First', function () { return f.form.bo; }, function (w) { f.form.bo = w; neu(); }, 'm', { min: 0.1, max: 200, ansicht: true });
+        zahlFeld(ziel, panelFelder, 'Länge Traufe bis First', function () { return f.form.l; }, function (w) { f.form.l = w; neu(); }, 'm', { min: 0.5, max: 200, ansicht: true, titel: 'auf der Dachfläche gemessen (Sparrenlänge), bei Knicken über alle Abschnitte' });
+        if (f.form.typ === 'stufe') zahlFeld(ziel, panelFelder, 'Stufe auf Höhe', function () { return f.form.st; }, function (w) { f.form.st = w; neu(); }, 'm', { min: 0.1, max: 200, ansicht: true });
       }
 
       ziel.append(el('h4', { text: 'Neigung und Ausrichtung' }));
@@ -1937,15 +1944,15 @@
       ziel.append(el('h4', { text: 'Dachaufbau' }));
       auswahlFeld(ziel, 'Eindeckung', Object.keys(DECKUNG).map(function (k) { return [k, DECKUNG[k].name]; }), function () { return f.deckung; }, function (v) { f.deckung = v; });
       if (!a.c.aufgest) {
-        zahlFeld(ziel, panelFelder, f.deckung === 'trapez' ? 'Befestigungsraster' : 'Sparrenabstand (Achsmaß)', function () { return f.sparren.a; }, function (w) { f.sparren.a = w; }, 'm', { min: 0.1 });
-        zahlFeld(ziel, panelFelder, 'erster Sparren ab linkem Rand', function () { return f.sparren.x0; }, function (w) { f.sparren.x0 = w; }, 'm', { min: 0 });
-        zahlFeld(ziel, panelFelder, 'Sparrenbreite', function () { return f.sparren.b; }, function (w) { f.sparren.b = w; }, 'm', { min: 0.01 });
+        zahlFeld(ziel, panelFelder, f.deckung === 'trapez' ? 'Befestigungsraster' : 'Sparrenabstand (Achsmaß)', function () { return f.sparren.a; }, function (w) { f.sparren.a = w; }, 'm', { min: 0.1, max: 20 });
+        zahlFeld(ziel, panelFelder, 'erster Sparren ab linkem Rand', function () { return f.sparren.x0; }, function (w) { f.sparren.x0 = w; }, 'm', { min: 0, max: 50 });
+        zahlFeld(ziel, panelFelder, 'Sparrenbreite', function () { return f.sparren.b; }, function (w) { f.sparren.b = w; }, 'm', { min: 0.01, max: 1 });
       }
 
       ziel.append(el('h4', { text: 'Randabstände' }));
-      zahlFeld(ziel, panelFelder, 'zur Traufe', function () { return f.rand.traufe; }, function (w) { f.rand.traufe = w; }, 'm', { min: 0 });
-      zahlFeld(ziel, panelFelder, 'zum First', function () { return f.rand.first; }, function (w) { f.rand.first = w; }, 'm', { min: 0 });
-      zahlFeld(ziel, panelFelder, 'zu Ortgang / Grat', function () { return f.rand.seite; }, function (w) { f.rand.seite = w; }, 'm', { min: 0 });
+      zahlFeld(ziel, panelFelder, 'zur Traufe', function () { return f.rand.traufe; }, function (w) { f.rand.traufe = w; }, 'm', { min: 0, max: 20 });
+      zahlFeld(ziel, panelFelder, 'zum First', function () { return f.rand.first; }, function (w) { f.rand.first = w; }, 'm', { min: 0, max: 20 });
+      zahlFeld(ziel, panelFelder, 'zu Ortgang / Grat', function () { return f.rand.seite; }, function (w) { f.rand.seite = w; }, 'm', { min: 0, max: 20 });
 
       if (f.neigung <= 15) {
         ziel.append(el('h4', { text: 'Aufständerung' }));
@@ -1996,9 +2003,9 @@
       let g = gruppe('Modul', '#1E3A5F');
       zahlFeld(g, globalFelder, 'Länge', function () { return mo.L; }, function (w) { mo.L = w; }, 'm', { min: 0.3, max: 3 });
       zahlFeld(g, globalFelder, 'Breite', function () { return mo.B; }, function (w) { mo.B = w; }, 'm', { min: 0.3, max: 2 });
-      zahlFeld(g, globalFelder, 'Leistung', function () { return mo.P; }, function (w) { mo.P = w; }, 'Wp', { min: 1 });
-      zahlFeld(g, globalFelder, 'Gewicht', function () { return mo.G; }, function (w) { mo.G = w; }, 'kg', { min: 0 });
-      zahlFeld(g, globalFelder, 'Fuge zwischen Modulen', function () { return mo.fuge; }, function (w) { mo.fuge = w; }, 'm', { min: 0, max: 0.2 });
+      zahlFeld(g, globalFelder, 'Leistung', function () { return mo.P; }, function (w) { mo.P = w; }, 'Wp', { min: 1, max: 2000 });
+      zahlFeld(g, globalFelder, 'Gewicht', function () { return mo.G; }, function (w) { mo.G = w; }, 'kg', { min: 0, max: 200 });
+      zahlFeld(g, globalFelder, 'Fuge zwischen Modulen', function () { return mo.fuge; }, function (w) { mo.fuge = w; }, 'm', { min: 0.005, max: 0.2 });
 
       g = gruppe('Standort und Lasten', '#C0392B');
       const aus = function (titel, liste, hole, setze) { auswahlFeld(g, titel, liste, hole, setze); };

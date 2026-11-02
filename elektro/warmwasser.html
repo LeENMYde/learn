@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Warmwasser-Rechner</title>
+  <meta name="description" content="Kochendwassergerät, Boiler, Durchlauferhitzer und druckfester Speicher: Wärmemenge, Heizzeit, Leistung, Strom- und Wasserkosten bis aufs Jahr, in jede Richtung und mit Rechenweg.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -73,7 +79,7 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
     <section class="held">
       <h1><span class="unterstrichen">Warmwasser-Rechner</span></h1>
       <p>Gerät wählen, bekannte Werte eintragen. Alles, was sich daraus ergibt, wird ausgerechnet, egal in welche Richtung, und Schritt für Schritt hergeleitet.</p>
@@ -86,7 +92,7 @@
       <div class="steuerung">
         <button type="button" class="knopf-haupt" id="abspielen">▶ Aufheizen</button>
         <div class="zeitachse">
-          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="1000" aria-label="Zeitpunkt">
+          <input type="range" class="skala" data-nicht-merken id="fortschritt" min="0" max="1000" value="1000" aria-label="Zeitpunkt">
           <span class="zeitanzeige" id="zeitanzeige"></span>
         </div>
       </div>
@@ -797,7 +803,7 @@
         const k = bild.getContext('2d');
         k.scale(dichte, dichte);
         piktogramm(k, id);
-        const b = document.createElement('b'); b.textContent = d.name;
+        const b = document.createElement('b'); b.textContent = d.name.replace('Kochendwasser', 'Kochend\u00ADwasser');
         const s = document.createElement('small'); s.textContent = d.kurz;
         knopf.append(bild, b, s);
         knopf.addEventListener('click', function () { geraetWaehlen(id); });

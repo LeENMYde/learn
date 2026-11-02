@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kräfte</title>
+  <meta name="description" content="Kräfte zusammensetzen und zerlegen: auf einer Wirkungslinie, rechtwinklig, unter beliebigem Winkel mit dem Kräfteparallelogramm und auf der schiefen Ebene, mit Rechenweg.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -67,7 +73,7 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
     <section class="held">
       <h1><span class="unterstrichen">Kräfte</span></h1>
       <p>Kräfte zusammensetzen und zerlegen: auf einer Wirkungslinie, rechtwinklig, unter beliebigem Winkel mit dem Kräfteparallelogramm und auf der schiefen Ebene. Bekannte Werte eintragen, der Rest wird ausgerechnet, egal in welche Richtung, und Schritt für Schritt hergeleitet.</p>
@@ -80,7 +86,7 @@
       <div class="steuerung">
         <button type="button" class="knopf-haupt" id="abspielen">▶ Konstruktion</button>
         <div class="zeitachse">
-          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="1000" aria-label="Schritt der Konstruktion">
+          <input type="range" class="skala" data-nicht-merken id="fortschritt" min="0" max="1000" value="1000" aria-label="Schritt der Konstruktion">
           <span class="zustand" id="schritt"></span>
         </div>
         <button type="button" class="knopf" id="loslassen" hidden>↘ Loslassen</button>

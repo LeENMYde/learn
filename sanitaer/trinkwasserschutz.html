@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Trinkwasserschutz</title>
+  <meta name="description" content="Wann sich Legionellen vermehren und wann sie absterben, eine Warmwasseranlage drei Wochen im Zeitraffer, die 3-Liter-Regel mit Wartezeit am Hahn und der Schutz vor Rückfließen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -81,7 +87,7 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
     <section class="held">
       <h1><span class="unterstrichen">Trinkwasser&shy;schutz</span></h1>
       <p>Wann sich Legionellen vermehren und wann sie absterben, warum Zirkulation, regelmäßiger Wasserwechsel und kaltes Kaltwasser wichtig sind und wie viel Wasser in einer Leitung stehen darf. Werte ändern, zusehen, nachrechnen.</p>
@@ -94,7 +100,7 @@
       <div class="steuerung">
         <button type="button" class="knopf-haupt" id="abspielen">▶ Abspielen</button>
         <div class="zeitachse">
-          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="0" aria-label="Zeitpunkt">
+          <input type="range" class="skala" data-nicht-merken id="fortschritt" min="0" max="1000" value="0" aria-label="Zeitpunkt">
           <span class="zeitanzeige" id="zeitanzeige"></span>
         </div>
       </div>
