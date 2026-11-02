@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ohmsches Gesetz und Kirchhoff</title>
+  <meta name="description" content="Spannung, Strom und Widerstand in jede Richtung rechnen, Reihen- und Parallelschaltung mit fließenden Ladungen, Maschenumlauf mit Potentialdiagramm und Knotenregel.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -65,7 +71,7 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
     <section class="held">
       <h1><span class="unterstrichen">Ohmsches Gesetz und Kirchhoff</span></h1>
       <p>Spannung, Strom und Widerstand, dazu Maschen- und Knotenregel in Reihen- und Parallelschaltung. Bekannte Werte eintragen, der Rest wird ausgerechnet, egal in welche Richtung. Die Ladungen fließen sichtbar, der Maschenumlauf zeigt, warum die Spannungen sich zu null addieren.</p>
@@ -78,7 +84,7 @@
       <div class="steuerung">
         <button type="button" class="knopf-haupt" id="abspielen">▶ Masche umlaufen</button>
         <div class="zeitachse">
-          <input type="range" class="skala" id="fortschritt" min="0" max="1000" value="0" aria-label="Fortschritt des Umlaufs">
+          <input type="range" class="skala" data-nicht-merken id="fortschritt" min="0" max="1000" value="0" aria-label="Fortschritt des Umlaufs">
           <span class="zeitanzeige" id="zeitanzeige"></span>
         </div>
         <button type="button" class="knopf" id="richtung">Elektronen zeigen</button>

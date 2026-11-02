@@ -89,12 +89,23 @@ body {
 button, select, input, textarea { font: inherit; color: inherit; }
 a { color: inherit; }
 :focus-visible { outline: 3px solid var(--kalt); outline-offset: 2px; }
+.sprung { position: absolute; left: 12px; top: -60px; z-index: 50; padding: 8px 14px; border-radius: 999px; background: var(--text); color: var(--grund); text-decoration: none; }
+.sprung:focus { top: 10px; }
+.installieren { border: 1px solid var(--linie); border-radius: 999px; padding: 6px 12px; background: var(--flaeche); cursor: pointer; font-size: .9rem; }
+.installieren:hover { border-color: var(--leise); }
+.teilen-leiste { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 14px; }
+.teilen-leiste .knopf { font-size: .9rem; }
+.teilen-meldung { color: var(--ergebnis); font-size: .9rem; }
+@media print { .teilen-leiste { display: none !important; } }
 sub { font-size: .7em; }
 [hidden] { display: none !important; }
 
 .seite { max-width: 1200px; margin: 0 auto; padding: 0 18px; }
 
 h1, h2, h3 { font-family: var(--technik); font-weight: 600; line-height: 1.15; letter-spacing: -.01em; }
+h1, h2, h3 { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; min-width: 0; }
+main { overflow-x: clip; }
+button b, button strong, .karte h3 { hyphens: auto; -webkit-hyphens: auto; }
 
 /* ---------- Kopfzeile (wird von basis.js gefüllt) ---------- */
 .seitenkopf {
@@ -366,4 +377,19 @@ ol.weg li::before {
   flex-wrap: wrap;
   gap: 8px 20px;
   justify-content: space-between;
+}
+
+/* ---------- Druck: nur der Inhalt, hell, ohne Bedienelemente ---------- */
+@media print {
+  :root, :root[data-thema="dunkel"], :root:not([data-thema="hell"]) {
+    --grund: #FFFFFF; --flaeche: #FFFFFF; --flaeche2: #F4F6F7; --text: #000000; --leise: #444C55; --linie: #C8D0D5;
+    --ergebnis: #0E6B6A; --ergebnis-flaeche: #E6F3F1; --fehler: #B42318; --fehler-flaeche: #FDECEA; --achtung-flaeche: #FFF4E0;
+  }
+  body { background: #FFFFFF; }
+  .seitenkopf, .seitenfuss, .sprung, .installieren, .themenschalter, .knopf-leise, .zoom { display: none !important; }
+  .tafel, .karte { box-shadow: none !important; border: 1px solid #C8D0D5; break-inside: avoid-page; }
+  .seite { max-width: none; padding: 0; }
+  a { text-decoration: none; }
+  ol.weg li, .formelsammlung section, .hinweis { break-inside: avoid; }
+  canvas, svg { max-width: 100%; }
 }

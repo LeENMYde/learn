@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaubenwange bekleiden</title>
+  <meta name="description" content="Gaubenoberkante, vordere Höhe, Scharbreite und Dachneigung eingeben: oberer Winkel, alle Scharen mit Zuschnittlängen, Versatz und Schrägmaß, Zeichnung für links und rechts, als PDF oder E-Mail für die Werkstatt.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
   <link rel="stylesheet" href="../assets/katex/katex.min.css">
   <link rel="stylesheet" href="../assets/stil.css">
   <script src="../assets/basis.js"></script>
@@ -115,7 +121,7 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
     <section class="held">
       <h1><span class="unterstrichen">Gaubenwange bekleiden</span></h1>
       <p>Vier Maße eingeben, den Rest rechnet die Seite: oberer Winkel und Gaubendachneigung, alle Scharen mit Sichtmaß, Zuschnittlänge vorne und hinten, Versatz und Schrägmaß. Die Wange wird mit allen Maßen gezeichnet, lässt sich für links und rechts spiegeln und als PDF oder E-Mail an Büro und Werkstatt schicken.</p>
@@ -162,11 +168,11 @@
       <div class="ausgabe">
         <button type="button" class="knopf-haupt" id="pdf">PDF speichern / drucken</button>
         <label class="feldchen">E-Mail Büro / Werkstatt
-          <input type="email" id="mail" placeholder="werkstatt@beispiel.de" autocomplete="email"></label>
+          <input type="email" id="mail" data-nicht-merken placeholder="werkstatt@beispiel.de" autocomplete="email"></label>
         <button type="button" class="knopf" id="senden">Per E-Mail senden</button>
         <button type="button" class="knopf" id="kopieren">Liste kopieren</button>
         <label class="feldchen">Bauvorhaben
-          <input type="text" id="projekt" placeholder="z. B. Müller, Gaube Süd"></label>
+          <input type="text" id="projekt" data-nicht-merken placeholder="z. B. Müller, Gaube Süd"></label>
         <label style="display:inline-flex;gap:6px;align-items:center;font-size:.9rem"><input type="checkbox" id="mitWeg"> Rechenweg mitdrucken</label>
         <span class="meldung" id="ausgabeMeldung" aria-live="polite"></span>
       </div>
@@ -291,6 +297,8 @@
 
       // Scharbreiten
       const b = e.b, n = Math.max(1, Math.ceil(a / b - 1e-6)), rest = a - (n - 1) * b;
+      if (n > 400) return { fehler: 'Das ergibt ' + zahl(n, 0) + ' Scharen – Maße prüfen (Millimeter?). Mehr als 400 Scharen rechnet die Seite nicht.' };
+      if (a > 50000 || e.H > 20000) return { fehler: 'Die Wange wäre über 50 m tief oder 20 m hoch – bitte alle Maße in Millimetern eingeben.' };
       let breiten = [];
       for (let i = 0; i < n; i++) breiten.push(b);
       if (n === 1) breiten = [a];
