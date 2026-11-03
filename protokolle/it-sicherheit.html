@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IT-Sicherheitsprotokoll</title>
+  <meta name="description" content="Prüfprotokoll für IT-Sicherheitsaudits eigener Server und Dienste: Grundschutz-Checkliste, Port-Scan und Dienste, Findings mit CVSS, Schwachstellen, Unterschrift, PDF.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="protokoll.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite protokoll-seite" data-merken data-eigenes-pdf>
+    <section class="held">
+      <h1><span class="unterstrichen">IT-Sicherheitsprotokoll</span></h1>
+      <p>Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz, Port-Scan mit Dienstübersicht und Vorlagen, Findings mit CVSS und Schwachstellenliste, Prüfwerkzeuge, Unterschriften und PDF. Alles bleibt in diesem Browser.</p>
+    </section>
+
+    <div class="protokoll">
+    <input type="hidden" id="zeilen-merken">
+<div class="tabs">
+  <button class="tab-btn active"  onclick="switchTab('audit')">Sicherheitsaudit</button>
+  <button class="tab-btn"        onclick="switchTab('portscan')">Port-Scan & Dienste</button>
+  <button class="tab-btn"        onclick="switchTab('findings')">Findings & Pentest</button>
+  <button class="tab-btn"        onclick="switchTab('stammdaten')">Stammdaten & Einstellungen</button>
+</div>
+
+
+
+<!-- ═══════════════════════════════════════════════════════════ TAB 1: AUDIT -->
+<div id="tab-audit" class="tab-content active">
+<div class="form-header"><h2>Prüfprotokoll – IT-Sicherheitsaudit für Self-Hosted Services & Infrastruktur</h2></div>
+
+<div class="section-title">Kopfdaten</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Protokoll-Nr.:</td><td><input type="text" id="a-nr" placeholder="IT-2025-001"></td>
+    <td class="label">Prüfdatum:</td><td><input type="date" id="a-datum"></td>
+    <td class="label">Nächste Prüfung:</td><td><input type="date" id="a-naechste"></td>
+  </tr>
+  <tr>
+    <td class="label">Auftraggeber:</td><td colspan="3"><input type="text" id="a-auftraggeber"></td>
+    <td class="label">Auftrags-Nr.:</td><td><input type="text" id="a-auftragsnr"></td>
+  </tr>
+  <tr>
+    <td class="label">Auftragnehmer:</td><td colspan="3"><input type="text" id="a-auftragnehmer"></td>
+    <td class="label">Prüfer/in:</td><td><input type="text" id="a-pruefer"></td>
+  </tr>
+</table></div>
+
+<div class="section-title">Systemdaten</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Hostname / System:</td><td><input type="text" id="a-hostname" placeholder="server01.beispiel.de"></td>
+    <td class="label">IP-Adresse:</td><td><input type="text" id="a-ip" placeholder="192.168.1.100"></td>
+    <td class="label">Betriebssystem:</td><td><input type="text" id="a-os" placeholder="Betriebssystem und Version"></td>
+  </tr>
+  <tr>
+    <td class="label">Service / URL:</td><td colspan="3"><input type="text" id="a-url" placeholder="https://dienst.beispiel.de"></td>
+    <td class="label">Umgebung:</td>
+    <td><select id="a-umgebung"><option value="">--</option><option>Produktion</option><option>Staging</option><option>Entwicklung</option><option>Testumgebung</option></select></td>
+  </tr>
+  <tr>
+    <td class="label">Virtualisierung:</td>
+    <td><select id="a-virt"><option value="">--</option><option>Bare Metal</option><option>Proxmox / KVM</option><option>VMware / ESXi</option><option>Docker</option><option>Docker Compose</option><option>Kubernetes / K3s</option><option>LXC / LXD</option><option>Hyper-V</option><option>Sonstiges</option></select></td>
+    <td class="label">Kernel-Version:</td><td><input type="text" id="a-kernel" placeholder="6.8.0-51-generic"></td>
+    <td class="label">Letzte Updates:</td><td><input type="date" id="a-lastupdate"></td>
+  </tr>
+</table></div>
+
+<div class="section-title">Prüfungsart & Anlass</div>
+<div class="kasten">
+  <label class="inline"><input type="checkbox" id="a-grund-erst"> Erstprüfung</label>
+  <label class="inline"><input type="checkbox" id="a-grund-wdh"> Wiederholungsprüfung</label>
+  <label class="inline"><input type="checkbox" id="a-grund-haert"> Härtungscheck</label>
+  <label class="inline"><input type="checkbox" id="a-grund-pentest"> Penetrationstest</label>
+  <label class="inline"><input type="checkbox" id="a-grund-incident"> Nach Sicherheitsvorfall</label>
+  <label class="inline"><input type="checkbox" id="a-grund-change"> Nach größerer Änderung</label>
+  <label class="inline"><input type="checkbox" id="a-grund-compliance"> Compliance-Prüfung</label>
+</div>
+
+<div class="section-title">1. Netzwerk & Ports</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Port-Scan durchgeführt und dokumentiert</td><td class="center"><input id="r-net1-1" type="radio" name="net1" value="ok"></td><td class="center"><input id="r-net1-2" type="radio" name="net1" value="warn"></td><td class="center"><input id="r-net1-3" type="radio" name="net1" value="fail"></td><td class="center"><input id="r-net1-4" type="radio" name="net1" value="na"></td><td><input type="text" placeholder="offene Ports: "></td></tr>
+  <tr><td>Nur notwendige Ports nach außen offen</td><td class="center"><input id="r-net2-1" type="radio" name="net2" value="ok"></td><td class="center"><input id="r-net2-2" type="radio" name="net2" value="warn"></td><td class="center"><input id="r-net2-3" type="radio" name="net2" value="fail"></td><td class="center"><input id="r-net2-4" type="radio" name="net2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Management-Ports (SSH, RDP, Cockpit) nur intern / VPN</td><td class="center"><input id="r-net3-1" type="radio" name="net3" value="ok"></td><td class="center"><input id="r-net3-2" type="radio" name="net3" value="warn"></td><td class="center"><input id="r-net3-3" type="radio" name="net3" value="fail"></td><td class="center"><input id="r-net3-4" type="radio" name="net3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>IPv6 konfiguriert oder bewusst deaktiviert</td><td class="center"><input id="r-net4-1" type="radio" name="net4" value="ok"></td><td class="center"><input id="r-net4-2" type="radio" name="net4" value="warn"></td><td class="center"><input id="r-net4-3" type="radio" name="net4" value="fail"></td><td class="center"><input id="r-net4-4" type="radio" name="net4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Netzwerksegmentierung vorhanden (DMZ / VLANs)</td><td class="center"><input id="r-net5-1" type="radio" name="net5" value="ok"></td><td class="center"><input id="r-net5-2" type="radio" name="net5" value="warn"></td><td class="center"><input id="r-net5-3" type="radio" name="net5" value="fail"></td><td class="center"><input id="r-net5-4" type="radio" name="net5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Keine Dienste auf 0.0.0.0 die intern bleiben sollten</td><td class="center"><input id="r-net6-1" type="radio" name="net6" value="ok"></td><td class="center"><input id="r-net6-2" type="radio" name="net6" value="warn"></td><td class="center"><input id="r-net6-3" type="radio" name="net6" value="fail"></td><td class="center"><input id="r-net6-4" type="radio" name="net6" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">2. SSL/TLS & Zertifikate</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Gültiges Zertifikat (nicht abgelaufen, vertrauenswürdig)</td><td class="center"><input id="r-ssl1-1" type="radio" name="ssl1" value="ok"></td><td class="center"><input id="r-ssl1-2" type="radio" name="ssl1" value="warn"></td><td class="center"><input id="r-ssl1-3" type="radio" name="ssl1" value="fail"></td><td class="center"><input id="r-ssl1-4" type="radio" name="ssl1" value="na"></td><td><input type="text" placeholder="Ablauf: "></td></tr>
+  <tr><td>TLS 1.2 / 1.3 erzwungen – kein TLS 1.0 / 1.1</td><td class="center"><input id="r-ssl2-1" type="radio" name="ssl2" value="ok"></td><td class="center"><input id="r-ssl2-2" type="radio" name="ssl2" value="warn"></td><td class="center"><input id="r-ssl2-3" type="radio" name="ssl2" value="fail"></td><td class="center"><input id="r-ssl2-4" type="radio" name="ssl2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Starke Cipher Suites (kein RC4, DES, 3DES, NULL)</td><td class="center"><input id="r-ssl3-1" type="radio" name="ssl3" value="ok"></td><td class="center"><input id="r-ssl3-2" type="radio" name="ssl3" value="warn"></td><td class="center"><input id="r-ssl3-3" type="radio" name="ssl3" value="fail"></td><td class="center"><input id="r-ssl3-4" type="radio" name="ssl3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>HSTS aktiviert (HTTP Strict Transport Security)</td><td class="center"><input id="r-ssl4-1" type="radio" name="ssl4" value="ok"></td><td class="center"><input id="r-ssl4-2" type="radio" name="ssl4" value="warn"></td><td class="center"><input id="r-ssl4-3" type="radio" name="ssl4" value="fail"></td><td class="center"><input id="r-ssl4-4" type="radio" name="ssl4" value="na"></td><td><input type="text" placeholder="max-age="></td></tr>
+  <tr><td>Zertifikatsablauf überwacht / automatische Erneuerung</td><td class="center"><input id="r-ssl5-1" type="radio" name="ssl5" value="ok"></td><td class="center"><input id="r-ssl5-2" type="radio" name="ssl5" value="warn"></td><td class="center"><input id="r-ssl5-3" type="radio" name="ssl5" value="fail"></td><td class="center"><input id="r-ssl5-4" type="radio" name="ssl5" value="na"></td><td><input type="text" placeholder="certbot / acme.sh"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">3. Authentifizierung & Zugriffskontrolle</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Standard-Passwörter geändert (keine Default-Credentials)</td><td class="center"><input id="r-auth1-1" type="radio" name="auth1" value="ok"></td><td class="center"><input id="r-auth1-2" type="radio" name="auth1" value="warn"></td><td class="center"><input id="r-auth1-3" type="radio" name="auth1" value="fail"></td><td class="center"><input id="r-auth1-4" type="radio" name="auth1" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Starke Passwort-Policy (Mindestlänge, Komplexität)</td><td class="center"><input id="r-auth2-1" type="radio" name="auth2" value="ok"></td><td class="center"><input id="r-auth2-2" type="radio" name="auth2" value="warn"></td><td class="center"><input id="r-auth2-3" type="radio" name="auth2" value="fail"></td><td class="center"><input id="r-auth2-4" type="radio" name="auth2" value="na"></td><td><input type="text" placeholder="Min. Zeichen: "></td></tr>
+  <tr><td>2FA / MFA für Admin-Zugänge aktiviert</td><td class="center"><input id="r-auth3-1" type="radio" name="auth3" value="ok"></td><td class="center"><input id="r-auth3-2" type="radio" name="auth3" value="warn"></td><td class="center"><input id="r-auth3-3" type="radio" name="auth3" value="fail"></td><td class="center"><input id="r-auth3-4" type="radio" name="auth3" value="na"></td><td><input type="text" placeholder="TOTP / WebAuthn / FIDO2"></td></tr>
+  <tr><td>Login-Versuche limitiert (Fail2ban o.ä.)</td><td class="center"><input id="r-auth4-1" type="radio" name="auth4" value="ok"></td><td class="center"><input id="r-auth4-2" type="radio" name="auth4" value="warn"></td><td class="center"><input id="r-auth4-3" type="radio" name="auth4" value="fail"></td><td class="center"><input id="r-auth4-4" type="radio" name="auth4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>SSH: nur Key-Authentifizierung (kein PasswordAuth)</td><td class="center"><input id="r-auth5-1" type="radio" name="auth5" value="ok"></td><td class="center"><input id="r-auth5-2" type="radio" name="auth5" value="warn"></td><td class="center"><input id="r-auth5-3" type="radio" name="auth5" value="fail"></td><td class="center"><input id="r-auth5-4" type="radio" name="auth5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>SSH: Root-Login deaktiviert (PermitRootLogin no)</td><td class="center"><input id="r-auth6-1" type="radio" name="auth6" value="ok"></td><td class="center"><input id="r-auth6-2" type="radio" name="auth6" value="warn"></td><td class="center"><input id="r-auth6-3" type="radio" name="auth6" value="fail"></td><td class="center"><input id="r-auth6-4" type="radio" name="auth6" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Keine anonymen / Gast-Accounts ohne Authentifizierung</td><td class="center"><input id="r-auth7-1" type="radio" name="auth7" value="ok"></td><td class="center"><input id="r-auth7-2" type="radio" name="auth7" value="warn"></td><td class="center"><input id="r-auth7-3" type="radio" name="auth7" value="fail"></td><td class="center"><input id="r-auth7-4" type="radio" name="auth7" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Inaktive Benutzerkonten deaktiviert / gelöscht</td><td class="center"><input id="r-auth8-1" type="radio" name="auth8" value="ok"></td><td class="center"><input id="r-auth8-2" type="radio" name="auth8" value="warn"></td><td class="center"><input id="r-auth8-3" type="radio" name="auth8" value="fail"></td><td class="center"><input id="r-auth8-4" type="radio" name="auth8" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">4. Firewall & Systemhärtung</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Host-Firewall aktiv (ufw / iptables / nftables / firewalld)</td><td class="center"><input id="r-fw1-1" type="radio" name="fw1" value="ok"></td><td class="center"><input id="r-fw1-2" type="radio" name="fw1" value="warn"></td><td class="center"><input id="r-fw1-3" type="radio" name="fw1" value="fail"></td><td class="center"><input id="r-fw1-4" type="radio" name="fw1" value="na"></td><td><input type="text" placeholder="Tool: "></td></tr>
+  <tr><td>Default-Deny-Strategie (nur erlaubte Verbindungen)</td><td class="center"><input id="r-fw2-1" type="radio" name="fw2" value="ok"></td><td class="center"><input id="r-fw2-2" type="radio" name="fw2" value="warn"></td><td class="center"><input id="r-fw2-3" type="radio" name="fw2" value="fail"></td><td class="center"><input id="r-fw2-4" type="radio" name="fw2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Regelwerk dokumentiert und begründet</td><td class="center"><input id="r-fw3-1" type="radio" name="fw3" value="ok"></td><td class="center"><input id="r-fw3-2" type="radio" name="fw3" value="warn"></td><td class="center"><input id="r-fw3-3" type="radio" name="fw3" value="fail"></td><td class="center"><input id="r-fw3-4" type="radio" name="fw3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Kernel-Parameter gehärtet (sysctl.conf)</td><td class="center"><input id="r-fw4-1" type="radio" name="fw4" value="ok"></td><td class="center"><input id="r-fw4-2" type="radio" name="fw4" value="warn"></td><td class="center"><input id="r-fw4-3" type="radio" name="fw4" value="fail"></td><td class="center"><input id="r-fw4-4" type="radio" name="fw4" value="na"></td><td><input type="text" placeholder="SYN-Cookies, IP-Fwding, ICMP…"></td></tr>
+  <tr><td>Unnötige Systemdienste deaktiviert (systemctl)</td><td class="center"><input id="r-fw5-1" type="radio" name="fw5" value="ok"></td><td class="center"><input id="r-fw5-2" type="radio" name="fw5" value="warn"></td><td class="center"><input id="r-fw5-3" type="radio" name="fw5" value="fail"></td><td class="center"><input id="r-fw5-4" type="radio" name="fw5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>AppArmor / SELinux aktiv und konfiguriert</td><td class="center"><input id="r-fw6-1" type="radio" name="fw6" value="ok"></td><td class="center"><input id="r-fw6-2" type="radio" name="fw6" value="warn"></td><td class="center"><input id="r-fw6-3" type="radio" name="fw6" value="fail"></td><td class="center"><input id="r-fw6-4" type="radio" name="fw6" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">5. Updates & Patch-Management</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>OS vollständig gepatcht (kritische Updates eingespielt)</td><td class="center"><input id="r-upd1-1" type="radio" name="upd1" value="ok"></td><td class="center"><input id="r-upd1-2" type="radio" name="upd1" value="warn"></td><td class="center"><input id="r-upd1-3" type="radio" name="upd1" value="fail"></td><td class="center"><input id="r-upd1-4" type="radio" name="upd1" value="na"></td><td><input type="text" placeholder="ausstehende Updates: "></td></tr>
+  <tr><td>Automatische Sicherheitsupdates konfiguriert</td><td class="center"><input id="r-upd2-1" type="radio" name="upd2" value="ok"></td><td class="center"><input id="r-upd2-2" type="radio" name="upd2" value="warn"></td><td class="center"><input id="r-upd2-3" type="radio" name="upd2" value="fail"></td><td class="center"><input id="r-upd2-4" type="radio" name="upd2" value="na"></td><td><input type="text" placeholder="unattended-upgrades / dnf-automatic"></td></tr>
+  <tr><td>Applikationen & Docker-Images aktuell</td><td class="center"><input id="r-upd3-1" type="radio" name="upd3" value="ok"></td><td class="center"><input id="r-upd3-2" type="radio" name="upd3" value="warn"></td><td class="center"><input id="r-upd3-3" type="radio" name="upd3" value="fail"></td><td class="center"><input id="r-upd3-4" type="radio" name="upd3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>CVE-Scan durchgeführt (Trivy / Grype / OpenVAS / Nessus)</td><td class="center"><input id="r-upd4-1" type="radio" name="upd4" value="ok"></td><td class="center"><input id="r-upd4-2" type="radio" name="upd4" value="warn"></td><td class="center"><input id="r-upd4-3" type="radio" name="upd4" value="fail"></td><td class="center"><input id="r-upd4-4" type="radio" name="upd4" value="na"></td><td><input type="text" placeholder="Tool + Ergebnis: "></td></tr>
+  <tr><td>Abhängigkeiten (npm / pip / composer / go) auf CVEs geprüft</td><td class="center"><input id="r-upd5-1" type="radio" name="upd5" value="ok"></td><td class="center"><input id="r-upd5-2" type="radio" name="upd5" value="warn"></td><td class="center"><input id="r-upd5-3" type="radio" name="upd5" value="fail"></td><td class="center"><input id="r-upd5-4" type="radio" name="upd5" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">6. Logs & Monitoring</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Zentrales Logging aktiv (syslog / journald / Loki / SIEM)</td><td class="center"><input id="r-log1-1" type="radio" name="log1" value="ok"></td><td class="center"><input id="r-log1-2" type="radio" name="log1" value="warn"></td><td class="center"><input id="r-log1-3" type="radio" name="log1" value="fail"></td><td class="center"><input id="r-log1-4" type="radio" name="log1" value="na"></td><td><input type="text" placeholder="Tool: "></td></tr>
+  <tr><td>Login-Ereignisse werden geloggt (Erfolg + Fehler)</td><td class="center"><input id="r-log2-1" type="radio" name="log2" value="ok"></td><td class="center"><input id="r-log2-2" type="radio" name="log2" value="warn"></td><td class="center"><input id="r-log2-3" type="radio" name="log2" value="fail"></td><td class="center"><input id="r-log2-4" type="radio" name="log2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Alerting konfiguriert (E-Mail / Telegram / PagerDuty)</td><td class="center"><input id="r-log3-1" type="radio" name="log3" value="ok"></td><td class="center"><input id="r-log3-2" type="radio" name="log3" value="warn"></td><td class="center"><input id="r-log3-3" type="radio" name="log3" value="fail"></td><td class="center"><input id="r-log3-4" type="radio" name="log3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Log-Rotation eingerichtet (kein Plattverlust)</td><td class="center"><input id="r-log4-1" type="radio" name="log4" value="ok"></td><td class="center"><input id="r-log4-2" type="radio" name="log4" value="warn"></td><td class="center"><input id="r-log4-3" type="radio" name="log4" value="fail"></td><td class="center"><input id="r-log4-4" type="radio" name="log4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Uptime-Monitoring aktiv (externer Dienst)</td><td class="center"><input id="r-log5-1" type="radio" name="log5" value="ok"></td><td class="center"><input id="r-log5-2" type="radio" name="log5" value="warn"></td><td class="center"><input id="r-log5-3" type="radio" name="log5" value="fail"></td><td class="center"><input id="r-log5-4" type="radio" name="log5" value="na"></td><td><input type="text" placeholder="Uptime Kuma / Grafana / Checkmk"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">7. Backup & Notfallwiederherstellung</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Regelmäßige Backups konfiguriert (Zeitplan dokumentiert)</td><td class="center"><input id="r-bak1-1" type="radio" name="bak1" value="ok"></td><td class="center"><input id="r-bak1-2" type="radio" name="bak1" value="warn"></td><td class="center"><input id="r-bak1-3" type="radio" name="bak1" value="fail"></td><td class="center"><input id="r-bak1-4" type="radio" name="bak1" value="na"></td><td><input type="text" placeholder="täglich / wöchentlich"></td></tr>
+  <tr><td>Backup-Restore erfolgreich getestet</td><td class="center"><input id="r-bak2-1" type="radio" name="bak2" value="ok"></td><td class="center"><input id="r-bak2-2" type="radio" name="bak2" value="warn"></td><td class="center"><input id="r-bak2-3" type="radio" name="bak2" value="fail"></td><td class="center"><input id="r-bak2-4" type="radio" name="bak2" value="na"></td><td><input type="text" placeholder="letzter Test: "></td></tr>
+  <tr><td>3-2-1-Strategie (mind. 1 Kopie off-site / offline)</td><td class="center"><input id="r-bak3-1" type="radio" name="bak3" value="ok"></td><td class="center"><input id="r-bak3-2" type="radio" name="bak3" value="warn"></td><td class="center"><input id="r-bak3-3" type="radio" name="bak3" value="fail"></td><td class="center"><input id="r-bak3-4" type="radio" name="bak3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Backup verschlüsselt (at-rest encryption)</td><td class="center"><input id="r-bak4-1" type="radio" name="bak4" value="ok"></td><td class="center"><input id="r-bak4-2" type="radio" name="bak4" value="warn"></td><td class="center"><input id="r-bak4-3" type="radio" name="bak4" value="fail"></td><td class="center"><input id="r-bak4-4" type="radio" name="bak4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Recovery-Dokumentation vorhanden (RTO / RPO definiert)</td><td class="center"><input id="r-bak5-1" type="radio" name="bak5" value="ok"></td><td class="center"><input id="r-bak5-2" type="radio" name="bak5" value="warn"></td><td class="center"><input id="r-bak5-3" type="radio" name="bak5" value="fail"></td><td class="center"><input id="r-bak5-4" type="radio" name="bak5" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">8. Konfiguration, Secrets & App-Härtung</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Keine Secrets im Klartext (Vault / Secrets-Manager / .env gesichert)</td><td class="center"><input id="r-cfg1-1" type="radio" name="cfg1" value="ok"></td><td class="center"><input id="r-cfg1-2" type="radio" name="cfg1" value="warn"></td><td class="center"><input id="r-cfg1-3" type="radio" name="cfg1" value="fail"></td><td class="center"><input id="r-cfg1-4" type="radio" name="cfg1" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>.env / Konfigdateien nicht öffentlich erreichbar (HTTP)</td><td class="center"><input id="r-cfg2-1" type="radio" name="cfg2" value="ok"></td><td class="center"><input id="r-cfg2-2" type="radio" name="cfg2" value="warn"></td><td class="center"><input id="r-cfg2-3" type="radio" name="cfg2" value="fail"></td><td class="center"><input id="r-cfg2-4" type="radio" name="cfg2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Dateirechte korrekt (sensitive Dateien 600 / 640)</td><td class="center"><input id="r-cfg3-1" type="radio" name="cfg3" value="ok"></td><td class="center"><input id="r-cfg3-2" type="radio" name="cfg3" value="warn"></td><td class="center"><input id="r-cfg3-3" type="radio" name="cfg3" value="fail"></td><td class="center"><input id="r-cfg3-4" type="radio" name="cfg3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>App läuft nicht als Root (dedizierter Service-User)</td><td class="center"><input id="r-cfg4-1" type="radio" name="cfg4" value="ok"></td><td class="center"><input id="r-cfg4-2" type="radio" name="cfg4" value="warn"></td><td class="center"><input id="r-cfg4-3" type="radio" name="cfg4" value="fail"></td><td class="center"><input id="r-cfg4-4" type="radio" name="cfg4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>HTTP Security-Header gesetzt (CSP, X-Frame, CORP…)</td><td class="center"><input id="r-cfg5-1" type="radio" name="cfg5" value="ok"></td><td class="center"><input id="r-cfg5-2" type="radio" name="cfg5" value="warn"></td><td class="center"><input id="r-cfg5-3" type="radio" name="cfg5" value="fail"></td><td class="center"><input id="r-cfg5-4" type="radio" name="cfg5" value="na"></td><td><input type="text" placeholder="securityheaders.com Score: "></td></tr>
+  <tr><td>Keine Versionsinformationen in HTTP-Headern / Fehlerseiten</td><td class="center"><input id="r-cfg6-1" type="radio" name="cfg6" value="ok"></td><td class="center"><input id="r-cfg6-2" type="radio" name="cfg6" value="warn"></td><td class="center"><input id="r-cfg6-3" type="radio" name="cfg6" value="fail"></td><td class="center"><input id="r-cfg6-4" type="radio" name="cfg6" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Docker: Keine privilegierten Container ohne Begründung</td><td class="center"><input id="r-cfg7-1" type="radio" name="cfg7" value="ok"></td><td class="center"><input id="r-cfg7-2" type="radio" name="cfg7" value="warn"></td><td class="center"><input id="r-cfg7-3" type="radio" name="cfg7" value="fail"></td><td class="center"><input id="r-cfg7-4" type="radio" name="cfg7" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">Verwendete Prüfwerkzeuge</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Tool 1:</td><td><input type="text" id="a-tool1" placeholder="nmap"></td>
+    <td class="label">Version:</td><td><input type="text" id="a-tool1-ver" placeholder="7.95"></td>
+    <td class="label">Zweck:</td><td><input type="text" id="a-tool1-use" placeholder="Port-Scan"></td>
+  </tr>
+  <tr>
+    <td class="label">Tool 2:</td><td><input type="text" id="a-tool2" placeholder="testssl.sh"></td>
+    <td class="label">Version:</td><td><input type="text" id="a-tool2-ver"></td>
+    <td class="label">Zweck:</td><td><input type="text" id="a-tool2-use" placeholder="TLS-Prüfung"></td>
+  </tr>
+  <tr>
+    <td class="label">Tool 3:</td><td><input type="text" id="a-tool3"></td>
+    <td class="label">Version:</td><td><input type="text" id="a-tool3-ver"></td>
+    <td class="label">Zweck:</td><td><input type="text" id="a-tool3-use"></td>
+  </tr>
+  <tr>
+    <td colspan="6" style="text-align:center;">
+      <button onclick="saveTools()" class="btn btn-small">Werkzeuge speichern</button>
+      <button onclick="loadTools()" class="btn btn-small">↓ Letzte laden</button>
+      <span style="font-size:11px;color: var(--leise);margin-left:10px;">→ Werkzeug-Vorlagen im Stammdaten-Tab</span>
+    </td>
+  </tr>
+</table></div>
+
+<div class="section-title">Prüfergebnis & Gesamtbewertung</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Ergebnis:</td>
+    <td><label class="inline"><input id="r-a-ergebnis-1" type="radio" name="a-ergebnis"> ✓ Keine kritischen Mängel</label></td>
+    <td><label class="inline"><input id="r-a-ergebnis-2" type="radio" name="a-ergebnis"> Mängel mit Handlungsbedarf</label></td>
+    <td><label class="inline"><input id="r-a-ergebnis-3" type="radio" name="a-ergebnis"> ✗ Kritische Mängel festgestellt</label></td>
+  </tr>
+  <tr>
+    <td class="label">Gesamtrisiko:</td>
+    <td><label class="inline"><input id="r-a-risiko-1" type="radio" name="a-risiko"> Niedrig</label></td>
+    <td><label class="inline"><input id="r-a-risiko-2" type="radio" name="a-risiko"> Mittel</label></td>
+    <td><label class="inline"><input id="r-a-risiko-3" type="radio" name="a-risiko"> Hoch</label></td>
+  </tr>
+  <tr>
+    <td class="label">Kritisch:</td>
+    <td colspan="2"><label class="inline"><input id="r-a-risiko-4" type="radio" name="a-risiko"> Kritisch – sofortiger Handlungsbedarf</label></td>
+    <td><label class="inline">Prüfplakette: <input id="r-a-plakette-1" type="radio" name="a-plakette"> ja <input id="r-a-plakette-2" type="radio" name="a-plakette"> nein</label></td>
+  </tr>
+</table></div>
+
+<div class="section-title">Mängel / Befunde / Empfehlungen</div>
+<textarea id="a-maengel" placeholder="Festgestellte Mängel, Befunde und Empfehlungen zur Behebung…" style="min-height:100px;"></textarea>
+
+<div class="section-title">Unterschriften</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Auftraggeber:</strong></label>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="a-ort-ag" placeholder="Ort" style="flex:1;">
+      <input type="date" id="a-datum-ag" style="flex:1;">
+    </div>
+    <canvas id="a-sig-ag" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('a-sig-ag')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('a-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+  <div class="sig-box">
+    <label><strong>Prüfer/in:</strong></label>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="a-ort-pruefer" placeholder="Ort" style="flex:1;">
+      <input type="date" id="a-datum-pruefer" style="flex:1;">
+    </div>
+    <canvas id="a-sig-pruefer" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('a-sig-pruefer')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('a-sig-pruefer')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+</div>
+<div class="button-area">
+  <button onclick="exportPDF('audit')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="resetForm('audit')" class="btn">↺ Formular leeren</button>
+</div>
+</div><!-- /tab-audit -->
+
+
+<!-- ═══════════════════════════════════════════════ TAB 2: PORT-SCAN -->
+<div id="tab-portscan" class="tab-content">
+<div class="form-header"><h2>Port-Scan Ergebnisse & Dienste-Übersicht</h2></div>
+
+<div class="section-title">Scan-Konfiguration</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Ziel-Host / IP:</td><td><input type="text" id="ps-host"></td>
+    <td class="label">Scan-Datum:</td><td><input type="date" id="ps-datum"></td>
+    <td class="label">Prüfer:</td><td><input type="text" id="ps-pruefer"></td>
+  </tr>
+  <tr>
+    <td class="label">Scan-Tool:</td>
+    <td><select id="ps-tool">
+      <option>nmap</option><option>masscan</option><option>rustscan</option>
+      <option>zmap</option><option>unicornscan</option><option>netcat (nc)</option>
+      <option>Metasploit / msfconsole</option><option>Nessus</option>
+      <option>OpenVAS / GVM</option><option>Sonstiges</option>
+    </select></td>
+    <td class="label">Scan-Typ:</td>
+    <td><select id="ps-scantyp">
+      <option value="sS">TCP SYN Scan (-sS) – Stealth, Root nötig</option>
+      <option value="sT">TCP Connect Scan (-sT) – ohne Root</option>
+      <option value="sA">TCP ACK Scan (-sA) – Firewall-Mapping</option>
+      <option value="sW">TCP Window Scan (-sW)</option>
+      <option value="sF">TCP FIN Scan (-sF) – Stealth</option>
+      <option value="sN">TCP NULL Scan (-sN) – Stealth</option>
+      <option value="sX">TCP XMAS Scan (-sX) – Stealth</option>
+      <option value="sM">TCP Maimon Scan (-sM)</option>
+      <option value="sU">UDP Scan (-sU)</option>
+      <option value="sY">SCTP INIT Scan (-sY)</option>
+      <option value="sZ">SCTP COOKIE-ECHO Scan (-sZ)</option>
+      <option value="sO">IP-Protokoll Scan (-sO)</option>
+      <option value="sV">Versions-Erkennung (-sV)</option>
+      <option value="sC">Script-Scan / NSE (-sC)</option>
+      <option value="O">OS-Erkennung (-O)</option>
+      <option value="A">Aggressiver Scan (-A: -sV -sC -O --traceroute)</option>
+      <option value="sI">Idle / Zombie Scan (-sI)</option>
+      <option value="Pn">Ping-less Scan (-Pn)</option>
+      <option value="custom">Eigener Befehl</option>
+    </select></td>
+    <td class="label">Scan von:</td>
+    <td><select id="ps-von"><option>Intern (LAN)</option><option>Extern (Internet)</option><option>VPN</option><option>DMZ</option><option>Cloud-Instance</option></select></td>
+  </tr>
+  <tr>
+    <td class="label">Scan-Befehl:</td>
+    <td colspan="5"><input type="text" id="ps-cmd" placeholder="z.B. nmap -sV -sC -p- --min-rate 5000 -oN scan.txt 192.168.1.100"></td>
+  </tr>
+</table></div>
+
+<!-- Schnell-Vorlagen -->
+<div class="section-title">Dienst-Kategorien schnell vorladen</div>
+<div style="padding:8px;border:1px solid #ccc;border-radius:3px;display:flex;flex-wrap:wrap;gap:5px;" id="preload-btns">
+  <button onclick="preloadPorts('web')"        class="btn btn-small">Web-Services</button>
+  <button onclick="preloadPorts('db')"         class="btn btn-small">Datenbanken</button>
+  <button onclick="preloadPorts('remote')"     class="btn btn-small">Remote-Zugang</button>
+  <button onclick="preloadPorts('mail')"       class="btn btn-small">Mail</button>
+  <button onclick="preloadPorts('dns')"        class="btn btn-small">DNS & Netzwerk</button>
+  <button onclick="preloadPorts('file')"       class="btn btn-small">Dateifreigabe</button>
+  <button onclick="preloadPorts('monitor')"    class="btn btn-small">Monitoring & Admin</button>
+  <button onclick="preloadPorts('container')"  class="btn btn-small">Container & K8s</button>
+  <button onclick="preloadPorts('vpn')"        class="btn btn-small">VPN & Proxy</button>
+  <button onclick="preloadPorts('iot')"        class="btn btn-small">IoT / Industrial</button>
+  <button onclick="preloadPorts('common')"     class="btn btn-small">Top-1000 häufig</button>
+  <button onclick="clearPortTable()"           class="btn btn-small" style="background:#c0392b;">Leeren</button>
+</div>
+
+<div class="section-title">Port-Scan Ergebnisse</div>
+<div style="overflow-x:auto;">
+<div class="rollen"><table class="measurement-table" id="portscan-table">
+  <thead><tr>
+    <th style="width:45px;">Port</th>
+    <th style="width:58px;">Protokoll</th>
+    <th style="width:65px;">Transport</th>
+    <th style="width:62px;">Status</th>
+    <th>Dienst / Service</th>
+    <th>Version / Banner</th>
+    <th style="width:75px;">Bewertung</th>
+    <th>Bemerkung / Empfehlung</th>
+    <th style="width:28px;"></th>
+  </tr></thead>
+  <tbody id="portscan-tbody"></tbody>
+</table></div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+  <button onclick="addPortRow()" class="btn btn-small">+ Zeile hinzufügen</button>
+  <span style="font-size:11px;color: var(--leise);align-self:center;">10 Zeilen vorausgefüllt · Kategorien oben für Schnell-Import</span>
+</div>
+
+<div class="section-title">SSL/TLS Scan (testssl.sh / sslscan / sslyze)</div>
+<div style="overflow-x:auto;">
+<div class="rollen"><table class="measurement-table">
+  <thead><tr><th>Prüfpunkt</th><th style="width:130px;">Wert / Ergebnis</th><th style="width:75px;">Bewertung</th><th>Bemerkung</th></tr></thead>
+  <tbody>
+    <tr><td>TLS-Versionen unterstützt</td><td><input type="text" placeholder="TLS 1.2, 1.3"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Stärkste Cipher Suite</td><td><input type="text" placeholder="TLS_AES_256_GCM_SHA384"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Schwache Ciphers vorhanden (RC4, DES, 3DES, EXPORT)</td><td><input type="text" placeholder="keine / ja: ..."></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Heartbleed / BEAST / POODLE / ROBOT / DROWN</td><td><input type="text" placeholder="nicht betroffen"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Zertifikat CN / SAN</td><td><input type="text" placeholder="*.example.com"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Zertifikat gültig bis</td><td><input type="date"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>HSTS vorhanden</td><td><input type="text" placeholder="ja / nein"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text" placeholder="max-age=…"></td></tr>
+    <tr><td>SSL Labs / testssl.sh Gesamtnote</td><td><input type="text" placeholder="A+ / A / B …"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+  </tbody>
+</table></div>
+</div>
+
+<div class="section-title">HTTP Security-Header (securityheaders.com)</div>
+<div style="overflow-x:auto;">
+<div class="rollen"><table class="measurement-table">
+  <thead><tr><th>Header</th><th style="width:180px;">Wert (Kurzform)</th><th style="width:75px;">Vorhanden</th><th style="width:75px;">Bewertung</th><th>Bemerkung</th></tr></thead>
+  <tbody>
+    <tr><td>Content-Security-Policy</td><td><input type="text"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Strict-Transport-Security</td><td><input type="text" placeholder="max-age=31536000; includeSubDomains"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>X-Frame-Options</td><td><input type="text" placeholder="DENY / SAMEORIGIN"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>X-Content-Type-Options</td><td><input type="text" placeholder="nosniff"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Referrer-Policy</td><td><input type="text" placeholder="no-referrer"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Permissions-Policy</td><td><input type="text"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>Server-Header (Version verborgen)</td><td><input type="text" placeholder="nginx (ohne Detail)"></td><td class="center"><input type="checkbox"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+  </tbody>
+</table></div>
+</div>
+
+<div class="section-title">Bemerkungen zum Scan</div>
+<textarea id="ps-bemerkungen" placeholder="Allgemeine Scan-Bemerkungen, Besonderheiten, gefilterte Ports, Scan-Dauer…" style="min-height:80px;"></textarea>
+<div class="button-area">
+  <button onclick="exportPDF('portscan')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="resetForm('portscan')" class="btn">↺ Formular leeren</button>
+</div>
+</div><!-- /tab-portscan -->
+
+
+<!-- ════════════════════════════════════════ TAB 3: FINDINGS & PENTEST -->
+<div id="tab-findings" class="tab-content">
+<div class="form-header"><h2>Findings, Schwachstellen & Penetrationstest-Protokoll</h2></div>
+
+<div class="section-title">Pentest-Informationen</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Protokoll-Nr.:</td><td><input type="text" id="pt-nr"></td>
+    <td class="label">Datum von:</td><td><input type="date" id="pt-von"></td>
+    <td class="label">Datum bis:</td><td><input type="date" id="pt-bis"></td>
+  </tr>
+  <tr>
+    <td class="label">Scope / Ziel:</td>
+    <td colspan="5"><input type="text" id="pt-scope" placeholder="z.B. Nextcloud-Instanz, Reverse Proxy, VPN-Endpunkt"></td>
+  </tr>
+  <tr>
+    <td class="label">Methodik:</td>
+    <td><select id="pt-methodik"><option>Black-Box</option><option>Gray-Box</option><option>White-Box</option></select></td>
+    <td class="label">Authorisierung:</td>
+    <td><label class="inline"><input type="checkbox" id="pt-auth"> Schriftliche Authorisierung liegt vor</label></td>
+    <td class="label">Prüfer:</td><td><input type="text" id="pt-pruefer"></td>
+  </tr>
+</table></div>
+
+<div class="section-title">OWASP Top 10 – Kurzcheck (Web-Anwendungen)</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Kategorie</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund</th></tr></thead><tbody>
+  <tr><td>A01 – Broken Access Control</td><td class="center"><input id="r-ow1-1" type="radio" name="ow1" value="ok"></td><td class="center"><input id="r-ow1-2" type="radio" name="ow1" value="warn"></td><td class="center"><input id="r-ow1-3" type="radio" name="ow1" value="fail"></td><td class="center"><input id="r-ow1-4" type="radio" name="ow1" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A02 – Cryptographic Failures</td><td class="center"><input id="r-ow2-1" type="radio" name="ow2" value="ok"></td><td class="center"><input id="r-ow2-2" type="radio" name="ow2" value="warn"></td><td class="center"><input id="r-ow2-3" type="radio" name="ow2" value="fail"></td><td class="center"><input id="r-ow2-4" type="radio" name="ow2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A03 – Injection (SQL, XSS, Command, SSTI…)</td><td class="center"><input id="r-ow3-1" type="radio" name="ow3" value="ok"></td><td class="center"><input id="r-ow3-2" type="radio" name="ow3" value="warn"></td><td class="center"><input id="r-ow3-3" type="radio" name="ow3" value="fail"></td><td class="center"><input id="r-ow3-4" type="radio" name="ow3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A04 – Insecure Design</td><td class="center"><input id="r-ow4-1" type="radio" name="ow4" value="ok"></td><td class="center"><input id="r-ow4-2" type="radio" name="ow4" value="warn"></td><td class="center"><input id="r-ow4-3" type="radio" name="ow4" value="fail"></td><td class="center"><input id="r-ow4-4" type="radio" name="ow4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A05 – Security Misconfiguration</td><td class="center"><input id="r-ow5-1" type="radio" name="ow5" value="ok"></td><td class="center"><input id="r-ow5-2" type="radio" name="ow5" value="warn"></td><td class="center"><input id="r-ow5-3" type="radio" name="ow5" value="fail"></td><td class="center"><input id="r-ow5-4" type="radio" name="ow5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A06 – Vulnerable and Outdated Components</td><td class="center"><input id="r-ow6-1" type="radio" name="ow6" value="ok"></td><td class="center"><input id="r-ow6-2" type="radio" name="ow6" value="warn"></td><td class="center"><input id="r-ow6-3" type="radio" name="ow6" value="fail"></td><td class="center"><input id="r-ow6-4" type="radio" name="ow6" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A07 – Identification and Authentication Failures</td><td class="center"><input id="r-ow7-1" type="radio" name="ow7" value="ok"></td><td class="center"><input id="r-ow7-2" type="radio" name="ow7" value="warn"></td><td class="center"><input id="r-ow7-3" type="radio" name="ow7" value="fail"></td><td class="center"><input id="r-ow7-4" type="radio" name="ow7" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A08 – Software and Data Integrity Failures</td><td class="center"><input id="r-ow8-1" type="radio" name="ow8" value="ok"></td><td class="center"><input id="r-ow8-2" type="radio" name="ow8" value="warn"></td><td class="center"><input id="r-ow8-3" type="radio" name="ow8" value="fail"></td><td class="center"><input id="r-ow8-4" type="radio" name="ow8" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A09 – Security Logging and Monitoring Failures</td><td class="center"><input id="r-ow9-1" type="radio" name="ow9" value="ok"></td><td class="center"><input id="r-ow9-2" type="radio" name="ow9" value="warn"></td><td class="center"><input id="r-ow9-3" type="radio" name="ow9" value="fail"></td><td class="center"><input id="r-ow9-4" type="radio" name="ow9" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>A10 – Server-Side Request Forgery (SSRF)</td><td class="center"><input id="r-ow10-1" type="radio" name="ow10" value="ok"></td><td class="center"><input id="r-ow10-2" type="radio" name="ow10" value="warn"></td><td class="center"><input id="r-ow10-3" type="radio" name="ow10" value="fail"></td><td class="center"><input id="r-ow10-4" type="radio" name="ow10" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">Findings / Schwachstellen-Register</div>
+<div style="overflow-x:auto;">
+<div class="rollen"><table class="measurement-table">
+  <thead><tr>
+    <th style="width:28px;">#</th>
+    <th>Titel / Kurzbeschreibung</th>
+    <th style="width:80px;">Kategorie</th>
+    <th style="width:52px;">CVSS</th>
+    <th style="width:72px;">Kritikalität</th>
+    <th style="width:80px;">Status</th>
+    <th>Empfehlung / Behebung</th>
+    <th style="width:88px;">Behoben bis</th>
+    <th style="width:28px;"></th>
+  </tr></thead>
+  <tbody id="findings-tbody"></tbody>
+</table></div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:15px;">
+  <button onclick="addFindingRow()" class="btn btn-small">+ Finding hinzufügen</button>
+</div>
+
+<div class="section-title">CVE-Scan Ergebnisse (Trivy / Grype / OpenVAS / Nessus)</div>
+<div style="overflow-x:auto;">
+<div class="rollen"><table class="measurement-table">
+  <thead><tr>
+    <th>CVE-ID</th>
+    <th>Betroffenes Paket / Komponente</th>
+    <th style="width:75px;">Version</th>
+    <th style="width:52px;">CVSS</th>
+    <th style="width:80px;">Severity</th>
+    <th>Beschreibung (kurz)</th>
+    <th style="width:75px;">Fix?</th>
+    <th style="width:78px;">Status</th>
+    <th style="width:28px;"></th>
+  </tr></thead>
+  <tbody id="cve-tbody"></tbody>
+</table></div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:15px;">
+  <button onclick="addCveRow()" class="btn btn-small">+ CVE hinzufügen</button>
+</div>
+
+<div class="section-title">Executive Summary / Fazit</div>
+<textarea id="pt-summary" placeholder="Zusammenfassung der wichtigsten Erkenntnisse, Gesamtbewertung und priorisierte Handlungsempfehlungen…" style="min-height:120px;"></textarea>
+
+<div class="section-title">Unterschriften</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Auftraggeber:</strong></label>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="pt-ort-ag" placeholder="Ort" style="flex:1;">
+      <input type="date" id="pt-datum-ag" style="flex:1;">
+    </div>
+    <canvas id="pt-sig-ag" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('pt-sig-ag')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('pt-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+  <div class="sig-box">
+    <label><strong>Prüfer/in:</strong></label>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="pt-ort-pruefer" placeholder="Ort" style="flex:1;">
+      <input type="date" id="pt-datum-pruefer" style="flex:1;">
+    </div>
+    <canvas id="pt-sig-pruefer" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('pt-sig-pruefer')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('pt-sig-pruefer')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+</div>
+<div class="button-area">
+  <button onclick="exportPDF('findings')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="resetForm('findings')" class="btn">↺ Formular leeren</button>
+</div>
+</div><!-- /tab-findings -->
+
+
+<!-- ═══════════════════════════════════════════ TAB 4: STAMMDATEN -->
+<div id="tab-stammdaten" class="tab-content">
+<div class="form-header"><h2>Stammdaten, Prüfwerkzeuge-Verwaltung & Einstellungen</h2></div>
+
+<div class="section-title">Firmenstammdaten / Organisation</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Firmenname:</td><td colspan="3"><input type="text" id="sd-firma"></td>
+    <td class="label">Telefon:</td><td><input type="text" id="sd-tel"></td>
+  </tr>
+  <tr>
+    <td class="label">Straße:</td><td colspan="2"><input type="text" id="sd-str"></td>
+    <td class="label">E-Mail:</td><td colspan="2"><input type="email" id="sd-mail"></td>
+  </tr>
+  <tr>
+    <td class="label">PLZ / Ort:</td><td colspan="2"><input type="text" id="sd-ort"></td>
+    <td class="label">Website:</td><td colspan="2"><input type="text" id="sd-web"></td>
+  </tr>
+  <tr>
+    <td class="label">UStId / Reg.-Nr.:</td><td><input type="text" id="sd-ustid"></td>
+    <td class="label">Zertifizierung:</td><td><input type="text" id="sd-zert" placeholder="ISO 27001, BSI IT-GS, TISAX…"></td>
+    <td class="label">Verantwortlicher:</td><td><input type="text" id="sd-verantw"></td>
+  </tr>
+</table></div>
+
+<div class="section-title">Prüfer-Vorlagen</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Prüfer 1:</td><td><input type="text" id="sd-p1"></td>
+    <td class="label">Qualifikation:</td><td><input type="text" id="sd-p1-qual" placeholder="OSCP, CEH, CompTIA Security+…"></td>
+  </tr>
+  <tr>
+    <td class="label">Prüfer 2:</td><td><input type="text" id="sd-p2"></td>
+    <td class="label">Qualifikation:</td><td><input type="text" id="sd-p2-qual"></td>
+  </tr>
+</table></div>
+<button onclick="applyStammdaten()" class="btn">✓ Stammdaten in alle Formulare übernehmen</button>
+
+<div class="section-title">Deine Unterschrift speichern</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Unterschrift zeichnen:</strong></label>
+    <canvas id="sig-canvas" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('sig-canvas')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="saveSignature()" class="btn btn-small btn-primary">Speichern</button>
+    </div>
+    <p style="font-size:11px;color: var(--leise);margin-top:8px;">Wird im Browser gespeichert und in allen Formularen verwendbar.</p>
+  </div>
+  <div class="sig-box">
+    <label><strong>Aktuell gespeicherte Unterschrift:</strong></label>
+    <canvas id="sig-stored" class="signature" width="350" height="100" style="cursor:default;"></canvas>
+    <button onclick="deleteSavedSignature()" class="btn btn-small" style="width:100%;margin-top:8px;">Gespeicherte Unterschrift löschen</button>
+  </div>
+</div>
+
+<div class="section-title">Prüfwerkzeuge-Verwaltung</div>
+<div class="card">
+  <h3>Gespeicherte Werkzeuge</h3>
+  <div id="tools-list"><em style="color: var(--leise);">Keine Werkzeuge gespeichert</em></div>
+  <h3 style="margin-top:20px;">Neues Werkzeug hinzufügen</h3>
+  <div class="rollen"><table class="form-table">
+    <tr>
+      <td class="label">Name:</td><td><input type="text" id="sd-tool-name" placeholder="nmap"></td>
+      <td class="label">Version:</td><td><input type="text" id="sd-tool-ver" placeholder="7.95"></td>
+    </tr>
+    <tr>
+      <td class="label">Zweck:</td><td><input type="text" id="sd-tool-use" placeholder="Port-Scan"></td>
+      <td class="label">URL / Doku:</td><td><input type="text" id="sd-tool-url" placeholder="https://nmap.org"></td>
+    </tr>
+  </table></div>
+  <button onclick="addToolFromStammdaten()" class="btn btn-primary">Werkzeug hinzufügen</button>
+  <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
+    <button onclick="exportToolsJSON()" class="btn">Werkzeuge exportieren</button>
+    <button onclick="importToolsJSON()" class="btn">Werkzeuge importieren</button>
+    <button onclick="clearAllTools()" class="btn">Alle löschen</button>
+  </div>
+  <input type="file" id="tools-file-input" accept=".json" onchange="handleToolsImport(this)" style="display:none;">
+</div>
+
+<div class="section-title">Einstellungen</div>
+<div class="card">
+  <label class="inline" style="display:block;margin-bottom:10px;">
+    <input type="checkbox" id="settings-auto-load">
+    Stammdaten automatisch beim Laden einfüllen
+  </label>
+  <label class="inline" style="display:block;">
+    <input type="checkbox" id="settings-auto-signature">
+    Unterschrift automatisch in Formulare laden
+  </label>
+</div>
+
+<div class="section-title">/ Import & Export (Komplettes Backup)</div>
+<div class="card">
+  <div class="g2">
+    <div>
+      <h3>Exportieren</h3>
+      <p style="font-size:11px;color: var(--leise);margin-bottom:10px;">Alle Daten als JSON-Datei sichern</p>
+      <button onclick="exportStammdaten()" class="btn" style="width:100%;margin-bottom:8px;">Nur Stammdaten</button>
+      <button onclick="exportAllSettings()" class="btn btn-primary" style="width:100%;">KOMPLETTES BACKUP (Stammdaten + Werkzeuge + Einstellungen + Unterschrift)</button>
+    </div>
+    <div>
+      <h3>Importieren</h3>
+      <p style="font-size:11px;color: var(--leise);margin-bottom:10px;">JSON-Datei ablegen oder klicken</p>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click();">
+        JSON-Datei hier ablegen oder klicken
+      </div>
+      <input type="file" id="file-input" accept=".json" onchange="importStammdaten(this)" style="display:none;">
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Datenschutz</div>
+<div class="card">
+  <p style="font-size:12px;line-height:1.6;"><strong>IT-Sicherheitsprotokoll ist 100% DSGVO-konform:</strong></p>
+  <ul style="margin:10px 0 10px 20px;font-size:12px;">
+    <li>Alle Daten werden <strong>NUR im Browser</strong> (LocalStorage) gespeichert</li>
+    <li>Keine Daten-Übertragung an Server</li>
+    <li>Keine Cookies, kein Tracking, keine Analytics</li>
+    <li>Keine Drittanbieter-Verbindungen</li>
+    <li>Vollständig offline-fähig</li>
+    <li>Open Source unter MIT Lizenz</li>
+  </ul>
+  <p style="font-size:11px;color: var(--leise);margin-top:8px;border-top:1px solid #eee;padding-top:8px;">
+    Sicherheitsprotokolle mit sensiblen Befunden nur auf vertrauenswürdigen Geräten öffnen. Backups in verschlüsselten Verzeichnissen aufbewahren.
+  </p>
+  <button onclick="clearAllData()" class="btn" style="margin-top:10px;">ALLE Daten dieser App löschen</button>
+</div>
+</div><!-- /tab-stammdaten -->
+
+
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script>
+  // Animationen gibt es hier nicht; Konstante für den Seitenstandard
+  const bewegungAus = false;
+  </script>
+  <script src="it-sicherheit.js"></script>
+  <script>
+  // Zeilen der dynamischen Tabellen merken (basis.js speichert das versteckte Feld mit)
+  (function () {
+    'use strict';
+    const TABELLEN = [["portscan-tbody", "addPortRow"], ["findings-tbody", "addFindingRow"], ["cve-tbody", "addCveRow"]];
+    const feld = document.getElementById('zeilen-merken');
+    function lesen() {
+      const o = {};
+      TABELLEN.forEach(function (t) {
+        const tb = document.getElementById(t[0]); if (!tb) return;
+        o[t[0]] = Array.prototype.map.call(tb.rows, function (tr) {
+          return Array.prototype.map.call(tr.querySelectorAll('input, select, textarea'), function (x) { return x.type === 'checkbox' || x.type === 'radio' ? x.checked : x.value; });
+        });
+      });
+      feld.value = JSON.stringify(o);
+    }
+    TABELLEN.forEach(function (t) {
+      const tb = document.getElementById(t[0]); if (!tb) return;
+      tb.addEventListener('input', lesen); tb.addEventListener('change', lesen);
+      if (window.MutationObserver) new MutationObserver(lesen).observe(tb, { childList: true });
+    });
+    feld.addEventListener('input', function () {
+      let o = null; try { o = JSON.parse(feld.value); } catch (e) { o = null; }
+      if (!o || typeof o !== 'object') return;
+      TABELLEN.forEach(function (t) {
+        const tb = document.getElementById(t[0]), zeilen = o[t[0]];
+        if (!tb || !Array.isArray(zeilen) || typeof window[t[1]] !== 'function') return;
+        tb.innerHTML = '';
+        zeilen.slice(0, 300).forEach(function (z) {
+          window[t[1]]();
+          const tr = tb.rows[tb.rows.length - 1]; if (!tr || !Array.isArray(z)) return;
+          Array.prototype.forEach.call(tr.querySelectorAll('input, select, textarea'), function (x, i) {
+            if (i >= z.length) return;
+            if (x.type === 'checkbox' || x.type === 'radio') x.checked = !!z[i]; else x.value = String(z[i]).slice(0, 2000);
+            if (x.tagName === 'SELECT') x.dispatchEvent(new Event('change'));
+          });
+        });
+        if (typeof window.updateRowNumbers === 'function') window.updateRowNumbers();
+      });
+      lesen();
+    });
+    window.addEventListener('DOMContentLoaded', lesen);
+    // Unterschriften im Druck als Bild (Canvas lässt sich im PDF nicht zuverlässig skalieren)
+    function bilder() {
+      document.querySelectorAll('.protokoll canvas.signature').forEach(function (c) {
+        let img = c.nextElementSibling;
+        if (!img || !img.classList.contains('sig-bild')) { img = document.createElement('img'); img.className = 'sig-bild'; img.alt = 'Unterschrift'; c.after(img); }
+        try { img.src = c.toDataURL('image/png'); } catch (e) { /* leer */ }
+      });
+    }
+    document.addEventListener('mouseup', function (ev) { if (ev.target.closest && ev.target.closest('canvas.signature')) bilder(); });
+    document.addEventListener('touchend', function (ev) { if (ev.target.closest && ev.target.closest('canvas.signature')) bilder(); });
+    window.addEventListener('beforeprint', bilder);
+    window.addEventListener('beforeprint', function () { document.querySelectorAll('.protokoll input[type="date"]').forEach(function (d) { d.classList.toggle('leer', !d.value); }); });
+    window.addEventListener('load', function () { setTimeout(bilder, 800); });
+    // Strg+P ohne Knopf: den sichtbaren Reiter drucken
+    window.addEventListener('beforeprint', function () {
+      if (!document.querySelector('.print-active')) { const a = document.querySelector('.tab-content.active'); if (a) { a.classList.add('print-active'); a.dataset.automatisch = '1'; } }
+    });
+    window.addEventListener('afterprint', function () {
+      document.querySelectorAll('.tab-content[data-automatisch]').forEach(function (a) { a.classList.remove('print-active'); delete a.dataset.automatisch; });
+    });
+  })();
+  </script>
+</body>
+</html>

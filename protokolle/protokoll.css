@@ -1,0 +1,129 @@
+/*
+ * Prüfprotokolle (Elektro und IT-Sicherheit) im Design der Sammlung
+ * Alle Regeln gelten nur innerhalb von .protokoll; Farben aus stil.css (hell und dunkel).
+ */
+.protokoll { --p-akzent: var(--text); --p-kopf: #1E3A5F; font-size: .9rem; line-height: 1.45; margin-top: 18px; }
+:root[data-thema="dunkel"] .protokoll { --p-kopf: #2C4F78; }
+@media (prefers-color-scheme: dark) { :root:not([data-thema="hell"]) .protokoll { --p-kopf: #2C4F78; } }
+
+/* Reiter */
+.protokoll .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.protokoll .tab-btn { padding: 8px 14px; border: 1px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); cursor: pointer; font: inherit; font-weight: 600; }
+.protokoll .tab-btn:hover { border-color: var(--leise); }
+.protokoll .tab-btn.active { background: var(--text); color: var(--grund); border-color: var(--text); }
+.protokoll .tab-content { display: none; background: var(--flaeche); border-radius: var(--rund-gross); padding: 18px 20px 20px; box-shadow: var(--schatten); }
+.protokoll .tab-content.active { display: block; }
+
+/* Abschnitte */
+.protokoll .form-header { margin-bottom: 10px; }
+.protokoll .form-header h2 { font-size: 1.3rem; margin: 0; }
+.protokoll .section-title { margin: 18px 0 8px; padding: 6px 12px; border-radius: var(--rund-klein); background: var(--p-kopf); color: #FFFFFF; font-family: var(--technik); font-weight: 600; font-size: .98rem; }
+.protokoll .card { background: var(--flaeche2); border: 1px solid var(--linie); padding: 14px; margin-bottom: 12px; border-radius: var(--rund); }
+.protokoll .card h3 { margin: 0 0 8px; font-size: 1.02rem; }
+.protokoll .kasten { padding: 8px 10px; background: var(--flaeche2); border: 1px solid var(--linie); border-radius: var(--rund-klein); }
+.protokoll .klein { font-size: .82rem; color: var(--leise); }
+
+/* Tabellen */
+.protokoll .rollen { overflow-x: auto; }
+.protokoll table { width: 100%; border-collapse: collapse; }
+.protokoll .form-table, .protokoll .check-grid, .protokoll .measurement-table { margin-bottom: 8px; font-size: .85rem; }
+.protokoll .form-table td, .protokoll .check-grid td, .protokoll .check-grid th, .protokoll .measurement-table td, .protokoll .measurement-table th { border: 1px solid var(--linie); padding: 4px 6px; vertical-align: middle; }
+.protokoll .form-table .label { background: var(--flaeche2); font-weight: 600; white-space: nowrap; color: var(--text); }
+.protokoll .check-grid th, .protokoll .measurement-table th { background: var(--p-kopf); color: #FFFFFF; font-weight: 600; font-size: .8rem; text-align: center; }
+.protokoll .check-grid td.center { text-align: center; width: 50px; }
+.protokoll .measurement-table { font-size: .78rem; min-width: 980px; }
+.protokoll .measurement-table td { padding: 2px; }
+.protokoll tr.row-ok td { background: rgba(14, 107, 106, .12); }
+.protokoll tr.row-warn td { background: rgba(242, 165, 65, .18); }
+.protokoll tr.row-fail td { background: rgba(192, 57, 43, .14); }
+.protokoll tr.row-info td { background: rgba(43, 123, 185, .12); }
+
+/* Eingaben */
+.protokoll input[type="text"], .protokoll input[type="email"], .protokoll input[type="date"], .protokoll input[type="number"], .protokoll input[type="tel"], .protokoll input[type="url"], .protokoll select, .protokoll textarea {
+  width: 100%; min-width: 0; padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .9rem;
+}
+.protokoll textarea { resize: vertical; min-height: 60px; }
+.protokoll .form-table input, .protokoll .form-table select, .protokoll .check-grid input[type="text"], .protokoll .measurement-table input, .protokoll .measurement-table select { border: none; background: transparent; padding: 3px 4px; border-radius: 4px; }
+.protokoll .form-table input:focus, .protokoll .form-table select:focus, .protokoll .check-grid input:focus, .protokoll .measurement-table input:focus, .protokoll .measurement-table select:focus { background: var(--achtung-flaeche); outline: 2px solid var(--kalt); outline-offset: -2px; }
+.protokoll input[type="checkbox"], .protokoll input[type="radio"] { width: 16px; height: 16px; cursor: pointer; margin: 0 6px 0 0; accent-color: var(--ergebnis); vertical-align: middle; }
+.protokoll label { display: inline-block; font-weight: 600; font-size: .85rem; margin-bottom: 3px; cursor: pointer; }
+.protokoll label.inline { display: inline-flex; align-items: center; margin: 2px 16px 2px 0; font-weight: 400; }
+.protokoll .g2, .protokoll .g3, .protokoll .g4 { display: grid; gap: 10px; margin-bottom: 10px; }
+.protokoll .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.protokoll .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.protokoll .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 800px) { .protokoll .g2, .protokoll .g3, .protokoll .g4 { grid-template-columns: minmax(0, 1fr); } }
+
+/* Handy: Kopftabellen untereinander statt nebeneinander */
+@media screen and (max-width: 640px) {
+  .protokoll .form-table, .protokoll .form-table tbody, .protokoll .form-table tr, .protokoll .form-table td { display: block; width: 100% !important; }
+  .protokoll .form-table tr { border: 1px solid var(--linie); border-radius: var(--rund-klein); margin-bottom: 6px; padding: 4px 0; }
+  .protokoll .form-table td { border: none; padding: 2px 8px; }
+  .protokoll .form-table td.label { background: none; color: var(--leise); font-size: .78rem; padding-top: 6px; white-space: normal; }
+  .protokoll .form-table input, .protokoll .form-table select { border: 1.5px solid var(--linie); padding: 6px 8px; }
+  .protokoll .tab-content { padding: 14px 12px 16px; }
+}
+
+/* Knöpfe */
+.protokoll .btn { padding: 8px 14px; border: 1px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); cursor: pointer; font: inherit; font-weight: 600; font-size: .88rem; }
+.protokoll .btn:hover { border-color: var(--leise); }
+.protokoll .btn-primary { background: var(--text); color: var(--grund); border-color: var(--text); }
+.protokoll .btn-small { padding: 3px 9px; font-size: .8rem; }
+.protokoll .btn-weg { background: none; color: var(--fehler); border-color: transparent; }
+.protokoll .btn-weg:hover { background: var(--fehler-flaeche); border-color: var(--fehler); }
+.protokoll .button-area, .protokoll .leiste { display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 14px 0; }
+
+/* Unterschriften */
+.protokoll canvas.signature { display: block; width: 100%; height: 100px; margin: 8px 0; border: 1.5px solid var(--text); border-radius: var(--rund-klein); background: #FFFFFF; cursor: crosshair; touch-action: none; }
+.protokoll .sig-section { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 12px 0; }
+@media (max-width: 800px) { .protokoll .sig-section { grid-template-columns: minmax(0, 1fr); } }
+.protokoll .sig-box { background: var(--flaeche2); padding: 12px; border: 1px solid var(--linie); border-radius: var(--rund); }
+.protokoll .sig-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.protokoll .sig-buttons .btn { flex: 1 1 auto; }
+
+img.sig-bild { display: none; }
+
+/* Listen, Ablage */
+.protokoll #devices-list, .protokoll #tools-list { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--rund-klein); padding: 10px; min-height: 70px; max-height: 220px; overflow-y: auto; margin-bottom: 10px; }
+.protokoll #devices-list ol, .protokoll #tools-list ol { margin: 0 0 0 20px; padding: 0; }
+.protokoll #devices-list li, .protokoll #tools-list li { padding: 4px 0; border-bottom: 1px solid var(--linie); }
+.protokoll #drop-zone { border: 2px dashed var(--linie); padding: 22px; text-align: center; border-radius: var(--rund); cursor: pointer; background: var(--flaeche); margin: 10px 0; }
+.protokoll #drop-zone:hover, .protokoll #drop-zone.dragover { border-color: var(--kalt); background: var(--flaeche2); }
+.protokoll ul.liste-datenschutz { margin: 8px 0 8px 20px; }
+
+/* Druck: nur der gewählte Reiter, Formularoptik schwarz auf weiß */
+@media print {
+  .protokoll-seite .held, .protokoll .tabs, .protokoll .button-area, .protokoll .leiste, .protokoll .sig-buttons, .protokoll #drop-zone, .protokoll .btn, .protokoll .nur-bildschirm { display: none !important; }
+  .protokoll { font-size: 8.5pt; line-height: 1.25; margin: 0; }
+  .protokoll .tab-content { display: none !important; box-shadow: none; padding: 0; border-radius: 0; }
+  .protokoll .tab-content.print-active { display: block !important; }
+  #tab-stammdaten .card:has(button), #tab-stammdaten #devices-list, #tab-stammdaten #tools-list { display: none !important; }
+  .protokoll .section-title { background: #1E3A5F !important; color: #FFFFFF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 2px 6px; margin: 6px 0 3px; font-size: 9pt; break-after: avoid; }
+  .protokoll .check-grid th, .protokoll .measurement-table th { background: #1E3A5F !important; color: #FFFFFF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .protokoll .form-table .label { background: #F0F0F0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .protokoll .form-table td, .protokoll .check-grid td, .protokoll .check-grid th, .protokoll .measurement-table td, .protokoll .measurement-table th { border-color: #888 !important; padding: 1px 3px !important; font-size: 8pt !important; }
+  .protokoll .form-table { table-layout: fixed; }
+  .protokoll .form-table .label { white-space: normal; }
+  .protokoll .measurement-table { min-width: 0 !important; table-layout: fixed; font-size: 7pt !important; }
+  .protokoll .measurement-table td, .protokoll .measurement-table th, .protokoll .measurement-table input, .protokoll .measurement-table select { font-size: 7pt !important; padding: 0 1px !important; }
+  .protokoll input, .protokoll select, .protokoll textarea { border: none !important; background: transparent !important; color: #000 !important; padding: 0 2px !important; font-size: 8.5pt !important; -webkit-appearance: none; appearance: none; }
+  .protokoll input[type="checkbox"], .protokoll input[type="radio"] { -webkit-appearance: auto !important; appearance: auto !important; width: 11px; height: 11px; }
+  .protokoll input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+  .protokoll input[type="date"].leer::-webkit-datetime-edit { color: transparent; }
+  .protokoll input[type="date"].leer { color: transparent !important; }
+  .protokoll input[type="number"]::-webkit-inner-spin-button { display: none; }
+  .protokoll textarea { min-height: 30px; resize: none; }
+  .protokoll .card, .protokoll .sig-box, .protokoll .kasten { background: none !important; border-color: #999 !important; padding: 4px !important; }
+  .protokoll .card, .protokoll .kasten { break-inside: avoid; }
+  .protokoll .sig-section { display: flex !important; gap: 8px; align-items: flex-start; break-inside: avoid; }
+  .protokoll .sig-box { flex: 1 1 0; min-width: 0; height: auto !important; display: block; }
+  .protokoll canvas.signature { display: none !important; }
+  .protokoll img.sig-bild { display: inline-block !important; vertical-align: top; height: 60px; max-width: 100%; border: 1px solid #000; margin: 4px 0; object-fit: contain; object-position: left center; }
+  .protokoll ::placeholder { color: transparent !important; }
+  .protokoll table { break-inside: avoid; }
+  .protokoll .measurement-table, .protokoll .rollen table { break-inside: auto; }
+  .protokoll tr { break-inside: avoid; }
+  .protokoll .rollen { overflow: visible; }
+  @page quer { size: A4 landscape; margin: 10mm 8mm 13mm; }
+  body:has(#tab-anlage.print-active) { page: quer; }
+}
