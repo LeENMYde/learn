@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blitzschutz: Fangstange und Trennungsabstand</title>
+  <meta name="description" content="Äußerer Blitzschutz nach DIN EN 62305-3: Fangstange mit dem Blitzkugelverfahren, Durchhang zwischen Stangen, Maschenweite, Ableitungen, Trennungsabstand und Erder.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Schutzklasse: Blitzkugelradius r, Maschenweite, Abstand der Ableitungen, k_i (DIN EN 62305-3)
+    const KLASSEN = { 1: [20, 5, 10, 0.08], 2: [30, 10, 10, 0.06], 3: [45, 15, 15, 0.04], 4: [60, 20, 20, 0.04] };
+    const BEISPIEL = { klasse: '3', L: 14, B: 10, H: 7, ho: 1.5, d: 2, hs: 3, D: 8, ls: 6, km: '1', rho: 200 };
+
+    R.seite({
+      titel: 'Blitzschutz: Fangstange und Trennungsabstand',
+      einleitung: 'Äußerer Blitzschutz nach DIN EN 62305-3: Höhe der Fangstange für Dachaufbauten mit dem Blitzkugelverfahren, Durchhang der Kugel zwischen zwei Fangstangen, Maschenweite, Anzahl der Ableitungen, Trennungsabstand und Mindestlänge des Erders.',
+      hilfe: 'Flachdach als Bezug: Höhen über der Dachfläche. Aufbau = z. B. Klimagerät, PV-Wechselrichter, Antenne.',
+      gruppen: [
+        { titel: 'Gebäude', farbe: '#6E6FA6', felder: [
+          { k: 'klasse', name: 'Blitzschutzklasse', wahl: [['1', 'LPS I (r = 20 m)'], ['2', 'LPS II (r = 30 m)'], ['3', 'LPS III (r = 45 m)'], ['4', 'LPS IV (r = 60 m)']] },
+          { k: 'L', tex: 'L', name: 'Gebäudelänge', e: 'm', min: 2, max: 500 },
+          { k: 'B', tex: 'B', name: 'Gebäudebreite', e: 'm', min: 2, max: 500 },
+          { k: 'H', tex: 'H', name: 'Gebäudehöhe', e: 'm', min: 1, max: 300 }
+        ] },
+        { titel: 'Aufbau und Fangstange', farbe: '#E4572E', felder: [
+          { k: 'ho', tex: 'h_\\text{o}', name: 'Höhe des Aufbaus über Dach', e: 'm', min: 0.1, max: 30 },
+          { k: 'd', tex: 'd', name: 'Abstand Stange bis zur fernsten Kante des Aufbaus', e: 'm', min: 0.1, max: 30 },
+          { k: 'hs', tex: 'h_\\text{s}', name: 'gewählte Höhe der Fangstange', e: 'm', min: 0.3, max: 30 },
+          { k: 'D', tex: 'D', name: 'Abstand zwischen zwei Fangstangen', e: 'm', min: 0.5, max: 100 }
+        ] },
+        { titel: 'Trennungsabstand und Erder', farbe: '#2B7BB9', felder: [
+          { k: 'ls', tex: 'l', name: 'Länge der Fangleitung/Ableitung bis zum nächsten Potentialausgleich', e: 'm', min: 0.1, max: 300 },
+          { k: 'km', name: 'Material im Abstand', wahl: [['1', 'Luft (k_m = 1)'], ['0.5', 'Beton, Ziegel, Holz (k_m = 0,5)']] },
+          { k: 'rho', tex: '\\rho_\\text{E}', name: 'spezifischer Erdwiderstand', e: 'Ωm', min: 10, max: 5000 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Blitzkugel an der Fangstange', 'x = \\sqrt{2 r h_\\text{s} - h_\\text{s}^2}', 'Abstand vom Fußpunkt, an dem die Kugel das Dach berührt'],
+        ['Schutzbereich in der Höhe h_o', 'h_\\text{o} \\le r - \\sqrt{r^2 - (x - d)^2}', 'der Aufbau liegt unter der abrollenden Kugel'],
+        ['Durchhang zwischen zwei Fangstangen', 'p = r - \\sqrt{r^2 - \\left(\\frac{D}{2}\\right)^2}', 'Aufbauten zwischen den Stangen müssen unter h_s − p bleiben'],
+        ['Trennungsabstand', 's = \\frac{k_\\text{i} \\cdot k_\\text{c}}{k_\\text{m}} \\cdot l', 'k_i: 0,08 / 0,06 / 0,04 (LPS I / II / III–IV), k_c: 1 (eine), 0,66 (zwei), 0,44 (drei und mehr Ableitungen)'],
+        ['Anzahl der Ableitungen', 'n = \\max\\left(2,\\ \\left\\lceil \\frac{2(L + B)}{a_\\text{A}} \\right\\rceil\\right)', 'a_A = 10 / 10 / 15 / 20 m'],
+        ['Erder Typ B (Ring)', 'r_\\text{e} = \\sqrt{\\frac{A}{\\pi}} \\ge l_1', 'l₁ = 5 m bei LPS III/IV; bei LPS I/II abhängig vom Erdwiderstand (Bild 2), sonst zusätzliche Erder'],
+        ['Maschenweite', 'a_\\text{M} = 5 / 10 / 15 / 20\\,\\text{m}', 'Fangleitungen auf dem Flachdach höchstens in diesem Raster']
+      ],
+      quellen: 'DIN EN 62305-1 bis -4 (VDE 0185-305), Beiblätter 1 bis 3. Werte für l₁ bei LPS I und II sind aus Bild 2 der Norm angenähert. Planung und Prüfung von Blitzschutzanlagen gehören in die Hand einer Blitzschutzfachkraft.',
+      bild: { titel: 'Blitzkugelverfahren', label: 'Seitenansicht: Blitzkugel rollt über das Gebäude, Schutzbereich der Fangstange', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(260, Math.min(360, B * 0.62))); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Alles unter der Bahn der Kugel ist geschützt; der Aufbau ist ' + (r.ok ? 'grün (geschützt).' : 'rot (nicht geschützt).'); } }
+    });
+
+    function kugelX(rk, h) { return Math.sqrt(Math.max(0, 2 * rk * h - h * h)); }
+    function geschuetzt(rk, hs, d, ho) {
+      if (hs >= rk) hs = rk;
+      const x = kugelX(rk, hs);
+      if (d >= x) return false;
+      return ho <= rk - Math.sqrt(Math.max(0, rk * rk - Math.pow(x - d, 2))) + 1e-9;
+    }
+    function rechne(e) {
+      const k = KLASSEN[e.klasse], r = { rk: k[0], masche: k[1], aA: k[2], ki: k[3] };
+      r.x = kugelX(r.rk, Math.min(e.hs, r.rk));
+      r.ok = geschuetzt(r.rk, e.hs, e.d, e.ho);
+      // nötige Höhe der Fangstange (Bisektion)
+      r.hNoetig = NaN;
+      if (geschuetzt(r.rk, r.rk, e.d, e.ho)) { let a = 0, b = r.rk; for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (geschuetzt(r.rk, m, e.d, e.ho)) b = m; else a = m; } r.hNoetig = b; }
+      r.p = e.D / 2 <= r.rk ? r.rk - Math.sqrt(r.rk * r.rk - Math.pow(e.D / 2, 2)) : Infinity;
+      r.hZwischen = e.hs - r.p;
+      r.n = Math.max(2, Math.ceil(2 * (e.L + e.B) / r.aA));
+      r.kc = r.n === 1 ? 1 : r.n === 2 ? 0.66 : 0.44;
+      r.s = r.ki * r.kc / +e.km * e.ls;
+      r.re = Math.sqrt(e.L * e.B / Math.PI);
+      r.l1 = e.klasse === '1' ? Math.max(5, 5 + 0.03 * (e.rho - 500)) : e.klasse === '2' ? Math.max(5, 5 + 0.016 * (e.rho - 800)) : 5;
+      r.zusatz = Math.max(0, r.l1 - r.re);
+      r.maschenL = Math.ceil(e.B / r.masche) + 1; r.maschenB = Math.ceil(e.L / r.masche) + 1;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.hs > r.rk) H.meldung('Fangstange höher als der Blitzkugelradius: Seiteneinschläge möglich, Schutz nur bis zur Höhe r.');
+      if (!isFinite(r.hNoetig)) H.meldung('Der Aufbau ist zu weit von der Stange entfernt, um mit einer Stange geschützt zu werden. Zweite Stange näher setzen.', true);
+      if (r.s > 1) H.meldung('Trennungsabstand über 1 m: oft nicht einhaltbar. Getrennte Fangeinrichtung auf Stützen oder isolierte Ableitung (HVI) planen, oder mehr Ableitungen.');
+      H.urteil(r.ok, r.ok ? 'Aufbau geschützt' : 'nicht geschützt');
+      H.kacheln([
+        [z(r.rk, 0) + ' m', 'Blitzkugelradius LPS ' + ['', 'I', 'II', 'III', 'IV'][+e.klasse], '#6E6FA6'],
+        [isFinite(r.hNoetig) ? z(r.hNoetig, 2) + ' m' : '–', 'nötige Höhe der Fangstange', '#E4572E'],
+        [z(r.p, 2) + ' m', 'Durchhang zwischen zwei Stangen', '#B5533C'],
+        [z(r.s * 100, 0) + ' cm', 'Trennungsabstand s', '#2B7BB9'],
+        [String(r.n), 'Ableitungen (Abstand ' + r.aA + ' m)', '#0E6B6A'],
+        [z(r.masche, 0) + ' × ' + z(r.masche, 0) + ' m', 'Maschenweite der Fangleitungen', '#6B7785']
+      ]);
+      H.nachweise([
+        [r.ok, 'Aufbau im Schutzbereich der Fangstange', 'Stange ' + z(e.hs, 2) + ' m, nötig ' + (isFinite(r.hNoetig) ? z(r.hNoetig, 2) + ' m' : '–') + '; Kugel berührt das Dach ' + z(r.x, 2) + ' m vom Fuß'],
+        [e.ho <= r.hZwischen, 'Zwischen zwei Stangen im Abstand ' + z(e.D, 1) + ' m', 'Aufbau ' + z(e.ho, 2) + ' m ' + (e.ho <= r.hZwischen ? '≤ ' : '> ') + z(r.hZwischen, 2) + ' m (Stange minus Durchhang)'],
+        [null, 'Trennungsabstand einhalten', 'zwischen Fangeinrichtung und leitfähigen Teilen des Aufbaus mindestens ' + z(r.s * 100, 0) + ' cm, sonst blitzstromtragfähig verbinden'],
+        [r.zusatz <= 0, 'Erder Typ B', 'mittlerer Radius ' + z(r.re, 2) + ' m ' + (r.zusatz <= 0 ? '≥ ' : '< ') + 'l₁ ' + z(r.l1, 1) + ' m' + (r.zusatz > 0 ? ': ' + z(r.zusatz, 1) + ' m waagerechter oder ' + z(r.zusatz / 2, 1) + ' m senkrechter Zusatzerder je Ableitung' : '')]
+      ]);
+      H.tabelle('Höhe der Fangstange nach Abstand', ['Abstand d', 'LPS I', 'LPS II', 'LPS III', 'LPS IV'],
+        [0.5, 1, 2, 3, 4, 6].map(function (d) {
+          return [z(d, 1) + ' m'].concat(['1', '2', '3', '4'].map(function (k) { const x = rechne(Object.assign({}, e, { klasse: k, d: d })); return isFinite(x.hNoetig) ? z(x.hNoetig, 2) + ' m' : '–'; }));
+        }), { zahl: [1, 2, 3, 4], fuss: 'Für einen Aufbau von ' + z(e.ho, 2) + ' m Höhe über der Dachfläche.' });
+      H.tabelle('Werkstoffe (Mindestmaße)', ['Bauteil', 'Mindestmaß'], [
+        ['Fangleitung, Ableitung Rund Al, Cu, St/tZn', 'Ø 8 mm (50 mm²)'],
+        ['Fangstange Al, St/tZn', 'Ø 16 mm (bis 1 m auch Ø 10 mm)'],
+        ['Erder Band St/tZn', '30 × 3,5 mm'],
+        ['Erder Rund NIRO V4A', 'Ø 10 mm'],
+        ['Halter Fangleitung Flachdach', 'Abstand etwa 1 m']
+      ], {});
+    }
+    function weg(r, e) {
+      const m = '\\,\\text{m}';
+      return [
+        ['Berührpunkt der Kugel am Dach', 'x = \\sqrt{2 \\cdot ' + r.rk + ' \\cdot ' + tz(e.hs, 2) + ' - ' + tz(e.hs, 2) + '^2} = ' + E(tz(r.x, 2) + m)],
+        ['Kugelhöhe über dem Aufbau (Abstand ' + z(e.d, 2) + ' m)', 'y = ' + r.rk + ' - \\sqrt{' + r.rk + '^2 - (' + tz(r.x, 2) + ' - ' + tz(e.d, 2) + ')^2} = ' + R.EF(r.ok)(tz(r.x > e.d ? r.rk - Math.sqrt(r.rk * r.rk - Math.pow(r.x - e.d, 2)) : 0, 2) + m) + (r.ok ? ' \\ge ' : ' < ') + tz(e.ho, 2) + m],
+        ['Nötige Stangenhöhe (gelöst nach h_s)', 'h_\\text{s,min} = ' + E(isFinite(r.hNoetig) ? tz(r.hNoetig, 2) + m : '-')],
+        ['Durchhang zwischen zwei Stangen', 'p = ' + r.rk + ' - \\sqrt{' + r.rk + '^2 - ' + tz(e.D / 2, 2) + '^2} = ' + E(tz(r.p, 3) + m)],
+        ['Anzahl der Ableitungen', 'n = \\left\\lceil \\frac{2 \\cdot (' + tz(e.L, 1) + ' + ' + tz(e.B, 1) + ')}{' + r.aA + '} \\right\\rceil = ' + E(String(r.n)) + ' \\Rightarrow k_\\text{c} = ' + tz(r.kc, 2)],
+        ['Trennungsabstand', 's = \\frac{' + tz(r.ki, 2) + ' \\cdot ' + tz(r.kc, 2) + '}{' + tz(+e.km, 1) + '} \\cdot ' + tz(e.ls, 1) + ' = ' + E(tz(r.s, 3) + m)],
+        ['Erder', 'r_\\text{e} = \\sqrt{\\frac{' + tz(e.L, 1) + ' \\cdot ' + tz(e.B, 1) + '}{\\pi}} = ' + R.EF(r.zusatz <= 0)(tz(r.re, 2) + m) + '\\quad l_1 = ' + tz(r.l1, 1) + m]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, rand = 14;
+      // Ausschnitt: Gebäude mit etwas Umgebung
+      const breiteM = Math.max(e.L + 2 * Math.min(r.rk, e.L) * 0.6, e.L + 8), hoeheM = Math.max(e.H + Math.max(e.hs, e.ho) + 3, e.H * 1.6);
+      const k = Math.min((B - 2 * rand) / breiteM, (H - 2 * rand - 16) / hoeheM);
+      const ox = (B - breiteM * k) / 2 + (breiteM - e.L) / 2 * k, oy = H - rand - 16;
+      const X = function (x) { return ox + x * k; }, Y = function (y) { return oy - y * k; };
+      // Punkte: Gebäudekanten, Stangenspitze (Stange bei x = e.L * 0.35), Aufbau
+      const xs = Math.min(e.L - 0.2, Math.max(0.2, e.L * 0.35)), xo = Math.min(e.L, xs + e.d);
+      const punkte = [[0, e.H], [e.L, e.H], [xs, e.H + e.hs], [Math.max(xs, xo - 0.6), e.H + e.ho], [xo, e.H + e.ho]];
+      const xmin = -(breiteM - e.L) / 2, xmax = e.L + (breiteM - e.L) / 2;
+      function mitte(xc) {
+        let yc = r.rk;
+        if (xc >= 0 && xc <= e.L) yc = Math.max(yc, e.H + r.rk);
+        punkte.forEach(function (p, i) {
+          if (i === 3 || i === 4) return;          // der Aufbau selbst trägt die Kugel nicht
+          const dx = Math.abs(xc - p[0]); if (dx <= r.rk) yc = Math.max(yc, p[1] + Math.sqrt(r.rk * r.rk - dx * dx));
+        });
+        return yc;
+      }
+      // Schutzraum: untere Hülle aller Kugellagen
+      const N = 160, huelle = [];
+      for (let i = 0; i <= N; i++) {
+        const x = xmin + (xmax - xmin) * i / N; let y = Infinity;
+        for (let j = 0; j <= N; j++) { const xc = xmin - r.rk + (xmax - xmin + 2 * r.rk) * j / N, dx = Math.abs(x - xc); if (dx < r.rk) y = Math.min(y, mitte(xc) - Math.sqrt(r.rk * r.rk - dx * dx)); }
+        huelle.push([x, Math.max(0, y)]);
+      }
+      cx.fillStyle = 'rgba(14,107,106,.16)'; cx.beginPath(); cx.moveTo(X(xmin), Y(0));
+      huelle.forEach(function (p) { cx.lineTo(X(p[0]), Y(p[1])); }); cx.lineTo(X(xmax), Y(0)); cx.closePath(); cx.fill();
+      // Boden und Gebäude
+      cx.fillStyle = R.farbe('--linie'); cx.fillRect(0, Y(0), B, 3);
+      cx.fillStyle = R.farbe('--flaeche'); cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1.5;
+      cx.fillRect(X(0), Y(e.H), e.L * k, e.H * k); cx.strokeRect(X(0), Y(e.H), e.L * k, e.H * k);
+      // Aufbau
+      cx.fillStyle = r.ok ? '#0E6B6A' : '#C0392B';
+      cx.fillRect(X(Math.max(xs + 0.2, xo - 1.2)), Y(e.H + e.ho), Math.max(4, (xo - Math.max(xs + 0.2, xo - 1.2)) * k), e.ho * k);
+      // Fangstange
+      cx.strokeStyle = '#6E6FA6'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(X(xs), Y(e.H)); cx.lineTo(X(xs), Y(e.H + e.hs)); cx.stroke();
+      // Kugel rollt
+      const xc = xmin - r.rk * 0.3 + (xmax - xmin + r.rk * 0.6) * ((Math.sin(t / 3000 - Math.PI / 2) + 1) / 2);
+      const yc = mitte(xc);
+      cx.strokeStyle = 'rgba(110,111,166,.85)'; cx.lineWidth = 1.5; cx.setLineDash([6, 5]);
+      cx.beginPath(); cx.arc(X(xc), Y(yc), r.rk * k, 0, 2 * Math.PI); cx.stroke(); cx.setLineDash([]);
+      Z.text(cx, 'r = ' + r.rk + ' m', X(xc), Math.max(14, Y(yc)), 'center', 11, true, '#6E6FA6');
+      Z.text(cx, 'Stange ' + z(e.hs, 1) + ' m', X(xs) - 6, Y(e.H + e.hs) - 8, 'right', 10, false);
+    }
+  })();
+  </script>
+</body>
+</html>

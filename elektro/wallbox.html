@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wallbox und Lastmanagement</title>
+  <meta name="description" content="Ladepunkte am Hausanschluss: freier Strom, Ladestrom je Wallbox mit oder ohne Lastmanagement, Zuleitung nach Strombelastbarkeit und Spannungsfall, Schutz, Anmeldung und Ladezeit.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    const BOXEN = { '3.7': [1, 16], '7.4': [1, 32], '11': [3, 16], '22': [3, 32] };
+    // Strombelastbarkeit Kupfer, 3 belastete Adern, 30 °C (DIN VDE 0298-4)
+    const IZ = { B2: [[1.5, 15], [2.5, 20], [4, 27], [6, 34], [10, 46], [16, 62], [25, 80]], C: [[1.5, 17.5], [2.5, 24], [4, 32], [6, 41], [10, 57], [16, 76], [25, 96]], E: [[1.5, 18.5], [2.5, 25], [4, 34], [6, 43], [10, 60], [16, 80], [25, 101]] };
+    const BEISPIEL = { IHAK: 50, Phaus: 9, Pgrund: 1.5, reserve: 10, n: 2, box: '11', lm: 'dyn', L: 20, verlegung: 'C', dU: 3, akku: 60, von: 20, bis: 80, Pauto: 11 };
+
+    R.seite({
+      titel: 'Wallbox und Lastmanagement',
+      einleitung: 'Ladepunkte am Hausanschluss planen: verfügbarer Strom nach Abzug der Hauslast, Ladestrom je Wallbox ohne, mit statischem oder dynamischem Lastmanagement, Leitung nach Strombelastbarkeit und Spannungsfall, Schutzeinrichtungen, Meldung beim Netzbetreiber und Ladezeit.',
+      hilfe: 'Hauslast = größte gleichzeitige Leistung im Haus ohne Ladepunkte (Herd, Durchlauferhitzer, Wärmepumpe …).',
+      gruppen: [
+        { titel: 'Hausanschluss', farbe: '#2B7BB9', felder: [
+          { k: 'IHAK', name: 'Absicherung Hausanschluss', wahl: [25, 35, 50, 63, 80, 100, 125, 160].map(function (i) { return [String(i), i + ' A (3 ×)']; }) },
+          { k: 'Phaus', tex: 'P_\\text{Haus}', name: 'Hauslast in der Spitze', e: 'kW', min: 0, max: 200 },
+          { k: 'Pgrund', tex: 'P_\\text{Grund}', name: 'Hauslast nachts, Grundlast', e: 'kW', min: 0, max: 200 },
+          { k: 'reserve', name: 'Sicherheitsabstand', e: '%', min: 0, max: 50 }
+        ] },
+        { titel: 'Ladepunkte', farbe: '#0E6B6A', felder: [
+          { k: 'n', tex: 'n', name: 'Anzahl Wallboxen', e: '', min: 1, max: 50, ganz: true },
+          { k: 'box', name: 'Ladeleistung je Wallbox', wahl: [['3.7', '3,7 kW (1-phasig 16 A)'], ['7.4', '7,4 kW (1-phasig 32 A)'], ['11', '11 kW (3-phasig 16 A)'], ['22', '22 kW (3-phasig 32 A)']] },
+          { k: 'lm', name: 'Lastmanagement', wahl: [['ohne', 'ohne'], ['stat', 'statisch (feste Grenze)'], ['dyn', 'dynamisch (misst den Hausverbrauch)']] }
+        ] },
+        { titel: 'Zuleitung je Wallbox', farbe: '#B5533C', felder: [
+          { k: 'L', tex: 'l', name: 'Länge Verteiler bis Wallbox', e: 'm', min: 1, max: 300 },
+          { k: 'verlegung', name: 'Verlegeart', wahl: [['B2', 'B2: Mantelleitung im Rohr auf der Wand'], ['C', 'C: direkt auf oder in der Wand'], ['E', 'E: auf Kabelrinne, frei in Luft']] },
+          { k: 'dU', tex: '\\Delta u_\\text{max}', name: 'zulässiger Spannungsfall', e: '%', min: 0.5, max: 10 }
+        ] },
+        { titel: 'Fahrzeug', farbe: '#6E6FA6', felder: [
+          { k: 'akku', tex: 'E_\\text{Akku}', name: 'Akku (nutzbar)', e: 'kWh', min: 5, max: 250 },
+          { k: 'von', name: 'Ladestand vorher', e: '%', min: 0, max: 99 },
+          { k: 'bis', name: 'Ladestand nachher', e: '%', min: 1, max: 100 },
+          { k: 'Pauto', tex: 'P_\\text{AC}', name: 'größte AC-Ladeleistung des Autos', e: 'kW', min: 1, max: 43 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Strom je Außenleiter', 'I = \\frac{P}{\\sqrt3 \\cdot 400\\,\\text{V}}\\quad\\text{bzw.}\\quad I = \\frac{P}{230\\,\\text{V}}', 'cos φ ≈ 1'],
+        ['Verfügbarer Strom', 'I_\\text{verf} = I_\\text{HAK} \\cdot (1 - r) - I_\\text{Haus}', 'r Sicherheitsabstand'],
+        ['Ohne Lastmanagement', '\\Sigma I_\\text{WB} = n \\cdot I_\\text{WB} \\le I_\\text{verf}', 'DIN VDE 0100-722: Gleichzeitigkeitsfaktor 1 für Ladepunkte'],
+        ['Mit Lastmanagement', 'I_\\text{je WB} = \\min\\left(I_\\text{WB},\\ \\frac{I_\\text{verf}}{n}\\right) \\ge 6\\,\\text{A}', 'unter 6 A lädt das Auto nicht (IEC 61851)'],
+        ['Spannungsfall', '\\Delta u = \\frac{\\sqrt3 \\cdot l \\cdot I}{\\kappa \\cdot A \\cdot U} \\cdot 100\\,\\%\\quad (1\\text{-phasig: } 2 \\cdot l \\cdot I)', 'κ = 56 m/(Ω·mm²) für Kupfer'],
+        ['Ladezeit', 't = \\frac{E_\\text{Akku} \\cdot (SoC_2 - SoC_1)}{\\eta \\cdot P}', 'η ≈ 0,9 Ladeverluste']
+      ],
+      quellen: 'DIN VDE 0100-722 (Stromversorgung von Elektrofahrzeugen), VDE-AR-N 4100 (TAR Niederspannung), § 19 NAV (Anmeldung), § 14a EnWG (steuerbare Verbrauchseinrichtungen), DIN VDE 0298-4 (Strombelastbarkeit).',
+      bild: { titel: 'Strom am Hausanschluss über den Tag', label: 'Balken je Außenleiter: Hauslast und Ladestrom, Grenze des Hausanschlusses', animiert: !bewegungAus,
+        hoehe: function () { return 250; }, zeichne: zeichne,
+        hinweis: function (r, e) { return e.lm === 'dyn' ? 'Die Hauslast schwankt; das dynamische Lastmanagement regelt die Ladeströme nach.' : e.lm === 'stat' ? 'Statisch: Die Ladeströme bleiben auf die feste Grenze begrenzt.' : 'Ohne Lastmanagement laden alle Wallboxen mit vollem Strom.'; } }
+    });
+
+    function leitung(e, I, ph) {
+      const liste = IZ[e.verlegung];
+      for (let i = 1; i < liste.length; i++) {   // ab 2,5 mm²: Dauerlast beim Laden
+        const A = liste[i][0], Iz = liste[i][1];
+        const du = (ph === 3 ? Math.sqrt(3) * e.L * I / (56 * A * 400) : 2 * e.L * I / (56 * A * 230)) * 100;
+        if (Iz >= I && du <= e.dU) return { A: A, Iz: Iz, du: du };
+      }
+      const l = liste[liste.length - 1];
+      return { A: l[0], Iz: l[1], du: (ph === 3 ? Math.sqrt(3) * e.L * I / (56 * l[0] * 400) : 2 * e.L * I / (56 * l[0] * 230)) * 100, zuklein: true };
+    }
+    function jeBox(e, r, Ihaus) {
+      const verf = e.IHAK * (1 - e.reserve / 100) - Ihaus;
+      if (e.lm === 'ohne') return { I: r.Ibox, verf: verf };
+      const grenze = e.lm === 'stat' ? r.verfSpitze : verf;
+      return { I: Math.min(r.Ibox, Math.max(0, grenze / r.jePhase)), verf: verf };
+    }
+    function rechne(e) {
+      const r = {};
+      r.ph = BOXEN[e.box][0]; r.Ibox = BOXEN[e.box][1]; r.Pbox = +e.box;
+      r.Ihaus = e.Phaus * 1000 / (Math.sqrt(3) * 400);
+      r.Igrund = e.Pgrund * 1000 / (Math.sqrt(3) * 400);
+      r.verfSpitze = e.IHAK * (1 - e.reserve / 100) - r.Ihaus;
+      // Wallboxen je Außenleiter: 3-phasig alle, 1-phasig auf L1–L3 verteilt
+      r.jePhase = r.ph === 3 ? e.n : Math.ceil(e.n / 3);
+      r.summe = r.jePhase * r.Ibox;
+      r.spitze = jeBox(e, r, r.Ihaus);
+      r.nacht = jeBox(e, r, r.Igrund);
+      r.okOhne = r.summe <= r.verfSpitze + 1e-9;
+      r.okLM = r.spitze.I >= 6 - 1e-9;
+      r.ok = e.lm === 'ohne' ? r.okOhne : r.okLM;
+      r.Pspitze = r.spitze.I * (r.ph === 3 ? Math.sqrt(3) * 400 : 230) / 1000;
+      r.Pnacht = r.nacht.I * (r.ph === 3 ? Math.sqrt(3) * 400 : 230) / 1000;
+      r.ltg = leitung(e, r.Ibox, r.ph);
+      r.Elade = e.akku * Math.max(0, e.bis - e.von) / 100;
+      r.PladeSpitze = Math.min(r.Pspitze, e.Pauto); r.PladeNacht = Math.min(r.Pnacht, e.Pauto);
+      r.tSpitze = r.PladeSpitze > 0 ? r.Elade / (0.9 * r.PladeSpitze) : Infinity;
+      r.tNacht = r.PladeNacht > 0 ? r.Elade / (0.9 * r.PladeNacht) : Infinity;
+      r.Sges = e.n * r.Pbox;
+      return r;
+    }
+    function stunden(h) { if (!isFinite(h)) return 'lädt nicht'; const m = Math.round(h * 60); return Math.floor(m / 60) + ' h ' + ('0' + (m % 60)).slice(-2) + ' min'; }
+    function ergebnis(r, e, H) {
+      if (e.bis <= e.von) H.meldung('Ladestand nachher muss größer sein als vorher.', true);
+      if (r.ph === 1 && r.Pbox > 4.6) H.meldung('1-phasig über 4,6 kVA (20 A) verletzt die Schieflastgrenze der VDE-AR-N 4100. Nur mit Phasenumschaltung oder Zustimmung des Netzbetreibers.', true);
+      if (e.lm === 'ohne' && !r.okOhne) H.meldung('Ohne Lastmanagement reicht der Hausanschluss nicht: ' + z(r.summe, 0) + ' A Ladestrom bei nur ' + z(r.verfSpitze, 0) + ' A frei. Lastmanagement einbauen oder Hausanschluss verstärken.', true);
+      if (e.lm !== 'ohne' && !r.okLM) H.meldung('Auch mit Lastmanagement bleiben in der Spitze weniger als 6 A je Wallbox: Ladepunkte zeitweise abschalten (Priorisierung) oder Hausanschluss verstärken.', true);
+      if (r.ltg.zuklein) H.meldung('Größter Querschnitt in der Tabelle reicht nicht für den Spannungsfall. Leitung kürzen oder Unterverteilung näher an die Wallbox setzen.', true);
+      if (r.Pbox > 4.2) H.meldung('Ab 4,2 kW gilt die Wallbox als steuerbare Verbrauchseinrichtung nach § 14a EnWG: Der Netzbetreiber darf die Leistung bei Engpässen auf 4,2 kW drosseln, dafür sinkt das Netzentgelt.');
+      H.urteil(r.ok, r.ok ? (e.lm === 'ohne' ? 'Anschluss reicht' : 'mit Lastmanagement machbar') : 'reicht nicht');
+      H.kacheln([
+        [z(r.verfSpitze, 0) + ' A', 'frei je Außenleiter in der Spitze', '#2B7BB9'],
+        [z(r.summe, 0) + ' A', 'Ladestrom aller Wallboxen voll (je Leiter)', r.okOhne ? '#0E6B6A' : '#E4572E'],
+        [z(r.spitze.I, 1) + ' A', 'je Wallbox in der Spitze (' + z(r.Pspitze, 1) + ' kW)', r.ok ? '#0E6B6A' : '#C0392B'],
+        e.lm === 'dyn' ? [z(r.nacht.I, 1) + ' A', 'je Wallbox nachts (' + z(r.Pnacht, 1) + ' kW)', '#6E6FA6'] : null,
+        [z(r.ltg.A, 1).replace(',0', '') + ' mm²', 'Zuleitung (' + (r.ph === 3 ? '5' : '3') + '-adrig), Δu ' + z(r.ltg.du, 2) + ' %', '#B5533C'],
+        [stunden(e.lm === 'dyn' ? r.tNacht : r.tSpitze), 'Ladezeit ' + e.von + ' → ' + e.bis + ' %' + (e.lm === 'dyn' ? ' (nachts)' : ''), '#6B7785']
+      ]);
+      H.nachweise([
+        [r.ltg.Iz >= r.Ibox, 'Strombelastbarkeit der Zuleitung', z(r.ltg.A, 1).replace(',0', '') + ' mm² Verlegeart ' + e.verlegung + ': I_z ' + z(r.ltg.Iz, 1) + ' A ≥ ' + r.Ibox + ' A (ohne Häufung, 30 °C; wegen Dauerlast mindestens 2,5 mm²)'],
+        [r.ltg.du <= e.dU, 'Spannungsfall', z(r.ltg.du, 2) + ' % ≤ ' + z(e.dU, 1) + ' %'],
+        [r.ok, e.lm === 'ohne' ? 'Hausanschluss ohne Lastmanagement' : 'Mindestladestrom mit Lastmanagement', e.lm === 'ohne' ? z(r.summe, 0) + ' A ≤ ' + z(r.verfSpitze, 0) + ' A' : z(r.spitze.I, 1) + ' A ≥ 6 A']
+      ]);
+      H.tabelle('Ausstattung und Anmeldung', ['Was', 'Empfehlung'], [
+        ['Leitungsschutz je Wallbox', 'LS-Schalter B' + r.Ibox + ', ' + (r.ph === 3 ? '3' : '1') + '-polig'],
+        ['Fehlerstromschutz', 'eigener RCD je Ladepunkt: Typ A mit DC-Fehlerstromerkennung 6 mA in der Wallbox, sonst Typ B (DIN VDE 0100-722)'],
+        ['Zuleitung', 'NYM-J ' + (r.ph === 3 ? '5' : '3') + ' × ' + z(r.ltg.A, 1).replace(',0', '') + ' mm², ' + z(e.L, 0) + ' m'],
+        ['Überspannungsschutz', 'Typ 2 in der Unterverteilung, wenn die Wallbox im Freien hängt'],
+        ['Netzbetreiber', r.Sges > 12 || r.Pbox > 12 ? 'Zustimmung nötig (über 12 kVA Ladeleistung am Anschluss), vor dem Einbau beantragen' : 'Anmeldung vor Inbetriebnahme (bis 12 kVA)'],
+        ['§ 14a EnWG', r.Pbox > 4.2 ? 'steuerbare Verbrauchseinrichtung, Steuerbox oder Schnittstelle vorsehen' : 'nicht betroffen']
+      ], {});
+    }
+    function weg(r, e) {
+      const A = '\\,\\text{A}';
+      return [
+        ['Hauslast je Außenleiter', 'I_\\text{Haus} = \\frac{' + tz(e.Phaus * 1000, 0) + '}{\\sqrt3 \\cdot 400} = ' + E(tz(r.Ihaus, 1) + A)],
+        ['Frei am Hausanschluss', 'I_\\text{verf} = ' + e.IHAK + ' \\cdot (1 - ' + tz(e.reserve / 100, 2) + ') - ' + tz(r.Ihaus, 1) + ' = ' + E(tz(r.verfSpitze, 1) + A)],
+        ['Alle Wallboxen voll (' + r.jePhase + ' je Außenleiter)', '\\Sigma I = ' + r.jePhase + ' \\cdot ' + r.Ibox + ' = ' + R.EF(r.okOhne)(tz(r.summe, 0) + A) + (r.okOhne ? ' \\le ' : ' > ') + tz(r.verfSpitze, 1) + A],
+        e.lm !== 'ohne' ? ['Ladestrom je Wallbox mit Lastmanagement', 'I = \\min\\left(' + r.Ibox + ',\\ \\frac{' + tz(r.verfSpitze, 1) + '}{' + r.jePhase + '}\\right) = ' + R.EF(r.okLM)(tz(r.spitze.I, 1) + A)] : null,
+        ['Spannungsfall der Zuleitung', '\\Delta u = \\frac{' + (r.ph === 3 ? '\\sqrt3' : '2') + ' \\cdot ' + tz(e.L, 1) + ' \\cdot ' + r.Ibox + '}{56 \\cdot ' + tz(r.ltg.A, 1) + ' \\cdot ' + (r.ph === 3 ? 400 : 230) + '} \\cdot 100 = ' + E(tz(r.ltg.du, 2) + '\\,\\%')],
+        ['Ladezeit', 't = \\frac{' + tz(e.akku, 1) + ' \\cdot ' + tz((e.bis - e.von) / 100, 2) + '}{0{,}9 \\cdot ' + tz(e.lm === 'dyn' ? r.PladeNacht : r.PladeSpitze, 2) + '} = ' + E(tz(e.lm === 'dyn' ? r.tNacht : r.tSpitze, 2) + '\\,\\text{h}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, x0 = 46, y0 = 30, w = B - x0 - 20, h = H - y0 - 64;
+      // Hauslast schwankt zwischen Grund und Spitze
+      const f = (Math.sin(t / 1500) + 1) / 2, Ph = e.Pgrund + (e.Phaus - e.Pgrund) * f;
+      const Ih = Ph * 1000 / (Math.sqrt(3) * 400);
+      const box = jeBox(e, r, e.lm === 'dyn' ? Ih : r.Ihaus);
+      const Ib = e.lm === 'stat' ? r.spitze.I : box.I;
+      const max = Math.max(e.IHAK, r.Ihaus + r.summe) * 1.1;
+      const grenze = e.IHAK * (1 - e.reserve / 100);
+      const bh = Math.min(40, h / 4);
+      ['L1', 'L2', 'L3'].forEach(function (p, i) {
+        const y = y0 + i * (bh + 14);
+        const nBox = r.ph === 3 ? e.n : Math.floor(e.n / 3) + (i < e.n % 3 ? 1 : 0);
+        Z.text(cx, p, x0 - 8, y + bh / 2, 'right', 12);
+        cx.fillStyle = '#9AA3AD'; cx.fillRect(x0, y, w * Ih / max, bh);
+        cx.fillStyle = '#0E6B6A'; cx.fillRect(x0 + w * Ih / max, y, w * Math.max(0, nBox * Ib) / max, bh);
+        // Ladeanimation
+        cx.fillStyle = 'rgba(255,255,255,.55)';
+        const bx = x0 + w * Ih / max, bw = w * nBox * Ib / max;
+        for (let j = 0; j < bw / 14; j++) { const q = (t * 0.03 + j * 14) % Math.max(14, bw); cx.fillRect(bx + q, y + 4, 3, bh - 8); }
+        if (Ih + nBox * Ib > grenze + 0.01) { cx.strokeStyle = '#C0392B'; cx.lineWidth = 2; cx.strokeRect(x0, y, w * (Ih + nBox * Ib) / max, bh); }
+      });
+      const xg = x0 + w * grenze / max, xH = x0 + w * e.IHAK / max;
+      cx.strokeStyle = '#E4572E'; cx.lineWidth = 2; cx.setLineDash([5, 4]);
+      cx.beginPath(); cx.moveTo(xg, y0 - 8); cx.lineTo(xg, y0 + 3 * (bh + 14)); cx.stroke(); cx.setLineDash([]);
+      cx.strokeStyle = R.farbe('--text'); cx.beginPath(); cx.moveTo(xH, y0 - 8); cx.lineTo(xH, y0 + 3 * (bh + 14)); cx.stroke();
+      Z.text(cx, e.IHAK + ' A', xH, y0 - 14, 'center', 11);
+      const ly = y0 + 3 * (bh + 14) + 14;
+      Z.text(cx, '■ Haus ' + z(Ph, 1) + ' kW', x0, ly, 'left', 11, true, '#6B7785');
+      Z.text(cx, '■ Laden ' + z(Ib, 1) + ' A je Wallbox', x0 + 130, ly, 'left', 11, true, '#0E6B6A');
+      Z.text(cx, '┆ Grenze ' + z(grenze, 0) + ' A', x0, ly + 18, 'left', 11, true, '#E4572E');
+    }
+  })();
+  </script>
+</body>
+</html>
