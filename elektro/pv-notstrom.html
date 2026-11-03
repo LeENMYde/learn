@@ -123,7 +123,8 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
+    <input type="hidden" id="lasten-merken">
     <section class="held">
       <h1><span class="unterstrichen">PV und Notstrom</span></h1>
       <p>PV-Anlage auslegen: Leistung, Ertrag, Eigenverbrauch, Wirtschaftlichkeit und Strings. Dazu Stromspeicher und Notstrom: Was läuft bei Netzausfall über welchen Speicher, wie lange, und reicht die Leistung je Phase? Alles in jede Richtung und mit Rechenweg.</p>
@@ -178,7 +179,7 @@
         <button type="button" class="knopf-haupt" id="ausfall">⚡ Netzausfall</button>
         <button type="button" class="knopf" id="abspielen" disabled>▶ Zeit laufen lassen</button>
         <div class="zeitachse">
-          <input type="range" class="skala" id="zeit" min="0" max="1000" value="0" aria-label="Zeit seit Netzausfall" disabled>
+          <input type="range" class="skala" data-nicht-merken id="zeit" min="0" max="1000" value="0" aria-label="Zeit seit Netzausfall" disabled>
           <span class="zustand" id="zeittext"></span>
         </div>
       </div>
@@ -226,14 +227,14 @@
 
       <h3 class="zwischen">Verbraucher im Notstromkreis</h3>
       <p class="hilfe">Leistung im Betrieb, Anlauffaktor (Einschaltspitze, z. B. Kühlschrank ≈ 4), Phase und wie viele Stunden am Tag das Gerät wirklich Strom zieht.</p>
-      <div class="rahmen">
+      <div class="rahmen" data-nicht-merken>
         <table class="tabelle lasten">
           <thead><tr><th>an</th><th>Gerät</th><th>P in W</th><th>Anlauf ×</th><th>Phase</th><th>h/Tag</th><th>Energie</th><th>Ergebnis</th><th></th></tr></thead>
           <tbody id="lasten"></tbody>
         </table>
       </div>
       <div class="werkzeug">
-        <select id="vorlage" aria-label="Gerät aus der Liste wählen"></select>
+        <select id="vorlage" data-nicht-merken aria-label="Gerät aus der Liste wählen"></select>
         <button type="button" class="knopf" id="hinzu">+ Hinzufügen</button>
         <button type="button" class="knopf" id="verteilen">⇄ Auf Phasen verteilen</button>
         <button type="button" class="knopf-leise" id="listeZurueck">Beispielliste</button>
@@ -911,7 +912,23 @@
       });
     }
 
+    // Verbraucherliste für Merken und Teilen-Link (basis.js liest das versteckte Feld)
+    function lastenMerken() {
+      const f = document.getElementById('lasten-merken');
+      if (f) f.value = JSON.stringify(lasten.map(function (l) { return [l.name, l.P, l.k, l.phase, l.h, l.an]; }));
+    }
+    document.getElementById('lasten-merken').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!Array.isArray(a) || !a.length) return;
+      const zahlOk = function (w, min, max, std) { w = Number(w); return isFinite(w) && w >= min && w <= max ? w : std; };
+      lasten = a.slice(0, 60).map(function (x) {
+        return last(String(x[0] || 'Gerät').slice(0, 60), zahlOk(x[1], 0, 1e6, 100), zahlOk(x[2], 1, 20, 1), ['L1', 'L2', 'L3', '3~'].indexOf(x[3]) >= 0 ? x[3] : 'L1', zahlOk(x[4], 0, 24, 1), x[5] !== false);
+      });
+      lastenAufbauen(); neuRechnen();
+    });
+
     function neuRechnen(gerade) {
+      lastenMerken();
       rechnen();
       notstromAuswerten();
       anzeigen(gerade);
@@ -1310,7 +1327,7 @@
         q('.h').value = zahl(l.h, 4);
         q('select').value = l.phase;
         q('input[type="checkbox"]').addEventListener('change', function (e) { l.an = e.target.checked; neuRechnen(); });
-        q('.name').addEventListener('input', function (e) { l.name = e.target.value; });
+        q('.name').addEventListener('input', function (e) { l.name = e.target.value.slice(0, 60); lastenMerken(); });
         [['.P', 'P'], ['.k', 'k'], ['.h', 'h']].forEach(function (f) {
           q(f[0]).addEventListener('input', function (e) { const w = lies(e.target.value); if (isFinite(w) && w >= 0) { l[f[1]] = f[1] === 'k' ? Math.max(1, w) : w; neuRechnen(); } });
         });

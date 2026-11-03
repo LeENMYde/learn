@@ -150,7 +150,7 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
     <section class="held">
       <h1><span class="unterstrichen">Brand&shy;simulation</span></h1>
       <p>Wie ein Feuer entsteht, wächst und sich ausbreitet, wann ein Raum durchzündet, wie schnell Rauch tödlich wird und was Melder, Sprinkler, Türen und Löscher dagegen ausrichten. Sechs Simulationen mit Rechenweg nach den gängigen Ingenieurmodellen und Normen.</p>
@@ -2919,6 +2919,7 @@
         l.innerHTML = '<input type="checkbox"> <span></span>';
         l.querySelector('span').textContent = s.name;
         const c = l.querySelector('input');
+        c.id = 'b-schalter-' + s.k;
         c.checked = !!opt[s.k];
         c.addEventListener('change', function () {
           opt[s.k] = c.checked ? 1 : 0;
@@ -2932,6 +2933,7 @@
       zeit.className = 'werkzeug';
       zeit.innerHTML = 'Feuerwehr nach <select><option value="5">5 min</option><option value="8">8 min</option><option value="10">10 min</option><option value="15">15 min</option></select>';
       const s = zeit.querySelector('select');
+      s.id = 'b-fw-zeit';
       s.value = String(opt.fwZeit);
       s.addEventListener('change', function () { opt.fwZeit = +s.value; });
       ziel.append(zeit);
@@ -4216,6 +4218,7 @@
         const windWahl = document.createElement('label');
         windWahl.className = 'werkzeug';
         windWahl.innerHTML = 'Wind <select><option value="0">keiner</option><option value="1">im Rücken</option><option value="-1">von vorn</option></select>';
+        windWahl.querySelector('select').id = 'l-wind';
         windWahl.querySelector('select').addEventListener('change', function (e) { wind = +e.target.value; });
         document.getElementById('l-status').before(windWahl);
         neu(); leRechnen();
