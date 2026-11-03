@@ -338,11 +338,19 @@
         themen: ['Photovoltaik', 'Verschattung', 'Sonnenstand', 'Reihenabstand', 'Ertrag'],
         text: 'Sonnenstand über das Jahr: Reihenabstand aufgeständerter Module, Schatten von Hindernissen je Monat und geschätzter Ertragsverlust.',
         tex: 'd = L \\left(\\cos\\beta + \\frac{\\sin\\beta}{\\tan h}\\right)'
+      },
+      {
+        titel: 'Projektmappe',
+        pfad: 'projektmappe.html',
+        bereich: 'Werkzeuge',
+        themen: ['Projekt', 'Speichern', 'Export', 'Bauvorhaben', 'Übersicht'],
+        text: 'Alle gemerkten Eingaben als Projekt: Bauvorhaben benennen, Projekte speichern und wechseln, als Datei sichern oder weitergeben, Übersicht mit Links drucken.',
+        tex: '\\sum \\text{Rechner} = \\text{Projekt}'
       }
     ];
 
     // Reihenfolge und Farben der Bereiche; Untergruppen in dieser Reihenfolge
-    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Heizungstechnik': '#C2410C', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A' };
+    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Heizungstechnik': '#C2410C', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A', 'Werkzeuge': '#6B7785' };
     const GRUPPEN = ['Grundlagen', 'Installation und Schutz', 'Energie und Photovoltaik'];
     const farbe = function (b) { return BEREICHE[b] || 'var(--leise)'; };
 

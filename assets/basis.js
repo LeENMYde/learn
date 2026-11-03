@@ -113,6 +113,7 @@
         '<nav aria-label="Hauptnavigation">' +
           '<a href="' + wurzel + 'index.html"' + (hier === 'start' ? ' aria-current="page"' : '') + '>Übersicht</a>' +
           '<a class="optional" href="' + wurzel + 'index.html#bereiche">Bereiche</a>' +
+          '<a class="optional" href="' + wurzel + 'projektmappe.html"' + (/projektmappe\.html$/.test(location.pathname) ? ' aria-current="page"' : '') + '>Projekte</a>' +
           '<button type="button" class="installieren" hidden>App installieren</button>' +
           '<button type="button" class="themenschalter"></button>' +
         '</nav>' +
