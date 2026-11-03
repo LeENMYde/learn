@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dachrinne und Fallrohr</title>
+  <meta name="description" content="Dachentwässerung nach DIN EN 12056-3 und DIN 1986-100: Regenwasserabfluss, Rinnengröße, Längenfaktor und Gefälle, Fallrohre und Ablauf, Notentwässerung, Stückliste mit Rinnenhaltern und Schellen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .rechnen { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 960px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+    .zwei { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 920px) { .zwei { grid-template-columns: minmax(0, 1fr); } }
+    .tafel.abstand { margin-top: 18px; }
+    .feld select { grid-column: span 2; font-size: .95rem; padding: 7px 6px; cursor: pointer; color: var(--text); }
+    .feld .einheit { white-space: nowrap; }
+    .feld .name { white-space: normal; line-height: 1.25; overflow: visible; text-overflow: clip; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
+    .feld .symbol { min-width: 52px; }
+    #bild { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); margin-top: 10px; }
+    #schnitt { display: block; width: 100%; max-width: 360px; margin: 10px auto 0; }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 10px; }
+    .zustand { color: var(--leise); font-size: .9rem; }
+    .kopf-zeile { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+    .urteil { display: inline-block; padding: 4px 12px; border-radius: 999px; font-family: var(--technik); font-size: 1rem; background: var(--flaeche2); color: var(--leise); }
+    .urteil.gut { background: var(--ergebnis-flaeche); color: var(--ergebnis); }
+    .urteil.schlecht { background: var(--fehler-flaeche); color: var(--fehler); }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.7rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+    h3.zwischen { margin: 22px 0 6px; font-size: 1.15rem; }
+    .rahmen { overflow-x: auto; }
+    .tabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .tabelle th, .tabelle td { padding: 6px; border-bottom: 1px solid var(--linie); text-align: left; }
+    .tabelle th { color: var(--leise); font-weight: 400; font-size: .84rem; }
+    .tabelle .zahl { text-align: right; font-family: var(--technik); font-size: 1.02rem; white-space: nowrap; }
+    .tabelle tr.gewaehlt td { background: var(--ergebnis-flaeche); }
+    .tabelle tr.zuklein td { color: var(--leise); }
+    .nachweise { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+    .nachweise li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+    .nachweise .marke-n { grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: var(--linie); color: var(--leise); }
+    .nachweise li.gut .marke-n { background: var(--ergebnis); color: var(--flaeche); }
+    .nachweise li.schlecht .marke-n { background: var(--fehler); color: var(--flaeche); }
+    .nachweise .was { font-family: var(--technik); font-weight: 600; }
+    .nachweise .wie { font-size: .9rem; color: var(--leise); grid-column: 2; }
+    .fehlertext { color: var(--fehler); }
+    .formelsammlung p { margin: 4px 0 0; font-size: .85rem; color: var(--leise); }
+    @media print {
+      .tafel { break-inside: auto !important; }
+      #felder .feld { padding-top: 0; padding-bottom: 0; min-height: 0; break-inside: avoid; }
+      #felder .gruppe { margin: 4px 0; padding-top: 2px; padding-bottom: 2px; }
+      #bild { max-height: 60mm; width: 100% !important; height: auto !important; object-fit: contain; }
+      #schnitt { width: 60mm !important; height: auto !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Dachrinne und Fallrohr</span></h1>
+      <p>Dachentwässerung nach DIN EN 12056-3 und DIN 1986-100: Wie viel Regen fällt aufs Dach, welche Rinne und welches Fallrohr reichen, wie wirken Länge, Gefälle und Ecken, was braucht die Notentwässerung? Mit Stückliste für Rinne, Halter, Stutzen und Schellen.</p>
+    </section>
+
+    <div class="rechnen">
+      <section class="tafel" aria-labelledby="h-werte">
+        <h2 id="h-werte">Was ist bekannt?</h2>
+        <p class="hilfe">Maße in Metern. Die Dachfläche zählt im Grundriss (waagerecht projiziert). Regenspende aus KOSTRA-DWD für den Ort, sonst 300 l/(s·ha) als üblicher Mindestwert.</p>
+        <div id="felder"></div>
+        <button type="button" class="knopf-leise" id="beispiel">Beispielwerte wiederherstellen</button>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-bild">
+        <h2 id="h-bild">Ansicht</h2>
+        <canvas id="bild" role="img" aria-label="Ansicht der Traufe mit Regen, Rinne und Fallrohren; die Füllung zeigt die Auslastung"></canvas>
+        <canvas id="schnitt" role="img" aria-label="Querschnitt der Rinne mit Füllhöhe"></canvas>
+        <div class="steuerung">
+          <button type="button" class="knopf-haupt" id="regen">■ Regen anhalten</button>
+          <span class="zustand" id="bildHinweis"></span>
+        </div>
+      </section>
+    </div>
+
+    <section class="tafel abstand" aria-labelledby="h-ergebnis">
+      <div class="kopf-zeile"><h2 id="h-ergebnis">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div id="meldungen" style="margin-top:10px"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <ul class="nachweise" id="nachweise"></ul>
+      <h3 class="zwischen">Alle Rinnengrößen im Vergleich</h3>
+      <div class="rahmen"><table class="tabelle" id="vergleich"></table></div>
+      <h3 class="zwischen">Stückliste</h3>
+      <div class="rahmen"><table class="tabelle" id="stueckliste"></table></div>
+    </section>
+
+    <div class="zwei">
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe">Die Schritte mit deinen Zahlen.</p>
+        <ol class="weg" id="rechenweg"></ol>
+      </section>
+      <section class="tafel" aria-labelledby="h-formeln">
+        <h2 id="h-formeln">Formelsammlung</h2>
+        <p class="hilfe">Alle Formeln und Tabellenwerte, die der Rechner verwendet.</p>
+        <div class="formelsammlung" id="formelsammlung"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    const bewegungAus = false;
+
+    // ============================================================
+    // Tabellen (DIN EN 12056-3, DIN 1986-100)
+    // ============================================================
+
+    // Nenn-Abflussvermögen Q_N (l/s) vorgehängter Rinnen, Rinnenbreite W (mm), Rinnentiefe (mm), Fallrohr je Rinne
+    const RINNEN = {
+      halbrund: [
+        { n: 200, QN: 0.66, W: 80, T: 40, rohr: 60 }, { n: 250, QN: 1.24, W: 105, T: 52, rohr: 80 }, { n: 280, QN: 1.89, W: 127, T: 63, rohr: 80 },
+        { n: 333, QN: 2.98, W: 153, T: 76, rohr: 100 }, { n: 400, QN: 5.14, W: 192, T: 96, rohr: 120 }, { n: 500, QN: 9.62, W: 250, T: 125, rohr: 150 }
+      ],
+      kasten: [
+        { n: 200, QN: 0.66, W: 70, T: 42, rohr: 60 }, { n: 250, QN: 1.18, W: 85, T: 55, rohr: 80 }, { n: 333, QN: 2.68, W: 120, T: 75, rohr: 100 },
+        { n: 400, QN: 4.46, W: 150, T: 90, rohr: 120 }, { n: 500, QN: 8.21, W: 200, T: 115, rohr: 150 }
+      ]
+    };
+    // Ablaufleistung Rinne → Fallrohr (l/s), mit / ohne Einhangstutzen bzw. Einlauftrichter
+    const ABLAUF = {
+      halbrund: { 250: [2.2, 2.0], 280: [3.0, 2.6], 333: [5.3, 4.5], 400: [9.3, 7.4] },
+      kasten: { 250: [1.8, 1.4], 333: [3.5, 2.8], 400: [5.9, 5.5], 500: [9.3, 7.4] }
+    };
+    const FALLROHRE = [60, 76, 80, 87, 100, 120, 150];
+    // Längenfaktor F_L über L/W, aus DIN EN 12056-3 Tab. 4 (halbrund), für 0–3, 5 und 10 mm/m Gefälle
+    const FL = {
+      0: [[25, 1.0], [38, 0.97], [42, 0.97], [62, 0.93], [65, 0.93], [78, 0.9], [95, 0.86], [114, 0.83], [143, 0.78], [300, 0.52], [500, 0.4]],
+      5: [[25, 1.0], [38, 1.02], [62, 1.03], [78, 1.05], [95, 1.07], [114, 1.08], [143, 1.24], [500, 1.24]],
+      10: [[25, 1.0], [38, 1.09], [65, 1.18], [78, 1.27], [95, 1.37], [114, 1.46], [143, 1.55], [500, 1.55]]
+    };
+    const ABFLUSSBEIWERTE = [
+      ['1', 'Dachfläche, geneigt oder ohne Kies (C = 1,0)'], ['0.8', 'Kiesdach bis 3° (C = 0,8)'],
+      ['0.5', 'extensiv begrünt bis 10 cm, ≤ 5° (C = 0,5)'], ['0.4', 'extensiv begrünt ab 10 cm, ≤ 5° (C = 0,4)'], ['0.2', 'intensiv begrünt ab 30 cm (C = 0,2)']
+    ];
+    const ORTE = [['300', 'Mindestwert 300'], ['367', 'Berlin 367'], ['378', 'Düsseldorf 378'], ['344', 'Koblenz 344'], ['513', 'Passau 513'], ['327', 'Potsdam 327'], ['370', 'Stuttgart 370'], ['frei', 'eigener Wert (KOSTRA)']];
+
+    function interp(tab, x) {
+      if (x <= tab[0][0]) return tab[0][1];
+      for (let i = 1; i < tab.length; i++) if (x <= tab[i][0]) { const a = tab[i - 1], b = tab[i]; return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); }
+      return tab[tab.length - 1][1];
+    }
+    function laengenfaktor(LW, gefaelle) {
+      if (gefaelle <= 3) return interp(FL[0], LW);
+      if (gefaelle <= 5) return interp(FL[0], LW) + (interp(FL[5], LW) - interp(FL[0], LW)) * (gefaelle - 3) / 2;
+      if (gefaelle <= 10) return interp(FL[5], LW) + (interp(FL[10], LW) - interp(FL[5], LW)) * (gefaelle - 5) / 5;
+      return interp(FL[10], LW);
+    }
+    // Abflussvermögen eines Fallrohrs bei Füllungsgrad f = 0,33 (Wyly-Eaton, k = 0,25 mm)
+    function fallrohrQ(d) { return 2.5e-4 * Math.pow(0.25, -1 / 6) * Math.pow(0.33, 5 / 3) * Math.pow(d, 8 / 3); }
+
+    // ============================================================
+    // Eingaben
+    // ============================================================
+
+    const BEISPIEL = { ort: '300', r: 300, r100: 600, C: '1', L: 12, b: 4.5, alpha: 35, wind: 'nein', form: 'halbrund', groesse: 'auto', n: 2, lage: 'ende', gefaelle: 3, ecken: 0, rohr: 'auto', stutzen: 'ja', hT: 5.5, abstH: 0.9 };
+    const FELDER = [
+      { titel: 'Regen', farbe: '#2B7BB9', felder: [
+        { k: 'ort', name: 'Ort / Regen\u00ADspende', wahl: ORTE },
+        { k: 'r', tex: 'r_{5,5}', name: 'Regen 5 min, 5 Jahre', e: 'l/(s·ha)', min: 100, max: 1500 },
+        { k: 'r100', tex: 'r_{5,100}', name: 'Regen 5 min, 100 Jahre', e: 'l/(s·ha)', min: 100, max: 3000 },
+        { k: 'C', name: 'Art der Dachfläche', wahl: ABFLUSSBEIWERTE }
+      ] },
+      { titel: 'Dach', farbe: '#B5533C', felder: [
+        { k: 'L', tex: 'L', name: 'Länge der Traufe', e: 'm', min: 0.5, max: 500 },
+        { k: 'b', tex: 'b', name: 'Dach\u00ADtiefe im Grund\u00ADriss', e: 'm', min: 0.3, max: 100 },
+        { k: 'alpha', tex: '\\alpha', name: 'Dach\u00ADneigung', e: '°', min: 0, max: 80 },
+        { k: 'wind', name: 'Wind\u00ADzuschlag', wahl: [['nein', 'nein, Grundriss (DIN 1986-100)'], ['ja', 'ja, A = L · (b + h/2)']] }
+      ] },
+      { titel: 'Rinne und Fallrohr', farbe: '#6B7785', felder: [
+        { k: 'form', name: 'Rinnenform', wahl: [['halbrund', 'halbrund'], ['kasten', 'kastenförmig']] },
+        { k: 'groesse', name: 'Rinnen\u00ADgröße', wahl: [['auto', 'automatisch, kleinste ausreichende'], ['200', '200'], ['250', '250'], ['280', '280'], ['333', '333'], ['400', '400'], ['500', '500']] },
+        { k: 'n', tex: 'n', name: 'Fall\u00ADrohre', e: 'Stück', min: 1, max: 40 },
+        { k: 'lage', name: 'Lage der Fall\u00ADrohre', wahl: [['ende', 'am Rinnenende (ein Gefälle je Abschnitt)'], ['mitte', 'mittig im Abschnitt (Gefälle zu beiden Seiten)']] },
+        { k: 'gefaelle', tex: 'J', name: 'Rinnen\u00ADgefälle', e: 'mm/m', min: 0, max: 30 },
+        { k: 'ecken', tex: 'n_\\text{E}', name: 'Ecken über 10°', e: 'Stück', min: 0, max: 20 },
+        { k: 'rohr', name: 'Fallrohr-Ø', wahl: [['auto', 'passend zur Rinne']].concat(FALLROHRE.map(function (d) { return [String(d), d + ' mm']; })) },
+        { k: 'stutzen', name: 'Einhang\u00ADstutzen', wahl: [['ja', 'ja'], ['nein', 'nein']] },
+        { k: 'hT', tex: 'h_\\text{T}', name: 'Trauf\u00ADhöhe', e: 'm', min: 0.5, max: 100 },
+        { k: 'abstH', tex: 'a_\\text{H}', name: 'Halter\u00ADabstand', e: 'm', min: 0.3, max: 1.5 }
+      ] }
+    ];
+    let e = Object.assign({}, BEISPIEL);
+    const inputs = {};
+    function lies(t) { const s = String(t).trim().replace(/\s/g, '').replace(',', '.').replace('−', '-'); return s === '' || s === '-' ? NaN : Number(s); }
+    function zahl(w, n) {
+      if (!isFinite(w)) return '–';
+      const t = (Math.round(w * Math.pow(10, n || 0)) / Math.pow(10, n || 0)).toFixed(n || 0).replace('.', ',').replace('-', '−');
+      const p = t.split(','); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return p.join(',');
+    }
+    function tz(w, n) { return Formel.zahl(zahl(w, n || 0)).replace(/ /g, '\\,'); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function F(t) { return '\\htmlClass{fehlertext}{' + t + '}'; }
+
+    function felderAufbauen() {
+      const ziel = document.getElementById('felder');
+      FELDER.forEach(function (g) {
+        const fs = document.createElement('fieldset'); fs.className = 'gruppe'; fs.style.setProperty('--farbe', g.farbe);
+        const lg = document.createElement('legend'); lg.textContent = g.titel; fs.append(lg);
+        g.felder.forEach(function (f) {
+          const zeile = document.createElement('div'); zeile.className = 'feld gegeben';
+          const id = 'f-' + f.k;
+          const label = document.createElement('label'); label.htmlFor = id;
+          const sym = document.createElement('span'); sym.className = 'symbol'; if (f.tex) Formel.setze(sym, f.tex);
+          const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = f.name;
+          label.append(sym, nm); zeile.append(label);
+          if (f.wahl) {
+            const s = document.createElement('select'); s.id = id;
+            f.wahl.forEach(function (w) { const o = document.createElement('option'); o.value = w[0]; o.textContent = w[1]; s.append(o); });
+            s.addEventListener('change', function () {
+              e[f.k] = s.value;
+              if (f.k === 'ort' && s.value !== 'frei') { e.r = +s.value; zeigen('r'); }
+              rechnen();
+            });
+            zeile.append(s, document.createElement('span'));
+            inputs[f.k] = { el: s, f: f };
+          } else {
+            const inp = document.createElement('input'); inp.id = id; inp.type = 'text'; inp.inputMode = 'decimal'; inp.autocomplete = 'off';
+            const ein = document.createElement('span'); ein.className = 'einheit'; ein.textContent = f.e;
+            inp.addEventListener('input', function () {
+              const w = lies(inp.value);
+              const ok = isFinite(w) && w >= f.min && w <= f.max;
+              zeile.classList.toggle('widerspruch', !ok);
+              if (!ok) return;
+              e[f.k] = f.k === 'n' || f.k === 'ecken' ? Math.round(w) : w;
+              if (f.k === 'r') { e.ort = ORTE.some(function (o) { return +o[0] === w; }) ? String(w) : 'frei'; zeigen('ort'); }
+              rechnen();
+            });
+            inp.addEventListener('blur', function () { zeile.classList.remove('widerspruch'); zeigen(f.k); });
+            zeile.append(inp, ein, document.createElement('span'));
+            inputs[f.k] = { el: inp, f: f };
+          }
+          fs.append(zeile);
+        });
+        ziel.append(fs);
+      });
+      Object.keys(inputs).forEach(zeigen);
+    }
+    function zeigen(k) { const i = inputs[k]; if (!i) return; i.el.value = i.f.wahl ? String(e[k]) : String(Math.round(e[k] * 1000) / 1000).replace('.', ','); }
+    document.getElementById('beispiel').addEventListener('click', function () { e = Object.assign({}, BEISPIEL); Object.keys(inputs).forEach(zeigen); rechnen(); });
+
+    // ============================================================
+    // Rechnen
+    // ============================================================
+
+    let r = null;
+    function bewerte(rinne) {
+      const W = rinne.W / 1000;
+      const LW = r.lAbschnitt / W;
+      const FLw = laengenfaktor(LW, e.gefaelle);
+      const FR = e.ecken > 0 ? 0.85 : 1;
+      const QL = rinne.QN * 0.9 * FLw * FR;
+      return { rinne: rinne, LW: LW, FL: FLw, FR: FR, QL: QL, ok: QL >= r.QAbschnitt - 1e-9 };
+    }
+    function rechnen() {
+      r = {};
+      const C = +e.C;
+      const hDach = e.b * Math.tan(e.alpha * Math.PI / 180);
+      r.hDach = hDach;
+      r.A = e.wind === 'ja' ? e.L * (e.b + hDach / 2) : e.L * e.b;
+      r.C = C;
+      r.Q = e.r * C * r.A / 10000;
+      r.Qrohr = r.Q / e.n;
+      // Abschnitte: am Ende → n Abschnitte der Länge L/n; mittig → 2n Abschnitte der Länge L/(2n)
+      const teile = e.lage === 'mitte' ? 2 * e.n : e.n;
+      r.teile = teile; r.lAbschnitt = e.L / teile; r.QAbschnitt = r.Q / teile;
+      const liste = RINNEN[e.form];
+      r.alle = liste.map(bewerte);
+      if (e.groesse === 'auto') r.wahl = r.alle.filter(function (x) { return x.ok; })[0] || r.alle[r.alle.length - 1];
+      else r.wahl = r.alle.filter(function (x) { return String(x.rinne.n) === e.groesse; })[0] || bewerte(liste.filter(function (x) { return x.n >= +e.groesse; })[0] || liste[liste.length - 1]);
+      const rinne = r.wahl.rinne;
+      r.d = e.rohr === 'auto' ? rinne.rohr : +e.rohr;
+      r.QFR = fallrohrQ(r.d);
+      const abl = ABLAUF[e.form][rinne.n];
+      r.ablauf = abl ? abl[e.stutzen === 'ja' ? 0 : 1] * Math.pow(r.d / rinne.rohr, 2) : null;
+      r.ablaufBez = abl ? null : 'kein Tabellenwert für diese Kombination';
+      r.Qnot = Math.max(0, (e.r100 - e.r * C) * r.A / 10000);
+      r.flach = e.alpha < 5;
+      // Stückliste
+      r.rinneM = e.L; r.halter = Math.ceil(e.L / e.abstH) + 1;
+      r.stutzen = e.n; r.endboeden = 2; r.verbinder = Math.max(0, Math.ceil(e.L / 3) - 1);
+      r.fallrohrM = e.n * Math.max(0, e.hT - 0.3); r.schellen = e.n * (Math.ceil(Math.max(0, e.hT - 0.3) / 2) + 1); r.boegen = e.n * 2;
+      r.hoehe = e.gefaelle * r.lAbschnitt;   // mm Höhenunterschied je Abschnitt
+      zeigenErgebnis();
+    }
+
+    // ============================================================
+    // Ergebnis
+    // ============================================================
+
+    function kachel(w, t, f) { return '<div class="kachel" style="--farbe:' + f + '"><div class="wert">' + w + '</div><small>' + t + '</small></div>'; }
+    function zeigenErgebnis() {
+      const w = r.wahl, okR = w.ok, okF = r.Qrohr <= r.QFR + 1e-9, okA = r.ablauf === null || r.QAbschnitt * (e.lage === 'mitte' ? 2 : 1) <= r.ablauf + 1e-9;
+      const mel = document.getElementById('meldungen'); mel.innerHTML = '';
+      const hin = function (t, f) { const d = document.createElement('div'); d.className = 'hinweis' + (f ? ' fehler' : ''); d.textContent = t; mel.append(d); };
+      if (e.groesse === 'auto' && !okR) hin('Auch die größte ' + (e.form === 'kasten' ? 'Kastenrinne' : 'halbrunde Rinne') + ' reicht nicht. Mehr Fallrohre setzen, Fallrohre mittig anordnen oder innenliegende Rinne planen.', true);
+      if (e.gefaelle > 0 && e.gefaelle < 1) hin('Unter 1 mm/m Gefälle bleibt Wasser stehen. Üblich sind 1 bis 3 mm/m.');
+      if (r.flach) hin('Flaches Dach unter 5°: Notentwässerung nach DIN 1986-100 planen (Notüberläufe für mindestens ' + zahl(r.Qnot, 2) + ' l/s).');
+      if (e.L / e.n > 25) hin('Mehr als 25 m Rinne je Fallrohr: Dehnungsausgleicher einplanen (Längenausdehnung des Blechs).');
+      document.getElementById('kacheln').innerHTML =
+        kachel(zahl(r.Q, 2) + ' l/s', 'Regenwasserabfluss gesamt', '#2B7BB9') +
+        kachel(zahl(r.A, 1) + ' m²', 'wirksame Dachfläche', '#B5533C') +
+        kachel(w.rinne.n + ' ' + (e.form === 'kasten' ? 'Kasten' : 'halbrund'), 'Rinnengröße (Zuschnitt mm)', '#6B7785') +
+        kachel(zahl(r.QAbschnitt / w.QL * 100, 0) + ' %', 'Auslastung der Rinne', okR ? '#0E6B6A' : '#C0392B') +
+        kachel('Ø ' + r.d + ' mm', e.n + ' Fallrohr' + (e.n > 1 ? 'e' : ''), '#6B7785') +
+        kachel(zahl(r.Qrohr / r.QFR * 100, 0) + ' %', 'Auslastung je Fallrohr', okF ? '#0E6B6A' : '#C0392B') +
+        kachel(zahl(r.Qnot, 2) + ' l/s', 'Notentwässerung (Jahrhundertregen)', '#E4572E');
+      const nw = document.getElementById('nachweise'); nw.innerHTML = '';
+      const nach = function (ok, was, wie) {
+        const li = document.createElement('li'); li.className = ok ? 'gut' : 'schlecht';
+        li.innerHTML = '<span class="marke-n">' + (ok ? '✓' : '✕') + '</span><span class="was"></span><span class="wie"></span>';
+        li.querySelector('.was').textContent = was; li.querySelector('.wie').textContent = wie; nw.append(li);
+      };
+      nach(okR, 'Rinne ' + w.rinne.n + ' trägt den Abschnitt', zahl(r.QAbschnitt, 2) + ' l/s ' + (okR ? '≤ ' : '> ') + zahl(w.QL, 2) + ' l/s (Q_N ' + zahl(w.rinne.QN, 2) + ' · 0,9 · F_L ' + zahl(w.FL, 2) + (w.FR < 1 ? ' · F_R 0,85' : '') + ')');
+      nach(okF, 'Fallrohr Ø ' + r.d + ' mm', zahl(r.Qrohr, 2) + ' l/s ' + (okF ? '≤ ' : '> ') + zahl(r.QFR, 2) + ' l/s bei Füllungsgrad 0,33');
+      if (r.ablauf !== null) nach(okA, 'Ablauf von der Rinne ins Fallrohr', zahl(r.QAbschnitt * (e.lage === 'mitte' ? 2 : 1), 2) + ' l/s ' + (okA ? '≤ ' : '> ') + zahl(r.ablauf, 2) + ' l/s (' + (e.stutzen === 'ja' ? 'mit' : 'ohne') + ' Einhangstutzen)');
+      const u = document.getElementById('urteil'), alles = okR && okF && okA;
+      u.textContent = alles ? 'Entwässerung reicht' : 'reicht nicht'; u.className = 'urteil ' + (alles ? 'gut' : 'schlecht');
+
+      const tv = document.getElementById('vergleich');
+      tv.innerHTML = '<thead><tr><th>Rinne</th><th class="zahl">Breite W</th><th class="zahl">Q_N</th><th class="zahl">L/W</th><th class="zahl">F_L</th><th class="zahl">Q_L</th><th class="zahl">Auslastung</th><th>Fallrohr</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      r.alle.forEach(function (x) {
+        const tr = document.createElement('tr'); tr.className = x === w ? 'gewaehlt' : x.ok ? '' : 'zuklein';
+        [x.rinne.n + (e.form === 'kasten' ? ' Kasten' : ' halbrund'), x.rinne.W + ' mm', zahl(x.rinne.QN, 2) + ' l/s', zahl(x.LW, 0), zahl(x.FL, 2), zahl(x.QL, 2) + ' l/s', zahl(r.QAbschnitt / x.QL * 100, 0) + ' %', 'Ø ' + x.rinne.rohr].forEach(function (t, i) {
+          const td = document.createElement('td'); td.textContent = t; if (i && i < 7) td.className = 'zahl'; tr.append(td);
+        });
+        tb.append(tr);
+      });
+      tv.append(tb);
+
+      const sl = document.getElementById('stueckliste');
+      sl.innerHTML = '<thead><tr><th>Bauteil</th><th class="zahl">Menge</th><th>Hinweis</th></tr></thead>';
+      const tbs = document.createElement('tbody');
+      [['Dachrinne ' + w.rinne.n + (e.form === 'kasten' ? ' kastenförmig' : ' halbrund'), zahl(r.rinneM, 2) + ' m', 'Gefälle ' + zahl(e.gefaelle, 1) + ' mm/m = ' + zahl(r.hoehe, 0) + ' mm je Abschnitt'],
+       ['Rinnenhalter', String(r.halter), 'Abstand ≤ ' + zahl(e.abstH, 2) + ' m, bei hoher Schneelast enger'],
+       ['Rinnenverbinder / Lötstellen', String(r.verbinder), 'bei 3-m-Längen'],
+       ['Rinnenendboden', String(r.endboeden), 'links und rechts'],
+       ['Einhangstutzen / Rinnenstutzen', String(r.stutzen), 'für Fallrohr Ø ' + r.d],
+       ['Fallrohr Ø ' + r.d + ' mm', zahl(r.fallrohrM, 1) + ' m', 'Traufhöhe ' + zahl(e.hT, 1) + ' m abzüglich Kniestück'],
+       ['Fallrohrbogen (Knie)', String(r.boegen), 'zwei je Fallrohr für den Rücksprung'],
+       ['Fallrohrschelle', String(r.schellen), 'Abstand ≤ 2 m'],
+       ['Standrohr / Regenrohrklappe', String(e.n), 'Übergang in die Grundleitung']].forEach(function (z) {
+        const tr = document.createElement('tr');
+        z.forEach(function (t, i) { const td = document.createElement('td'); td.textContent = t; if (i === 1) td.className = 'zahl'; tr.append(td); });
+        tbs.append(tr);
+      });
+      sl.append(tbs);
+      rechenweg();
+      zeichneSchnitt();
+    }
+
+    // ============================================================
+    // Rechenweg und Formelsammlung
+    // ============================================================
+
+    function schritt(t, tex) { const li = document.createElement('li'); const a = document.createElement('div'); a.className = 'titel'; a.textContent = t; const b = document.createElement('div'); b.className = 'rechnung'; Formel.setze(b, tex, false); li.append(a, b); return li; }
+    function rechenweg() {
+      const ol = document.getElementById('rechenweg'); ol.innerHTML = '';
+      const w = r.wahl, LS = '\\,\\tfrac{\\text{l}}{\\text{s}}';
+      if (e.wind === 'ja') ol.append(schritt('Wirksame Dachfläche mit Windzuschlag (DIN EN 12056-3)', 'h = b \\cdot \\tan\\alpha = ' + tz(r.hDach, 2) + '\\,\\text{m},\\quad A = L \\cdot \\left(b + \\frac{h}{2}\\right) = ' + tz(e.L, 2) + ' \\cdot \\left(' + tz(e.b, 2) + ' + \\frac{' + tz(r.hDach, 2) + '}{2}\\right) = ' + E(tz(r.A, 2) + '\\,\\text{m}^2')));
+      else ol.append(schritt('Wirksame Dachfläche im Grundriss (DIN 1986-100)', 'A = L \\cdot b = ' + tz(e.L, 2) + '\\,\\text{m} \\cdot ' + tz(e.b, 2) + '\\,\\text{m} = ' + E(tz(r.A, 2) + '\\,\\text{m}^2')));
+      ol.append(schritt('Regenwasserabfluss', 'Q = \\frac{r_{5,5} \\cdot C \\cdot A}{10\\,000} = \\frac{' + tz(e.r) + ' \\cdot ' + tz(r.C, 1) + ' \\cdot ' + tz(r.A, 2) + '}{10\\,000} = ' + E(tz(r.Q, 3) + LS)));
+      ol.append(schritt('Je Rinnenabschnitt (' + r.teile + ' Abschnitte, Fallrohre ' + (e.lage === 'mitte' ? 'mittig' : 'am Ende') + ')', 'Q_\\text{A} = \\frac{Q}{' + r.teile + '} = ' + E(tz(r.QAbschnitt, 3) + LS) + ',\\quad l_\\text{A} = \\frac{L}{' + r.teile + '} = ' + tz(r.lAbschnitt, 2) + '\\,\\text{m}'));
+      ol.append(schritt('Längenfaktor aus L/W und Gefälle (DIN EN 12056-3 Tab. 4)', '\\frac{L}{W} = \\frac{' + tz(r.lAbschnitt * 1000, 0) + '\\,\\text{mm}}{' + w.rinne.W + '\\,\\text{mm}} = ' + tz(w.LW, 0) + ',\\quad J = ' + tz(e.gefaelle, 1) + '\\,\\tfrac{\\text{mm}}{\\text{m}} \\Rightarrow F_\\text{L} = ' + E(tz(w.FL, 3))));
+      ol.append(schritt('Abflussvermögen der Rinne ' + w.rinne.n, 'Q_\\text{L} = Q_\\text{N} \\cdot 0{,}9 \\cdot F_\\text{L} \\cdot F_\\text{R} = ' + tz(w.rinne.QN, 2) + ' \\cdot 0{,}9 \\cdot ' + tz(w.FL, 3) + ' \\cdot ' + tz(w.FR, 2) + ' = ' + (w.ok ? E : F)(tz(w.QL, 3) + LS) + (w.ok ? ' \\ge ' : ' < ') + tz(r.QAbschnitt, 3) + LS));
+      const okF = r.Qrohr <= r.QFR + 1e-9;
+      ol.append(schritt('Fallrohr Ø ' + r.d + ' mm bei Füllungsgrad 0,33', 'Q_\\text{FR} = 2{,}5 \\cdot 10^{-4} \\cdot k^{-1/6} \\cdot f^{5/3} \\cdot d^{8/3} = ' + (okF ? E : F)(tz(r.QFR, 2) + LS) + (okF ? ' \\ge ' : ' < ') + '\\frac{Q}{n} = ' + tz(r.Qrohr, 3) + LS));
+      if (r.ablauf !== null) ol.append(schritt('Ablauf Rinne → Fallrohr (Tabellenwert, auf Ø ' + r.d + ' umgerechnet)', 'Q_\\text{Ab} = ' + tz(r.ablauf, 2) + LS + ' \\ge ' + tz(r.QAbschnitt * (e.lage === 'mitte' ? 2 : 1), 3) + LS));
+      ol.append(schritt('Notentwässerung (Jahrhundertregen minus Normalanlage)', 'Q_\\text{Not} = \\frac{(r_{5,100} - r_{5,5} \\cdot C) \\cdot A}{10\\,000} = \\frac{(' + tz(e.r100) + ' - ' + tz(e.r) + ' \\cdot ' + tz(r.C, 1) + ') \\cdot ' + tz(r.A, 2) + '}{10\\,000} = ' + E(tz(r.Qnot, 3) + LS)));
+      ol.append(schritt('Höhenunterschied der Rinne je Abschnitt', '\\Delta h = J \\cdot l_\\text{A} = ' + tz(e.gefaelle, 1) + ' \\cdot ' + tz(r.lAbschnitt, 2) + ' = ' + E(tz(r.hoehe, 0) + '\\,\\text{mm}')));
+    }
+    const SAMMLUNG = [
+      ['Regenwasserabfluss', 'Q = \\frac{r_{5,5} \\cdot C \\cdot A}{10\\,000}\\ \\text{in l/s}', 'r in l/(s·ha) aus KOSTRA-DWD, A Dachfläche im Grundriss in m², C Abflussbeiwert (Dach 1,0, Kies 0,8, Gründach 0,5 … 0,2)'],
+      ['Windzuschlag (DIN EN 12056-3)', 'A = L \\cdot \\left(b + \\frac{h}{2}\\right)', 'Schlagregen auf die geneigte Fläche; in Deutschland nach DIN 1986-100 meist ohne'],
+      ['Vorgehängte Rinne', 'Q_\\text{L} = Q_\\text{N} \\cdot 0{,}9 \\cdot F_\\text{L} \\cdot F_\\text{R}', 'Q_N halbrund 200/250/280/333/400/500: 0,66/1,24/1,89/2,98/5,14/9,62 l/s; Kasten 200/250/333/400/500: 0,66/1,18/2,68/4,46/8,21 l/s; F_R = 0,85 bei Ecken über 10°'],
+      ['Längenfaktor', 'F_\\text{L} = f\\left(\\frac{L}{W},\\ J\\right)', 'bis 3 mm/m gefällelos, mit Gefälle steigt F_L über 1; Werte aus DIN EN 12056-3 Tab. 4, dazwischen interpoliert'],
+      ['Fallrohr', 'Q_\\text{FR} = 2{,}5 \\cdot 10^{-4} \\cdot k^{-1/6} \\cdot f^{5/3} \\cdot d^{8/3}', 'k = 0,25 mm, Füllungsgrad f = 0,33, d in mm; Ø 100: 10,7 l/s, Ø 120: 17,4 l/s'],
+      ['Notentwässerung', 'Q_\\text{Not} = \\frac{(r_{5,100} - r_{5,5} \\cdot C) \\cdot A}{10\\,000}', 'bei Flachdächern und innenliegenden Rinnen über Notüberläufe ins Freie'],
+      ['Gefälle', '\\Delta h = J \\cdot l', 'üblich 1 bis 3 mm/m; Rinnenhalter höchstens 90 cm Abstand, Fallrohrschellen höchstens 2 m']
+    ];
+    function sammlung() {
+      const z = document.getElementById('formelsammlung');
+      SAMMLUNG.forEach(function (x) { const s = document.createElement('section'); const h = document.createElement('h3'); h.textContent = x[0]; const b = document.createElement('div'); b.className = 'formelblock'; Formel.setze(b, x[1], true); s.append(h, b); if (x[2]) { const p = document.createElement('p'); p.textContent = x[2]; s.append(p); } z.append(s); });
+    }
+
+    // ============================================================
+    // Zeichnung: Regen, Rinne, Fallrohre
+    // ============================================================
+
+    const cv = document.getElementById('bild'), cx = cv.getContext('2d');
+    const cs = document.getElementById('schnitt'), cs2 = cs.getContext('2d');
+    let B = 600, H = 300, dpr = 1, t0 = 0, regen = true;
+    const tropfen = [];
+    function f(n) { return Thema.farbe(n); }
+    function groesse() {
+      B = cv.parentElement.clientWidth - 0; dpr = window.devicePixelRatio || 1; H = Math.round(Math.max(220, Math.min(320, B * 0.5)));
+      cv.width = Math.round(B * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+      const sb = Math.min(360, B); cs.width = Math.round(sb * dpr); cs.height = Math.round(150 * dpr); cs.style.height = '150px';
+    }
+    function zeichne(t) {
+      if (!r) return;
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.fillStyle = f('--flaeche2'); cx.fillRect(0, 0, B, H);
+      const ml = 24, mr = 24, k = (B - ml - mr) / e.L;
+      const yR = H * 0.36, yBoden = H - 18;
+      // Dachfläche als Band über der Traufe
+      cx.fillStyle = '#B5533C'; cx.globalAlpha = 0.25; cx.fillRect(ml, 14, B - ml - mr, yR - 18); cx.globalAlpha = 1;
+      cx.strokeStyle = '#B5533C'; cx.lineWidth = 1; cx.globalAlpha = 0.4;
+      for (let y = 22; y < yR - 4; y += 8) { cx.beginPath(); cx.moveTo(ml, y); cx.lineTo(B - mr, y); cx.stroke(); }
+      cx.globalAlpha = 1;
+      // Fallrohr-Positionen
+      const pos = [];
+      for (let i = 0; i < e.n; i++) pos.push(e.lage === 'mitte' ? (i + 0.5) * e.L / e.n : (i + 1) * e.L / e.n - (i === e.n - 1 ? 0.15 : 0));
+      if (e.lage !== 'mitte') pos[pos.length - 1] = e.L - 0.15;
+      // Rinne mit Gefälle (überhöht dargestellt) und Füllung je Abschnitt
+      const ausl = Math.min(1.4, r.QAbschnitt / r.wahl.QL);
+      const hR = 14;
+      cx.fillStyle = f('--flaeche'); cx.strokeStyle = f('--text'); cx.lineWidth = 1.5;
+      cx.fillRect(ml, yR, B - ml - mr, hR); cx.strokeRect(ml, yR, B - ml - mr, hR);
+      // Wasser in der Rinne: zum Fallrohr hin voller
+      const grenzen = [0];
+      pos.forEach(function (p, i) { if (i < pos.length - 1) grenzen.push((p + pos[i + 1]) / 2); });
+      grenzen.push(e.L);
+      cx.fillStyle = ausl > 1 ? 'rgba(192,57,43,.8)' : 'rgba(43,123,185,.75)';
+      pos.forEach(function (p, i) {
+        const a = grenzen[i], b2 = grenzen[i + 1];
+        const steps = 30;
+        cx.beginPath(); cx.moveTo(ml + a * k, yR + hR);
+        for (let s = 0; s <= steps; s++) {
+          const x = a + (b2 - a) * s / steps;
+          const anteil = 1 - Math.min(1, Math.abs(x - p) / Math.max(0.01, Math.max(p - a, b2 - p)));
+          const fuell = Math.min(1, ausl * (0.35 + 0.65 * anteil)) * (0.85 + 0.15 * Math.sin(t / 300 + x));
+          cx.lineTo(ml + x * k, yR + hR - fuell * (hR - 2));
+        }
+        cx.lineTo(ml + b2 * k, yR + hR); cx.closePath(); cx.fill();
+      });
+      if (ausl > 1) { cx.fillStyle = 'rgba(192,57,43,.8)'; for (let i = 0; i < 6; i++) { const x = ml + ((t / 9 + i * 53) % (B - ml - mr)); const y = yR + hR + ((t / 4 + i * 17) % 40); cx.fillRect(x, y, 2, 6); } }
+      // Fallrohre
+      pos.forEach(function (p) {
+        const x = ml + p * k, w = Math.max(6, Math.min(16, r.d / 8));
+        cx.fillStyle = f('--flaeche'); cx.strokeStyle = f('--text');
+        cx.fillRect(x - w / 2, yR + hR, w, yBoden - yR - hR); cx.strokeRect(x - w / 2, yR + hR, w, yBoden - yR - hR);
+        const fq = Math.min(1, r.Qrohr / r.QFR);
+        cx.fillStyle = fq >= 1 ? 'rgba(192,57,43,.8)' : 'rgba(43,123,185,.75)';
+        for (let y = yR + hR + ((t / 6) % 14); y < yBoden; y += 14) cx.fillRect(x - w / 2 + 1, y, Math.max(2, (w - 2) * Math.max(0.25, fq)), 8);
+      });
+      // Regen
+      if (regen) {
+        const n = Math.min(160, Math.round(e.r / 4));
+        while (tropfen.length < n) tropfen.push({ x: Math.random(), y: Math.random() });
+        tropfen.length = n;
+        cx.strokeStyle = 'rgba(43,123,185,.55)'; cx.lineWidth = 1;
+        tropfen.forEach(function (d) { d.y += 0.012; if (d.y > 1) { d.y = 0; d.x = Math.random(); } const x = ml + d.x * (B - ml - mr), y = 2 + d.y * (yR - 6); cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - 2, y + 7); cx.stroke(); });
+      }
+      cx.fillStyle = f('--text'); cx.font = '600 12px ' + f('--technik'); cx.textAlign = 'left'; cx.textBaseline = 'top';
+      cx.fillText('Rinne ' + r.wahl.rinne.n + ' · ' + zahl(r.QAbschnitt / r.wahl.QL * 100, 0) + ' % ausgelastet', ml, yR + hR + 6);
+      const zweite = zahl(e.L, 1) + ' m Traufe · ' + e.n + ' × Ø ' + r.d;
+      if (B < 520) { cx.fillText(zweite, ml, yR + hR + 22); } else { cx.textAlign = 'right'; cx.fillText(zweite, B - mr, yR + hR + 6); }
+      document.getElementById('bildHinweis').textContent = 'Wasserstand zeigt die Auslastung; rot heißt: die Rinne läuft über.';
+    }
+    function zeichneSchnitt() {
+      const w = Math.min(360, B), Hh = 150, rinne = r.wahl.rinne;
+      cs2.setTransform(dpr, 0, 0, dpr, 0, 0); cs2.clearRect(0, 0, w, Hh);
+      const k = Math.min((w - 80) / rinne.W, (Hh - 40) / rinne.T);
+      const cxm = w / 2, top = 20, Wp = rinne.W * k, Tp = rinne.T * k;
+      const ausl = Math.min(1, r.QAbschnitt / r.wahl.QL), hf = Tp * Math.min(1, 0.15 + 0.85 * ausl);
+      cs2.save(); cs2.beginPath();
+      if (e.form === 'halbrund') cs2.arc(cxm, top, Wp / 2, 0, Math.PI); else cs2.rect(cxm - Wp / 2, top, Wp, Tp);
+      cs2.clip();
+      cs2.fillStyle = r.wahl.ok ? 'rgba(43,123,185,.75)' : 'rgba(192,57,43,.8)';
+      cs2.fillRect(cxm - Wp / 2, top + (e.form === 'halbrund' ? Wp / 2 : Tp) - hf, Wp, hf + 2);
+      cs2.restore();
+      cs2.strokeStyle = f('--text'); cs2.lineWidth = 3; cs2.beginPath();
+      if (e.form === 'halbrund') { cs2.arc(cxm, top, Wp / 2, 0, Math.PI); cs2.moveTo(cxm - Wp / 2 - 6, top); cs2.lineTo(cxm - Wp / 2, top); }
+      else { cs2.moveTo(cxm - Wp / 2, top); cs2.lineTo(cxm - Wp / 2, top + Tp); cs2.lineTo(cxm + Wp / 2, top + Tp); cs2.lineTo(cxm + Wp / 2, top - 6); }
+      cs2.stroke();
+      cs2.fillStyle = f('--text'); cs2.font = '600 12px ' + f('--technik'); cs2.textAlign = 'center';
+      cs2.fillText('Querschnitt ' + rinne.n + ': W ' + rinne.W + ' mm, Füllung ' + zahl(ausl * 100, 0) + ' %', cxm, Hh - 6);
+    }
+    function schleife(t) { if (regen && !bewegungAus) zeichne(t); requestAnimationFrame(schleife); }
+    document.getElementById('regen').addEventListener('click', function (ev) { regen = !regen; ev.target.textContent = regen ? '■ Regen anhalten' : '▶ Regen'; zeichne(performance.now()); });
+    window.addEventListener('resize', function () { groesse(); zeichne(performance.now()); zeichneSchnitt(); });
+    document.addEventListener('themawechsel', function () { zeichne(performance.now()); zeichneSchnitt(); });
+
+    felderAufbauen();
+    sammlung();
+    groesse();
+    rechnen();
+    zeichne(0);
+    requestAnimationFrame(schleife);
+  })();
+  </script>
+</body>
+</html>
