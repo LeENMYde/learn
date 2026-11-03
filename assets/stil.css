@@ -378,6 +378,8 @@ ol.weg li::before {
   gap: 8px 20px;
   justify-content: space-between;
 }
+.seitenfuss .haftung { flex: 1 1 100%; margin: 0 0 6px; padding: 10px 14px; border-radius: var(--rund); background: var(--flaeche); max-width: none; line-height: 1.45; }
+.seitenfuss .haftung a { color: var(--text); font-weight: 600; }
 
 /* ---------- Druck: nur der Inhalt, hell, ohne Bedienelemente ---------- */
 @media print {
@@ -407,7 +409,7 @@ ol.weg li::before {
 @media print {
   @page { size: A4; margin: 13mm 12mm 15mm;
     @bottom-right { content: "Seite " counter(page) " von " counter(pages); font-size: 8pt; color: #555; }
-    @bottom-left { content: "Formeln & Rechner – Berechnung ohne Gewähr, Annahmen siehe Rechenweg"; font-size: 8pt; color: #555; } }
+    @bottom-left { content: "Formeln & Rechner – ohne Gewähr, Fehler bitte an support@pr1m3.de melden"; font-size: 8pt; color: #555; } }
   html { font-size: 12px; }
   .druckkopf { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px; padding: 0 0 6px; margin: 0 0 8px; border-bottom: 2px solid #000; font-size: 9.5pt; }
   .druckkopf-titel { grid-column: 1 / -1; font-family: var(--technik); font-weight: 600; font-size: 15pt; }

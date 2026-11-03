@@ -151,6 +151,9 @@
     ziel.className = 'seite';
     ziel.innerHTML =
       '<footer class="seitenfuss">' +
+        '<p class="haftung"><strong>Ohne Gewähr.</strong> Formeln, Tabellenwerte und Ergebnisse sind sorgfältig erstellt, können aber Fehler enthalten. ' +
+        'Ergebnisse vor der Ausführung prüfen; maßgeblich sind die gültigen Normen, Herstellerangaben und die Fachplanung. ' +
+        'Etwas passt nicht? Bitte melden an <a href="mailto:support@pr1m3.de?subject=' + encodeURIComponent('Hinweis zu: ' + document.title) + '">support@pr1m3.de</a>.</p>' +
         '<span>Läuft komplett offline, ohne externe Dateien' + (/^https?:$/.test(location.protocol) && 'serviceWorker' in navigator ? ', einmal geladen auch ohne Netz' : '') + '.</span>' +
         '<span>Formelsatz mit KaTeX (MIT-Lizenz), lokal in assets/katex.</span>' +
       '</footer>';
