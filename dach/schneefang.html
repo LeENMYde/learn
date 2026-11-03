@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schneefang</title>
+  <meta name="description" content="Schneeschub auf Schneefanggitter nach DIN EN 1991-1-3: Schneelast aus Zone und Höhe, Formbeiwert, Kraft je Meter, Halterabstand, Anzahl der Halter und Reihen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+    const G = Math.PI / 180;
+
+    // Schneelastzonen nach DIN EN 1991-1-3/NA: [Grundwert, Faktor, Mindestwert, Zuschlag]
+    const ZONEN = { '1': [0.19, 0.91, 0.65, 1], '1a': [0.19, 0.91, 0.65, 1.25], '2': [0.25, 1.91, 0.85, 1], '2a': [0.25, 1.91, 0.85, 1.25], '3': [0.31, 2.91, 1.1, 1] };
+    const BEISPIEL = { zone: '2', A: 300, alpha: 40, b: 6, L: 12, Rd: 2.5, amax: 1.0, reihen: 'auto' };
+
+    R.seite({
+      titel: 'Schneefang',
+      einleitung: 'Schneeschubkraft auf Schneefanggitter nach DIN EN 1991-1-3 mit nationalem Anhang: Schneelast aus Zone und Geländehöhe, Formbeiwert nach Dachneigung, Kraft je Meter Traufe, größter Halterabstand, Anzahl der Halter und Bedarf an einer zweiten Reihe.',
+      hilfe: 'Tragfähigkeit je Halter als Bemessungswert aus dem Datenblatt bzw. der Zulassung des Herstellers (für die passende Dachdeckung und Befestigung).',
+      gruppen: [
+        { titel: 'Schnee', farbe: '#2B7BB9', felder: [
+          { k: 'zone', name: 'Schneelastzone', wahl: [['1', 'Zone 1'], ['1a', 'Zone 1a'], ['2', 'Zone 2'], ['2a', 'Zone 2a'], ['3', 'Zone 3']] },
+          { k: 'A', tex: 'A', name: 'Geländehöhe über NN', e: 'm', min: 0, max: 1500 }
+        ] },
+        { titel: 'Dach', farbe: '#A0785A', felder: [
+          { k: 'alpha', tex: '\\alpha', name: 'Dachneigung', e: '°', min: 5, max: 75 },
+          { k: 'b', tex: 'b', name: 'waagerechter Abstand Schneefang bis First', e: 'm', min: 0.5, max: 50 },
+          { k: 'L', tex: 'L', name: 'Länge der Traufe', e: 'm', min: 0.5, max: 300 }
+        ] },
+        { titel: 'Schneefanggitter', farbe: '#6B7785', felder: [
+          { k: 'Rd', tex: 'R_\\text{d}', name: 'Tragfähigkeit je Halter (Bemessungswert)', e: 'kN', min: 0.1, max: 50 },
+          { k: 'amax', tex: 'a_\\text{max}', name: 'größter Halterabstand konstruktiv', e: 'm', min: 0.3, max: 3, hilfe: 'Herstellerangabe für das Gitter bzw. Rohr, meist 0,8 bis 1,2 m' },
+          { k: 'reihen', name: 'Reihen', wahl: [['auto', 'automatisch'], ['1', 'eine Reihe an der Traufe'], ['2', 'zwei Reihen'], ['3', 'drei Reihen']] }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Schneelast auf dem Boden', 's_\\text{k} = \\max\\left(s_\\text{k,min},\\ a + c \\cdot \\left(\\frac{A + 140}{760}\\right)^2\\right)', 'Zone 1: 0,19 + 0,91·(…)² ≥ 0,65; Zone 2: 0,25 + 1,91·(…)² ≥ 0,85; Zone 3: 0,31 + 2,91·(…)² ≥ 1,10 kN/m²; Zonen 1a und 2a ×1,25'],
+        ['Formbeiwert', '\\mu_1 = 0{,}8\\ (\\alpha \\le 30^\\circ),\\quad 0{,}8 \\cdot \\frac{60^\\circ - \\alpha}{30^\\circ}\\ (30^\\circ < \\alpha < 60^\\circ),\\quad 0\\ (\\alpha \\ge 60^\\circ)', ''],
+        ['Schneeschub', 'F_\\text{s} = s \\cdot b \\cdot \\sin\\alpha,\\quad s = \\mu_1 \\cdot s_\\text{k}', 'kN je Meter Traufe (DIN EN 1991-1-3, 6.4), b waagerecht gemessen'],
+        ['Bemessung', 'F_\\text{d} = 1{,}5 \\cdot F_\\text{s}', 'Teilsicherheitsbeiwert für veränderliche Lasten'],
+        ['Halterabstand', 'a = \\min\\left(\\frac{R_\\text{d}}{F_\\text{d}},\\ a_\\text{max}\\right)', 'bei mehreren Reihen trägt jede Reihe ihren Anteil von b'],
+        ['Anzahl der Halter', 'n = \\left\\lceil \\frac{L}{a} \\right\\rceil + 1', 'je Reihe']
+      ],
+      quellen: 'DIN EN 1991-1-3 mit DIN EN 1991-1-3/NA (Schneelasten), Fachregeln des Deutschen Dachdeckerhandwerks (Schneefangsysteme). Ob Schneefang Pflicht ist, regeln die Landesbauordnungen (Dächer an Verkehrsflächen und über Eingängen).',
+      bild: { titel: 'Schneeschub am Gitter', label: 'Dachschnitt mit Schneedecke, die gegen das Schneefanggitter drückt', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(240, Math.min(320, B * 0.55))); }, zeichne: zeichne,
+        hinweis: function (r) { return r.ok ? 'Der Schnee rutscht nach und wird vom Gitter gehalten.' : 'Die Kraft ist zu groß: Halter enger setzen oder eine weitere Reihe.'; } }
+    });
+
+    function sk(e) { const zo = ZONEN[e.zone]; return Math.max(zo[2], zo[0] + zo[1] * Math.pow((e.A + 140) / 760, 2)) * zo[3]; }
+    function mu(a) { return a <= 30 ? 0.8 : a < 60 ? 0.8 * (60 - a) / 30 : 0; }
+    function proReihe(e, r, n) {
+      const Fs = r.s * (e.b / n) * Math.sin(e.alpha * G), Fd = 1.5 * Fs;
+      const a = Math.min(Fd > 0 ? e.Rd / Fd : Infinity, e.amax);
+      return { n: n, Fs: Fs, Fd: Fd, a: a, halter: Math.ceil(e.L / a - 1e-9) + 1 };
+    }
+    function rechne(e) {
+      const r = {};
+      r.sk = sk(e); r.mu = mu(e.alpha); r.s = r.mu * r.sk;
+      let n = e.reihen === 'auto' ? 1 : +e.reihen;
+      r.varianten = [1, 2, 3].map(function (k) { return proReihe(e, r, k); });
+      if (e.reihen === 'auto') { while (n < 3 && r.varianten[n - 1].a < 0.5) n++; }
+      r.w = r.varianten[n - 1];
+      r.ok = r.w.a >= 0.3;
+      r.gesamt = r.w.halter * r.w.n;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.alpha >= 60) H.meldung('Ab 60° bleibt rechnerisch kein Schnee liegen (μ = 0). Schneefang konstruktiv trotzdem vorsehen, wenn Personen gefährdet sind.');
+      if (!r.ok) H.meldung('Auch mit ' + r.w.n + ' Reihen bleiben weniger als 30 cm Halterabstand: stärkere Halter oder zusätzliche Reihen.', true);
+      if (r.w.n > 1) H.meldung('Mehrere Reihen: gleichmäßig über die Dachfläche verteilen, unterste Reihe über der Außenwand.');
+      H.urteil(r.ok, r.w.n + ' Reihe' + (r.w.n > 1 ? 'n' : '') + ', a = ' + z(r.w.a, 2) + ' m');
+      H.kacheln([
+        [z(r.sk, 2) + ' kN/m²', 'Schneelast am Boden s_k', '#2B7BB9'],
+        [z(r.s, 2) + ' kN/m²', 'auf dem Dach (μ₁ = ' + z(r.mu, 2) + ')', '#6E6FA6'],
+        [z(r.w.Fs, 2) + ' kN/m', 'Schneeschub je m Traufe und Reihe', '#E4572E'],
+        [z(r.w.a, 2) + ' m', 'Halterabstand', r.ok ? '#0E6B6A' : '#C0392B'],
+        [String(r.gesamt), 'Halter gesamt (' + r.w.halter + ' je Reihe)', '#A0785A']
+      ]);
+      H.tabelle('Varianten', ['Reihen', 'Schub je Reihe', 'Bemessung', 'Abstand', 'Halter gesamt'],
+        r.varianten.map(function (v) { return [String(v.n), z(v.Fs, 2) + ' kN/m', z(v.Fd, 2) + ' kN/m', z(v.a, 2) + ' m', String(v.halter * v.n)]; }),
+        { zahl: [0, 1, 2, 3, 4], klasse: function (i) { return i === r.w.n - 1 ? 'gewaehlt' : r.varianten[i].a < 0.3 ? 'schlecht' : ''; } });
+      H.nachweise([
+        [r.w.Fd * r.w.a <= e.Rd + 1e-9, 'Halter', z(r.w.Fd, 2) + ' kN/m · ' + z(r.w.a, 2) + ' m = ' + z(r.w.Fd * r.w.a, 2) + ' kN ≤ ' + z(e.Rd, 2) + ' kN'],
+        [null, 'Befestigung', 'Halter in den Sparren oder die verstärkte Lattung schrauben (Herstellerangabe); bei Ziegeldeckung Schneefangziegel bzw. Grundplatten verwenden']
+      ]);
+    }
+    function weg(r, e) {
+      const zo = ZONEN[e.zone], kn = '\\,\\tfrac{\\text{kN}}{\\text{m}^2}';
+      return [
+        ['Schneelast am Boden (Zone ' + e.zone + ')', 's_\\text{k} = ' + (zo[3] > 1 ? '1{,}25 \\cdot ' : '') + '\\max\\left(' + tz(zo[2], 2) + ',\\ ' + tz(zo[0], 2) + ' + ' + tz(zo[1], 2) + ' \\cdot \\left(\\frac{' + tz(e.A) + ' + 140}{760}\\right)^2\\right) = ' + E(tz(r.sk, 3) + kn)],
+        ['Schnee auf dem Dach', 's = ' + tz(r.mu, 3) + ' \\cdot ' + tz(r.sk, 3) + ' = ' + E(tz(r.s, 3) + kn)],
+        ['Schneeschub je Reihe', 'F_\\text{s} = ' + tz(r.s, 3) + ' \\cdot \\frac{' + tz(e.b, 2) + '}{' + r.w.n + '} \\cdot \\sin ' + tz(e.alpha, 1) + '^\\circ = ' + E(tz(r.w.Fs, 3) + '\\,\\tfrac{\\text{kN}}{\\text{m}}')],
+        ['Bemessungswert', 'F_\\text{d} = 1{,}5 \\cdot ' + tz(r.w.Fs, 3) + ' = ' + E(tz(r.w.Fd, 3) + '\\,\\tfrac{\\text{kN}}{\\text{m}}')],
+        ['Halterabstand', 'a = \\min\\left(\\frac{' + tz(e.Rd, 2) + '}{' + tz(r.w.Fd, 3) + '},\\ ' + tz(e.amax, 2) + '\\right) = ' + R.EF(r.ok)(tz(r.w.a, 3) + '\\,\\text{m}')],
+        ['Halter je Reihe', 'n = \\left\\lceil \\frac{' + tz(e.L, 2) + '}{' + tz(r.w.a, 3) + '} \\right\\rceil + 1 = ' + E(String(r.w.halter))]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, a = e.alpha * G;
+      const x0 = 30, y0 = H - 30, laenge = Math.min((B - 60) / Math.cos(a), (H - 60) / Math.sin(a));
+      const ux = Math.cos(a), uy = -Math.sin(a), nx = Math.sin(a), ny = Math.cos(a);
+      const P = function (s, d) { return [x0 + ux * s - nx * d, y0 + uy * s - ny * d]; };
+      // Dach
+      cx.strokeStyle = '#B5533C'; cx.lineWidth = 8; cx.beginPath(); const p0 = P(0, -4), p1 = P(laenge, -4); cx.moveTo(p0[0], p0[1]); cx.lineTo(p1[0], p1[1]); cx.stroke();
+      // Gitter je Reihe und Schnee dazwischen
+      const dicke = Math.min(30, 8 + r.s * 12);
+      for (let i = 0; i < r.w.n; i++) {
+        const sG = laenge * i / r.w.n + 14, sE = laenge * (i + 1) / r.w.n - 4;
+        const rutsch = (Math.sin(t / 900 + i) + 1) / 2 * 6;
+        cx.fillStyle = 'rgba(235,242,250,.95)'; cx.strokeStyle = 'rgba(120,150,190,.8)'; cx.lineWidth = 1;
+        cx.beginPath(); const q0 = P(sG + rutsch * 0, 0), q1 = P(sE, 0), q2 = P(sE, dicke * 0.6), q3 = P(sG, dicke);
+        cx.moveTo(q0[0], q0[1]); cx.lineTo(q1[0], q1[1]); cx.lineTo(q2[0], q2[1]); cx.lineTo(q3[0], q3[1]); cx.closePath(); cx.fill(); cx.stroke();
+        // Gitter
+        const g0 = P(sG - 4, 0), g1 = P(sG - 4, dicke + 10);
+        cx.strokeStyle = r.ok ? '#0E6B6A' : '#C0392B'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(g0[0], g0[1]); cx.lineTo(g1[0], g1[1]); cx.stroke();
+        // Kraftpfeil
+        const f0 = P(sG + 40 + rutsch, dicke / 2), f1 = P(sG + 6, dicke / 2);
+        cx.strokeStyle = '#E4572E'; cx.fillStyle = '#E4572E'; cx.lineWidth = 2; Z.pfeil(cx, f0[0], f0[1], f1[0], f1[1], 7);
+        Z.text(cx, z(r.w.Fs, 2) + ' kN/m', f0[0] + 4, f0[1] - 14, 'left', 11, true, '#E4572E');
+      }
+      // fallende Flocken
+      cx.fillStyle = 'rgba(160,190,225,.9)';
+      for (let j = 0; j < 30; j++) { const x = (j * 53 + t * 0.01) % B, y = ((j * 37 + t * 0.03) % (H - 20)); cx.beginPath(); cx.arc(x, y, 1.6, 0, 2 * Math.PI); cx.fill(); }
+      Z.text(cx, z(e.alpha, 0) + '°', x0 + 40, y0 - 8, 'left', 12, true);
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sparren und Lattung</title>
+  <meta name="description" content="Satteldach aufmessen: Sparrenlänge und -anzahl, Lattweite aus der Decklänge, Latten und Ziegel, Lattenquerschnitt und Vordimensionierung der Sparrenhöhe.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+    const G = Math.PI / 180;
+    const HOEHEN = [100, 120, 140, 160, 180, 200, 220, 240, 260, 280];
+
+    const BEISPIEL = { Bh: 10, alpha: 35, ue: 0.5, Lg: 12, uo: 0.3, e: 0.8, dMin: 320, dMax: 345, db: 300, tT: 370, tF: 40, l: 4.2, g: 0.6, sk: 0.85, bS: 80 };
+
+    R.seite({
+      titel: 'Sparren und Lattung',
+      einleitung: 'Satteldach aufmessen: Sparrenlänge und -anzahl, Lattweite aus der Decklänge der Dachziegel mit gleichmäßiger Einteilung, Anzahl der Latten und Ziegel, Lattenquerschnitt nach Sparrenabstand und eine Vordimensionierung der Sparrenhöhe aus Eigengewicht und Schnee.',
+      hilfe: 'Decklängen aus dem Datenblatt des Ziegels (verschiebbarer Bereich). Traufmaß = Abstand Sparrenende bis Oberkante erste Latte in Dachneigung, Firstmaß = Abstand Firstpunkt bis Oberkante letzte Latte.',
+      gruppen: [
+        { titel: 'Gebäude und Dach', farbe: '#A0785A', felder: [
+          { k: 'Bh', tex: 'B', name: 'Gebäudebreite (Traufe zu Traufe, außen)', e: 'm', min: 2, max: 60 },
+          { k: 'alpha', tex: '\\alpha', name: 'Dachneigung', e: '°', min: 10, max: 70 },
+          { k: 'ue', tex: 'ü', name: 'Dachüberstand Traufe (waagerecht)', e: 'm', min: 0, max: 2 },
+          { k: 'Lg', tex: 'L', name: 'Gebäudelänge (Ortgang zu Ortgang)', e: 'm', min: 2, max: 200 },
+          { k: 'uo', tex: 'ü_\\text{O}', name: 'Ortgangüberstand je Seite', e: 'm', min: 0, max: 2 },
+          { k: 'e', tex: 'e', name: 'Sparrenabstand', e: 'm', min: 0.4, max: 1.2 }
+        ] },
+        { titel: 'Dachziegel und Lattung', farbe: '#B5533C', felder: [
+          { k: 'dMin', name: 'kleinste Decklänge', e: 'mm', min: 150, max: 600 },
+          { k: 'dMax', name: 'größte Decklänge', e: 'mm', min: 150, max: 600 },
+          { k: 'db', name: 'Deckbreite', e: 'mm', min: 100, max: 600 },
+          { k: 'tT', name: 'Traufmaß', e: 'mm', min: 0, max: 1000 },
+          { k: 'tF', name: 'Firstmaß', e: 'mm', min: 0, max: 200 }
+        ] },
+        { titel: 'Vordimensionierung Sparren', farbe: '#6B7785', felder: [
+          { k: 'l', tex: 'l', name: 'Stützweite waagerecht (Pfette zu Pfette)', e: 'm', min: 0.5, max: 12 },
+          { k: 'g', tex: 'g_\\text{k}', name: 'Eigengewicht (Deckung, Lattung, Sparren)', e: 'kN/m²', min: 0.1, max: 3, hilfe: 'Tondachziegel mit Lattung etwa 0,55 bis 0,65, Betonstein 0,6 bis 0,7, mit Dämmung zwischen den Sparren + 0,1' },
+          { k: 'sk', tex: 's_\\text{k}', name: 'Schneelast am Boden', e: 'kN/m²', min: 0, max: 10 },
+          { k: 'bS', tex: 'b', name: 'Sparrenbreite', e: 'mm', min: 40, max: 200 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Sparrenlänge', 'l_\\text{S} = \\frac{B/2 + ü}{\\cos\\alpha}', 'Oberkante Sparren vom Traufpunkt bis zum Firstpunkt'],
+        ['Sparrenanzahl je Dachseite', 'n_\\text{S} = \\left\\lceil \\frac{L}{e} \\right\\rceil + 1', 'Ortgangsparren eingerechnet'],
+        ['Lattweite', 'n = \\left\\lceil \\frac{l_\\text{S} - t_\\text{T} - t_\\text{F}}{d_\\text{max}} \\right\\rceil,\\quad LW = \\frac{l_\\text{S} - t_\\text{T} - t_\\text{F}}{n} \\ge d_\\text{min}', 'gleichmäßige Einteilung innerhalb des Verschiebebereichs'],
+        ['Lattenquerschnitt (Fachregel)', 'e \\le 0{,}70\\,\\text{m}: 24/48,\\quad \\le 0{,}80\\,\\text{m}: 30/50,\\quad \\le 1{,}00\\,\\text{m}: 40/60', 'Nadelholz S10'],
+        ['Last quer zum Sparren', 'q_{\\perp} = e \\cdot (g_\\text{k} \\cos\\alpha + \\mu_1 s_\\text{k} \\cos^2\\alpha)', 'g je m² Dachfläche, s je m² Grundfläche'],
+        ['Biegung', 'M_\\text{d} = \\frac{q_{\\perp,\\text{d}} \\cdot l_\\text{s}^2}{8},\\quad h \\ge \\sqrt{\\frac{6 M_\\text{d}}{b \\cdot f_\\text{m,d}}},\\quad f_\\text{m,d} = \\frac{0{,}9 \\cdot 24}{1{,}3}\\,\\text{N/mm}^2', 'C24, kurze Lasteinwirkung, Nutzungsklasse 1/2; l_s = l / cos α'],
+        ['Durchbiegung', 'w = \\frac{5 \\, q_\\perp \\, l_\\text{s}^4}{384 \\, E \\, I} \\le \\frac{l_\\text{s}}{300},\\quad E = 11\\,000\\,\\text{N/mm}^2', 'charakteristische Lasten']
+      ],
+      quellen: 'Fachregeln des Deutschen Dachdeckerhandwerks (Dachdeckungen mit Dachziegeln und Dachsteinen, Lattung), DIN EN 1995-1-1 (Holzbau), DIN EN 1991-1-3 (Schnee). Die Sparrenbemessung ist eine Vordimensionierung ohne Wind, Normalkraft und Anschlüsse; sie ersetzt keine Statik.',
+      bild: { titel: 'Dachseite im Schnitt', label: 'Schnitt durch eine Dachseite mit Sparren, Lattung und Ziegeln', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(240, Math.min(340, B * 0.58))); }, zeichne: zeichne,
+        hinweis: function (r) { return r.n + ' Lattweiten à ' + z(r.LW, 1) + ' mm; die Ziegel werden reihenweise verlegt.'; } }
+    });
+
+    function latte(e) { return e <= 0.7 ? '24/48' : e <= 0.8 ? '30/50' : e <= 1.0 ? '40/60' : 'statisch nachweisen'; }
+    function mu(a) { return a <= 30 ? 0.8 : a < 60 ? 0.8 * (60 - a) / 30 : 0; }
+    function rechne(e) {
+      const c = Math.cos(e.alpha * G), r = {};
+      r.lS = (e.Bh / 2 + e.ue) / c;
+      r.H = (e.Bh / 2) * Math.tan(e.alpha * G);
+      r.nS = Math.ceil(e.Lg / e.e - 1e-9) + 1;
+      r.Lbereich = r.lS * 1000 - e.tT - e.tF;
+      if (e.dMax < e.dMin) throw new Error('Decklängen vertauscht');
+      r.n = Math.max(1, Math.ceil(r.Lbereich / e.dMax - 1e-9));
+      r.LW = r.Lbereich / r.n;
+      r.okLW = r.LW >= e.dMin - 1e-9;
+      r.latten = r.n + 2;          // erste Latte, n Lattweiten, Traufbohle/Doppellatte
+      r.lattenL = e.Lg + 2 * e.uo;
+      r.lattenM = 2 * r.latten * r.lattenL;
+      r.konterM = 2 * r.nS * r.lS;
+      r.reihen = r.n + 1;
+      r.jeReihe = Math.ceil(r.lattenL * 1000 / e.db);
+      r.ziegel = 2 * r.reihen * r.jeReihe;
+      r.flaeche = 2 * r.lS * r.lattenL;
+      r.latte = latte(e.e);
+      // Vordimensionierung
+      const m = mu(e.alpha);
+      r.ls = e.l / c;
+      r.qk = e.e * (e.g * c + m * e.sk * c * c);
+      r.qd = e.e * (1.35 * e.g * c + 1.5 * m * e.sk * c * c);
+      r.Md = r.qd * r.ls * r.ls / 8;                 // kNm
+      r.fmd = 0.9 * 24 / 1.3;
+      r.hBieg = Math.sqrt(6 * r.Md * 1e6 / (e.bS * r.fmd));
+      r.hDurch = Math.pow(5 * r.qk * Math.pow(r.ls * 1000, 4) * 300 * 12 / (384 * 11000 * e.bS * r.ls * 1000), 1 / 3);
+      r.hNoetig = Math.max(r.hBieg, r.hDurch);
+      r.hWahl = HOEHEN.filter(function (h) { return h >= r.hNoetig; })[0] || NaN;
+      r.mu = m;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (!r.okLW) H.meldung('Mit dieser Sparrenlänge passt keine gleichmäßige Einteilung in den Verschiebebereich: Traufmaß oder Firstmaß anpassen oder einen Ziegel mit größerem Bereich wählen.', true);
+      if (e.alpha < 22) H.meldung('Unter 22° liegt die Neigung bei vielen Ziegeln unter der Regeldachneigung: Zusatzmaßnahmen (Unterdach) nach Fachregel nötig.');
+      if (!isFinite(r.hWahl)) H.meldung('Auch 280 mm reichen nicht: Stützweite verkürzen, breiteren Sparren oder Zwischenpfette planen.', true);
+      H.urteil(r.okLW, r.okLW ? 'Lattweite ' + z(r.LW, 1) + ' mm' : 'Einteilung passt nicht');
+      H.kacheln([
+        [z(r.lS, 3) + ' m', 'Sparrenlänge', '#A0785A'],
+        [String(r.nS) + ' × 2', 'Sparren je Dachseite', '#6B7785'],
+        [z(r.LW, 1) + ' mm', r.n + ' Lattweiten (' + z(e.dMin, 0) + '–' + z(e.dMax, 0) + ')', r.okLW ? '#0E6B6A' : '#C0392B'],
+        [z(r.lattenM, 0) + ' m', 'Dachlatten ' + r.latte, '#B5533C'],
+        [String(r.ziegel), 'Dachziegel (ohne Verschnitt, First, Ortgang)', '#E4572E'],
+        [isFinite(r.hWahl) ? z(e.bS, 0) + '/' + r.hWahl : '–', 'Sparren mm (Vordimensionierung)', '#2B7BB9']
+      ]);
+      H.tabelle('Materialliste (beide Dachseiten)', ['Material', 'Menge', 'Hinweis'], [
+        ['Sparren ' + z(e.bS, 0) + '/' + (isFinite(r.hWahl) ? r.hWahl : '?') + ' mm', 2 * r.nS + ' × ' + z(r.lS + 0.2, 2) + ' m', 'mit 20 cm Zugabe für Zuschnitt'],
+        ['Konterlatten', z(r.konterM, 0) + ' m', 'auf jedem Sparren, 30/50 oder nach Dämmstärke'],
+        ['Dachlatten ' + r.latte, z(r.lattenM, 0) + ' m', r.latten + ' Latten je Seite à ' + z(r.lattenL, 2) + ' m'],
+        ['Dachziegel', String(r.ziegel), r.reihen + ' Reihen × ' + r.jeReihe + ' je Seite, Verschnitt etwa 3 bis 5 % zugeben'],
+        ['Dachfläche', z(r.flaeche, 1) + ' m²', 'beide Seiten mit Überständen'],
+        ['Unterdeckbahn', z(r.flaeche * 1.1, 0) + ' m²', '10 % Überlappung']
+      ], { zahl: [1] });
+      H.nachweise([
+        [r.okLW, 'Lattweite im Verschiebebereich', z(e.dMin, 0) + ' ≤ ' + z(r.LW, 1) + ' ≤ ' + z(e.dMax, 0) + ' mm'],
+        [isFinite(r.hWahl), 'Biegung (Vordimensionierung)', 'M_d = ' + z(r.Md, 2) + ' kNm → h ≥ ' + z(r.hBieg, 0) + ' mm'],
+        [isFinite(r.hWahl), 'Durchbiegung l/300', 'h ≥ ' + z(r.hDurch, 0) + ' mm']
+      ]);
+    }
+    function weg(r, e) {
+      const g = '^\\circ';
+      return [
+        ['Sparrenlänge', 'l_\\text{S} = \\frac{' + tz(e.Bh / 2, 2) + ' + ' + tz(e.ue, 2) + '}{\\cos ' + tz(e.alpha, 1) + g + '} = ' + E(tz(r.lS, 3) + '\\,\\text{m}')],
+        ['Bereich für die Lattung', 'l = ' + tz(r.lS * 1000, 0) + ' - ' + tz(e.tT) + ' - ' + tz(e.tF) + ' = ' + E(tz(r.Lbereich, 0) + '\\,\\text{mm}')],
+        ['Anzahl Lattweiten und Lattweite', 'n = \\left\\lceil \\frac{' + tz(r.Lbereich, 0) + '}{' + tz(e.dMax) + '} \\right\\rceil = ' + r.n + ',\\quad LW = \\frac{' + tz(r.Lbereich, 0) + '}{' + r.n + '} = ' + R.EF(r.okLW)(tz(r.LW, 1) + '\\,\\text{mm}')],
+        ['Last quer zum Sparren (μ₁ = ' + z(r.mu, 2) + ')', 'q_{\\perp,\\text{d}} = ' + tz(e.e, 2) + ' \\cdot (1{,}35 \\cdot ' + tz(e.g, 2) + ' \\cdot \\cos\\alpha + 1{,}5 \\cdot ' + tz(r.mu, 2) + ' \\cdot ' + tz(e.sk, 2) + ' \\cdot \\cos^2\\alpha) = ' + E(tz(r.qd, 3) + '\\,\\tfrac{\\text{kN}}{\\text{m}}')],
+        ['Biegemoment', 'M_\\text{d} = \\frac{' + tz(r.qd, 3) + ' \\cdot ' + tz(r.ls, 3) + '^2}{8} = ' + E(tz(r.Md, 3) + '\\,\\text{kNm}')],
+        ['Nötige Sparrenhöhe', 'h \\ge \\sqrt{\\frac{6 \\cdot ' + tz(r.Md * 1e6, 0) + '}{' + tz(e.bS) + ' \\cdot ' + tz(r.fmd, 2) + '}} = ' + tz(r.hBieg, 0) + ',\\quad h_w = ' + tz(r.hDurch, 0) + ' \\Rightarrow ' + E(isFinite(r.hWahl) ? tz(e.bS) + '/' + r.hWahl : '-')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, a = e.alpha * G;
+      const k = Math.min((B - 40) / ((e.Bh / 2 + e.ue) * 1.05), (H - 40) / ((r.H + e.ue * Math.tan(a)) * 1.1 + 0.5));
+      const x0 = 20, yT = H - 20 - 0.3 * k;
+      // Sparren von der Traufe (links) zum First (rechts oben)
+      const tx = x0, ty = yT, fx = x0 + (e.Bh / 2 + e.ue) * k, fy = yT - (e.Bh / 2 + e.ue) * Math.tan(a) * k;
+      const sh = (isFinite(r.hWahl) ? r.hWahl : 200) / 1000 * k * 1.5;
+      cx.fillStyle = '#D9B98C'; cx.beginPath();
+      cx.moveTo(tx, ty); cx.lineTo(fx, fy); cx.lineTo(fx, fy + sh / Math.cos(a)); cx.lineTo(tx, ty + sh / Math.cos(a)); cx.closePath(); cx.fill();
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1; cx.stroke();
+      // Wand
+      const wx = x0 + e.ue * k;
+      cx.fillStyle = '#9AA3AD'; cx.fillRect(wx - 14, ty - e.ue * Math.tan(a) * k + sh, 24, H);
+      // Latten und Ziegel
+      const L = r.lS * 1000, ux = Math.cos(a), uy = -Math.sin(a), mmk = k / 1000;
+      const sichtbar = Math.floor((t / 220) % (r.n + 8));
+      for (let i = 0; i <= r.n; i++) {
+        const s = e.tT + i * r.LW;
+        const px = tx + ux * s * mmk, py = ty + uy * s * mmk;
+        cx.fillStyle = '#8B5A2B'; cx.fillRect(px - 3, py - 6, 6, 6);
+        if (i <= sichtbar) {
+          const s2 = s + Math.min(r.LW * 1.25, (e.dMax + 70));
+          cx.strokeStyle = '#B5533C'; cx.lineWidth = 4; cx.beginPath();
+          cx.moveTo(px - 2 * ux * 0 - 6 * Math.sin(a), py - 8); cx.lineTo(tx + ux * Math.min(L, s2) * mmk - 6 * Math.sin(a), ty + uy * Math.min(L, s2) * mmk - 8 - 3); cx.stroke();
+        }
+      }
+      Z.text(cx, 'LW ' + z(r.LW, 0) + ' mm', (tx + fx) / 2 - 20, (ty + fy) / 2 - 26, 'right', 12, true, '#B5533C');
+      Z.text(cx, 'Sparren ' + z(r.lS, 2) + ' m', (tx + fx) / 2 + 10, (ty + fy) / 2 + sh + 12, 'left', 11, true);
+      Z.text(cx, z(e.alpha, 0) + '°', tx + 50, ty + 8, 'left', 12, true);
+    }
+  })();
+  </script>
+</body>
+</html>

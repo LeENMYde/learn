@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schornsteinverwahrung</title>
+  <meta name="description" content="Schornsteineinfassung im geneigten Dach: Zuschnitte und Biegewinkel für Brust-, Seiten- und Nackenblech, Überhangstreifen, Blechbedarf, Gewicht und Mindesthöhe der Mündung.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+    const G = Math.PI / 180;
+    const STOFFE = { zink: ['Titanzink', 7.2], kupfer: ['Kupfer', 8.93], alu: ['Aluminium', 2.7], edel: ['Edelstahl', 7.9], blei: ['Walzblei (nur Brustblech)', 11.34] };
+    const BEISPIEL = { B: 0.6, T: 0.5, alpha: 38, dF: 1.2, hA: 150, u: 150, us: 100, nacken: 300, stoff: 'zink', dicke: 0.7, falz: 20 };
+
+    R.seite({
+      titel: 'Schornsteinverwahrung',
+      einleitung: 'Einfassung eines Schornsteins im geneigten Dach nach den Fachregeln für Metallarbeiten: Zuschnittmaße und Biegewinkel für Brustblech, Seitenbleche, Nackenblech und Überhangstreifen, Blechbedarf und Gewicht, dazu die Mindesthöhe der Schornsteinmündung über Dach.',
+      hilfe: 'Breite = quer zur Falllinie (parallel zur Traufe), Tiefe = in Falllinie. Maße in Metern, Bleche in Millimetern.',
+      gruppen: [
+        { titel: 'Schornstein und Dach', farbe: '#A0785A', felder: [
+          { k: 'B', tex: 'B', name: 'Breite des Schornsteins', e: 'm', min: 0.1, max: 5 },
+          { k: 'T', tex: 'T', name: 'Tiefe des Schornsteins', e: 'm', min: 0.1, max: 5 },
+          { k: 'alpha', tex: '\\alpha', name: 'Dachneigung', e: '°', min: 5, max: 75 },
+          { k: 'dF', tex: 'd_\\text{F}', name: 'waagerechter Abstand Schornstein (oben) bis First', e: 'm', min: 0, max: 30 }
+        ] },
+        { titel: 'Anschluss', farbe: '#6B7785', felder: [
+          { k: 'hA', tex: 'h_\\text{A}', name: 'Anschlusshöhe am Schornstein', e: 'mm', min: 50, max: 400, hilfe: 'Fachregel: mindestens 150 mm über Oberkante Deckung' },
+          { k: 'u', tex: 'u', name: 'Einfassung auf der Deckung (Brust, Seite)', e: 'mm', min: 50, max: 400 },
+          { k: 'us', tex: 'u_\\text{s}', name: 'Überdeckung an Ecken und Stößen', e: 'mm', min: 30, max: 200 },
+          { k: 'nacken', tex: 'b_\\text{N}', name: 'Breite Nackenblech unter der Deckung', e: 'mm', min: 100, max: 1000 },
+          { k: 'falz', name: 'Wasserfalz / Umschlag', e: 'mm', min: 0, max: 50 },
+          { k: 'stoff', name: 'Werkstoff', wahl: Object.keys(STOFFE).map(function (k) { return [k, STOFFE[k][0]]; }) },
+          { k: 'dicke', tex: 't', name: 'Blechdicke', e: 'mm', min: 0.4, max: 3 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Brustblech (unten)', 'L = B + 2u_\\text{s},\\quad Z = h_\\text{A} + u + f,\\quad \\gamma = 90^\\circ + \\alpha', 'Biegewinkel zwischen Schornsteinwand und Dachfläche unterhalb'],
+        ['Seitenblech', 'L = \\frac{T}{\\cos\\alpha} + 2u_\\text{s},\\quad Z = h_\\text{A} + u + f,\\quad \\gamma = 90^\\circ', 'quer zur Falllinie liegt die Dachfläche waagerecht'],
+        ['Nackenblech (oben)', 'L = B + 2u_\\text{s},\\quad Z = h_\\text{A} + b_\\text{N} + f,\\quad \\gamma = 90^\\circ - \\alpha', 'reicht unter die Deckung; ab etwa 80 cm Breite Nackenkehle mit Gefälle (Sattel)'],
+        ['Überhangstreifen', 'L = 2B + \\frac{2T}{\\cos\\alpha} + 4u_\\text{s}', 'deckt die Aufkantung oben ab, Höhe etwa 100 mm'],
+        ['Gewicht', 'm = A \\cdot t \\cdot \\rho', 'Titanzink 7,2, Kupfer 8,93, Aluminium 2,7, Edelstahl 7,9 kg/(m²·mm)'],
+        ['Mündungshöhe (§ 9 MFeuV)', 'h \\ge d_\\text{F} \\cdot \\tan\\alpha + 0{,}4\\,\\text{m}\\ \\ (\\alpha > 20^\\circ),\\qquad h \\ge 1\\,\\text{m}\\ \\ (\\alpha \\le 20^\\circ)', 'Höhe über Dachfläche an der oberen Schornsteinseite; Festbrennstoffe zusätzlich 1. BImSchV § 19']
+      ],
+      quellen: 'Fachregeln für Metallarbeiten im Dachdeckerhandwerk, Klempnerfachregeln (ZVSHK), DIN 18339, Muster-Feuerungsverordnung § 9, 1. BImSchV § 19. Länderrecht und Bezirksschornsteinfeger beachten.',
+      bild: { titel: 'Schnitt in Falllinie', label: 'Schnitt durch Dach und Schornstein mit Brust- und Nackenblech, Regen läuft ab', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(260, Math.min(340, B * 0.6))); }, zeichne: zeichne,
+        hinweis: function () { return 'Das Wasser läuft über Nackenblech und Seitenbleche um den Schornstein herum und über das Brustblech ab.'; } }
+    });
+
+    function rechne(e) {
+      const c = Math.cos(e.alpha * G), r = {};
+      r.teile = [
+        { n: 'Brustblech', st: 1, L: e.B * 1000 + 2 * e.us, Z: e.hA + e.u + e.falz, w: 90 + e.alpha },
+        { n: 'Seitenblech links', st: 1, L: e.T * 1000 / c + 2 * e.us, Z: e.hA + e.u + e.falz, w: 90 },
+        { n: 'Seitenblech rechts', st: 1, L: e.T * 1000 / c + 2 * e.us, Z: e.hA + e.u + e.falz, w: 90 },
+        { n: 'Nackenblech', st: 1, L: e.B * 1000 + 2 * e.us, Z: e.hA + e.nacken + e.falz, w: 90 - e.alpha },
+        { n: 'Überhangstreifen', st: 1, L: 2 * e.B * 1000 + 2 * e.T * 1000 / c + 4 * e.us, Z: 100, w: null }
+      ];
+      r.A = r.teile.reduce(function (s, t) { return s + t.L * t.Z / 1e6; }, 0);
+      r.m = r.A * e.dicke * STOFFE[e.stoff][1];
+      r.hMin = e.alpha > 20 ? e.dF * Math.tan(e.alpha * G) + 0.4 : 1;
+      r.sattel = e.B >= 0.8 || e.alpha < 22;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.hA < 150) H.meldung('Anschlusshöhe unter 150 mm: unterschreitet die Fachregel.', true);
+      if (r.sattel) H.meldung('Schornstein ab etwa 80 cm Breite oder flache Neigung: Nackenkehle mit Gefälle (Sattel) ausbilden, damit sich kein Wasser und Schnee staut.');
+      if (e.stoff === 'blei') H.meldung('Walzblei nur für das anformbare Brustblech; Seitenbleche und Nacken aus Titanzink, Kupfer oder Edelstahl.');
+      if (e.stoff === 'alu' || e.stoff === 'zink') H.meldung('Kein Kontakt mit Kupfer oberhalb (Wasser von Kupfer greift Zink und Aluminium an).');
+      H.urteil(null, z(r.A, 2) + ' m² Blech');
+      H.kacheln([
+        [z(r.A, 2) + ' m²', 'Blech gesamt ohne Verschnitt', '#A0785A'],
+        [z(r.m, 1) + ' kg', STOFFE[e.stoff][0] + ' ' + z(e.dicke, 2) + ' mm', '#6B7785'],
+        [z(90 + e.alpha, 1) + '°', 'Biegewinkel Brustblech', '#E4572E'],
+        [z(90 - e.alpha, 1) + '°', 'Biegewinkel Nackenblech', '#2B7BB9'],
+        [z(r.hMin, 2) + ' m', 'Mündung mindestens über Dachfläche (oben)', '#0E6B6A']
+      ]);
+      H.tabelle('Zuschnittliste', ['Teil', 'Stück', 'Länge', 'Zuschnittbreite', 'Biegewinkel', 'Abwicklung'],
+        r.teile.map(function (t) {
+          return [t.n, String(t.st), z(t.L, 0) + ' mm', z(t.Z, 0) + ' mm', t.w === null ? 'Kantung 90° + Wasserfalz' : z(t.w, 1) + '°', t.n === 'Überhangstreifen' ? '100' : z(e.hA, 0) + ' + ' + z(t.n === 'Nackenblech' ? e.nacken : e.u, 0) + ' + ' + z(e.falz, 0)];
+        }), { zahl: [1, 2, 3, 4], fuss: 'Längen gemessen an der Biegekante. Ecken an Brust und Nacken mit Überdeckung ' + z(e.us, 0) + ' mm gefalzt oder gelötet. Biegewinkel = Innenwinkel zwischen Schornsteinwand und Dachfläche.' });
+      H.nachweise([
+        [e.hA >= 150, 'Anschlusshöhe', z(e.hA, 0) + ' mm ' + (e.hA >= 150 ? '≥' : '<') + ' 150 mm'],
+        [e.u >= 100, 'Einfassung auf der Deckung', z(e.u, 0) + ' mm (je nach Deckung 100 bis 150 mm, bei Wellplatten bis in die zweite Welle)'],
+        [null, 'Mündungshöhe', e.alpha > 20 ? 'First überragen um 40 cm: ' + z(e.dF, 2) + ' · tan ' + z(e.alpha, 1) + '° + 0,4 = ' + z(r.hMin, 2) + ' m über Dachfläche' : 'bei Neigung bis 20°: mindestens 1 m über Dachfläche']
+      ]);
+    }
+    function weg(r, e) {
+      const g = '^\\circ', mm = '\\,\\text{mm}', c = Math.cos(e.alpha * G);
+      return [
+        ['Länge Seitenblech in Falllinie', 'L = \\frac{' + tz(e.T * 1000) + '}{\\cos ' + tz(e.alpha, 1) + g + '} + 2 \\cdot ' + tz(e.us) + ' = ' + E(tz(r.teile[1].L, 0) + mm)],
+        ['Zuschnitt Brustblech', 'Z = ' + tz(e.hA) + ' + ' + tz(e.u) + ' + ' + tz(e.falz) + ' = ' + E(tz(r.teile[0].Z, 0) + mm) + ',\\quad \\gamma = 90' + g + ' + ' + tz(e.alpha, 1) + g + ' = ' + E(tz(90 + e.alpha, 1) + g)],
+        ['Zuschnitt Nackenblech', 'Z = ' + tz(e.hA) + ' + ' + tz(e.nacken) + ' + ' + tz(e.falz) + ' = ' + E(tz(r.teile[3].Z, 0) + mm) + ',\\quad \\gamma = 90' + g + ' - ' + tz(e.alpha, 1) + g + ' = ' + E(tz(90 - e.alpha, 1) + g)],
+        ['Überhangstreifen', 'L = 2 \\cdot ' + tz(e.B * 1000) + ' + \\frac{2 \\cdot ' + tz(e.T * 1000) + '}{' + tz(c, 4) + '} + 4 \\cdot ' + tz(e.us) + ' = ' + E(tz(r.teile[4].L, 0) + mm)],
+        ['Blech und Gewicht', 'A = ' + E(tz(r.A, 3) + '\\,\\text{m}^2') + ',\\quad m = ' + tz(r.A, 3) + ' \\cdot ' + tz(e.dicke, 2) + ' \\cdot ' + tz(STOFFE[e.stoff][1], 2) + ' = ' + E(tz(r.m, 2) + '\\,\\text{kg}')],
+        ['Mündungshöhe', e.alpha > 20 ? 'h = ' + tz(e.dF, 2) + ' \\cdot \\tan ' + tz(e.alpha, 1) + g + ' + 0{,}4 = ' + E(tz(r.hMin, 2) + '\\,\\text{m}') : 'h = ' + E('1{,}00\\,\\text{m}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, a = e.alpha * G;
+      const k = Math.min((B - 60) / (e.T + 3.2) / Math.cos(a) * 0.9, (H - 40) / 3.2);
+      // Dachlinie: Traufe unten links, steigt nach rechts
+      const cxm = B * 0.52, cym = H * 0.62;
+      const dachY = function (x) { return cym - (x - cxm) * Math.tan(a); };
+      const xL = cxm - e.T * k / 2, xR = cxm + e.T * k / 2;     // Schornstein in Falllinie (waagerecht T)
+      const hoch = Math.max(r.hMin, 0.6) * k + 20;
+      // Dach (Sparren + Deckung)
+      cx.fillStyle = '#B5533C'; cx.beginPath(); cx.moveTo(0, dachY(0)); cx.lineTo(B, dachY(B)); cx.lineTo(B, dachY(B) + 14); cx.lineTo(0, dachY(0) + 14); cx.closePath(); cx.fill();
+      // Schornstein
+      cx.fillStyle = '#9AA3AD'; cx.fillRect(xL, dachY(xR) - hoch, xR - xL, H - (dachY(xR) - hoch));
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1.5; cx.strokeRect(xL, dachY(xR) - hoch, xR - xL, H - (dachY(xR) - hoch));
+      // Brustblech (unten links = Traufseite) und Nackenblech (oben rechts)
+      const hA = e.hA / 1000 * k * 3, u = e.u / 1000 * k * 3, n = e.nacken / 1000 * k * 3;
+      cx.strokeStyle = '#2B7BB9'; cx.lineWidth = 4; cx.lineJoin = 'round';
+      cx.beginPath(); cx.moveTo(xL, dachY(xL) - hA); cx.lineTo(xL, dachY(xL)); cx.lineTo(xL - u * Math.cos(a), dachY(xL - u * Math.cos(a))); cx.stroke();
+      cx.beginPath(); cx.moveTo(xR, dachY(xR) - hA); cx.lineTo(xR, dachY(xR)); cx.lineTo(xR + n * Math.cos(a), dachY(xR + n * Math.cos(a)) + 4); cx.stroke();
+      Z.text(cx, 'Brust ' + z(90 + e.alpha, 0) + '°', xL - 8, dachY(xL) - hA - 8, 'right', 11, true, '#2B7BB9');
+      Z.text(cx, 'Nacken ' + z(90 - e.alpha, 0) + '°', xR + 8, dachY(xR) - hA - 8, 'left', 11, true, '#2B7BB9');
+      // Regen: läuft auf dem Dach herab, am Schornstein seitlich vorbei
+      cx.fillStyle = 'rgba(43,123,185,.85)';
+      for (let j = 0; j < 14; j++) {
+        const p = ((t * 0.00012 + j / 14) % 1), x = B - p * B;
+        if (x > xL - 4 && x < xR + 4) continue;
+        const y = dachY(x) - 4;
+        cx.beginPath(); cx.arc(x, y, 2.4, 0, 2 * Math.PI); cx.fill();
+      }
+      Z.text(cx, 'Mündung ≥ ' + z(r.hMin, 2) + ' m über Dach', (xL + xR) / 2, dachY(xR) - hoch - 10, 'center', 11, true);
+      Z.text(cx, 'Traufe', 10, H - 12, 'left', 10, false); Z.text(cx, 'First', B - 10, 14, 'right', 10, false);
+    }
+  })();
+  </script>
+</body>
+</html>
