@@ -850,7 +850,7 @@ function resetForm(type) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function clearAllData() {
-  if (!confirm('⚠️ ACHTUNG!\n\nWirklich ALLE Daten dieser App löschen?\n\n- Stammdaten\n- Messgeräte\n- Unterschrift\n- Einstellungen\n\nDiese Aktion kann nicht rückgängig gemacht werden!')) return;
+  if (!confirm('⚠ACHTUNG!\n\nWirklich ALLE Daten dieser App löschen?\n\n- Stammdaten\n- Messgeräte\n- Unterschrift\n- Einstellungen\n\nDiese Aktion kann nicht rückgängig gemacht werden!')) return;
   
   if (!confirm('Bist du WIRKLICH sicher? Nochmal bestätigen:')) return;
 

@@ -64,6 +64,36 @@
   .protokoll .tab-content { padding: 14px 12px 16px; }
 }
 
+/* Auswertung und Grenzwerte */
+.protokoll .auswertung { margin: 8px 0 12px; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--kalt); font-size: .88rem; line-height: 1.5; }
+.protokoll .auswertung:empty { display: none; }
+.protokoll .erg-ok { color: var(--ergebnis); font-weight: 700; }
+.protokoll .erg-fehl { color: var(--fehler); font-weight: 700; }
+.protokoll .erg-hinweis { color: #B7791F; font-weight: 700; }
+.protokoll td.ergebnis-zelle { text-align: center; white-space: nowrap; cursor: help; }
+.protokoll td.ik { text-align: right; color: var(--leise); white-space: nowrap; }
+.protokoll input.grenz-fehl, .protokoll select.grenz-fehl { background: var(--fehler-flaeche) !important; color: var(--fehler) !important; }
+.protokoll input.grenz-ok { color: var(--ergebnis); }
+.protokoll .measurement-table.stromkreise { min-width: 1500px; }
+.protokoll .measurement-table.stromkreise input.txt { min-width: 70px; }
+.protokoll .measurement-table.stromkreise td:nth-child(3) input { min-width: 150px; }
+.protokoll .measurement-table.geraeteliste { min-width: 1250px; }
+.protokoll .measurement-table.maengel { min-width: 720px; }
+.protokoll .measurement-table input.z { text-align: right; min-width: 52px; }
+.protokoll .stromkreise select { min-width: 60px; }
+.protokoll .stromkreise select[data-f="leit"] { min-width: 86px; }
+.protokoll .stromkreise select[data-f="art"] { min-width: 72px; }
+.protokoll .geraeteliste select { min-width: 64px; }
+.protokoll .form-table select { min-width: 110px; }
+.protokoll .pruefliste td.norm { font-size: .75rem; color: var(--leise); }
+.protokoll .messwerte th { background: var(--flaeche2); color: var(--leise); font-weight: 600; text-align: left; padding: 4px 6px; border: 1px solid var(--linie); }
+.protokoll .messwerte td:nth-child(2) input { text-align: right; max-width: 160px; border: 1.5px solid var(--linie) !important; }
+.briefkopf { display: none; }
+.protokoll .measurement-table input::placeholder, .protokoll .form-table input::placeholder { opacity: .5; }
+.protokoll table.it-uebersicht { margin: 6px 0; font-size: .82rem; }
+.protokoll table.it-uebersicht th, .protokoll table.it-uebersicht td { border: 1px solid var(--linie); padding: 2px 6px; text-align: center; }
+.protokoll table.it-uebersicht td:first-child, .protokoll table.it-uebersicht th:first-child { text-align: left; }
+
 /* Knöpfe */
 .protokoll .btn { padding: 8px 14px; border: 1px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); cursor: pointer; font: inherit; font-weight: 600; font-size: .88rem; }
 .protokoll .btn:hover { border-color: var(--leise); }
@@ -123,7 +153,17 @@ img.sig-bild { display: none; }
   .protokoll table { break-inside: avoid; }
   .protokoll .measurement-table, .protokoll .rollen table { break-inside: auto; }
   .protokoll tr { break-inside: avoid; }
+  .protokoll tr.leer-zeile { display: none; }
   .protokoll .rollen { overflow: visible; }
   @page quer { size: A4 landscape; margin: 10mm 8mm 13mm; }
-  body:has(#tab-anlage.print-active) { page: quer; }
+  body:has(#tab-anlage.print-active), body:has(#tab-liste.print-active) { page: quer; }
+  .briefkopf { display: flex !important; justify-content: space-between; align-items: flex-start; gap: 12px; margin: 0 0 4px; padding-bottom: 4px; border-bottom: 1.5px solid #1E3A5F; }
+  .briefkopf:empty { display: none !important; }
+  .bk-firma { font-size: 13pt; font-weight: 700; color: #1E3A5F; }
+  .bk-adresse { font-size: 7.5pt; text-align: right; color: #333; }
+  .protokoll .auswertung { background: none !important; border: 1px solid #999; border-left: 3px solid #1E3A5F; padding: 3px 6px; margin: 3px 0 6px; font-size: 8pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .protokoll .measurement-table.stromkreise, .protokoll .measurement-table.geraeteliste, .protokoll .measurement-table.maengel { min-width: 0 !important; }
+  .protokoll .measurement-table input.txt, .protokoll .measurement-table input.z, .protokoll .measurement-table td:nth-child(3) input, .protokoll .stromkreise select, .protokoll .geraeteliste select, .protokoll .form-table select { min-width: 0 !important; }
+  .protokoll input.grenz-fehl, .protokoll td.erg-fehl { color: #B42318 !important; font-weight: 700; }
+  .protokoll .pruefliste td.norm { font-size: 6.5pt; }
 }

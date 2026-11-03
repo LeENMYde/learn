@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Elektro-Prüfprotokoll</title>
-  <meta name="description" content="Prüfprotokolle nach DIN VDE 0100-600 (Anlagen) und DIN VDE 0701-0702 (Geräte): Besichtigung, Erprobung, Messungen je Stromkreis, Messgeräte, Unterschrift, PDF.">
+  <meta name="description" content="Prüfprotokolle nach DIN VDE 0100-600, DIN VDE 0105-100, DIN EN 50699 und DIN EN 50678: Besichtigung, Erprobung, Messwerte je Stromkreis mit Grenzwertprüfung, Geräteliste, Mängel, Unterschrift, PDF.">
   <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="../manifest.webmanifest">
@@ -21,72 +21,47 @@
   <main class="seite protokoll-seite" data-merken data-eigenes-pdf>
     <section class="held">
       <h1><span class="unterstrichen">Elektro-Prüfprotokoll</span></h1>
-      <p>Prüfprotokolle nach DIN VDE 0100-600 für Erst- und Wiederholungsprüfungen von Anlagen und nach DIN VDE 0701-0702 für ortsveränderliche Geräte: Besichtigung, Erprobung, Messwerte je Stromkreis, Messgeräte, Unterschriften und PDF. Alles bleibt in diesem Browser.</p>
+      <p>Prüfprotokolle für die Praxis: Anlagen nach DIN VDE 0100-600 und DIN VDE 0105-100 mit Besichtigung, Erprobung und Messwerten je Stromkreis samt automatischer Grenzwertprüfung, Geräte nach DIN EN 50699 und DIN EN 50678 einzeln oder als Geräteliste, Mängel mit Fristen, Messgeräte mit Kalibrierdatum, Unterschriften und PDF. Alles bleibt in diesem Browser.</p>
     </section>
 
     <div class="protokoll">
-    <input type="hidden" id="zeilen-merken">
+    <input type="hidden" id="zeilen-merken-2">
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('anlage')">DIN VDE 0100-600 (Anlagenprüfung)</button>
-  <button class="tab-btn" onclick="switchTab('geraet')">DIN VDE 0701-0702 (Geräteprüfung)</button>
+  <button class="tab-btn active" onclick="switchTab('anlage')">Anlagenprüfung (DIN VDE 0100-600 / 0105-100)</button>
+  <button class="tab-btn" onclick="switchTab('geraet')">Geräteprüfung (DIN EN 50699 / 50678)</button>
+  <button class="tab-btn" onclick="switchTab('liste')">Geräteliste</button>
   <button class="tab-btn" onclick="switchTab('stammdaten')">Stammdaten & Verwaltung</button>
 </div>
 
 
 
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- TAB 1: ANLAGE (DIN VDE 0100-600) -->
-<!-- ════════════════════════════════════════════════════════════════════════ -->
 <div id="tab-anlage" class="tab-content active">
-
+<div class="briefkopf"></div>
 <div class="form-header">
-  <h2>Prüfprotokoll - Erst- und Wiederholungsprüfung elektrischer Anlagen nach DIN VDE 0100-600</h2>
+  <h2>Prüfprotokoll Elektrische Anlage – Erstprüfung nach DIN VDE 0100-600, Wiederholungsprüfung nach DIN VDE 0105-100</h2>
 </div>
 
-<!-- KOPFDATEN -->
 <div class="section-title">Kopfdaten</div>
 <div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Nr.:</td>
-    <td><input type="text" id="a-nr"></td>
-    <td class="label">Blatt:</td>
-    <td><input type="text" id="a-blatt"></td>
-    <td class="label">von:</td>
-    <td><input type="text" id="a-von"></td>
-    <td class="label">Kunden-Nr.:</td>
-    <td><input type="text" id="a-kundennr"></td>
-  </tr>
-  <tr>
-    <td class="label">Auftraggeber:</td>
-    <td colspan="3"><input type="text" id="a-auftraggeber"></td>
-    <td class="label">Auftrags-Nr.:</td>
-    <td colspan="3"><input type="text" id="a-auftragsnr"></td>
-  </tr>
-  <tr>
-    <td class="label">Auftragnehmer:</td>
-    <td colspan="3"><input type="text" id="a-auftragnehmer"></td>
-    <td class="label">Anlage:</td>
-    <td colspan="3"><input type="text" id="a-anlage"></td>
-  </tr>
-  <tr>
-    <td class="label">Prüfer/in:</td>
-    <td colspan="3"><input type="text" id="a-pruefer"></td>
-    <td class="label">Prüfdatum:</td>
-    <td colspan="3"><input type="date" id="a-datum"></td>
-  </tr>
+  <tr><td class="label">Protokoll-Nr.:</td><td><input type="text" id="a-nr"></td><td class="label">Blatt:</td><td><input type="text" id="a-blatt"></td><td class="label">von:</td><td><input type="text" id="a-von"></td><td class="label">Kunden-Nr.:</td><td><input type="text" id="a-kundennr"></td></tr>
+  <tr><td class="label">Auftraggeber:</td><td colspan="3"><input type="text" id="a-auftraggeber"></td><td class="label">Auftrags-Nr.:</td><td colspan="3"><input type="text" id="a-auftragsnr"></td></tr>
+  <tr><td class="label">Anlage / Anschrift:</td><td colspan="3"><input type="text" id="a-anlage"></td><td class="label">Anlagenteil:</td><td colspan="3"><input type="text" id="a-anlagenteil" placeholder="z. B. UV 1. OG, Wohnung 3"></td></tr>
+  <tr><td class="label">Auftragnehmer:</td><td colspan="3"><input type="text" id="a-auftragnehmer"></td><td class="label">Prüfdatum:</td><td colspan="3"><input type="date" id="a-datum"></td></tr>
+  <tr><td class="label">Prüfer/in:</td><td colspan="3"><input type="text" id="a-pruefer"></td><td class="label">Verantwortliche Elektrofachkraft:</td><td colspan="3"><input type="text" id="a-vefk"></td></tr>
 </table></div>
 
-<!-- PRÜFUNG NACH -->
-<div class="section-title">Prüfung nach</div>
+<div class="section-title">Art und Grundlage der Prüfung</div>
+<div class="rollen"><table class="form-table">
+  <tr><td class="label">Prüfart:</td><td colspan="3"><select id="a-pruefart"><option value="erst">Erstprüfung (DIN VDE 0100-600)</option><option value="wdh">Wiederholungsprüfung (DIN VDE 0105-100)</option><option value="aend">Prüfung nach Änderung / Erweiterung</option><option value="inst">Prüfung nach Instandsetzung</option></select></td><td class="label">Prüffrist:</td><td colspan="3"><select id="a-frist"><option value="48">4 Jahre – ortsfeste Anlagen (DGUV V3)</option><option value="12">1 Jahr – Räume und Anlagen besonderer Art</option><option value="24">2 Jahre</option><option value="6">6 Monate</option><option value="0">keine Angabe</option></select></td></tr>
+</table></div>
 <div class="kasten">
-  <label class="inline"><input type="checkbox" id="a-norm-100"> DIN VDE 0100-600</label>
-  <label class="inline"><input type="checkbox" id="a-norm-105"> DIN VDE 0105</label>
-  <label class="inline"><input type="checkbox" id="a-norm-bgv"> BGV A3</label>
+  <label class="inline"><input type="checkbox" id="a-norm-100"> DIN VDE 0100-600 (Errichtung)</label>
+  <label class="inline"><input type="checkbox" id="a-norm-105"> DIN VDE 0105-100 (Betrieb)</label>
+  <label class="inline"><input type="checkbox" id="a-norm-bgv"> DGUV Vorschrift 3</label>
+  <label class="inline"><input type="checkbox" id="a-norm-echeck"> E-Check</label>
+  <label class="inline"><input type="checkbox" id="a-norm-vds"> VdS 2871 (Versicherung)</label>
 </div>
-
-<!-- PRÜFGRUND -->
-<div class="section-title">Prüfgrund</div>
-<div class="kasten">
+<div class="kasten" style="margin-top:6px">
   <label class="inline"><input type="checkbox" id="a-grund-neu"> Neuanlage</label>
   <label class="inline"><input type="checkbox" id="a-grund-erw"> Erweiterung</label>
   <label class="inline"><input type="checkbox" id="a-grund-and"> Änderung</label>
@@ -94,223 +69,144 @@
   <label class="inline"><input type="checkbox" id="a-grund-wdh"> Wiederholungsprüfung</label>
 </div>
 
-<!-- NETZ -->
-<div class="section-title">Netzangaben</div>
+<div class="section-title">Netz und Einspeisung</div>
 <div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Spannung (V):</td>
-    <td><input type="text" id="a-spannung" value="230/400"></td>
-    <td class="label">Frequenz (Hz):</td>
-    <td><input type="text" id="a-hz" value="50"></td>
-    <td class="label">Netzsystem:</td>
-    <td>
-      <select id="a-netz">
-        <option value="">--</option>
-        <option>TN-C</option>
-        <option>TN-S</option>
-        <option>TN-C-S</option>
-        <option>TT</option>
-        <option>IT</option>
-      </select>
-    </td>
-  </tr>
-  <tr>
-    <td class="label">Verteilnetzbetreiber:</td>
-    <td colspan="7"><input type="text" id="a-vnb"></td>
-  </tr>
+  <tr><td class="label">Netzform:</td><td><select id="a-netz"><option value="">--</option><option value="TN-C">TN-C</option><option value="TN-S">TN-S</option><option value="TN-C-S">TN-C-S</option><option value="TT">TT</option><option value="IT">IT</option></select></td><td class="label">Nennspannung U<sub>0</sub>/U:</td><td><select id="a-u0"><option value="230">230/400 V</option><option value="220">220/380 V</option><option value="240">240/415 V</option><option value="120">120/208 V</option></select></td><td class="label">Frequenz:</td><td><select id="a-hz"><option value="50">50 Hz</option><option value="60">60 Hz</option></select></td><td class="label">Netzbetreiber:</td><td><input type="text" id="a-vnb"></td></tr>
+  <tr><td class="label">Vorsicherung / HAK:</td><td><input type="text" id="a-vorsicherung" placeholder="z. B. NH 63 A gG"></td><td class="label">Hauptleitung:</td><td><input type="text" id="a-hauptleitung" placeholder="z. B. NYY-J 5×16"></td><td class="label">Isolations-Prüfspannung:</td><td><select id="a-isospg"><option value="500">500 V DC (bis 500 V Nennspannung, ≥ 1 MΩ)</option><option value="250">250 V DC (SELV/PELV, ≥ 0,5 MΩ)</option><option value="1000">1000 V DC (über 500 V, ≥ 1 MΩ)</option></select></td><td class="label">Berührungsspannung U<sub>L</sub>:</td><td><select id="a-ul"><option value="50">50 V (allgemein)</option><option value="25">25 V (Landwirtschaft, Sonderbereiche)</option></select></td></tr>
+  <tr><td class="label">Abschaltzeit:</td><td colspan="3"><select id="a-tab"><option value="auto">automatisch: 0,4 s bis 63 A, sonst 5 s</option><option value="0.4">immer 0,4 s (Endstromkreise)</option><option value="5">immer 5 s (Verteilerstromkreise)</option></select></td><td class="label">Spannungsfall bis Verbraucher max.:</td><td colspan="3"><select id="a-du"><option value="3">3 %</option><option value="4">4 %</option><option value="5">5 %</option></select></td></tr>
 </table></div>
 
-<!-- BESICHTIGUNG -->
-<div class="section-title">Besichtigung</div>
-<div class="rollen"><table class="check-grid">
-  <thead>
-    <tr>
-      <th style="width: 50%;">Prüfpunkt</th>
-      <th style="width: 80px;">i.O.</th>
-      <th style="width: 80px;">n.i.O.</th>
-      <th>Bemerkung</th>
-    </tr>
-  </thead>
+<div class="section-title">Besichtigung (DIN VDE 0100-600, 6.4.2)</div>
+<div class="rollen"><table class="check-grid pruefliste">
+  <thead><tr><th style="width:4%">Nr.</th><th>Prüfpunkt</th><th style="width:14%">Grundlage</th><th style="width:7%">i.O.</th><th style="width:7%">n.i.O.</th><th style="width:7%">entfällt</th><th style="width:24%">Bemerkung</th></tr></thead>
   <tbody>
-    <tr><td>Auswahl der elektrischen Betriebsmittel</td><td class="center"><input type="checkbox" id="b1-io"></td><td class="center"><input type="checkbox" id="b1-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Trenn- und Schaltgeräte</td><td class="center"><input type="checkbox" id="b2-io"></td><td class="center"><input type="checkbox" id="b2-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Brandabschottungen</td><td class="center"><input type="checkbox" id="b3-io"></td><td class="center"><input type="checkbox" id="b3-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Kabel und Leitungen</td><td class="center"><input type="checkbox" id="b4-io"></td><td class="center"><input type="checkbox" id="b4-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Kennzeichnung</td><td class="center"><input type="checkbox" id="b5-io"></td><td class="center"><input type="checkbox" id="b5-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Leiterverbindungen</td><td class="center"><input type="checkbox" id="b6-io"></td><td class="center"><input type="checkbox" id="b6-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Schutz- und Überspannungsschutzgeräte</td><td class="center"><input type="checkbox" id="b7-io"></td><td class="center"><input type="checkbox" id="b7-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Schutz gegen Berührung</td><td class="center"><input type="checkbox" id="b8-io"></td><td class="center"><input type="checkbox" id="b8-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Zugänglichkeit</td><td class="center"><input type="checkbox" id="b9-io"></td><td class="center"><input type="checkbox" id="b9-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Hauptpotenzialausgleich</td><td class="center"><input type="checkbox" id="b10-io"></td><td class="center"><input type="checkbox" id="b10-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Zusätzlicher örtlicher Potenzialausgleich</td><td class="center"><input type="checkbox" id="b11-io"></td><td class="center"><input type="checkbox" id="b11-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Dokumentation</td><td class="center"><input type="checkbox" id="b12-io"></td><td class="center"><input type="checkbox" id="b12-nio"></td><td><input type="text"></td></tr>
+    <tr><td class="center">1</td><td>Schutz gegen elektrischen Schlag: Schutzmaßnahmen gewählt und richtig ausgeführt (Basis- und Fehlerschutz)</td><td class="norm">VDE 0100-410</td><td class="center"><input type="radio" name="b1" id="b1-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b1" id="b1-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b1" id="b1-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b1-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">2</td><td>Basisschutz vollständig: Abdeckungen, Berührungsschutz in Verteilern, keine offenen Klemmstellen</td><td class="norm">VDE 0100-410</td><td class="center"><input type="radio" name="b2" id="b2-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b2" id="b2-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b2" id="b2-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b2-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">3</td><td>Zusätzlicher Schutz durch RCD ≤ 30 mA für Steckdosen ≤ 32 A und Außenbereiche</td><td class="norm">VDE 0100-410, 411.3.3</td><td class="center"><input type="radio" name="b3" id="b3-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b3" id="b3-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b3" id="b3-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b3-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">4</td><td>Brandschutz: Abschottungen, Schutz gegen thermische Auswirkungen, Abstände</td><td class="norm">VDE 0100-420</td><td class="center"><input type="radio" name="b4" id="b4-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b4" id="b4-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b4" id="b4-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b4-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">5</td><td>Fehlerlichtbogen-Schutzeinrichtungen (AFDD) dort, wo gefordert</td><td class="norm">VDE 0100-420, 421.7</td><td class="center"><input type="radio" name="b5" id="b5-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b5" id="b5-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b5" id="b5-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b5-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">6</td><td>Leiter nach Strombelastbarkeit, Häufung und Spannungsfall ausgewählt</td><td class="norm">VDE 0100-430, -520</td><td class="center"><input type="radio" name="b6" id="b6-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b6" id="b6-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b6" id="b6-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b6-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">7</td><td>Schutz- und Überwachungseinrichtungen richtig ausgewählt und eingestellt</td><td class="norm">VDE 0100-430, -530</td><td class="center"><input type="radio" name="b7" id="b7-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b7" id="b7-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b7" id="b7-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b7-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">8</td><td>Überspannungsschutz (SPD Typ 1/2/3) vorhanden und richtig angeschlossen</td><td class="norm">VDE 0100-443, -534</td><td class="center"><input type="radio" name="b8" id="b8-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b8" id="b8-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b8" id="b8-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b8-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">9</td><td>Trenn- und Schaltgeräte richtig ausgewählt, angeordnet und gekennzeichnet</td><td class="norm">VDE 0100-537</td><td class="center"><input type="radio" name="b9" id="b9-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b9" id="b9-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b9" id="b9-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b9-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">10</td><td>Betriebsmittel nach äußeren Einflüssen gewählt (IP-Schutzart, Stoß, Temperatur, UV)</td><td class="norm">VDE 0100-510, -512</td><td class="center"><input type="radio" name="b10" id="b10-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b10" id="b10-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b10" id="b10-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b10-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">11</td><td>Kennzeichnung von Neutral- und Schutzleiter (blau, grün-gelb)</td><td class="norm">VDE 0100-510, -514</td><td class="center"><input type="radio" name="b11" id="b11-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b11" id="b11-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b11" id="b11-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b11-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">12</td><td>Beschriftung der Stromkreise, Schutzeinrichtungen und Klemmen im Verteiler</td><td class="norm">VDE 0100-514</td><td class="center"><input type="radio" name="b12" id="b12-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b12" id="b12-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b12" id="b12-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b12-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">13</td><td>Leiterverbindungen und Klemmstellen fachgerecht, Anzugsmomente eingehalten</td><td class="norm">VDE 0100-526</td><td class="center"><input type="radio" name="b13" id="b13-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b13" id="b13-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b13" id="b13-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b13-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">14</td><td>Leitungsverlegung: Installationszonen, Befestigung, Einführungen, Biegeradien</td><td class="norm">VDE 0100-520, DIN 18015-3</td><td class="center"><input type="radio" name="b14" id="b14-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b14" id="b14-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b14" id="b14-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b14-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">15</td><td>Erdungsanlage: Fundament- bzw. Ringerder, Anschlussfahnen, Korrosionsschutz</td><td class="norm">DIN 18014, VDE 0100-540</td><td class="center"><input type="radio" name="b15" id="b15-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b15" id="b15-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b15" id="b15-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b15-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">16</td><td>Schutzleiter, Schutzpotentialausgleich über die Haupterdungsschiene</td><td class="norm">VDE 0100-540</td><td class="center"><input type="radio" name="b16" id="b16-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b16" id="b16-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b16" id="b16-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b16-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">17</td><td>Zusätzlicher Schutzpotentialausgleich, wo gefordert</td><td class="norm">VDE 0100-410, 415.2</td><td class="center"><input type="radio" name="b17" id="b17-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b17" id="b17-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b17" id="b17-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b17-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">18</td><td>Räume mit Badewanne oder Dusche: Bereiche 0/1/2, Schutzarten, RCD</td><td class="norm">VDE 0100-701</td><td class="center"><input type="radio" name="b18" id="b18-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b18" id="b18-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b18" id="b18-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b18-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">19</td><td>Weitere Räume und Anlagen besonderer Art (Bemerkung: z. B. 702, 704, 705, 712, 722)</td><td class="norm">VDE 0100-7xx</td><td class="center"><input type="radio" name="b19" id="b19-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b19" id="b19-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b19" id="b19-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b19-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">20</td><td>Zählerplatz, Hauptleitung und Hausanschluss nach TAR</td><td class="norm">VDE-AR-N 4100</td><td class="center"><input type="radio" name="b20" id="b20-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b20" id="b20-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b20" id="b20-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b20-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">21</td><td>Zugänglichkeit für Bedienung, Wartung und Prüfung, Bewegungsflächen vor Verteilern</td><td class="norm">VDE 0100-510, -729</td><td class="center"><input type="radio" name="b21" id="b21-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b21" id="b21-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b21" id="b21-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b21-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">22</td><td>Dokumentation: Übersichtsschaltplan, Stromlaufpläne, Unterlagen der Betriebsmittel, Warnhinweise</td><td class="norm">VDE 0100-514, -600</td><td class="center"><input type="radio" name="b22" id="b22-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="b22" id="b22-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="b22" id="b22-na" value="na" aria-label="entfällt"></td><td><input type="text" id="b22-bem" aria-label="Bemerkung"></td></tr>
   </tbody>
 </table></div>
+<div class="leiste nur-bildschirm"><button type="button" class="btn btn-small" onclick="alleIo('b')">Alle offenen Punkte auf i.O.</button></div>
 
-<!-- ERPROBUNG -->
-<div class="section-title">Erprobung</div>
-<div class="rollen"><table class="check-grid">
-  <thead>
-    <tr>
-      <th style="width: 50%;">Prüfpunkt</th>
-      <th style="width: 80px;">i.O.</th>
-      <th style="width: 80px;">n.i.O.</th>
-      <th>Bemerkung</th>
-    </tr>
-  </thead>
+<div class="section-title">Erprobung und Funktionsprüfung (6.4.3.10)</div>
+<div class="rollen"><table class="check-grid pruefliste">
+  <thead><tr><th style="width:4%">Nr.</th><th>Prüfpunkt</th><th style="width:14%">Grundlage</th><th style="width:7%">i.O.</th><th style="width:7%">n.i.O.</th><th style="width:7%">entfällt</th><th style="width:24%">Bemerkung</th></tr></thead>
   <tbody>
-    <tr><td>Funktion der Anlage</td><td class="center"><input type="checkbox" id="e1-io"></td><td class="center"><input type="checkbox" id="e1-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Funktion der Schutzeinrichtungen</td><td class="center"><input type="checkbox" id="e2-io"></td><td class="center"><input type="checkbox" id="e2-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Rechtsdrehfeld</td><td class="center"><input type="checkbox" id="e3-io"></td><td class="center"><input type="checkbox" id="e3-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Drehrichtung der Motoren</td><td class="center"><input type="checkbox" id="e4-io"></td><td class="center"><input type="checkbox" id="e4-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Gebäudesystemtechnik</td><td class="center"><input type="checkbox" id="e5-io"></td><td class="center"><input type="checkbox" id="e5-nio"></td><td><input type="text"></td></tr>
+    <tr><td class="center">1</td><td>Fehlerstrom-Schutzeinrichtungen: Prüftaste ausgelöst</td><td class="norm">VDE 0100-600, 6.4.3.10</td><td class="center"><input type="radio" name="e1" id="e1-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e1" id="e1-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e1" id="e1-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e1-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">2</td><td>Fehlerlichtbogen-Schutzeinrichtungen: Prüftaste ausgelöst</td><td class="norm">Herstellerangabe</td><td class="center"><input type="radio" name="e2" id="e2-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e2" id="e2-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e2" id="e2-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e2-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">3</td><td>Überspannungsschutz: Zustandsanzeige in Ordnung</td><td class="norm">Herstellerangabe</td><td class="center"><input type="radio" name="e3" id="e3-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e3" id="e3-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e3" id="e3-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e3-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">4</td><td>Schalt-, Steuer- und Verriegelungseinrichtungen</td><td class="norm">VDE 0100-600</td><td class="center"><input type="radio" name="e4" id="e4-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e4" id="e4-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e4" id="e4-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e4-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">5</td><td>Not-Halt, Not-Aus und Schalter für mechanische Wartung</td><td class="norm">VDE 0100-537</td><td class="center"><input type="radio" name="e5" id="e5-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e5" id="e5-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e5" id="e5-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e5-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">6</td><td>Melde- und Überwachungseinrichtungen (z. B. Isolationsüberwachung, Meldeleuchten)</td><td class="norm">VDE 0100-600</td><td class="center"><input type="radio" name="e6" id="e6-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e6" id="e6-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e6" id="e6-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e6-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">7</td><td>Rechtsdrehfeld an Drehstromsteckdosen und Anschlüssen</td><td class="norm">VDE 0100-600, 6.4.3.9</td><td class="center"><input type="radio" name="e7" id="e7-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e7" id="e7-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e7" id="e7-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e7-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">8</td><td>Drehrichtung der Motoren</td><td class="norm">VDE 0100-600</td><td class="center"><input type="radio" name="e8" id="e8-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e8" id="e8-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e8" id="e8-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e8-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">9</td><td>Spannungspolarität: Schalter im Außenleiter, nicht im Neutralleiter</td><td class="norm">VDE 0100-600, 6.4.3.6</td><td class="center"><input type="radio" name="e9" id="e9-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e9" id="e9-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e9" id="e9-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e9-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">10</td><td>Gebäudesystemtechnik, Steuerungen, Zeitschaltuhren</td><td class="norm">Herstellerangabe</td><td class="center"><input type="radio" name="e10" id="e10-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="e10" id="e10-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="e10" id="e10-na" value="na" aria-label="entfällt"></td><td><input type="text" id="e10-bem" aria-label="Bemerkung"></td></tr>
   </tbody>
 </table></div>
+<div class="leiste nur-bildschirm"><button type="button" class="btn btn-small" onclick="alleIo('e')">Alle offenen Punkte auf i.O.</button></div>
 
-<!-- STROMKREISMESSUNGEN -->
-<div class="section-title">Stromkreismessungen / Messen</div>
-<div style="overflow-x: auto;">
-<div class="rollen"><table class="measurement-table">
+<div class="section-title">Messungen an der Einspeisung und am Potentialausgleich</div>
+<div class="rollen"><table class="form-table">
+  <tr><td class="label">Spannung L–N / L–PE / N–PE:</td><td><input type="text" inputmode="decimal" id="a-uln" placeholder="V"></td><td class="label">Spannung L–L:</td><td><input type="text" inputmode="decimal" id="a-ull" placeholder="V"></td><td class="label">Drehfeld an der Einspeisung:</td><td><select id="a-drehfeld"><option value="">--</option><option value="rechts">rechts</option><option value="links">links</option><option value="kein">einphasig</option></select></td><td class="label">Netzinnenimpedanz Z<sub>i</sub>:</td><td><input type="text" inputmode="decimal" id="a-zi" placeholder="Ω"></td></tr>
+  <tr><td class="label">Kurzschlussstrom an der Einspeisung I<sub>k</sub>:</td><td><input type="text" inputmode="decimal" id="a-ik" placeholder="kA"></td><td class="label">Erdungswiderstand R<sub>A</sub> / R<sub>E</sub>:</td><td><input type="text" inputmode="decimal" id="a-re" placeholder="Ω"></td><td class="label">Haupterdungsschiene – PE-Durchgang:</td><td><input type="text" inputmode="decimal" id="a-rpa" placeholder="Ω"></td><td class="label">Messverfahren Erder:</td><td><select id="a-erdverf"><option value="">--</option><option value="3">Drei-Leiter-Methode</option><option value="zange">Zangenmethode</option><option value="schleife">Schleifenmessung</option></select></td></tr>
+</table></div>
+<div class="kasten" style="margin-top:6px">
+  <span class="klein">Schutzpotentialausgleich an der Haupterdungsschiene angeschlossen:</span><br>
+  <label class="inline"><input type="checkbox" id="pa-1"> Fundament-/Ringerder</label>
+  <label class="inline"><input type="checkbox" id="pa-7"> Hauptschutzleiter</label>
+  <label class="inline"><input type="checkbox" id="pa-2"> Wasserverbrauchsleitung</label>
+  <label class="inline"><input type="checkbox" id="pa-12"> Gasinnenleitung</label>
+  <label class="inline"><input type="checkbox" id="pa-3"> Heizung</label>
+  <label class="inline"><input type="checkbox" id="pa-8"> Klima, Lüftung</label>
+  <label class="inline"><input type="checkbox" id="pa-10"> Gebäudekonstruktion</label>
+  <label class="inline"><input type="checkbox" id="pa-14"> Blitzschutz</label>
+  <label class="inline"><input type="checkbox" id="pa-5"> Antenne, Kommunikation</label>
+  <label class="inline"><input type="checkbox" id="pa-13"> Aufzug</label>
+  <label class="inline"><input type="checkbox" id="pa-16"> PV-Gestell</label>
+  <label class="inline"><input type="checkbox" id="pa-15"> Sonstiges: </label><input type="text" id="pa-sonst" style="max-width:260px;display:inline-block" aria-label="Sonstiges">
+</div>
+
+<div class="section-title">Stromkreise: Messen nach DIN VDE 0100-600, 6.4.3</div>
+<p class="klein nur-bildschirm">Grenzwerte werden je Zeile geprüft: Z<sub>S</sub> ≤ 2/3 · U<sub>0</sub>/I<sub>a</sub> (kalter Leiter, Anhang C), R<sub>iso</sub> ≥ Mindestwert der Prüfspannung, R<sub>PE</sub> ≤ 1 Ω (Hinweis, wenn über dem Leitungswert), RCD: I<sub>Δ</sub> zwischen 50 und 100 % von I<sub>Δn</sub>, t<sub>A</sub> ≤ 300 ms (selektiv 130–500 ms), U<sub>B</sub> ≤ U<sub>L</sub>. Werte wie „&gt;500“ sind erlaubt.</p>
+<div class="rollen"><table class="measurement-table stromkreise">
   <thead>
     <tr>
-      <th>Nr.</th>
-      <th>Bezeichnung</th>
-      <th>Typ</th>
-      <th>Aderquerschnitt mm²</th>
-      <th>Ltr</th>
-      <th>Charakteristik</th>
-      <th>Überstromschutz A</th>
-      <th>Schleifenwiderstand Zs / Ik</th>
-      <th>Isolationswiderstand MΩ</th>
-      <th>RCD Typ / IΔN</th>
-      <th>AC</th>
-      <th>DC</th>
-      <th>Berühr.- spannung V</th>
-      <th>RPE Ω</th>
-      <th>Ergebnis</th>
-      <th></th>
+      <th rowspan="2">Nr.</th><th rowspan="2">Vert.</th><th rowspan="2">Stromkreis / Ziel</th><th colspan="3">Leitung</th><th colspan="2">Schutzorgan</th>
+      <th colspan="2">Schleife</th><th colspan="2">R<sub>iso</sub> MΩ</th><th rowspan="2">R<sub>PE</sub> Ω</th><th colspan="5">Fehlerstrom-Schutzeinrichtung</th><th rowspan="2">AFDD</th><th rowspan="2">Ergebnis</th><th rowspan="2"></th>
+    </tr>
+    <tr>
+      <th>Typ</th><th>Adern × mm²</th><th>l m</th><th>Art</th><th>I<sub>n</sub> A</th><th>Z<sub>S</sub> Ω</th><th>I<sub>k</sub> A</th><th>L–PE</th><th>N–PE</th>
+      <th>Typ</th><th>I<sub>Δn</sub> mA</th><th>I<sub>Δ</sub> mA</th><th>t<sub>A</sub> ms</th><th>U<sub>B</sub> V</th>
     </tr>
   </thead>
   <tbody id="measurement-tbody"></tbody>
 </table></div>
+<div class="leiste nur-bildschirm">
+  <button onclick="addMeasurementRow()" class="btn btn-small">+ Stromkreis</button>
+  <button onclick="stromkreisKopieren()" class="btn btn-small">+ letzten Stromkreis kopieren</button>
 </div>
-<div style="display: flex; gap: 10px; margin-bottom: 15px;">
-  <button onclick="addMeasurementRow()" class="btn btn-small">+ Zeile hinzufügen</button>
-  <span style="font-size: 11px; color: var(--leise); align-self: center;">10 Zeilen vorausgefüllt - weitere mit Button</span>
-</div>
+<div id="a-auswertung" class="auswertung" aria-live="polite"></div>
 
-<!-- POTENZIALAUSGLEICH -->
-<div class="section-title">Potenzialausgleich</div>
-<div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label" colspan="4">Anschluss an Hauptpotenzialausgleichsschiene (HPAS) für:</td>
-  </tr>
-  <tr>
-    <td><label class="inline"><input type="checkbox" id="pa-1"> Fundamenterder</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-2"> Hauptwasserleitung</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-3"> Heizung</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-4"> EDV</label></td>
-  </tr>
-  <tr>
-    <td><label class="inline"><input type="checkbox" id="pa-5"> Antenne</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-6"> PA-Schiene</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-7"> Hauptschutzleiter</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-8"> Klima</label></td>
-  </tr>
-  <tr>
-    <td><label class="inline"><input type="checkbox" id="pa-9"> Telefon</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-10"> Gebäudekonstruktion</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-11"> Wasserzwischenzähler</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-12"> Gasinnenleitung</label></td>
-  </tr>
-  <tr>
-    <td><label class="inline"><input type="checkbox" id="pa-13"> Aufzug</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-14"> Blitzschutz</label></td>
-    <td><label class="inline"><input type="checkbox" id="pa-15"> Sonstiges</label></td>
-    <td><input type="text" id="pa-sonst" placeholder="Sonstiges Detail"></td>
-  </tr>
-  <tr>
-    <td class="label">Erdungswiderstand R_E (Ω):</td>
-    <td colspan="3"><input type="number" id="a-re" step="0.01"></td>
-  </tr>
-</table></div>
-
-<!-- VERWENDETE MESSGERÄTE -->
 <div class="section-title">Verwendete Messgeräte</div>
 <div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Fabrikat:</td>
-    <td><input type="text" id="a-mg-fabrikat"></td>
-    <td class="label">Typ:</td>
-    <td><input type="text" id="a-mg-typ"></td>
-    <td class="label">Seriennummer:</td>
-    <td><input type="text" id="a-mg-sn"></td>
-    <td class="label">Kalibriert bis:</td>
-    <td><input type="date" id="a-mg-kal"></td>
-  </tr>
-  <tr>
-    <td colspan="8" style="text-align: center;">
-      <button onclick="saveMeasurementDevice()" class="btn btn-small">Messgerät speichern</button>
-      <button onclick="loadMeasurementDevice()" class="btn btn-small">↓ Letztes Messgerät laden</button>
-      <span style="font-size: 11px; color: var(--leise); margin-left: 10px;">→ Geräte verwalten im Stammdaten-Tab</span>
-    </td>
-  </tr>
+  <tr><td class="label">Hersteller:</td><td><input type="text" id="a-mg-fabrikat"></td><td class="label">Typ:</td><td><input type="text" id="a-mg-typ"></td><td class="label">Seriennummer:</td><td><input type="text" id="a-mg-sn"></td><td class="label">Kalibriert bis:</td><td><input type="date" id="a-mg-kal"></td></tr>
 </table></div>
-
-<!-- PRÜFERGEBNIS -->
-<div class="section-title">Prüfergebnis</div>
-<div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Ergebnis:</td>
-    <td><label class="inline"><input id="r-a-ergebnis-1" type="radio" name="a-ergebnis"> keine Mängel</label></td>
-    <td><label class="inline"><input id="r-a-ergebnis-2" type="radio" name="a-ergebnis"> Mängel festgestellt</label></td>
-  </tr>
-  <tr>
-    <td class="label">Prüfplakette angebracht:</td>
-    <td><label class="inline"><input id="r-a-plakette-1" type="radio" name="a-plakette"> ja</label></td>
-    <td><label class="inline"><input id="r-a-plakette-2" type="radio" name="a-plakette"> nein</label></td>
-  </tr>
-  <tr>
-    <td class="label">Nächster Prüftermin:</td>
-    <td colspan="2">
-      Monat: <input type="number" id="a-naechster-monat" min="1" max="12" style="width: 60px; display: inline-block;">
-      Jahr: <input type="number" id="a-naechster-jahr" min="2025" max="2050" style="width: 80px; display: inline-block;">
-    </td>
-  </tr>
-</table></div>
-
-<!-- MÄNGEL/BEMERKUNGEN -->
-<div class="section-title">Mängel / Bemerkungen</div>
-<textarea id="a-maengel" placeholder="Festgestellte Mängel und Bemerkungen..." style="min-height: 80px;"></textarea>
-
-<!-- KONFORMITÄTSERKLÄRUNG -->
-<div class="section-title">Konformitätserklärung</div>
-<div class="kasten">
-  <p style="margin-bottom: 8px;">Die elektrische Anlage entspricht den anerkannten Regeln der Elektrotechnik und ein sicherer Gebrauch ist gewährleistet:</p>
-  <label class="inline"><input id="r-a-konform-1" type="radio" name="a-konform"> ja</label>
-  <label class="inline"><input id="r-a-konform-2" type="radio" name="a-konform"> nein</label>
+<div class="leiste nur-bildschirm">
+  <button onclick="saveMeasurementDevice()" class="btn btn-small">Messgerät speichern</button>
+  <button onclick="loadMeasurementDevice()" class="btn btn-small">↓ Gespeichertes Messgerät laden</button>
 </div>
 
-<!-- UNTERSCHRIFTEN -->
+<div class="section-title">Mängel</div>
+<div class="rollen"><table class="measurement-table maengel">
+  <thead><tr><th style="width:4%">Nr.</th><th>Mangel</th><th style="width:18%">Ort / Stromkreis</th><th style="width:16%">Einstufung</th><th style="width:13%">Frist</th><th style="width:12%">behoben am</th><th style="width:3%"></th></tr></thead>
+  <tbody id="maengel-tbody"></tbody>
+</table></div>
+<div class="leiste nur-bildschirm"><button onclick="addMangelRow()" class="btn btn-small">+ Mangel</button></div>
+<textarea id="a-maengel" placeholder="Weitere Bemerkungen, Einschränkungen der Prüfung (z. B. nicht zugängliche Bereiche)" style="min-height: 60px;" aria-label="Bemerkungen"></textarea>
+
+<div class="section-title">Prüfergebnis</div>
+<div class="rollen"><table class="form-table">
+  <tr><td class="label">Ergebnis:</td><td colspan="3"><label class="inline"><input id="r-a-ergebnis-1" type="radio" name="a-ergebnis" value="ok"> keine Mängel festgestellt</label><label class="inline"><input id="r-a-ergebnis-2" type="radio" name="a-ergebnis" value="maengel"> Mängel festgestellt – Beseitigung erforderlich</label><label class="inline"><input id="r-a-ergebnis-3" type="radio" name="a-ergebnis" value="gefahr"> Anlage darf nicht betrieben werden (Gefahr)</label></td></tr>
+  <tr><td class="label">Prüfplakette angebracht:</td><td><label class="inline"><input id="r-a-plakette-1" type="radio" name="a-plakette" value="ja"> ja</label><label class="inline"><input id="r-a-plakette-2" type="radio" name="a-plakette" value="nein"> nein</label></td><td class="label">Nächste Prüfung:</td><td><input type="date" id="a-naechste"></td></tr>
+</table></div>
+<div id="a-vorschlag" class="auswertung" aria-live="polite"></div>
+<div class="kasten" style="margin-top:6px">
+  <p style="margin: 0 0 6px;">Die elektrische Anlage entspricht den anerkannten Regeln der Elektrotechnik; ein sicherer Gebrauch ist bei bestimmungsgemäßer Verwendung gewährleistet:</p>
+  <label class="inline"><input id="r-a-konform-1" type="radio" name="a-konform" value="ja"> ja</label>
+  <label class="inline"><input id="r-a-konform-2" type="radio" name="a-konform" value="nein"> nein</label>
+  <label class="inline"><input id="r-a-konform-3" type="radio" name="a-konform" value="bedingt"> ja, nach Beseitigung der Mängel</label>
+</div>
+<div class="kasten" style="margin-top:6px">
+  <label class="inline"><input type="checkbox" id="a-uebergabe-unterlagen"> Unterlagen (Schaltpläne, Bedienungsanleitungen) übergeben</label>
+  <label class="inline"><input type="checkbox" id="a-uebergabe-einweisung"> Betreiber in die Anlage eingewiesen, Prüftaste der RCD erklärt</label>
+</div>
+
 <div class="section-title">Unterschriften</div>
 <div class="sig-section">
   <div class="sig-box">
-    <label><strong>Auftraggeber:</strong></label>
+    <label><strong>Prüfer/in (Elektrofachkraft):</strong></label>
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-      <input type="text" id="a-ort-ag" placeholder="Ort" style="flex: 1;">
-      <input type="date" id="a-datum-ag" style="flex: 1;">
-    </div>
-    <canvas id="a-sig-ag" class="signature" width="350" height="100"></canvas>
-    <div class="sig-buttons">
-      <button onclick="clearSignature('a-sig-ag')" class="btn btn-small">✕ Löschen</button>
-      <button onclick="loadSignatureToCanvas('a-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
-    </div>
-  </div>
-  <div class="sig-box">
-    <label><strong>Prüfer/in:</strong></label>
-    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-      <input type="text" id="a-ort-pruefer" placeholder="Ort" style="flex: 1;">
-      <input type="date" id="a-datum-pruefer" style="flex: 1;">
+      <input type="text" id="a-ort-pruefer" placeholder="Ort" style="flex: 1;" aria-label="Ort">
+      <input type="date" id="a-datum-pruefer" style="flex: 1;" aria-label="Datum">
     </div>
     <canvas id="a-sig-pruefer" class="signature" width="350" height="100"></canvas>
     <div class="sig-buttons">
@@ -318,183 +214,111 @@
       <button onclick="loadSignatureToCanvas('a-sig-pruefer')" class="btn btn-small">↓ Gespeicherte laden</button>
     </div>
   </div>
+  <div class="sig-box">
+    <label><strong>Auftraggeber / Betreiber:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="a-ort-ag" placeholder="Ort" style="flex: 1;" aria-label="Ort">
+      <input type="date" id="a-datum-ag" style="flex: 1;" aria-label="Datum">
+    </div>
+    <canvas id="a-sig-ag" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('a-sig-ag')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('a-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
 </div>
 
-<!-- BUTTONS -->
 <div class="button-area">
   <button onclick="exportPDF('anlage')" class="btn btn-primary">PDF drucken / speichern</button>
   <button onclick="resetForm('anlage')" class="btn">↺ Formular leeren</button>
 </div>
-
 </div>
 
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- TAB 2: GERÄT (DIN VDE 0701-0702) -->
-<!-- ════════════════════════════════════════════════════════════════════════ -->
 <div id="tab-geraet" class="tab-content">
-
+<div class="briefkopf"></div>
 <div class="form-header">
-  <h2>Prüfprotokoll - Wiederkehrende Prüfung ortsveränderlicher Elektrogeräte nach DIN VDE 0701-0702</h2>
+  <h2>Prüfprotokoll Elektrisches Gerät – Wiederholungsprüfung nach DIN EN 50699 (VDE 0702), Prüfung nach Instandsetzung nach DIN EN 50678 (VDE 0701)</h2>
 </div>
 
-<!-- KOPFDATEN GERÄT -->
 <div class="section-title">Kopfdaten</div>
 <div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Nr.:</td>
-    <td><input type="text" id="g-nr"></td>
-    <td class="label">Prüfdatum:</td>
-    <td><input type="date" id="g-datum"></td>
-  </tr>
-  <tr>
-    <td class="label">Auftraggeber:</td>
-    <td colspan="3"><input type="text" id="g-auftraggeber"></td>
-  </tr>
-  <tr>
-    <td class="label">Prüfer:</td>
-    <td colspan="3"><input type="text" id="g-pruefer"></td>
-  </tr>
+  <tr><td class="label">Protokoll-Nr.:</td><td><input type="text" id="g-nr"></td><td class="label">Prüfdatum:</td><td><input type="date" id="g-datum"></td></tr>
+  <tr><td class="label">Auftraggeber / Betreiber:</td><td><input type="text" id="g-auftraggeber"></td><td class="label">Prüfer/in:</td><td><input type="text" id="g-pruefer"></td></tr>
+  <tr><td class="label">Prüfanlass:</td><td><select id="g-anlass"><option value="wdh">Wiederholungsprüfung (DIN EN 50699 / VDE 0702)</option><option value="inst">nach Instandsetzung oder Änderung (DIN EN 50678 / VDE 0701)</option></select></td><td class="label">Prüffrist:</td><td><select id="g-intervall"><option value="12">12 Monate (Werkstätten, Richtwert DGUV)</option><option value="24">24 Monate (Büro, geringe Beanspruchung)</option><option value="6">6 Monate</option><option value="3">3 Monate (Baustellen, Richtwert)</option><option value="0">keine Angabe</option></select></td></tr>
 </table></div>
 
-<!-- GERÄTEDATEN -->
-<div class="section-title">Gerätedaten</div>
+<div class="section-title">Gerät</div>
 <div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Gerätebeschreibung:</td>
-    <td colspan="3"><input type="text" id="g-geraet"></td>
-  </tr>
-  <tr>
-    <td class="label">Hersteller:</td>
-    <td><input type="text" id="g-hersteller"></td>
-    <td class="label">Modell:</td>
-    <td><input type="text" id="g-modell"></td>
-  </tr>
-  <tr>
-    <td class="label">Inventarnummer:</td>
-    <td><input type="text" id="g-inv"></td>
-    <td class="label">Seriennummer:</td>
-    <td><input type="text" id="g-sn"></td>
-  </tr>
-  <tr>
-    <td class="label">Schutzklasse:</td>
-    <td>
-      <select id="g-sk">
-        <option>SK I</option>
-        <option>SK II</option>
-        <option>SK III</option>
-      </select>
-    </td>
-    <td class="label">Nennspannung (V):</td>
-    <td><input type="text" id="g-nsp"></td>
-  </tr>
-  <tr>
-    <td class="label">Nennleistung (W):</td>
-    <td><input type="text" id="g-leist"></td>
-    <td class="label">Nennstrom (A):</td>
-    <td><input type="text" id="g-istrom"></td>
-  </tr>
-  <tr>
-    <td class="label">Standort:</td>
-    <td colspan="3"><input type="text" id="g-standort"></td>
-  </tr>
+  <tr><td class="label">Bezeichnung:</td><td><input type="text" id="g-geraet"></td><td class="label">Geräteart:</td><td><select id="g-art"><option value="geraet">Gerät mit Netzstecker</option><option value="verl">Verlängerungsleitung, Kabeltrommel</option><option value="mehrfach">Mehrfachsteckdose</option><option value="fest">fest angeschlossenes Gerät</option><option value="lade">Ladeleitung Elektrofahrzeug (Mode 2)</option></select></td></tr>
+  <tr><td class="label">Hersteller:</td><td><input type="text" id="g-hersteller"></td><td class="label">Typ / Modell:</td><td><input type="text" id="g-modell"></td></tr>
+  <tr><td class="label">Inventarnummer:</td><td><input type="text" id="g-inv"></td><td class="label">Seriennummer:</td><td><input type="text" id="g-sn"></td></tr>
+  <tr><td class="label">Schutzklasse:</td><td><select id="g-sk"><option value="I">Schutzklasse I</option><option value="II">Schutzklasse II</option><option value="III">Schutzklasse III</option></select></td><td class="label">Nennspannung (V):</td><td><input type="text" inputmode="decimal" id="g-nsp" value="230"></td></tr>
+  <tr><td class="label">Nennleistung (W):</td><td><input type="text" inputmode="decimal" id="g-leist"></td><td class="label">davon Heizleistung (kW):</td><td><input type="text" inputmode="decimal" id="g-heiz" placeholder="0"></td></tr>
+  <tr><td class="label">Länge Anschluss-/Verlängerungsleitung (m):</td><td><input type="text" inputmode="decimal" id="g-laenge" placeholder="bis 5"></td><td class="label">Standort / Abteilung:</td><td><input type="text" id="g-standort"></td></tr>
 </table></div>
 
-<!-- SICHTPRÜFUNG -->
 <div class="section-title">Sichtprüfung</div>
-<div class="rollen"><table class="check-grid">
-  <thead>
-    <tr>
-      <th style="width: 50%;">Prüfpunkt</th>
-      <th style="width: 80px;">i.O.</th>
-      <th style="width: 80px;">n.i.O.</th>
-      <th>Bemerkung</th>
-    </tr>
-  </thead>
+<div class="rollen"><table class="check-grid pruefliste">
+  <thead><tr><th style="width:4%">Nr.</th><th>Prüfpunkt</th><th style="width:7%">i.O.</th><th style="width:7%">n.i.O.</th><th style="width:7%">entfällt</th><th style="width:24%">Bemerkung</th></tr></thead>
   <tbody>
-    <tr><td>Gehäuse (Beschädigung, Risse)</td><td class="center"><input type="checkbox" id="gs1-io"></td><td class="center"><input type="checkbox" id="gs1-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Anschlussleitung (Mantel, Knickschutz, Aderfarbe)</td><td class="center"><input type="checkbox" id="gs2-io"></td><td class="center"><input type="checkbox" id="gs2-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Zugentlastung</td><td class="center"><input type="checkbox" id="gs3-io"></td><td class="center"><input type="checkbox" id="gs3-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Stecker / Dose (Verbiegung, Verbrennungen)</td><td class="center"><input type="checkbox" id="gs4-io"></td><td class="center"><input type="checkbox" id="gs4-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Schalter / Bedienelemente</td><td class="center"><input type="checkbox" id="gs5-io"></td><td class="center"><input type="checkbox" id="gs5-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Typenschild / Kennzeichnung</td><td class="center"><input type="checkbox" id="gs6-io"></td><td class="center"><input type="checkbox" id="gs6-nio"></td><td><input type="text"></td></tr>
-    <tr><td>Lüftungsöffnungen / Reinheit</td><td class="center"><input type="checkbox" id="gs7-io"></td><td class="center"><input type="checkbox" id="gs7-nio"></td><td><input type="text"></td></tr>
+    <tr><td class="center">1</td><td>Gehäuse unbeschädigt, keine Risse, Brüche oder Verformungen</td><td class="center"><input type="radio" name="gs1" id="gs1-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs1" id="gs1-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs1" id="gs1-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs1-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">2</td><td>Anschlussleitung: Mantel unbeschädigt, kein Knick, keine Quetschung, keine Flickstellen</td><td class="center"><input type="radio" name="gs2" id="gs2-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs2" id="gs2-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs2" id="gs2-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs2-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">3</td><td>Knickschutz und Zugentlastung wirksam</td><td class="center"><input type="radio" name="gs3" id="gs3-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs3" id="gs3-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs3" id="gs3-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs3-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">4</td><td>Stecker, Kupplung, Steckdosen: unbeschädigt, keine Brandspuren, Schutzkontakt vorhanden</td><td class="center"><input type="radio" name="gs4" id="gs4-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs4" id="gs4-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs4" id="gs4-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs4-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">5</td><td>Schalter, Bedienelemente, Anzeigen funktionsfähig und unbeschädigt</td><td class="center"><input type="radio" name="gs5" id="gs5-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs5" id="gs5-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs5" id="gs5-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs5-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">6</td><td>Abdeckungen, Schutzeinrichtungen und Befestigungen vollständig</td><td class="center"><input type="radio" name="gs6" id="gs6-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs6" id="gs6-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs6" id="gs6-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs6-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">7</td><td>Sicherungen und Sicherungshalter: richtige Werte, keine Überbrückung</td><td class="center"><input type="radio" name="gs7" id="gs7-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs7" id="gs7-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs7" id="gs7-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs7-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">8</td><td>Keine Anzeichen von Überlastung oder unsachgemäßem Gebrauch</td><td class="center"><input type="radio" name="gs8" id="gs8-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs8" id="gs8-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs8" id="gs8-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs8-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">9</td><td>Keine unzulässigen Eingriffe oder Veränderungen</td><td class="center"><input type="radio" name="gs9" id="gs9-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs9" id="gs9-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs9" id="gs9-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs9-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">10</td><td>Typenschild, Aufschriften und Warnhinweise vorhanden und lesbar</td><td class="center"><input type="radio" name="gs10" id="gs10-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs10" id="gs10-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs10" id="gs10-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs10-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">11</td><td>Kühlluftöffnungen und Luftfilter frei, keine Verschmutzung</td><td class="center"><input type="radio" name="gs11" id="gs11-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs11" id="gs11-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs11" id="gs11-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs11-bem" aria-label="Bemerkung"></td></tr>
+    <tr><td class="center">12</td><td>Gerät für den Einsatzort geeignet (Schutzart, Leitungsbauart)</td><td class="center"><input type="radio" name="gs12" id="gs12-io" value="io" aria-label="in Ordnung"></td><td class="center"><input type="radio" name="gs12" id="gs12-nio" value="nio" aria-label="nicht in Ordnung"></td><td class="center"><input type="radio" name="gs12" id="gs12-na" value="na" aria-label="entfällt"></td><td><input type="text" id="gs12-bem" aria-label="Bemerkung"></td></tr>
   </tbody>
 </table></div>
+<div class="leiste nur-bildschirm"><button type="button" class="btn btn-small" onclick="alleIo('gs')">Alle offenen Punkte auf i.O.</button></div>
 
-<!-- MESSUNGEN -->
-<div class="section-title">Elektrische Messungen</div>
-<div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Schutzleiterwiderstand RPE (Ω):</td>
-    <td><input type="number" id="g-rpe" step="0.01"></td>
-    <td class="label">Grenzwert SK I:</td>
-    <td>≤ 0,3 Ω (bis 5m Leitung)</td>
-  </tr>
-  <tr>
-    <td class="label">Isolationswiderstand R-iso (MΩ):</td>
-    <td><input type="number" id="g-riso" step="0.1"></td>
-    <td class="label">Grenzwert:</td>
-    <td>SK I: ≥ 1 MΩ / SK II: ≥ 2 MΩ</td>
-  </tr>
-  <tr>
-    <td class="label">Schutzleiterstrom IPE (mA):</td>
-    <td><input type="number" id="g-ipe" step="0.1"></td>
-    <td class="label">Grenzwert:</td>
-    <td>≤ 3,5 mA (SK I)</td>
-  </tr>
-  <tr>
-    <td class="label">Berührungsstrom IBer (mA):</td>
-    <td><input type="number" id="g-iber" step="0.1"></td>
-    <td class="label">Grenzwert:</td>
-    <td>≤ 0,5 mA (SK II)</td>
-  </tr>
-  <tr>
-    <td class="label">Ersatzableitstrom (mA):</td>
-    <td><input type="number" id="g-iabl" step="0.1"></td>
-    <td class="label">Grenzwert:</td>
-    <td>SK I: ≤ 3,5 mA / SK II: ≤ 0,5 mA</td>
-  </tr>
+<div class="section-title">Messungen</div>
+<div class="rollen"><table class="form-table messwerte">
+  <tr><th>Messung</th><th>Messwert</th><th>Grenzwert</th><th>Bewertung</th></tr>
+  <tr><td class="label">Schutzleiterwiderstand R<sub>PE</sub> (Ω), 200 mA, bewegen der Leitung</td><td><input type="text" inputmode="decimal" id="g-rpe"></td><td id="g-rpe-grenze"></td><td id="g-rpe-urteil"></td></tr>
+  <tr><td class="label">Isolationswiderstand R<sub>iso</sub> (MΩ)</td><td><input type="text" inputmode="decimal" id="g-riso"></td><td id="g-riso-grenze"></td><td id="g-riso-urteil"></td></tr>
+  <tr><td class="label">Schutzleiterstrom I<sub>PE</sub> (mA)</td><td><input type="text" inputmode="decimal" id="g-ipe"></td><td id="g-ipe-grenze"></td><td id="g-ipe-urteil"></td></tr>
+  <tr><td class="label">Berührungsstrom I<sub>B</sub> (mA)</td><td><input type="text" inputmode="decimal" id="g-iber"></td><td id="g-iber-grenze"></td><td id="g-iber-urteil"></td></tr>
+  <tr><td class="label">Ersatzableitstrom I<sub>EA</sub> (mA)</td><td><input type="text" inputmode="decimal" id="g-iabl"></td><td id="g-iabl-grenze"></td><td id="g-iabl-urteil"></td></tr>
+  <tr><td class="label">Messverfahren Ableitstrom</td><td colspan="3"><select id="g-verfahren"><option value="">--</option><option value="direkt">direkt</option><option value="diff">Differenzstrom</option><option value="ersatz">Ersatzableitstrom (Gerät ohne Netzspannung)</option></select></td></tr>
+  <tr><td class="label">Polarität / Durchgang L und N (Leitungen, Mehrfachsteckdosen)</td><td colspan="3"><select id="g-polaritaet"><option value="">--</option><option value="ok">in Ordnung</option><option value="nok">vertauscht oder unterbrochen</option><option value="na">entfällt</option></select></td></tr>
+  <tr><td class="label">Fehlerstrom-Schutz im Gerät oder Ladekabel (PRCD, IC-CPD): t<sub>A</sub> bei I<sub>Δn</sub></td><td><input type="text" inputmode="decimal" id="g-trcd" placeholder="ms, wenn vorhanden"></td><td>≤ 300 ms</td><td id="g-trcd-urteil"></td></tr>
 </table></div>
+<p class="klein nur-bildschirm">Grenzwerte nach DIN EN 50699 und DIN EN 50678: R<sub>PE</sub> ≤ 0,3 Ω bis 5 m Leitung, je weitere 7,5 m + 0,1 Ω, höchstens 1 Ω. R<sub>iso</sub>: Schutzklasse I ≥ 1 MΩ (mit Heizelementen ≥ 0,3 MΩ), II ≥ 2 MΩ, III ≥ 0,25 MΩ. I<sub>PE</sub> ≤ 3,5 mA, bei Heizleistung über 3,5 kW 1 mA/kW bis 10 mA. I<sub>B</sub> ≤ 0,5 mA.</p>
 
-<!-- FUNKTIONSPRÜFUNG -->
 <div class="section-title">Funktionsprüfung</div>
 <div class="kasten">
-  <label class="inline"><input id="r-g-funktion-1" type="radio" name="g-funktion"> Funktion in Ordnung</label>
-  <label class="inline"><input id="r-g-funktion-2" type="radio" name="g-funktion"> Funktion nicht in Ordnung</label>
-  <label class="inline"><input id="r-g-funktion-3" type="radio" name="g-funktion"> Funktion nicht prüfbar</label>
+  <label class="inline"><input id="r-g-funktion-1" type="radio" name="g-funktion" value="ok"> Funktion in Ordnung</label>
+  <label class="inline"><input id="r-g-funktion-2" type="radio" name="g-funktion" value="nok"> Funktion nicht in Ordnung</label>
+  <label class="inline"><input id="r-g-funktion-3" type="radio" name="g-funktion" value="na"> nicht prüfbar</label>
+  <input type="text" id="g-funktion-bem" placeholder="geprüfte Funktionen, Sicherheitseinrichtungen" aria-label="Funktionsprüfung Bemerkung">
 </div>
 
-<!-- GESAMTERGEBNIS -->
-<div class="section-title">Gesamtergebnis</div>
+<div class="section-title">Messgerät</div>
 <div class="rollen"><table class="form-table">
-  <tr>
-    <td class="label">Ergebnis:</td>
-    <td><label class="inline"><input id="r-g-ergebnis-1" type="radio" name="g-ergebnis"> ✓ Gerät ist sicher (i.O.)</label></td>
-    <td><label class="inline"><input id="r-g-ergebnis-2" type="radio" name="g-ergebnis"> ✗ Gerät ist nicht sicher (n.i.O.)</label></td>
-  </tr>
-  <tr>
-    <td class="label">Nächster Prüftermin:</td>
-    <td colspan="2"><input type="date" id="g-naechster"></td>
-  </tr>
-  <tr>
-    <td class="label">Prüfplakette angebracht:</td>
-    <td><label class="inline"><input id="r-g-plakette-1" type="radio" name="g-plakette"> ja</label></td>
-    <td><label class="inline"><input id="r-g-plakette-2" type="radio" name="g-plakette"> nein</label></td>
-  </tr>
+  <tr><td class="label">Hersteller:</td><td><input type="text" id="g-mg-fabrikat"></td><td class="label">Typ:</td><td><input type="text" id="g-mg-typ"></td><td class="label">Seriennummer:</td><td><input type="text" id="g-mg-sn"></td><td class="label">Kalibriert bis:</td><td><input type="date" id="g-mg-kal"></td></tr>
 </table></div>
 
-<!-- BEMERKUNGEN -->
-<div class="section-title">Bemerkungen / Mängel</div>
-<textarea id="g-bemerkungen" placeholder="Mängel und Bemerkungen..." style="min-height: 80px;"></textarea>
+<div class="section-title">Ergebnis</div>
+<div id="g-vorschlag" class="auswertung" aria-live="polite"></div>
+<div class="rollen"><table class="form-table">
+  <tr><td class="label">Ergebnis:</td><td colspan="3"><label class="inline"><input id="r-g-ergebnis-1" type="radio" name="g-ergebnis" value="ok"> ✓ Gerät ist sicher (bestanden)</label><label class="inline"><input id="r-g-ergebnis-2" type="radio" name="g-ergebnis" value="nok"> ✗ Gerät ist nicht sicher – außer Betrieb nehmen und kennzeichnen</label></td></tr>
+  <tr><td class="label">Nächste Prüfung:</td><td><input type="date" id="g-naechster"></td><td class="label">Prüfplakette:</td><td><label class="inline"><input id="r-g-plakette-1" type="radio" name="g-plakette" value="ja"> angebracht</label><label class="inline"><input id="r-g-plakette-2" type="radio" name="g-plakette" value="nein"> nicht angebracht</label></td></tr>
+</table></div>
+<textarea id="g-bemerkungen" placeholder="Mängel und Bemerkungen" style="min-height: 60px;" aria-label="Bemerkungen"></textarea>
 
-<!-- UNTERSCHRIFTEN -->
 <div class="section-title">Unterschriften</div>
 <div class="sig-section">
   <div class="sig-box">
-    <label><strong>Prüfer/in:</strong></label>
+    <label><strong>Prüfer/in (Elektrofachkraft oder EuP):</strong></label>
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-      <input type="text" id="g-ort-pruefer" placeholder="Ort" style="flex: 1;">
-      <input type="date" id="g-datum-pruefer" style="flex: 1;">
+      <input type="text" id="g-ort-pruefer" placeholder="Ort" style="flex: 1;" aria-label="Ort">
+      <input type="date" id="g-datum-pruefer" style="flex: 1;" aria-label="Datum">
     </div>
     <canvas id="g-sig-pruefer" class="signature" width="350" height="100"></canvas>
     <div class="sig-buttons">
@@ -503,10 +327,10 @@
     </div>
   </div>
   <div class="sig-box">
-    <label><strong>Auftraggeber:</strong></label>
+    <label><strong>Auftraggeber / Betreiber:</strong></label>
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-      <input type="text" id="g-ort-ag" placeholder="Ort" style="flex: 1;">
-      <input type="date" id="g-datum-ag" style="flex: 1;">
+      <input type="text" id="g-ort-ag" placeholder="Ort" style="flex: 1;" aria-label="Ort">
+      <input type="date" id="g-datum-ag" style="flex: 1;" aria-label="Datum">
     </div>
     <canvas id="g-sig-ag" class="signature" width="350" height="100"></canvas>
     <div class="sig-buttons">
@@ -516,12 +340,66 @@
   </div>
 </div>
 
-<!-- BUTTONS -->
 <div class="button-area">
   <button onclick="exportPDF('geraet')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="geraetInListe()" class="btn">→ In die Geräteliste übernehmen</button>
   <button onclick="resetForm('geraet')" class="btn">↺ Formular leeren</button>
 </div>
+</div>
 
+<div id="tab-liste" class="tab-content">
+<div class="briefkopf"></div>
+<div class="form-header">
+  <h2>Geräteliste – Prüfung ortsveränderlicher Geräte nach DIN EN 50699 (VDE 0702) und DGUV Vorschrift 3</h2>
+</div>
+<div class="section-title">Kopfdaten</div>
+<div class="rollen"><table class="form-table">
+  <tr><td class="label">Auftraggeber / Betreiber:</td><td><input type="text" id="l-auftraggeber"></td><td class="label">Prüfdatum:</td><td><input type="date" id="l-datum"></td></tr>
+  <tr><td class="label">Prüfer/in:</td><td><input type="text" id="l-pruefer"></td><td class="label">Prüffrist:</td><td><select id="l-intervall"><option value="12">12 Monate</option><option value="24">24 Monate</option><option value="6">6 Monate</option><option value="3">3 Monate</option></select></td></tr>
+  <tr><td class="label">Messgerät:</td><td><input type="text" id="l-mg" placeholder="Hersteller, Typ, Seriennummer"></td><td class="label">Kalibriert bis:</td><td><input type="date" id="l-mg-kal"></td></tr>
+</table></div>
+<div class="section-title">Geräte</div>
+<p class="klein nur-bildschirm">Je Zeile ein Gerät. Grenzwerte wie im Reiter Geräteprüfung; die nächste Prüfung ergibt sich aus Prüfdatum und Frist.</p>
+<div class="rollen"><table class="measurement-table geraeteliste">
+  <thead><tr><th>Nr.</th><th>Inventar-Nr.</th><th>Bezeichnung</th><th>Standort</th><th>SK</th><th>Leitung m</th><th>Sicht</th><th>R<sub>PE</sub> Ω</th><th>R<sub>iso</sub> MΩ</th><th>I<sub>PE</sub> / I<sub>B</sub> mA</th><th>Funktion</th><th>Ergebnis</th><th>nächste Prüfung</th><th>Bemerkung</th><th></th></tr></thead>
+  <tbody id="geraete-tbody"></tbody>
+</table></div>
+<div class="leiste nur-bildschirm">
+  <button onclick="addGeraetRow()" class="btn btn-small">+ Gerät</button>
+  <button onclick="listeCsv()" class="btn btn-small">Liste als CSV (Tabellenkalkulation)</button>
+</div>
+<div id="l-auswertung" class="auswertung" aria-live="polite"></div>
+<div class="section-title">Unterschrift</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Prüfer/in:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="l-ort-pruefer" placeholder="Ort" style="flex: 1;" aria-label="Ort">
+      <input type="date" id="l-datum-pruefer" style="flex: 1;" aria-label="Datum">
+    </div>
+    <canvas id="l-sig-pruefer" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('l-sig-pruefer')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('l-sig-pruefer')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+  <div class="sig-box">
+    <label><strong>Auftraggeber / Betreiber:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="l-ort-ag" placeholder="Ort" style="flex: 1;" aria-label="Ort">
+      <input type="date" id="l-datum-ag" style="flex: 1;" aria-label="Datum">
+    </div>
+    <canvas id="l-sig-ag" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('l-sig-ag')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('l-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+</div>
+<div class="button-area">
+  <button onclick="exportPDF('liste')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="resetForm('liste')" class="btn">↺ Formular leeren</button>
+</div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
@@ -703,12 +581,13 @@
   const bewegungAus = false;
   </script>
   <script src="elektro.js"></script>
+  <script src="elektro-pruefung.js"></script>
   <script>
   // Zeilen der dynamischen Tabellen merken (basis.js speichert das versteckte Feld mit)
   (function () {
     'use strict';
-    const TABELLEN = [["measurement-tbody", "addMeasurementRow"]];
-    const feld = document.getElementById('zeilen-merken');
+    const TABELLEN = [["measurement-tbody", "addMeasurementRow"], ["maengel-tbody", "addMangelRow"], ["geraete-tbody", "addGeraetRow"]];
+    const feld = document.getElementById('zeilen-merken-2');
     function lesen() {
       const o = {};
       TABELLEN.forEach(function (t) {
