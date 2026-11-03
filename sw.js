@@ -5,7 +5,7 @@
  * Bilder, Schriften, Skripte: sofort aus dem Speicher, im Hintergrund aufgefrischt.
  * Neue Seite? Unten in DATEIEN eintragen und STAND ändern.
  */
-const STAND = '196dde06b1';
+const STAND = 'b42e7516f0';
 const SPEICHER = 'rechner-' + STAND;
 const DATEIEN = [
   "./",
@@ -33,6 +33,8 @@ const DATEIEN = [
   "assets/katex/fonts/KaTeX_Typewriter-Regular.woff2",
   "assets/katex/katex.min.css",
   "assets/katex/katex.min.js",
+  "assets/rechner.css",
+  "assets/rechner.js",
   "assets/stil.css",
   "assets/symbol-192.png",
   "assets/symbol-512.png",
@@ -49,6 +51,11 @@ const DATEIEN = [
   "elektro/transformator.html",
   "elektro/warmwasser.html",
   "favicon.png",
+  "heizung/ausdehnungsgefaess.html",
+  "heizung/fussbodenheizung.html",
+  "heizung/heizlast.html",
+  "heizung/hydraulischer-abgleich.html",
+  "heizung/waermepumpe.html",
   "manifest.webmanifest",
   "mechanik/kraefte.html",
   "sanitaer/abwasser.html",

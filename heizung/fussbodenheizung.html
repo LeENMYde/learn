@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fußbodenheizung</title>
+  <meta name="description" content="Fußbodenheizung nach DIN EN 1264: Wärmestromdichte aus Verlegeabstand, Belag und Übertemperatur, Grenze der Oberflächentemperatur, nötige Vorlauftemperatur, Heizkreise, Durchfluss und Druckverlust.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // DIN EN 1264-2, System A (Rohre im Estrich): Tabellenwerte über Verlegeabstand T (m) und Belagwiderstand R (m²K/W)
+    const TS = [0.05, 0.075, 0.1, 0.15, 0.2, 0.225, 0.3, 0.375];
+    const RS = [0, 0.05, 0.1, 0.15];
+    const A_T = [1.23, 1.188, 1.156, 1.134];
+    const A_U = [
+      [1.069, 1.066, 1.063, 1.057, 1.051, 1.048, 1.0395, 1.03],
+      [1.056, 1.053, 1.05, 1.046, 1.041, 1.038, 1.031, 1.024],
+      [1.043, 1.041, 1.039, 1.035, 1.031, 1.03, 1.024, 1.018],
+      [1.037, 1.035, 1.033, 1.03, 1.027, 1.025, 1.02, 1.015]
+    ];
+    const A_D = [
+      [1.013, 1.021, 1.029, 1.04, 1.046, 1.049, 1.053, 1.056],
+      [1.013, 1.019, 1.026, 1.035, 1.04, 1.043, 1.046, 1.048],
+      [1.012, 1.018, 1.024, 1.032, 1.035, 1.038, 1.041, 1.042],
+      [1.011, 1.016, 1.022, 1.028, 1.031, 1.034, 1.036, 1.037]
+    ];
+    function lin(xs, ys, x) {
+      if (x <= xs[0]) return ys[0];
+      for (let i = 1; i < xs.length; i++) if (x <= xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+      return ys[ys.length - 1];
+    }
+    function tab2(t, Rb, T) { return lin(RS, RS.map(function (_, i) { return lin(TS, t[i], T); }), Rb); }
+    const BELAEGE = [['0.01', 'Fliesen, Naturstein (0,01)'], ['0.05', 'Vinyl, Laminat dünn (0,05)'], ['0.08', 'Laminat mit Trittschall (0,08)'], ['0.1', 'Parkett verklebt (0,10)'], ['0.15', 'Teppich, Parkett dick (0,15)'], ['frei', 'eigener Wert']];
+
+    const BEISPIEL = { A: 24, anteil: 92, PHL: 1300, ti: 20, zone: 29, belag: '0.1', Rb: 0.1, T: 0.15, su: 45, lE: 1.2, D: 16, tV: 35, sigma: 5, Rins: 0.75, tu: 20, Lzu: 6, Lmax: 100 };
+
+    R.seite({
+      titel: 'Fußbodenheizung',
+      einleitung: 'Auslegung eines Raums nach DIN EN 1264 für Nasssysteme (Rohre im Estrich): Wärmestromdichte aus Verlegeabstand, Belag und Übertemperatur, Grenzen der Oberflächentemperatur, nötige Vorlauftemperatur, Heizkreise mit Rohrlänge, Durchfluss in l/min und Druckverlust.',
+      hilfe: 'Heizlast des Raums aus dem Heizlast-Rechner. Belagwiderstand in m²K/W, höchstens 0,15.',
+      gruppen: [
+        { titel: 'Raum', farbe: '#E4572E', felder: [
+          { k: 'A', tex: 'A', name: 'Raumfläche', e: 'm²', min: 1, max: 500 },
+          { k: 'anteil', name: 'davon belegt', e: '%', min: 30, max: 100, hilfe: 'ohne Randstreifen, Einbauschränke, Kücheninsel' },
+          { k: 'PHL', tex: '\\Phi_\\text{HL}', name: 'Heizlast des Raums', e: 'W', min: 0, max: 100000 },
+          { k: 'ti', tex: '\\theta_\\text{i}', name: 'Raumtemperatur', e: '°C', min: 10, max: 28 },
+          { k: 'zone', name: 'Bereich', wahl: [['29', 'Aufenthaltszone, max. 29 °C Oberfläche'], ['33', 'Bad, max. 33 °C (bei 24 °C Raum)'], ['35', 'Randzone, max. 35 °C']] }
+        ] },
+        { titel: 'Fußbodenaufbau', farbe: '#A0785A', felder: [
+          { k: 'belag', name: 'Bodenbelag', wahl: BELAEGE, bei: function (e, v, setze) { if (v !== 'frei') setze({ Rb: +v }); } },
+          { k: 'Rb', tex: 'R_{\\lambda,\\text{B}}', name: 'Belagwiderstand', e: 'm²K/W', min: 0, max: 0.15, bei: function (e, v, setze) { setze({ belag: BELAEGE.some(function (b) { return +b[0] === v; }) ? String(v) : 'frei' }); } },
+          { k: 'su', tex: 's_\\text{ü}', name: 'Estrich über dem Rohr', e: 'mm', min: 30, max: 100 },
+          { k: 'lE', name: 'Estrich', wahl: [['1.2', 'Zementestrich (λ = 1,2)'], ['1.4', 'Calciumsulfat-Fließestrich (λ = 1,4)']] },
+          { k: 'Rins', tex: 'R_\\text{ins}', name: 'Dämmung unter dem Rohr', e: 'm²K/W', min: 0.3, max: 5, hilfe: 'DIN EN 1264-4: 0,75 über beheiztem Raum, 1,25 über Erdreich oder unbeheizt, 2,0 über Außenluft' },
+          { k: 'tu', tex: '\\theta_\\text{u}', name: 'Temperatur darunter', e: '°C', min: -20, max: 30 }
+        ] },
+        { titel: 'Rohr und Heizkreis', farbe: '#2B7BB9', felder: [
+          { k: 'T', name: 'Verlegeabstand', wahl: [['0.05', '5 cm'], ['0.075', '7,5 cm'], ['0.1', '10 cm'], ['0.15', '15 cm'], ['0.2', '20 cm'], ['0.25', '25 cm'], ['0.3', '30 cm']] },
+          { k: 'D', name: 'Rohr', wahl: [['14', '14 × 2 mm'], ['16', '16 × 2 mm'], ['17', '17 × 2 mm'], ['20', '20 × 2 mm']] },
+          { k: 'tV', tex: '\\theta_\\text{V}', name: 'Vorlauf', e: '°C', min: 22, max: 60 },
+          { k: 'sigma', tex: '\\sigma', name: 'Spreizung', e: 'K', min: 1, max: 15 },
+          { k: 'Lzu', tex: 'L_\\text{Zu}', name: 'Zuleitung Verteiler bis Raum', e: 'm', min: 0, max: 50 },
+          { k: 'Lmax', tex: 'L_\\text{max}', name: 'größte Kreislänge', e: 'm', min: 30, max: 200 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Wärmestromdichte', 'q = K_\\text{H} \\cdot \\Delta\\theta_\\text{H}', 'DIN EN 1264-2, System A'],
+        ['Äquivalenter Wärmedurchgang', 'K_\\text{H} = B \\cdot a_\\text{B} \\cdot a_\\text{T}^{m_\\text{T}} \\cdot a_\\text{ü}^{m_\\text{ü}} \\cdot a_\\text{D}^{m_\\text{D}}', 'B = 6,7 W/(m²K) für Kunststoffrohre; m_T = 1 − T/0,075; m_ü = 100·(0,045 − s_ü); m_D = 250·(D − 0,020)'],
+        ['Estrichfaktor', 'a_\\text{B} = \\frac{1/\\alpha + s_{\\text{u},0}/\\lambda_{\\text{u},0}}{1/\\alpha + s_\\text{u}/\\lambda_\\text{E}}', 'α = 10,8 W/(m²K), s_u,0 = 0,045 m, λ_u,0 = 1 W/(mK)'],
+        ['Heizmittelübertemperatur', '\\Delta\\theta_\\text{H} = \\frac{\\theta_\\text{V} - \\theta_\\text{R}}{\\ln\\frac{\\theta_\\text{V} - \\theta_\\text{i}}{\\theta_\\text{R} - \\theta_\\text{i}}}', ''],
+        ['Grenzkurve', 'q_\\text{G} = 8{,}92 \\cdot (\\theta_\\text{F,max} - \\theta_\\text{i})^{1{,}1}', 'Basiskennlinie; 29 °C Aufenthalt ≈ 100 W/m², 35 °C Randzone ≈ 175 W/m²'],
+        ['Mittlere Oberflächentemperatur', '\\theta_\\text{F,m} = \\theta_\\text{i} + \\left(\\frac{q}{8{,}92}\\right)^{1/1{,}1}', ''],
+        ['Wärmeverlust nach unten', 'q_\\text{u} = \\frac{R_\\text{o} \\cdot q + \\theta_\\text{i} - \\theta_\\text{u}}{R_\\text{u}}', 'R_o = 1/α + R_λ,B + s_ü/λ_E, R_u = R_ins + 0,25 m²K/W (Decke, Putz, Übergang)'],
+        ['Heizwassermenge', '\\dot m = \\frac{A_\\text{F} \\cdot q}{\\sigma \\cdot c_\\text{W}} \\cdot \\left(1 + \\frac{R_\\text{o}}{R_\\text{u}} + \\frac{\\theta_\\text{i} - \\theta_\\text{u}}{q \\cdot R_\\text{u}}\\right)', 'DIN EN 1264-3'],
+        ['Rohrlänge', 'L_\\text{R} = \\frac{A_\\text{F}}{T} + 2 \\cdot L_\\text{Zu}', 'je Kreis; mehr Kreise, wenn L_R über L_max']
+      ],
+      quellen: 'DIN EN 1264-2 (Wärmeleistung, Tabellen für System A), DIN EN 1264-3 (Auslegung), DIN EN 1264-4 (Mindestdämmung). Trockensysteme und Systeme mit Wärmeleitblechen nach Prüfzeugnis des Herstellers rechnen.',
+      bild: { titel: 'Verlegeplan (Schema)', label: 'Rohrverlauf mit Temperatur vom Vorlauf zum Rücklauf', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(220, Math.min(330, B * 0.62))); }, zeichne: zeichne,
+        hinweis: function (r) { return r.kreise + ' Heizkreis' + (r.kreise > 1 ? 'e' : '') + '; Farbe = Wassertemperatur.'; } }
+    });
+
+    function kennwerte(e) {
+      const T = Math.min(0.375, e.T), su = e.su / 1000, D = e.D / 1000;
+      const aB = (1 / 10.8 + 0.045 / 1) / (1 / 10.8 + su / e.lE);
+      const aT = lin(RS, A_T, e.Rb), mT = 1 - T / 0.075;
+      const aU = tab2(A_U, e.Rb, T), mU = 100 * (0.045 - su);
+      const aD = tab2(A_D, e.Rb, T), mD = 250 * (D - 0.020);
+      const KH = 6.7 * aB * Math.pow(aT, mT) * Math.pow(aU, mU) * Math.pow(aD, mD);
+      return { aB: aB, aT: aT, mT: mT, aU: aU, mU: mU, aD: aD, mD: mD, KH: KH };
+    }
+    function dtH(tV, s, ti) { const tR = tV - s; return tR > ti ? s / Math.log((tV - ti) / (tR - ti)) : NaN; }
+    function rechne(e) {
+      const r = kennwerte(e);
+      r.AF = e.A * e.anteil / 100;
+      r.tR = e.tV - e.sigma;
+      r.dt = dtH(e.tV, e.sigma, e.ti);
+      r.q = r.KH * r.dt;
+      r.qG = 8.92 * Math.pow(e.zone - e.ti, 1.1);
+      r.tF = e.ti + Math.pow(Math.min(r.q, 400) / 8.92, 1 / 1.1);
+      r.P = r.q * r.AF;
+      r.qBed = e.PHL / r.AF;
+      // nötige Vorlauftemperatur für die Heizlast (Bisektion)
+      r.tVbed = NaN;
+      if (r.qBed > 0) {
+        let a = e.ti + e.sigma + 0.01, b = 90;
+        if (r.KH * dtH(b, e.sigma, e.ti) >= r.qBed) {
+          for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (r.KH * dtH(m, e.sigma, e.ti) < r.qBed) a = m; else b = m; }
+          r.tVbed = b;
+        }
+      }
+      r.Ro = 1 / 10.8 + e.Rb + e.su / 1000 / e.lE;
+      r.Ru = e.Rins + 0.25;
+      r.qu = (r.Ro * r.q + e.ti - e.tu) / r.Ru;
+      r.m = r.AF * r.q / (e.sigma * 4190) * (1 + r.Ro / r.Ru + (e.ti - e.tu) / (r.q * r.Ru)) * 3600;   // kg/h
+      r.LFeld = r.AF / e.T;
+      const nutz = e.Lmax - 2 * e.Lzu;
+      r.kreise = nutz > 5 ? Math.max(1, Math.ceil(r.LFeld / nutz)) : NaN;
+      r.Lk = r.LFeld / r.kreise + 2 * e.Lzu;
+      r.mk = r.m / r.kreise;
+      // Druckverlust je Kreis
+      const di = (e.D - 4) / 1000, A = Math.PI * di * di / 4, v = r.mk / 993 / 3600 / A, nu = 0.72e-6, Re = v * di / nu;
+      let lam = Re < 2320 ? 64 / Math.max(Re, 1) : 0.3164 / Math.pow(Re, 0.25);
+      r.v = v; r.Re = Re; r.lam = lam;
+      r.dp = lam / di * 993 * v * v / 2 * r.Lk * 1.1 / 100;   // mbar, 10 % Formteile
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (!(r.tR > e.ti)) { H.meldung('Rücklauf ' + z(r.tR, 1) + ' °C liegt nicht über der Raumtemperatur: Vorlauf erhöhen oder Spreizung verkleinern.', true); }
+      if (e.tV > 55) H.meldung('Über 55 °C Vorlauf: Estrich und Bodenbelag können Schaden nehmen. Sicherheitstemperaturbegrenzer vorsehen.', true);
+      if (isFinite(r.kreise) && r.v < 0.1) H.meldung('Sehr kleine Fließgeschwindigkeit (' + z(r.v, 2) + ' m/s): Luft wird schlecht ausgetragen; kleineren Rohrdurchmesser oder weniger Kreise prüfen.');
+      if (!isFinite(r.kreise)) H.meldung('Die Zuleitung ist für die größte Kreislänge zu lang.', true);
+      if (r.dp > 250) H.meldung('Über 250 mbar je Kreis: mehr Kreise vorsehen oder größeres Rohr wählen.');
+      if (r.qu > 0.3 * r.q) H.meldung('Mehr als 30 % gehen nach unten: Dämmung verstärken.');
+      const okL = r.P >= e.PHL - 0.5, okG = r.q <= r.qG + 1e-9, ok = okL && okG && r.tR > e.ti;
+      H.urteil(ok, ok ? 'deckt die Heizlast' : okG ? 'reicht nicht' : 'zu warm an der Oberfläche');
+      H.kacheln([
+        [z(r.q, 0) + ' W/m²', 'Wärmestromdichte nach oben', '#E4572E'],
+        [z(r.P, 0) + ' W', 'Leistung auf ' + z(r.AF, 1) + ' m²', okL ? '#0E6B6A' : '#C0392B'],
+        [z(r.tF, 1) + ' °C', 'mittlere Oberfläche (max. ' + e.zone + ' °C)', okG ? '#F2A541' : '#C0392B'],
+        [isFinite(r.tVbed) ? z(r.tVbed, 1) + ' °C' : '–', 'nötiger Vorlauf für ' + z(e.PHL, 0) + ' W', '#B5533C'],
+        [String(r.kreise), 'Heizkreis' + (r.kreise > 1 ? 'e' : '') + ' à ' + z(r.Lk, 0) + ' m', '#2B7BB9'],
+        [z(r.mk / 60, 2) + ' l/min', 'Durchfluss je Kreis am Verteiler', '#6E6FA6'],
+        [z(r.dp, 0) + ' mbar', 'Druckverlust je Kreis', '#6B7785']
+      ]);
+      H.nachweise([
+        [okL, 'Leistung deckt die Heizlast', z(r.P, 0) + ' W ' + (okL ? '≥ ' : '< ') + z(e.PHL, 0) + ' W (nötig ' + z(r.qBed, 0) + ' W/m²)'],
+        [okG, 'Oberflächentemperatur unter der Grenze', z(r.q, 0) + ' W/m² ' + (okG ? '≤ ' : '> ') + z(r.qG, 0) + ' W/m² (θ_F ' + z(r.tF, 1) + ' °C ≤ ' + e.zone + ' °C)'],
+        [r.Lk <= e.Lmax + 1e-9, 'Kreislänge eingehalten', z(r.Lk, 0) + ' m ≤ ' + z(e.Lmax, 0) + ' m']
+      ]);
+      // Verlegeabstände im Vergleich
+      const zeilen = [0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3].map(function (T) {
+        const k = kennwerte(Object.assign({}, e, { T: T })), q = k.KH * r.dt;
+        return [z(T * 100, 1).replace(',0', '') + ' cm', z(k.KH, 2), z(q, 0) + ' W/m²', z(q * r.AF, 0) + ' W', z(r.AF / T + 2 * e.Lzu, 0) + ' m', q <= r.qG ? (q * r.AF >= e.PHL ? 'reicht' : 'zu wenig') : 'zu warm'];
+      });
+      H.tabelle('Verlegeabstände bei ' + z(e.tV, 0) + '/' + z(r.tR, 0) + ' °C', ['Abstand', 'K_H', 'q', 'Leistung', 'Rohr gesamt', 'Bewertung'], zeilen,
+        { zahl: [1, 2, 3, 4], klasse: function (i) { return [0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3][i] === e.T ? 'gewaehlt' : ''; } });
+      H.tabelle('Heizkreise', ['Kreis', 'Länge', 'Rohr', 'Durchfluss', 'Volumenstrom', 'Δp'],
+        Array.apply(null, Array(Math.min(isFinite(r.kreise) ? r.kreise : 0, 20))).map(function (_, i) {
+          return [String(i + 1), z(r.Lk, 0) + ' m', e.D + ' × 2', z(r.mk / 60, 2) + ' l/min', z(r.mk, 0) + ' l/h', z(r.dp, 0) + ' mbar'];
+        }), { zahl: [1, 3, 4, 5], fuss: 'Verlust nach unten ' + z(r.qu, 1) + ' W/m² (' + z(r.qu * r.AF, 0) + ' W) ist im Durchfluss enthalten.' });
+    }
+    function weg(r, e) {
+      return [
+        ['Estrichfaktor', 'a_\\text{B} = \\frac{1/10{,}8 + 0{,}045}{1/10{,}8 + ' + tz(e.su / 1000, 3) + '/' + tz(e.lE, 1) + '} = ' + E(tz(r.aB, 3))],
+        ['Faktoren aus DIN EN 1264-2 für T = ' + z(e.T * 100, 1) + ' cm, R = ' + z(e.Rb, 2), 'a_\\text{T} = ' + tz(r.aT, 3) + ',\\ m_\\text{T} = ' + tz(r.mT, 3) + ',\\ a_\\text{ü} = ' + tz(r.aU, 3) + ',\\ m_\\text{ü} = ' + tz(r.mU, 2) + ',\\ a_\\text{D} = ' + tz(r.aD, 3) + ',\\ m_\\text{D} = ' + tz(r.mD, 2)],
+        ['Äquivalenter Wärmedurchgang', 'K_\\text{H} = 6{,}7 \\cdot ' + tz(r.aB, 3) + ' \\cdot ' + tz(r.aT, 3) + '^{' + tz(r.mT, 3) + '} \\cdot ' + tz(r.aU, 3) + '^{' + tz(r.mU, 2) + '} \\cdot ' + tz(r.aD, 3) + '^{' + tz(r.mD, 2) + '} = ' + E(tz(r.KH, 3) + '\\,\\tfrac{\\text{W}}{\\text{m}^2\\text{K}}')],
+        ['Heizmittelübertemperatur', '\\Delta\\theta_\\text{H} = \\frac{' + tz(e.sigma, 1) + '}{\\ln\\frac{' + tz(e.tV, 1) + ' - ' + tz(e.ti) + '}{' + tz(r.tR, 1) + ' - ' + tz(e.ti) + '}} = ' + E(tz(r.dt, 2) + '\\,\\text{K}')],
+        ['Wärmestromdichte und Leistung', 'q = ' + tz(r.KH, 3) + ' \\cdot ' + tz(r.dt, 2) + ' = ' + E(tz(r.q, 1) + '\\,\\tfrac{\\text{W}}{\\text{m}^2}') + ',\\quad \\Phi = q \\cdot A_\\text{F} = ' + E(tz(r.P, 0) + '\\,\\text{W}')],
+        ['Grenze der Oberflächentemperatur', 'q_\\text{G} = 8{,}92 \\cdot (' + e.zone + ' - ' + tz(e.ti) + ')^{1{,}1} = ' + R.EF(r.q <= r.qG)(tz(r.qG, 0) + '\\,\\tfrac{\\text{W}}{\\text{m}^2}')],
+        ['Heizwassermenge', '\\dot m = \\frac{' + tz(r.AF, 1) + ' \\cdot ' + tz(r.q, 1) + '}{' + tz(e.sigma, 1) + ' \\cdot 4190} \\cdot \\left(1 + \\frac{' + tz(r.Ro, 3) + '}{' + tz(r.Ru, 2) + '} + \\frac{' + tz(e.ti - e.tu) + '}{' + tz(r.q, 1) + ' \\cdot ' + tz(r.Ru, 2) + '}\\right) = ' + E(tz(r.m, 0) + '\\,\\tfrac{\\text{kg}}{\\text{h}}')],
+        ['Rohrlänge und Kreise', 'L = \\frac{' + tz(r.AF, 1) + '}{' + tz(e.T, 3) + '} = ' + tz(r.LFeld, 0) + '\\,\\text{m} \\Rightarrow ' + E(String(r.kreise)) + '\\text{ Kreis(e) à } ' + E(tz(r.Lk, 0) + '\\,\\text{m}')],
+        ['Druckverlust je Kreis', 'v = ' + tz(r.v, 3) + '\\,\\tfrac{\\text{m}}{\\text{s}},\\ \\lambda = ' + tz(r.lam, 4) + ',\\ \\Delta p = \\lambda \\frac{L}{d} \\frac{\\rho v^2}{2} \\cdot 1{,}1 = ' + E(tz(r.dp, 0) + '\\,\\text{mbar}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, rand = 18, w = B - 2 * rand, h = H - 2 * rand - 10;
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 2; cx.strokeRect(rand, rand, w, h);
+      const n = isFinite(r.kreise) ? Math.min(r.kreise, 8) : 1;
+      const raumB = Math.sqrt(e.A * w / h), mpp = raumB / w;        // Meter je Pixel
+      const abst = Math.max(5, e.T / mpp);
+      const tV = e.tV, tR = r.tR, ti = e.ti, faktor = Math.log(Math.max(1.0001, (tV - ti) / Math.max(0.01, tR - ti)));
+      for (let k = 0; k < n; k++) {
+        const x0 = rand + 8 + k * (w - 16) / n, bw = (w - 16) / n - 6, y0 = rand + 8, y1 = rand + h - 8;
+        const punkte = [];
+        let x = x0 + 4, oben = true;
+        while (x <= x0 + bw - 2 && punkte.length < 400) { punkte.push([x, oben ? y1 : y0]); punkte.push([x, oben ? y0 : y1]); x += abst; oben = !oben; }
+        // Länge entlang des Rohrs
+        let L = 0; const s = [0];
+        for (let i = 1; i < punkte.length; i++) { L += Math.abs(punkte[i][1] - punkte[i - 1][1]) + Math.abs(punkte[i][0] - punkte[i - 1][0]); s.push(L); }
+        cx.lineWidth = Math.max(2, Math.min(5, abst * 0.35));
+        for (let i = 1; i < punkte.length; i++) {
+          const a = s[i - 1] / Math.max(1, L), temp = ti + (tV - ti) * Math.exp(-a * faktor);
+          cx.strokeStyle = Z.waerme((temp - 18) / 30);
+          cx.beginPath(); cx.moveTo(punkte[i - 1][0], punkte[i - 1][1]); cx.lineTo(punkte[i][0], punkte[i][1]); if (i < punkte.length - 1) cx.lineTo(punkte[i][0], punkte[i][1] + (punkte[i][1] > punkte[i - 1][1] ? 0 : 0)); cx.stroke();
+          if (i < punkte.length - 1) { cx.beginPath(); cx.moveTo(punkte[i][0], punkte[i][1]); cx.lineTo(punkte[i + 1][0], punkte[i][1]); cx.stroke(); }
+        }
+        // Wasserteilchen
+        cx.fillStyle = '#FFFFFF';
+        for (let j = 0; j < 10; j++) {
+          const p = ((t * 0.00006 * (0.5 + r.v * 2) + j / 10) % 1) * L;
+          let i = 1; while (i < s.length - 1 && s[i] < p) i++;
+          const a = punkte[i - 1], b2 = punkte[i], f = (p - s[i - 1]) / Math.max(1e-6, s[i] - s[i - 1]);
+          cx.beginPath(); cx.arc(a[0] + (b2[0] - a[0]) * f, a[1] + (b2[1] - a[1]) * f, 2, 0, 2 * Math.PI); cx.fill();
+        }
+      }
+      Z.text(cx, z(e.A, 1) + ' m² · ' + z(e.T * 100, 1).replace(',0', '') + ' cm · ' + z(r.q, 0) + ' W/m² · θ_F ' + z(r.tF, 1) + ' °C', rand, H - 10, 'left', 11);
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wärmepumpe auslegen</title>
+  <meta name="description" content="Wärmepumpe nach dem Bin-Verfahren: Leistung mit Sperrzeiten und Warmwasser, Bivalenzpunkt, Heizstab-Anteil, Jahresarbeitszahl, Strombedarf, Kosten und Pufferspeicher.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Stunden je Außentemperatur im Heizbetrieb, mittleres Klima nach DIN EN 14825 (Auslegung −10 °C)
+    const BINS = [[-10, 1], [-9, 25], [-8, 23], [-7, 24], [-6, 27], [-5, 68], [-4, 91], [-3, 89], [-2, 165], [-1, 173], [0, 240], [1, 280], [2, 320], [3, 357], [4, 356], [5, 303], [6, 330], [7, 326], [8, 348], [9, 335], [10, 315], [11, 215], [12, 169], [13, 151], [14, 105], [15, 74]];
+    const GUETE = { luft: 0.45, sole: 0.52, wasser: 0.5 };
+
+    const BEISPIEL = { PHL: 8, tn: -12, tg: 15, quelle: 'luft', Pm7: 7.5, P7: 10, Pref: 9, eta: 0.45, tVd: 45, n: 4, wwTag: 1.6, sperr: 2, tmin: 6, preis: 30 };
+
+    R.seite({
+      titel: 'Wärmepumpe auslegen',
+      einleitung: 'Leistung, Bivalenzpunkt und Jahresarbeitszahl einer Wärmepumpe mit dem Temperaturklassen-Verfahren (Bin-Verfahren nach DIN EN 14825 und VDI 4650): Heizlast mit Sperrzeiten und Warmwasser, Leistungskurve der Wärmepumpe, Anteil des Heizstabs, Strombedarf, Kosten und Pufferspeicher.',
+      hilfe: 'Leistungsdaten aus dem Datenblatt bei W35 (Vorlauf 35 °C). Bei Luft: A−7 und A7, bei Sole oder Wasser: B0 bzw. W10.',
+      gruppen: [
+        { titel: 'Gebäude', farbe: '#E4572E', felder: [
+          { k: 'PHL', tex: '\\Phi_\\text{HL}', name: 'Heizlast', e: 'kW', min: 0.5, max: 500 },
+          { k: 'tn', tex: '\\theta_\\text{e}', name: 'Norm-Außentemperatur', e: '°C', min: -25, max: 0 },
+          { k: 'tg', tex: '\\theta_\\text{HG}', name: 'Heizgrenze', e: '°C', min: 8, max: 20 },
+          { k: 'tVd', tex: '\\theta_\\text{V}', name: 'Vorlauf bei Norm-Außentemperatur', e: '°C', min: 28, max: 65, hilfe: 'Fußbodenheizung 30 bis 35 °C, neue Heizkörper 45 °C, alte Heizkörper 55 °C' }
+        ] },
+        { titel: 'Warmwasser und Sperrzeiten', farbe: '#2B7BB9', felder: [
+          { k: 'n', tex: 'n_\\text{P}', name: 'Personen', e: '', min: 0, max: 200, ganz: true },
+          { k: 'wwTag', tex: 'q_\\text{WW}', name: 'Warmwasser je Person und Tag', e: 'kWh', min: 0, max: 10, hilfe: 'normal 1,5 bis 2 kWh (etwa 40 l bei 45 °C)' },
+          { k: 'sperr', tex: 't_\\text{S}', name: 'Sperrzeit des Netzbetreibers', e: 'h/Tag', min: 0, max: 8 }
+        ] },
+        { titel: 'Wärmepumpe', farbe: '#0E6B6A', felder: [
+          { k: 'quelle', name: 'Wärmequelle', wahl: [['luft', 'Außenluft'], ['sole', 'Erdreich (Sole)'], ['wasser', 'Grundwasser']], bei: function (e, v, setze) { setze({ eta: GUETE[v] }); } },
+          { k: 'Pm7', tex: 'P_{\\text{A}-7}', name: 'Heizleistung bei A−7/W35', e: 'kW', min: 0.5, max: 500, wenn: function (e) { return e.quelle === 'luft'; } },
+          { k: 'P7', tex: 'P_{\\text{A}7}', name: 'Heizleistung bei A7/W35', e: 'kW', min: 0.5, max: 500, wenn: function (e) { return e.quelle === 'luft'; } },
+          { k: 'Pref', tex: 'P_\\text{N}', name: 'Heizleistung bei B0/W35 bzw. W10/W35', e: 'kW', min: 0.5, max: 500, wenn: function (e) { return e.quelle !== 'luft'; } },
+          { k: 'eta', tex: '\\eta_\\text{C}', name: 'Gütegrad (Anteil vom Carnot-Wert)', e: '', min: 0.2, max: 0.7, hilfe: 'gute Geräte: Luft 0,42 bis 0,50, Sole 0,48 bis 0,55' },
+          { k: 'tmin', tex: 't_\\text{min}', name: 'Mindestlaufzeit', e: 'min', min: 2, max: 30 },
+          { k: 'preis', tex: 'k', name: 'Strompreis (Wärmepumpentarif)', e: 'ct/kWh', min: 1, max: 100 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Nötige Leistung', '\\dot Q_\\text{WP} = \\Phi_\\text{HL} \\cdot \\frac{24}{24 - t_\\text{S}} + n_\\text{P} \\cdot 0{,}25\\,\\text{kW}', 'Sperrzeiten werden über den Rest des Tages nachgeholt; 0,25 kW je Person für Warmwasser'],
+        ['Heizlast bei Außentemperatur θ', '\\dot Q(\\theta) = \\Phi_\\text{HL} \\cdot \\frac{\\theta_\\text{HG} - \\theta}{\\theta_\\text{HG} - \\theta_\\text{e}}', 'linear bis zur Heizgrenze'],
+        ['Heizkurve', '\\theta_\\text{V}(\\theta) = 25 + (\\theta_\\text{V,e} - 25) \\cdot \\frac{\\theta_\\text{HG} - \\theta}{\\theta_\\text{HG} - \\theta_\\text{e}}', ''],
+        ['Leistungszahl', '\\varepsilon = \\eta_\\text{C} \\cdot \\frac{T_\\text{V}}{T_\\text{V} - T_\\text{Q}}', 'Carnot-Wert mit Gütegrad (T in Kelvin); Quelle: Luft = Außentemperatur, Sole 2 °C, Grundwasser 10 °C; Luft zwischen −3 und 6 °C mit 10 % Abtauverlust'],
+        ['Bin-Verfahren', 'Q = \\sum_j \\dot Q(\\theta_j) \\cdot h_j,\\quad W_\\text{el} = \\sum_j \\left(\\frac{\\dot Q_{\\text{WP},j}}{\\varepsilon_j} + \\dot Q_{\\text{HS},j}\\right) h_j', 'h_j Stunden je Temperaturklasse (DIN EN 14825, mittleres Klima, auf θ_e verschoben); Heizstab mit ε = 1'],
+        ['Jahresarbeitszahl', '\\beta = \\frac{Q_\\text{H} + Q_\\text{WW}}{W_\\text{el}}', ''],
+        ['Pufferspeicher', 'V = \\frac{\\dot Q_\\text{WP} \\cdot t_\\text{min}}{c \\cdot \\Delta\\theta}', 'damit der Verdichter mindestens t_min läuft (Δθ = 5 K, c = 1,163 Wh/(l·K)); entfällt, wenn der Heizkreis genug Wasser hat']
+      ],
+      quellen: 'DIN EN 12831-1 (Heizlast), DIN EN 14825 (Temperaturklassen), VDI 4650 Blatt 1 (Jahresarbeitszahl), VDI 4645 (Planung). Die Rechnung ist eine Abschätzung; Herstellerprogramme mit den Messwerten des Geräts sind genauer.',
+      bild: { titel: 'Heizlast und Wärmepumpe über der Außentemperatur', label: 'Diagramm: Heizlast, Leistung der Wärmepumpe, Bivalenzpunkt und Stunden je Temperatur', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(260, Math.min(360, B * 0.62))); }, zeichne: zeichne,
+        hinweis: function () { return 'Der Zeiger fährt die Außentemperatur ab und zeigt Vorlauf und Leistungszahl.'; } }
+    });
+
+    function vorlauf(e, T) { return 25 + (e.tVd - 25) * Math.max(0, Math.min(1.3, (e.tg - T) / (e.tg - e.tn))); }
+    function leistung(e, T) {
+      const tV = vorlauf(e, T), korr = 1 - 0.006 * Math.max(0, tV - 35);
+      if (e.quelle === 'luft') return Math.max(0, (e.Pm7 + (e.P7 - e.Pm7) * (T + 7) / 14)) * korr;
+      return e.Pref * korr;
+    }
+    function quellTemp(e, T) { return e.quelle === 'luft' ? T : e.quelle === 'sole' ? 2 : 10; }
+    function cop(e, T, tV) {
+      const warm = tV + 273.15, kalt = quellTemp(e, T) + 273.15;
+      let c = e.eta * warm / Math.max(5, warm - kalt);
+      if (e.quelle === 'luft' && T >= -3 && T <= 6) c *= 0.9;
+      return Math.max(1, Math.min(9, c));
+    }
+    function last(e, T) { return Math.max(0, e.PHL * (e.tg - T) / (e.tg - e.tn)); }
+
+    function rechne(e) {
+      const r = { fehler: [], bins: [] };
+      if (e.tg <= e.tn + 2) { r.fehler.push('Die Heizgrenze muss deutlich über der Norm-Außentemperatur liegen.'); }
+      r.fS = 24 / (24 - e.sperr);
+      r.PWW = e.n * 0.25;
+      r.Perf = e.PHL * r.fS + r.PWW;
+      const d = e.tn + 10;
+      r.QH = 0; r.WH = 0; r.QHS = 0; r.QWP = 0;
+      BINS.forEach(function (b) {
+        const T = b[0] + d, h = b[1];
+        if (T >= e.tg) return;
+        const L = last(e, T) * r.fS, P = leistung(e, T), tV = vorlauf(e, T), c = cop(e, T, tV);
+        const wp = Math.min(L, P), hs = L - wp;
+        // Energie über den Tag: Last ohne Sperrzeitfaktor
+        const Lq = last(e, T), anteil = L > 0 ? wp / L : 1;
+        const Qwp = Lq * anteil * h, Qhs = Lq * (1 - anteil) * h;
+        r.bins.push({ T: T, h: h, L: L, P: P, tV: tV, c: c });
+        r.QH += Lq * h; r.QWP += Qwp; r.QHS += Qhs; r.WH += Qwp / c + Qhs;
+      });
+      r.QWW = e.n * e.wwTag * 365;
+      r.copWW = cop(e, 7, 55);
+      r.WWW = r.QWW / r.copWW;
+      r.W = r.WH + r.WWW;
+      r.JAZ = (r.QH + r.QWW) / r.W;
+      r.JAZH = r.QH / r.WH;
+      r.anteilHS = r.QHS / Math.max(1e-9, r.QH);
+      r.kosten = r.W * e.preis / 100;
+      // Bivalenzpunkt: Leistung = Last · Sperrfaktor
+      const f = function (T) { return leistung(e, T) - last(e, T) * r.fS; };
+      r.tBiv = NaN;
+      if (f(e.tn) >= 0) r.tBiv = -Infinity;
+      else if (f(e.tg) > 0) { let a = e.tn, b = e.tg; for (let i = 0; i < 50; i++) { const m = (a + b) / 2; if (f(m) < 0) a = m; else b = m; } r.tBiv = b; }
+      r.Pn = leistung(e, e.tn);
+      r.Pheizstab = Math.max(0, last(e, e.tn) * r.fS + r.PWW - r.Pn);
+      r.Pgross = e.quelle === 'luft' ? e.P7 : e.Pref;
+      r.puffer = r.Pgross * 1000 * e.tmin / 60 / (1.163 * 5);
+      r.copN = cop(e, e.tn, e.tVd);
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      r.fehler.forEach(function (t) { H.meldung(t, true); });
+      if (e.tVd > 55) H.meldung('Über 55 °C Vorlauf arbeiten die meisten Wärmepumpen schlecht. Heizkörper vergrößern oder einzelne tauschen.', true);
+      if (r.JAZ < 3) H.meldung('Jahresarbeitszahl unter 3: Vorlauftemperatur senken (größere Heizflächen) oder andere Wärmequelle prüfen.');
+      if (e.quelle === 'luft' && e.P7 > 1.6 * r.Perf) H.meldung('Bei mildem Wetter deutlich überdimensioniert: viele kurze Takte. Gerät mit kleinerer Mindestleistung oder Puffer wählen.');
+      const biv = r.tBiv === -Infinity ? 'monovalent' : isFinite(r.tBiv) ? z(r.tBiv, 1) + ' °C' : 'über Heizgrenze';
+      const ok = r.anteilHS <= 0.05 && r.JAZ >= 3;
+      H.urteil(ok, 'JAZ ' + z(r.JAZ, 2) + (ok ? ' · passt' : r.anteilHS > 0.05 ? ' · Heizstab hoch' : ' · ineffizient'));
+      H.kacheln([
+        [z(r.Perf, 1) + ' kW', 'nötige Leistung bei ' + z(e.tn, 0) + ' °C', '#E4572E'],
+        [z(r.Pn, 1) + ' kW', 'Wärmepumpe liefert bei ' + z(e.tn, 0) + ' °C', r.Pn >= r.Perf ? '#0E6B6A' : '#F2A541'],
+        [biv, 'Bivalenzpunkt', '#6E6FA6'],
+        [z(r.JAZ, 2), 'Jahresarbeitszahl (Heizen ' + z(r.JAZH, 2) + ')', ok ? '#0E6B6A' : '#C0392B'],
+        [z(r.anteilHS * 100, 1) + ' %', 'Anteil Heizstab an der Heizwärme', r.anteilHS <= 0.05 ? '#2B7BB9' : '#C0392B'],
+        [z(r.W, 0) + ' kWh', 'Strom im Jahr', '#6B7785'],
+        [z(r.kosten, 0) + ' €', 'Stromkosten im Jahr', '#B5533C'],
+        [z(r.puffer, 0) + ' l', 'Puffer für ' + z(e.tmin, 0) + ' min Laufzeit', '#A0785A']
+      ]);
+      H.nachweise([
+        [r.anteilHS <= 0.05, 'Heizstab deckt höchstens 5 % der Heizwärme', z(r.QHS, 0) + ' kWh von ' + z(r.QH, 0) + ' kWh = ' + z(r.anteilHS * 100, 1) + ' %'],
+        [r.Pheizstab <= 0.001 ? true : null, 'Heizstab bei Norm-Außentemperatur', r.Pheizstab <= 0.001 ? 'nicht nötig' : 'mindestens ' + z(r.Pheizstab, 1) + ' kW zusätzlich'],
+        [r.JAZ >= 3, 'Jahresarbeitszahl mindestens 3', z(r.JAZ, 2) + ' (Förderung verlangt je nach Programm 2,7 bis 3,0)']
+      ]);
+      H.tabelle('Jahresbilanz', ['Posten', 'Wärme', 'Strom', 'Leistungszahl'], [
+        ['Heizen mit Wärmepumpe', z(r.QWP, 0) + ' kWh', z(r.WH - r.QHS, 0) + ' kWh', z(r.QWP / Math.max(1e-9, r.WH - r.QHS), 2)],
+        ['Heizstab', z(r.QHS, 0) + ' kWh', z(r.QHS, 0) + ' kWh', '1,00'],
+        ['Warmwasser (55 °C)', z(r.QWW, 0) + ' kWh', z(r.WWW, 0) + ' kWh', z(r.copWW, 2)],
+        ['Summe', z(r.QH + r.QWW, 0) + ' kWh', z(r.W, 0) + ' kWh', z(r.JAZ, 2)]
+      ], { zahl: [1, 2, 3], klasse: function (i) { return i === 3 ? 'summe' : ''; } });
+      const ausw = r.bins.filter(function (b, i) { return i % 3 === 0 || b.T === r.bins[r.bins.length - 1].T; });
+      H.tabelle('Temperaturklassen (Auszug)', ['Außen', 'Stunden', 'Last', 'WP-Leistung', 'Vorlauf', 'COP'],
+        ausw.map(function (b) { return [z(b.T, 0) + ' °C', z(b.h, 0) + ' h', z(b.L, 2) + ' kW', z(b.P, 2) + ' kW', z(b.tV, 0) + ' °C', z(b.c, 2)]; }),
+        { zahl: [0, 1, 2, 3, 4, 5], klasse: function (i) { return ausw[i].P < ausw[i].L ? 'schlecht' : ''; } });
+    }
+    function weg(r, e) {
+      const kW = '\\,\\text{kW}', kWh = '\\,\\text{kWh}';
+      return [
+        ['Nötige Leistung mit Sperrzeit und Warmwasser', '\\dot Q_\\text{WP} = ' + tz(e.PHL, 1) + ' \\cdot \\frac{24}{24 - ' + tz(e.sperr, 1) + '} + ' + e.n + ' \\cdot 0{,}25 = ' + E(tz(r.Perf, 2) + kW)],
+        ['Leistung der Wärmepumpe bei ' + z(e.tn, 0) + ' °C', '\\dot Q(\\theta_\\text{e}) = ' + E(tz(r.Pn, 2) + kW) + (r.Pn >= r.Perf ? ' \\ge ' : ' < ') + tz(r.Perf, 2) + kW],
+        ['Bivalenzpunkt (Leistung = Last)', '\\theta_\\text{biv} = ' + E(r.tBiv === -Infinity ? '\\text{monovalent}' : isFinite(r.tBiv) ? tz(r.tBiv, 1) + '\\,{}^\\circ\\text{C}' : '–')],
+        ['Leistungszahl bei Norm-Außentemperatur', '\\varepsilon = ' + tz(e.eta, 2) + ' \\cdot \\frac{' + tz(e.tVd + 273.15, 1) + '}{' + tz(e.tVd + 273.15, 1) + ' - ' + tz(quellTemp(e, e.tn) + 273.15, 1) + '} = ' + E(tz(r.copN, 2))],
+        ['Heizwärme im Jahr (Bin-Verfahren)', 'Q_\\text{H} = \\sum \\dot Q(\\theta_j) \\cdot h_j = ' + E(tz(r.QH, 0) + kWh) + ',\\quad Q_\\text{WW} = ' + e.n + ' \\cdot ' + tz(e.wwTag, 1) + ' \\cdot 365 = ' + E(tz(r.QWW, 0) + kWh)],
+        ['Strom im Jahr', 'W_\\text{el} = ' + tz(r.WH, 0) + ' + \\frac{' + tz(r.QWW, 0) + '}{' + tz(r.copWW, 2) + '} = ' + E(tz(r.W, 0) + kWh)],
+        ['Jahresarbeitszahl', '\\beta = \\frac{' + tz(r.QH, 0) + ' + ' + tz(r.QWW, 0) + '}{' + tz(r.W, 0) + '} = ' + R.EF(r.JAZ >= 3)(tz(r.JAZ, 2))],
+        ['Pufferspeicher für Mindestlaufzeit', 'V = \\frac{' + tz(r.Pgross * 1000, 0) + '\\,\\text{W} \\cdot ' + tz(e.tmin / 60, 3) + '\\,\\text{h}}{1{,}163 \\cdot 5} = ' + E(tz(r.puffer, 0) + '\\,\\text{l}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, x0 = 44, y0 = 26, w = B - x0 - 16, h = H - y0 - 42;
+      const xa = Math.floor(e.tn - 2), xb = Math.ceil(e.tg + 2);
+      const ymax = Math.max(r.Perf, leistung(e, xb), leistung(e, xa)) * 1.15;
+      const ac = Z.achsen(cx, x0, y0, w, h, xa, xb, 0, ymax, { xSchritt: 5, ySchritt: ymax > 30 ? 10 : ymax > 12 ? 4 : 2, xName: 'Außentemperatur °C', yName: 'kW' });
+      // Stunden als Balken
+      const hmax = Math.max.apply(null, BINS.map(function (b) { return b[1]; }));
+      cx.fillStyle = R.farbe('--linie');
+      r.bins.forEach(function (b) { const bh = b.h / hmax * h * 0.45; cx.fillRect(ac.X(b.T) - 3, y0 + h - bh, 6, bh); });
+      // Heizstab-Fläche
+      cx.fillStyle = 'rgba(192,57,43,.18)'; cx.beginPath();
+      let erst = true;
+      for (let T = xa; T <= xb; T += 0.25) { const L = last(e, T) * r.fS + r.PWW, P = Math.min(L, leistung(e, T)); if (erst) { cx.moveTo(ac.X(T), ac.Y(L)); erst = false; } else cx.lineTo(ac.X(T), ac.Y(L)); }
+      for (let T = xb; T >= xa; T -= 0.25) { const L = last(e, T) * r.fS + r.PWW; cx.lineTo(ac.X(T), ac.Y(Math.min(L, leistung(e, T)))); }
+      cx.closePath(); cx.fill();
+      // Kurven
+      const kurve = function (fn, farbe, breite) { cx.strokeStyle = farbe; cx.lineWidth = breite; cx.beginPath(); for (let T = xa; T <= xb + 1e-9; T += 0.25) { const y = ac.Y(Math.min(ymax, fn(T))); if (T === xa) cx.moveTo(ac.X(T), y); else cx.lineTo(ac.X(T), y); } cx.stroke(); };
+      kurve(function (T) { return last(e, T) * r.fS + r.PWW; }, '#E4572E', 2.5);
+      kurve(function (T) { return leistung(e, T); }, '#0E6B6A', 2.5);
+      if (isFinite(r.tBiv)) {
+        const yb = ac.Y(leistung(e, r.tBiv));
+        cx.fillStyle = '#6E6FA6'; cx.beginPath(); cx.arc(ac.X(r.tBiv), yb, 6, 0, 2 * Math.PI); cx.fill();
+        Z.text(cx, 'Bivalenzpunkt ' + z(r.tBiv, 1) + ' °C', Math.min(ac.X(r.tBiv) + 10, B - 150), yb - 14, 'left', 11, true, '#6E6FA6');
+      }
+      Z.text(cx, 'Last', x0 + 6, y0 + 8, 'left', 11, true, '#E4572E');
+      Z.text(cx, 'Wärmepumpe', x0 + 46, y0 + 8, 'left', 11, true, '#0E6B6A');
+      Z.text(cx, 'Heizstab', x0 + 136, y0 + 8, 'left', 11, true, '#C0392B');
+      // Zeiger
+      const T = xa + ((Math.sin(t / 2400) + 1) / 2) * (xb - xa), xT = ac.X(T), tV = vorlauf(e, T), c = cop(e, T, tV);
+      cx.strokeStyle = R.farbe('--text'); cx.setLineDash([4, 4]); cx.lineWidth = 1; cx.beginPath(); cx.moveTo(xT, y0); cx.lineTo(xT, y0 + h); cx.stroke(); cx.setLineDash([]);
+      const txt = z(T, 1) + ' °C · Vorlauf ' + z(tV, 0) + ' °C · COP ' + z(c, 2);
+      Z.text(cx, txt, Math.min(Math.max(x0, xT - 80), B - 10 - txt.length * 6), y0 + h - 12, 'left', 11, true);
+    }
+  })();
+  </script>
+</body>
+</html>

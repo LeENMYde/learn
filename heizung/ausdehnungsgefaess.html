@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ausdehnungsgefäß und Sicherheitsventil</title>
+  <meta name="description" content="Membran-Ausdehnungsgefäß nach DIN EN 12828 und VDI 4708: Ausdehnung, Wasservorlage, Vordruck, Fülldruck, Enddruck, Nenninhalt und Normgröße, dazu Sicherheitsventil und Ausdehnungsleitung.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    const GROESSEN = [8, 12, 18, 25, 35, 50, 80, 100, 140, 200, 250, 300, 400, 500, 600, 800, 1000];
+    // Wasserinhalt je kW Heizleistung einschließlich Rohrnetz (Richtwerte)
+    const INHALT = [['14', 'Gussradiatoren (≈ 14 l/kW)'], ['9', 'Plattenheizkörper (≈ 9 l/kW)'], ['6', 'Konvektoren (≈ 6 l/kW)'], ['20', 'Fußbodenheizung (≈ 20 l/kW)']];
+    // Sicherheitsventil nach Wärmeleistung (DIN EN 12828, Ansprechdruck bis 3 bar)
+    const SV = [[50, 'DN 15 (½″)'], [100, 'DN 20 (¾″)'], [200, 'DN 25 (1″)'], [350, 'DN 32 (1¼″)'], [600, 'DN 40 (1½″)'], [900, 'DN 50 (2″)']];
+    function dichte(T) { return 1000 * (1 - (T + 288.9414) / (508929.2 * (T + 68.12963)) * Math.pow(T - 3.9863, 2)); }
+    function ausdehnung(T) { return (dichte(10) / dichte(T) - 1) * 100; }
+
+    const BEISPIEL = { art: 'schaetzen', VA: 150, Q: 15, spez: 9, puffer: 0, tmax: 70, Hst: 6, pSV: 2.5 };
+
+    R.seite({
+      titel: 'Ausdehnungsgefäß und Sicherheitsventil',
+      einleitung: 'Membran-Ausdehnungsgefäß für geschlossene Heizungsanlagen nach DIN EN 12828 und VDI 4708: Ausdehnungsvolumen, Wasservorlage, Vordruck, Fülldruck und Enddruck, Nenninhalt mit Normgröße. Dazu das passende Sicherheitsventil und die Ausdehnungsleitung.',
+      hilfe: 'Statische Höhe = Höhe vom Gefäß bis zum höchsten Punkt der Anlage. Drücke als Überdruck in bar.',
+      gruppen: [
+        { titel: 'Wasserinhalt', farbe: '#2B7BB9', felder: [
+          { k: 'art', name: 'Anlageninhalt', wahl: [['schaetzen', 'aus Leistung schätzen'], ['eingeben', 'bekannt (z. B. Wasserzähler beim Füllen)']] },
+          { k: 'VA', tex: 'V_\\text{A}', name: 'Anlageninhalt', e: 'l', min: 5, max: 100000, wenn: function (e) { return e.art === 'eingeben'; } },
+          { k: 'spez', name: 'Heizflächen', wahl: INHALT, wenn: function (e) { return e.art === 'schaetzen'; } },
+          { k: 'puffer', tex: 'V_\\text{P}', name: 'Pufferspeicher', e: 'l', min: 0, max: 50000, wenn: function (e) { return e.art === 'schaetzen'; } }
+        ] },
+        { titel: 'Anlage', farbe: '#E4572E', felder: [
+          { k: 'Q', tex: '\\dot Q', name: 'Leistung Wärmeerzeuger', e: 'kW', min: 1, max: 2000 },
+          { k: 'tmax', tex: '\\theta_\\text{max}', name: 'höchste Vorlauftemperatur', e: '°C', min: 30, max: 105, hilfe: 'Einstellung des Sicherheitstemperaturbegrenzers bzw. maximale Vorlauftemperatur' },
+          { k: 'Hst', tex: 'H_\\text{st}', name: 'statische Höhe', e: 'm', min: 0, max: 100 },
+          { k: 'pSV', tex: 'p_\\text{SV}', name: 'Ansprechdruck Sicherheitsventil', e: 'bar', min: 1, max: 10, hilfe: 'Einfamilienhaus meist 2,5 oder 3 bar' }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Ausdehnung des Wassers', 'n = \\left(\\frac{\\rho_{10}}{\\rho_{\\theta_\\text{max}}} - 1\\right) \\cdot 100\\,\\%', 'von 10 °C Fülltemperatur; 50 °C: 1,2 %, 70 °C: 2,2 %, 90 °C: 3,5 %'],
+        ['Ausdehnungsvolumen', 'V_\\text{e} = \\frac{n}{100} \\cdot V_\\text{A}', ''],
+        ['Wasservorlage', 'V_\\text{V} = \\max(0{,}005 \\cdot V_\\text{A},\\ 3\\,\\text{l})', 'gleicht Wasserverluste aus (VDI 4708)'],
+        ['Vordruck', 'p_0 = \\frac{H_\\text{st}}{10} + 0{,}2\\,\\text{bar}', 'statischer Druck plus Zuschlag gegen Unterdruck am höchsten Punkt'],
+        ['Enddruck', 'p_\\text{e} = p_\\text{SV} - \\Delta p_\\text{SV},\\quad \\Delta p_\\text{SV} = 0{,}5\\,\\text{bar}\\ (p_\\text{SV} \\le 5\\,\\text{bar}),\\ \\text{sonst } 0{,}1 \\cdot p_\\text{SV}', 'Schließdruckdifferenz des Sicherheitsventils'],
+        ['Nenninhalt', 'V_\\text{N} = (V_\\text{e} + V_\\text{V}) \\cdot \\frac{p_\\text{e} + 1}{p_\\text{e} - p_0}', 'absolute Drücke durch +1 bar (Boyle-Mariotte)'],
+        ['Fülldruck kalt', 'p_\\text{a} = \\frac{(p_0 + 1) \\cdot V_\\text{N}}{V_\\text{N} - V_\\text{V}} - 1,\\quad p_\\text{a} \\ge p_0 + 0{,}3\\,\\text{bar}', 'bei 10 °C am Manometer einstellen'],
+        ['Anlagendruck warm', 'p = \\frac{(p_0 + 1) \\cdot V_\\text{N}}{V_\\text{N} - V_\\text{W} - V_\\text{e}(\\theta)} - 1', 'V_W Wasser im Gefäß beim Füllen']
+      ],
+      quellen: 'DIN EN 12828 (Sicherheitstechnik), VDI 4708 Blatt 1 (Druckhaltung), DIN 4807-2. Der Vordruck des Gefäßes wird ohne Wasser (Gefäß abgesperrt und entleert) an der Gasseite geprüft.',
+      bild: { titel: 'Aufheizen im Zeitraffer', label: 'Ausdehnungsgefäß mit Membran und Manometer beim Aufheizen', animiert: !bewegungAus,
+        hoehe: function () { return 290; }, zeichne: zeichne,
+        hinweis: function () { return 'Die Anlage heizt von 10 °C auf die Höchsttemperatur auf und kühlt wieder ab.'; } }
+    });
+
+    function rechne(e) {
+      const r = { fehler: [] };
+      r.VA = e.art === 'eingeben' ? e.VA : e.Q * e.spez + e.puffer;
+      r.n = ausdehnung(e.tmax);
+      r.Ve = r.n / 100 * r.VA;
+      r.VV = Math.max(0.005 * r.VA, 3);
+      r.pst = e.Hst / 10;
+      r.p0 = r.pst + 0.2;
+      r.dSV = e.pSV <= 5 ? 0.5 : 0.1 * e.pSV;
+      r.pe = e.pSV - r.dSV;
+      if (r.pe <= r.p0 + 0.3) r.fehler.push('Enddruck ' + z(r.pe, 1) + ' bar liegt kaum über dem Vordruck ' + z(r.p0, 1) + ' bar: Sicherheitsventil mit höherem Ansprechdruck nötig (statische Höhe ' + z(e.Hst, 1) + ' m).');
+      r.VN = (r.Ve + r.VV) * (r.pe + 1) / (r.pe - r.p0);
+      if (!(r.VN > 0)) r.VN = NaN;
+      r.gefaess = GROESSEN.filter(function (g) { return g >= r.VN; })[0] || null;
+      const VNw = r.gefaess || r.VN;
+      r.paRech = (r.p0 + 1) * VNw / (VNw - r.VV) - 1;
+      r.pa = Math.max(r.paRech, r.p0 + 0.3);
+      r.VW = VNw * (1 - (r.p0 + 1) / (r.pa + 1));      // Wasser im Gefäß nach dem Füllen
+      r.peIst = VNw - r.VW - r.Ve > 0 ? (r.p0 + 1) * VNw / (VNw - r.VW - r.Ve) - 1 : Infinity;
+      r.VNw = VNw;
+      r.sv = SV.filter(function (s) { return e.Q <= s[0]; })[0];
+      r.ltg = e.Q <= 350 ? 'DN 20' : e.Q <= 2100 ? 'DN 25' : 'DN 32';
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      r.fehler.forEach(function (t) { H.meldung(t, true); });
+      if (!r.gefaess && isFinite(r.VN)) H.meldung('Über 1000 l: mehrere Gefäße parallel oder Druckhaltung mit Pumpe bzw. Kompressor planen.');
+      if (e.tmax > 100) H.meldung('Über 100 °C gilt eine erweiterte Sicherheitstechnik (Dampfdruckzuschlag, Sicherheitsbegrenzer).', true);
+      if (e.Q > 900) H.meldung('Über 900 kW: Sicherheitsventil nach Herstellerangabe über den Massenstrom auslegen.');
+      if (e.pSV > 3 && e.Q <= 100) H.meldung('Ansprechdruck über 3 bar: Prüfen, ob Wärmeerzeuger, Heizkörper und Armaturen dafür zugelassen sind.');
+      const ok = !r.fehler.length && isFinite(r.VN) && r.peIst <= r.pe + 1e-6;
+      H.urteil(ok, ok ? 'Gefäß ' + (r.gefaess || z(r.VN, 0)) + ' l' : 'so nicht möglich');
+      H.kacheln([
+        [r.gefaess ? r.gefaess + ' l' : z(r.VN, 0) + ' l', 'Gefäß (mind. ' + z(r.VN, 1) + ' l)', '#0E6B6A'],
+        [z(r.p0, 1) + ' bar', 'Vordruck (Gasseite) einstellen', '#6E6FA6'],
+        [z(r.pa, 1) + ' bar', 'Fülldruck kalt am Manometer', '#2B7BB9'],
+        [z(r.peIst, 2) + ' bar', 'Druck bei ' + z(e.tmax, 0) + ' °C (max. ' + z(r.pe, 1) + ')', r.peIst <= r.pe + 1e-6 ? '#E4572E' : '#C0392B'],
+        [z(r.VA, 0) + ' l', 'Anlageninhalt' + (e.art === 'schaetzen' ? ' (geschätzt)' : ''), '#6B7785'],
+        [r.sv ? r.sv[1] : 'nach Hersteller', 'Sicherheitsventil ' + z(e.pSV, 1) + ' bar', '#E4572E']
+      ]);
+      H.nachweise([
+        [r.peIst <= r.pe + 1e-6, 'Enddruck unter dem Schließdruck des Sicherheitsventils', z(r.peIst, 2) + ' bar ≤ ' + z(e.pSV, 1) + ' − ' + z(r.dSV, 1) + ' = ' + z(r.pe, 1) + ' bar'],
+        [r.pa >= r.p0 + 0.3 - 1e-9, 'Fülldruck mindestens 0,3 bar über Vordruck', z(r.pa, 2) + ' bar ≥ ' + z(r.p0 + 0.3, 2) + ' bar'],
+        [r.p0 >= r.pst + 0.2 - 1e-9, 'Vordruck deckt die statische Höhe', z(r.p0, 2) + ' bar = ' + z(r.pst, 2) + ' + 0,2 bar']
+      ]);
+      H.tabelle('Einstellung und Bauteile', ['Was', 'Wert', 'Hinweis'], [
+        ['Ausdehnungsgefäß', (r.gefaess ? r.gefaess : '> 1000') + ' l', 'zulässiger Betriebsdruck ≥ ' + z(e.pSV, 1) + ' bar'],
+        ['Vordruck p₀', z(r.p0, 1) + ' bar', 'vor dem Einbau bzw. bei abgesperrtem, entleertem Gefäß'],
+        ['Fülldruck pₐ (kalt)', z(r.pa, 1) + ' bar', 'Anlage bei etwa 10 °C so weit füllen'],
+        ['Betriebsdruck warm', z(r.peIst, 2) + ' bar', 'bei ' + z(e.tmax, 0) + ' °C'],
+        ['Sicherheitsventil', (r.sv ? r.sv[1] : 'Herstellerangabe') + ', ' + z(e.pSV, 1) + ' bar', 'Eintritt mind. diese Nennweite, Ausblaseleitung eine Nennweite größer'],
+        ['Ausdehnungsleitung', r.ltg, 'absperrbar nur mit gegen Schließen gesichertem Kappenventil, Entleerung vorsehen'],
+        ['Wasservorlage', z(r.VV, 1) + ' l', 'gleicht Verluste aus, bevor nachgefüllt werden muss']
+      ], { zahl: [1] });
+      H.tabelle('Gefäßgrößen im Vergleich', ['Gefäß', 'Fülldruck kalt', 'Druck warm', 'passt'],
+        vergleich(r).map(function (g) {
+          const pa = Math.max((r.p0 + 1) * g / (g - r.VV) - 1, r.p0 + 0.3), VW = g * (1 - (r.p0 + 1) / (pa + 1)), pe = g - VW - r.Ve > 0 ? (r.p0 + 1) * g / (g - VW - r.Ve) - 1 : Infinity;
+          return [g + ' l', z(pa, 2) + ' bar', isFinite(pe) ? z(pe, 2) + ' bar' : 'voll', pe <= r.pe + 1e-6 ? 'ja' : 'nein'];
+        }), { zahl: [1, 2], klasse: function (i) { return vergleich(r)[i] === r.gefaess ? 'gewaehlt' : ''; } });
+    }
+    function vergleich(r) {
+      return GROESSEN.filter(function (g) { return g >= r.VN * 0.6 && g <= Math.max(r.VN * 3, 12); }).slice(0, 7);
+    }
+    function weg(r, e) {
+      const L = '\\,\\text{l}', b = '\\,\\text{bar}';
+      return [
+        e.art === 'schaetzen' ? ['Anlageninhalt geschätzt', 'V_\\text{A} = ' + tz(e.Q, 1) + '\\,\\text{kW} \\cdot ' + tz(e.spez) + '\\,\\tfrac{\\text{l}}{\\text{kW}} + ' + tz(e.puffer) + L + ' = ' + E(tz(r.VA, 0) + L)] : null,
+        ['Ausdehnung von 10 auf ' + z(e.tmax, 0) + ' °C', 'n = \\left(\\frac{' + tz(dichte(10), 1) + '}{' + tz(dichte(e.tmax), 1) + '} - 1\\right) \\cdot 100\\,\\% = ' + E(tz(r.n, 2) + '\\,\\%')],
+        ['Ausdehnungsvolumen und Wasservorlage', 'V_\\text{e} = ' + tz(r.n / 100, 4) + ' \\cdot ' + tz(r.VA, 0) + ' = ' + E(tz(r.Ve, 2) + L) + ',\\quad V_\\text{V} = ' + E(tz(r.VV, 1) + L)],
+        ['Vordruck', 'p_0 = \\frac{' + tz(e.Hst, 1) + '}{10} + 0{,}2 = ' + E(tz(r.p0, 2) + b)],
+        ['Enddruck', 'p_\\text{e} = ' + tz(e.pSV, 1) + ' - ' + tz(r.dSV, 1) + ' = ' + E(tz(r.pe, 2) + b)],
+        ['Nenninhalt', 'V_\\text{N} = (' + tz(r.Ve, 2) + ' + ' + tz(r.VV, 1) + ') \\cdot \\frac{' + tz(r.pe, 2) + ' + 1}{' + tz(r.pe, 2) + ' - ' + tz(r.p0, 2) + '} = ' + E(tz(r.VN, 1) + L) + ' \\Rightarrow ' + E((r.gefaess || '>1000') + L)],
+        ['Fülldruck mit dem gewählten Gefäß', 'p_\\text{a} = \\max\\left(\\frac{' + tz(r.p0 + 1, 2) + ' \\cdot ' + tz(r.VNw, 0) + '}{' + tz(r.VNw, 0) + ' - ' + tz(r.VV, 1) + '} - 1,\\ ' + tz(r.p0 + 0.3, 2) + '\\right) = ' + E(tz(r.pa, 2) + b)],
+        ['Druck bei Höchsttemperatur', 'p = \\frac{' + tz(r.p0 + 1, 2) + ' \\cdot ' + tz(r.VNw, 0) + '}{' + tz(r.VNw, 0) + ' - ' + tz(r.VW, 2) + ' - ' + tz(r.Ve, 2) + '} - 1 = ' + R.EF(r.peIst <= r.pe + 1e-6)(tz(r.peIst, 2) + b)]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z;
+      const ph = (Math.sin(t / 1600 - Math.PI / 2) + 1) / 2;
+      const T = 10 + ph * (e.tmax - 10);
+      const Ve = ausdehnung(T) / 100 * r.VA;
+      const Vw = Math.min(r.VNw * 0.98, r.VW + Ve);
+      const p = (r.p0 + 1) * r.VNw / (r.VNw - Vw) - 1;
+      // Gefäß
+      const gx = Math.min(B * 0.28, 150), gy = H / 2 + 6, rad = Math.min(82, H * 0.3, B * 0.2);
+      cx.save(); cx.beginPath(); cx.arc(gx, gy, rad, 0, 2 * Math.PI); cx.clip();
+      const anteil = Vw / r.VNw, ym = gy + rad - anteil * 2 * rad;
+      cx.fillStyle = 'rgba(160,170,185,.35)'; cx.fillRect(gx - rad, gy - rad, 2 * rad, 2 * rad);
+      cx.fillStyle = Z.waerme((T - 10) / 80); cx.globalAlpha = 0.75; cx.fillRect(gx - rad, ym, 2 * rad, gy + rad - ym); cx.globalAlpha = 1;
+      cx.restore();
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 2.5; cx.beginPath(); cx.arc(gx, gy, rad, 0, 2 * Math.PI); cx.stroke();
+      // Membran
+      cx.strokeStyle = '#13233A'; cx.lineWidth = 3; cx.beginPath();
+      const w = Math.sqrt(Math.max(0, rad * rad - Math.pow(ym - gy, 2)));
+      cx.moveTo(gx - w, ym); cx.quadraticCurveTo(gx, ym - 10, gx + w, ym); cx.stroke();
+      Z.text(cx, 'Gas (N₂)', gx, gy - rad * 0.55, 'center', 11, true);
+      Z.text(cx, 'Wasser', gx, Math.min(gy + rad - 10, ym + 16), 'center', 11, true, '#FFFFFF');
+      // Anschluss
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 4; cx.beginPath(); cx.moveTo(gx, gy + rad); cx.lineTo(gx, H - 16); cx.lineTo(B - 20, H - 16); cx.stroke();
+      // Manometer
+      const mx = Math.max(gx + rad + 70, B * 0.68), my = H / 2 - 10, mr = Math.min(68, B * 0.16);
+      const maxP = Math.ceil(e.pSV + 1);
+      const winkel = function (v) { return Math.PI * 0.75 + Math.min(1, Math.max(0, v / maxP)) * Math.PI * 1.5; };
+      cx.fillStyle = R.farbe('--flaeche'); cx.beginPath(); cx.arc(mx, my, mr, 0, 2 * Math.PI); cx.fill();
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 2; cx.stroke();
+      cx.strokeStyle = '#C0392B'; cx.lineWidth = 6; cx.beginPath(); cx.arc(mx, my, mr - 8, winkel(e.pSV), winkel(maxP)); cx.stroke();
+      cx.strokeStyle = '#0E6B6A'; cx.beginPath(); cx.arc(mx, my, mr - 8, winkel(r.p0 + 0.3), winkel(r.pe)); cx.stroke();
+      for (let v = 0; v <= maxP; v++) {
+        const a = winkel(v);
+        Z.text(cx, String(v), mx + Math.cos(a) * (mr - 22), my + Math.sin(a) * (mr - 22), 'center', 10, false);
+      }
+      cx.strokeStyle = '#E4572E'; cx.fillStyle = '#E4572E'; cx.lineWidth = 2.5;
+      Z.pfeil(cx, mx, my, mx + Math.cos(winkel(p)) * (mr - 14), my + Math.sin(winkel(p)) * (mr - 14), 8);
+      Z.text(cx, 'bar', mx, my + mr * 0.45, 'center', 10, false);
+      Z.text(cx, z(p, 2) + ' bar', mx, my + mr + 16, 'center', 13);
+      Z.text(cx, z(T, 0) + ' °C · ' + z(Ve, 1) + ' l ausgedehnt', 14, 18, 'left', 12);
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 2; cx.beginPath(); cx.moveTo(mx, my + mr + 28); cx.lineTo(mx, H - 16); cx.stroke();
+    }
+  })();
+  </script>
+</body>
+</html>

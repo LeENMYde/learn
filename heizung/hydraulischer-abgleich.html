@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hydraulischer Abgleich</title>
+  <meta name="description" content="Hydraulischer Abgleich nach Verfahren B: Volumenstrom je Heizkörper, Druckverlust, kv-Wert und Voreinstellung der Thermostatventile, Förderhöhe und Förderstrom der Pumpe.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Voreinstellungen typischer Thermostatventile: kv-Wert (m³/h) je Stufe bei 2 K Proportionalbereich
+    const VENTILE = {
+      a: { name: 'Ventil mit Stufen 1 bis 6 und N', stufen: [['1', 0.05], ['2', 0.09], ['3', 0.14], ['4', 0.20], ['5', 0.30], ['6', 0.45], ['N', 0.65]] },
+      b: { name: 'Ventil mit feiner Voreinstellung 1 bis 8', stufen: [['1', 0.025], ['2', 0.05], ['3', 0.08], ['4', 0.12], ['5', 0.17], ['6', 0.23], ['7', 0.31], ['8', 0.42]] },
+      c: { name: 'Rücklaufverschraubung, 6 Umdrehungen', stufen: [['0,5', 0.04], ['1', 0.09], ['1,5', 0.15], ['2', 0.22], ['3', 0.38], ['4', 0.55], ['6', 0.85]] }
+    };
+    // Rohre: Innendurchmesser in mm
+    const ROHRE = {
+      cu: [['12 × 1', 10], ['15 × 1', 13], ['18 × 1', 16], ['22 × 1', 20], ['28 × 1,5', 25], ['35 × 1,5', 32]],
+      mv: [['16 × 2', 12], ['20 × 2', 16], ['26 × 3', 20], ['32 × 3', 26], ['40 × 3,5', 33]],
+      st: [['DN 10 (⅜″)', 12.5], ['DN 15 (½″)', 16], ['DN 20 (¾″)', 21.6], ['DN 25 (1″)', 27.2], ['DN 32 (1¼″)', 35.9]]
+    };
+    // Rohrreibung (Pa/m) für Wasser 60 °C nach Darcy-Weisbach, Rauheit 0,0015 mm (glatt) bzw. 0,045 mm (Stahl)
+    function reibung(Vlh, di, k) {
+      const d = di / 1000, A = Math.PI * d * d / 4, v = Vlh / 3600000 / A, nu = 0.475e-6, rho = 983;
+      const Re = v * d / nu;
+      let lam;
+      if (Re < 1e-9) return { R: 0, v: 0 };
+      if (Re < 2320) lam = 64 / Re;
+      else { lam = 0.02; for (let i = 0; i < 30; i++) lam = Math.pow(-2 * Math.log10(2.51 / (Re * Math.sqrt(lam)) + k / 1000 / d / 3.71), -2); }
+      return { R: lam / d * rho * v * v / 2, v: v };
+    }
+    function hk(name, P, L) { return { name: name, P: P, L: L }; }
+    const BEISPIEL = {
+      tV: 55, tR: 45, Rz: 100, Zu: 30, dpWE: 50, dpVmin: 80, ventil: 'a', rohr: 'cu',
+      hks: [hk('Wohnen 1', 900, 6), hk('Wohnen 2', 800, 9), hk('Küche', 750, 12), hk('Bad', 680, 15), hk('Schlafen', 790, 18), hk('Kind', 660, 21)]
+    };
+
+    R.seite({
+      titel: 'Hydraulischer Abgleich',
+      einleitung: 'Abgleich nach Verfahren B (VdZ-Fachregel): Volumenstrom je Heizkörper aus Heizlast und Spreizung, Druckverlust des Weges, Ventil-kv und Voreinstellung, Förderhöhe und Förderstrom der Pumpe. Ohne Abgleich bekommen nahe Heizkörper zu viel und ferne zu wenig Wasser.',
+      hilfe: 'Heizleistung je Heizkörper aus der Heizlast des Raums. Länge = einfacher Weg vom Wärmeerzeuger bis zum Heizkörper.',
+      gruppen: [
+        { titel: 'Anlage', farbe: '#E4572E', felder: [
+          { k: 'tV', tex: '\\theta_\\text{V}', name: 'Vorlauf', e: '°C', min: 25, max: 90 },
+          { k: 'tR', tex: '\\theta_\\text{R}', name: 'Rücklauf', e: '°C', min: 20, max: 85 },
+          { k: 'Rz', tex: 'R', name: 'Rohrreibung (Richtwert)', e: 'Pa/m', min: 20, max: 400, hilfe: 'Üblich 60 bis 150 Pa/m; die Rohrempfehlung richtet sich danach' },
+          { k: 'Zu', tex: 'Z', name: 'Zuschlag Formteile', e: '%', min: 0, max: 200 },
+          { k: 'dpWE', tex: '\\Delta p_\\text{WE}', name: 'Wärmeerzeuger, Verteiler', e: 'mbar', min: 0, max: 1000 },
+          { k: 'dpVmin', tex: '\\Delta p_\\text{V,min}', name: 'Ventil am ungünstigsten Heizkörper', e: 'mbar', min: 10, max: 300, hilfe: 'Für gute Ventilautorität 50 bis 100 mbar' }
+        ] },
+        { titel: 'Bauteile', farbe: '#6B7785', felder: [
+          { k: 'ventil', name: 'Ventilkennlinie', wahl: Object.keys(VENTILE).map(function (k) { return [k, VENTILE[k].name]; }) },
+          { k: 'rohr', name: 'Rohrwerkstoff', wahl: [['cu', 'Kupfer'], ['mv', 'Mehrschichtverbund'], ['st', 'Stahl (Gewinderohr)']] }
+        ] },
+        { titel: 'Heizkörper', farbe: '#2B7BB9', liste: { k: 'hks', zeile: 'Heizkörper', max: 30,
+          neu: function (i) { return hk('Heizkörper ' + (i + 1), 800, 10 + 3 * i); },
+          spalten: [
+            { k: 'name', name: 'Raum', text: true, breit: true },
+            { k: 'P', name: 'Leistung', e: 'W', min: 50, max: 50000 }, { k: 'L', name: 'Weg', e: 'm', min: 0.5, max: 500 }
+          ] } }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Volumenstrom', '\\dot V = \\frac{\\Phi}{1{,}163 \\cdot \\sigma}\\ \\text{in l/h}', 'σ = θ_V − θ_R Spreizung; 1,163 Wh/(l·K)'],
+        ['Druckverlust des Weges', '\\Delta p_\\text{L} = 2 \\cdot L \\cdot R \\cdot (1 + Z)', 'Vor- und Rücklauf; Z pauschal für Bögen, T-Stücke, Verschraubungen'],
+        ['Förderdruck der Pumpe', '\\Delta p_\\text{P} = \\Delta p_\\text{L,max} + \\Delta p_\\text{V,min} + \\Delta p_\\text{WE}', 'ungünstigster Heizkörper mit dem Mindestdruck am Ventil'],
+        ['Drosseldruck am Ventil', '\\Delta p_{\\text{V},i} = \\Delta p_\\text{P} - \\Delta p_\\text{WE} - \\Delta p_{\\text{L},i}', 'alles, was der Weg nicht verbraucht, muss das Ventil abbauen'],
+        ['kv-Wert', 'k_\\text{v} = \\frac{\\dot V}{\\sqrt{\\Delta p_\\text{V}}}\\quad \\dot V \\text{ in m}^3/\\text{h},\\ \\Delta p \\text{ in bar}', 'Voreinstellung aus der Ventilkennlinie, zwischen den Stufen linear'],
+        ['Förderhöhe', 'H = \\frac{\\Delta p_\\text{P}}{\\rho \\cdot g} \\approx \\frac{\\Delta p_\\text{P}}{9{,}81\\,\\text{kPa/m}}', 'Pumpe auf Δp konstant mit dieser Förderhöhe einstellen'],
+        ['Rohrreibung', 'R = \\frac{\\lambda}{d} \\cdot \\frac{\\rho \\, v^2}{2},\\quad \\frac{1}{\\sqrt\\lambda} = -2 \\lg\\left(\\frac{2{,}51}{Re\\sqrt\\lambda} + \\frac{k}{3{,}71\\,d}\\right)', 'Wasser 60 °C; Anbindeleitung: kleinstes Rohr mit R ≤ Richtwert und v ≤ 0,5 m/s']
+      ],
+      quellen: 'Vorgehen nach VdZ-Fachregel „Optimierung von Heizungsanlagen im Bestand“ (Verfahren B) und DIN EN 14336. Ventilkennlinien sind typische Werte – für das eingebaute Ventil die Herstellertabelle verwenden.',
+      bild: { titel: 'Anlagenschema', label: 'Schema: Wärmeerzeuger, Vor- und Rücklauf, Heizkörper mit Ventilstufe', animiert: !bewegungAus,
+        hoehe: function (B, e) { return B < 520 ? 300 : 280; }, zeichne: zeichne,
+        hinweis: function () { return 'Punkte zeigen den Volumenstrom je Heizkörper.'; } }
+    });
+
+    function stufe(kv, ventil) {
+      const s = VENTILE[ventil].stufen;
+      if (kv <= s[0][1]) return { text: s[0][0], grenze: kv < s[0][1] * 0.95 ? 'unten' : '' };
+      for (let i = 1; i < s.length; i++) if (kv <= s[i][1]) {
+        const a = s[i - 1], b = s[i], f = (kv - a[1]) / (b[1] - a[1]);
+        const an = parseFloat(a[0].replace(',', '.')), bn = parseFloat(b[0].replace(',', '.'));
+        if (isFinite(an) && isFinite(bn)) return { text: z(Math.round((an + (bn - an) * f) * 2) / 2, 1).replace(',0', ''), grenze: '' };
+        return { text: f < 0.5 ? a[0] : b[0], grenze: '' };
+      }
+      return { text: s[s.length - 1][0], grenze: 'oben' };
+    }
+    function rechne(e) {
+      const r = { hks: [], sigma: e.tV - e.tR, fehler: [] };
+      if (r.sigma <= 0) { r.fehler.push('Der Rücklauf muss kälter sein als der Vorlauf.'); r.sigma = NaN; }
+      const kRau = e.rohr === 'st' ? 0.045 : 0.0015;
+      e.hks.forEach(function (h) {
+        const V = h.P / (1.163 * r.sigma);
+        const dpL = 2 * h.L * e.Rz * (1 + e.Zu / 100) / 100;
+        let rohr = null;
+        ROHRE[e.rohr].some(function (x) { const f = reibung(V, x[1], kRau); if (f.R <= e.Rz && f.v <= 0.5) { rohr = { n: x[0], R: f.R, v: f.v }; return true; } return false; });
+        if (!rohr) { const x = ROHRE[e.rohr][ROHRE[e.rohr].length - 1], f = reibung(V, x[1], kRau); rohr = { n: x[0] + ' (zu klein)', R: f.R, v: f.v }; }
+        r.hks.push({ h: h, V: V, dpL: dpL, rohr: rohr });
+      });
+      r.max = r.hks.reduce(function (m, x) { return x.dpL > m.dpL ? x : m; }, r.hks[0]);
+      r.dpP = r.max.dpL + e.dpVmin + e.dpWE;
+      r.Vges = 0; r.Pges = 0;
+      r.hks.forEach(function (x) {
+        x.dpV = r.dpP - e.dpWE - x.dpL;
+        x.kv = (x.V / 1000) / Math.sqrt(x.dpV / 1000);
+        x.st = stufe(x.kv, e.ventil);
+        r.Vges += x.V; r.Pges += x.h.P;
+      });
+      r.H = r.dpP * 100 / (983 * 9.81);
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      r.fehler.forEach(function (t) { H.meldung(t, true); });
+      const unten = r.hks.filter(function (x) { return x.st.grenze === 'unten'; }), oben = r.hks.filter(function (x) { return x.st.grenze === 'oben'; });
+      const laut = r.hks.filter(function (x) { return x.dpV > 200; });
+      if (unten.length) H.meldung('Kleinste Stufe reicht nicht für: ' + unten.map(function (x) { return x.h.name; }).join(', ') + '. Ventil mit feinerer Voreinstellung oder Differenzdruckregler im Strang einbauen.');
+      if (oben.length) H.meldung('Ventil ganz offen und trotzdem zu wenig: ' + oben.map(function (x) { return x.h.name; }).join(', ') + '. Größere Ventile, kürzere Wege oder mehr Förderdruck.', true);
+      if (laut.length) H.meldung('Über 200 mbar am Ventil (' + laut.map(function (x) { return x.h.name; }).join(', ') + '): Fließgeräusche möglich. Differenzdruckregler oder Strangregulierventil vorsehen.');
+      if (r.sigma < 5 && isFinite(r.sigma)) H.meldung('Unter 5 K Spreizung werden Volumenströme und Pumpe groß. Bei Wärmepumpen sind 5 bis 7 K üblich, bei Kesseln 10 bis 20 K.');
+      const ok = !r.fehler.length && !oben.length;
+      H.urteil(ok, ok ? 'Abgleich möglich' : 'nicht abgleichbar');
+      H.kacheln([
+        [z(r.Pges / 1000, 2) + ' kW', r.hks.length + ' Heizkörper', '#E4572E'],
+        [z(r.Vges, 0) + ' l/h', 'Förderstrom der Pumpe', '#2B7BB9'],
+        [z(r.dpP, 0) + ' mbar', 'Förderdruck', '#6E6FA6'],
+        [z(r.H, 2) + ' m', 'Förderhöhe (Δp konstant)', '#0E6B6A'],
+        [r.max.h.name, 'ungünstigster Heizkörper', '#6B7785']
+      ]);
+      H.tabelle('Einstellwerte je Heizkörper', ['Heizkörper', 'Leistung', 'V̇', 'Δp Weg', 'Δp Ventil', 'kv', 'Stufe', 'Anbindung'],
+        r.hks.map(function (x) {
+          return [x.h.name, z(x.h.P, 0) + ' W', z(x.V, 0) + ' l/h', z(x.dpL, 0) + ' mbar', z(x.dpV, 0) + ' mbar', z(x.kv, 3), x.st.text + (x.st.grenze === 'unten' ? ' (zu groß)' : x.st.grenze === 'oben' ? ' (zu klein)' : ''), x.rohr.n];
+        }),
+        { zahl: [1, 2, 3, 4, 5, 6], klasse: function (i) { const x = r.hks[i]; return x.st.grenze === 'oben' ? 'schlecht' : x === r.max ? 'gewaehlt' : ''; },
+          fuss: 'Grün: ungünstigster Heizkörper, sein Ventil bekommt den Mindestdruck. Stufe aus der gewählten Kennlinie (' + VENTILE[e.ventil].name + '), Halbstufen gerundet.' });
+      H.tabelle('Pumpe einstellen', ['Größe', 'Wert'], [
+        ['Regelart', 'Δp konstant (bei Heizkörpern), Δp variabel nur mit Strangregulierung'],
+        ['Förderhöhe', z(r.H, 2) + ' m (' + z(r.dpP, 0) + ' mbar)'],
+        ['Förderstrom', z(r.Vges / 1000, 3) + ' m³/h'],
+        ['Kontrolle nach Einstellung', 'Rücklauftemperaturen gleichmäßig, etwa ' + z(e.tR, 0) + ' °C an jedem Heizkörper']
+      ], {});
+    }
+    function weg(r, e) {
+      const x = r.max, y = r.hks[0];
+      return [
+        ['Volumenstrom „' + y.h.name + '“', '\\dot V = \\frac{' + tz(y.h.P) + '}{1{,}163 \\cdot ' + tz(r.sigma, 1) + '} = ' + E(tz(y.V, 1) + '\\,\\tfrac{\\text{l}}{\\text{h}}')],
+        ['Druckverlust des Weges „' + y.h.name + '“', '\\Delta p_\\text{L} = 2 \\cdot ' + tz(y.h.L, 1) + ' \\cdot ' + tz(e.Rz) + ' \\cdot ' + tz(1 + e.Zu / 100, 2) + ' = ' + E(tz(y.dpL * 100, 0) + '\\,\\text{Pa} = ' + tz(y.dpL, 1) + '\\,\\text{mbar}')],
+        ['Ungünstigster Weg: „' + x.h.name + '“', '\\Delta p_\\text{L,max} = ' + E(tz(x.dpL, 1) + '\\,\\text{mbar}')],
+        ['Förderdruck der Pumpe', '\\Delta p_\\text{P} = ' + tz(x.dpL, 1) + ' + ' + tz(e.dpVmin) + ' + ' + tz(e.dpWE) + ' = ' + E(tz(r.dpP, 1) + '\\,\\text{mbar}') + ' \\;\\hat=\\; ' + E(tz(r.H, 2) + '\\,\\text{m}')],
+        ['Drosseldruck am Ventil „' + y.h.name + '“', '\\Delta p_\\text{V} = ' + tz(r.dpP, 1) + ' - ' + tz(e.dpWE) + ' - ' + tz(y.dpL, 1) + ' = ' + E(tz(y.dpV, 1) + '\\,\\text{mbar}')],
+        ['kv-Wert und Voreinstellung', 'k_\\text{v} = \\frac{' + tz(y.V / 1000, 4) + '}{\\sqrt{' + tz(y.dpV / 1000, 4) + '}} = ' + E(tz(y.kv, 3) + '\\,\\tfrac{\\text{m}^3}{\\text{h}}') + '\\ \\Rightarrow\\ \\text{Stufe } ' + E(y.st.text.replace(',', '{,}'))],
+        ['Förderstrom', '\\dot V_\\text{ges} = \\sum \\dot V = ' + E(tz(r.Vges, 0) + '\\,\\tfrac{\\text{l}}{\\text{h}}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, n = r.hks.length, x0 = 70, x1 = B - 16, yV = H - 70, yR = H - 40;
+      const rot = '#E4572E', blau = '#2B7BB9';
+      // Wärmeerzeuger
+      cx.fillStyle = R.farbe('--flaeche'); cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1.5;
+      cx.fillRect(10, yV - 30, 44, yR - yV + 50); cx.strokeRect(10, yV - 30, 44, yR - yV + 50);
+      Z.text(cx, 'WE', 32, yV - 12, 'center', 11);
+      Z.text(cx, z(r.H, 1) + ' m', 32, yR + 10, 'center', 10, false);
+      const dx = (x1 - x0) / Math.max(1, n);
+      cx.lineWidth = 3;
+      cx.strokeStyle = rot; cx.beginPath(); cx.moveTo(54, yV); cx.lineTo(x0 + dx * (n - 0.5), yV); cx.stroke();
+      cx.strokeStyle = blau; cx.beginPath(); cx.moveTo(54, yR); cx.lineTo(x0 + dx * (n - 0.5) + 8, yR); cx.stroke();
+      const vmax = Math.max.apply(null, r.hks.map(function (x) { return x.V; }).concat([1]));
+      const breit = Math.min(46, dx * 0.7), oben = 40;
+      r.hks.forEach(function (x, i) {
+        const xm = x0 + dx * (i + 0.5);
+        // Anbindung
+        cx.lineWidth = 2; cx.strokeStyle = rot; cx.beginPath(); cx.moveTo(xm - breit / 2 + 4, yV); cx.lineTo(xm - breit / 2 + 4, oben + 50); cx.stroke();
+        cx.strokeStyle = blau; cx.beginPath(); cx.moveTo(xm + breit / 2 - 4, oben + 60); cx.lineTo(xm + breit / 2 - 4, yR); cx.stroke();
+        // Heizkörper
+        cx.fillStyle = Z.waerme(0.65); cx.globalAlpha = 0.85; cx.fillRect(xm - breit / 2, oben, breit, 60); cx.globalAlpha = 1;
+        cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1; cx.strokeRect(xm - breit / 2, oben, breit, 60);
+        for (let j = 1; j < 4; j++) { cx.beginPath(); cx.moveTo(xm - breit / 2 + j * breit / 4, oben + 4); cx.lineTo(xm - breit / 2 + j * breit / 4, oben + 56); cx.stroke(); }
+        // Ventil mit Stufe
+        cx.fillStyle = x === r.max ? '#0E6B6A' : R.farbe('--text');
+        cx.beginPath(); cx.arc(xm - breit / 2 + 4, oben + 70, 7, 0, 2 * Math.PI); cx.fill();
+        Z.text(cx, x.st.text, xm - breit / 2 + 4, oben + 70, 'center', 9, true, R.farbe('--flaeche'));
+        // Fluss: Punkte, Tempo nach Volumenstrom
+        const v = x.V / vmax;
+        cx.fillStyle = rot;
+        for (let j = 0; j < 4; j++) {
+          const p = ((t * 0.0004 * (0.3 + v) + j / 4) % 1);
+          cx.beginPath(); cx.arc(xm - breit / 2 + 4, yV - p * (yV - oben - 78), 2.6, 0, 2 * Math.PI); cx.fill();
+        }
+        Z.text(cx, x.h.name.slice(0, Math.max(4, Math.floor(dx / 7))), xm, oben - 22, 'center', 10, false);
+        Z.text(cx, z(x.V, 0) + ' l/h', xm, oben - 9, 'center', 10);
+      });
+      // Fluss in den Hauptleitungen
+      cx.fillStyle = rot;
+      for (let j = 0; j < 12; j++) { const p = (t * 0.00012 + j / 12) % 1; cx.beginPath(); cx.arc(54 + p * (x0 + dx * (n - 0.5) - 54), yV, 2.4, 0, 2 * Math.PI); cx.fill(); }
+      cx.fillStyle = blau;
+      for (let j = 0; j < 12; j++) { const p = (t * 0.00012 + j / 12) % 1; cx.beginPath(); cx.arc(x0 + dx * (n - 0.5) + 8 - p * (x0 + dx * (n - 0.5) + 8 - 54), yR, 2.4, 0, 2 * Math.PI); cx.fill(); }
+      Z.text(cx, 'Vorlauf ' + z(e.tV, 0) + ' °C', x0, yV - 10, 'left', 10, false, rot);
+      Z.text(cx, 'Rücklauf ' + z(e.tR, 0) + ' °C', x0, yR + 14, 'left', 10, false, blau);
+    }
+  })();
+  </script>
+</body>
+</html>

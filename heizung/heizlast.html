@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Heizlast und Heizkörper</title>
+  <meta name="description" content="Raumweise Heizlast nach DIN EN 12831-1 im vereinfachten Verfahren: Transmission, Lüftung, Aufheizen, nötige Heizkörper-Normleistung und Volumenstrom für den hydraulischen Abgleich.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Raumarten: Norm-Innentemperatur (DIN/TS 12831-1) und Mindestluftwechsel
+    const ARTEN = {
+      wohnen: ['Wohnen', 20, 0.5], schlafen: ['Schlafen', 20, 0.5], kind: ['Kinderzimmer', 20, 0.5], kueche: ['Küche', 20, 1.0],
+      bad: ['Bad', 24, 1.5], wc: ['WC', 20, 1.0], flur: ['Flur, Diele', 15, 0.5], buero: ['Arbeiten', 20, 0.5], hobby: ['Hobby, Keller beheizt', 18, 0.5]
+    };
+    const ARTWAHL = Object.keys(ARTEN).map(function (k) { return [k, ARTEN[k][0] + ' ' + ARTEN[k][1] + ' °C']; });
+    // U-Werte nach Baualter (typische Werte, W/(m²·K)): Wand, Fenster, Dach/oberste Decke, Boden
+    const BAUALTER = {
+      alt: [1.4, 2.8, 0.9, 1.0], b78: [0.8, 2.7, 0.5, 0.8], b95: [0.5, 1.8, 0.3, 0.5], b02: [0.3, 1.3, 0.2, 0.35], neu: [0.24, 1.1, 0.16, 0.3]
+    };
+    const ORTE = [['-10', 'Hamburg, Köln, Freiburg ≈ −10 °C'], ['-12', 'Frankfurt, Stuttgart, Hannover ≈ −12 °C'], ['-14', 'Berlin, Dresden, Nürnberg ≈ −14 °C'], ['-16', 'München, Augsburg ≈ −16 °C'], ['-18', 'Alpenrand, Erzgebirge ≈ −18 °C'], ['frei', 'eigener Wert']];
+
+    function raum(name, art, A, h, AW, AF, AD, AB) { return { name: name, art: art, A: A, h: h, AW: AW, AF: AF, AD: AD, AB: AB }; }
+    const BEISPIEL = {
+      ort: '-12', te: -12, baualter: 'b95', UW: 0.5, UF: 1.8, UD: 0.3, UB: 0.5, dU: 0.1, fB: 0.5, lueftung: 'fenster', eta: 80, fRH: 0,
+      tV: 55, tR: 45, nHK: 1.3,
+      raeume: [
+        raum('Wohnen', 'wohnen', 32, 2.5, 22, 8, 0, 32), raum('Küche', 'kueche', 12, 2.5, 8, 2.5, 0, 12), raum('Bad', 'bad', 8, 2.5, 6, 1, 8, 0),
+        raum('Schlafen', 'schlafen', 16, 2.5, 10, 3, 16, 0), raum('Kind', 'kind', 13, 2.5, 9, 2.5, 13, 0), raum('Flur', 'flur', 10, 2.5, 3, 0, 0, 10)
+      ]
+    };
+
+    const S = R.seite({
+      titel: 'Heizlast und Heizkörper',
+      einleitung: 'Raumweise Heizlast im vereinfachten Verfahren nach DIN EN 12831-1 mit DIN/TS 12831-1: Transmission, Lüftung und Aufheizen je Raum, dazu die nötige Normleistung des Heizkörpers bei deinen Systemtemperaturen und der Volumenstrom für den hydraulischen Abgleich.',
+      hilfe: 'Flächen in m², U-Werte in W/(m²·K). Außenwandfläche ohne Fenster eintragen; Boden und Dach nur, wenn darunter bzw. darüber nicht beheizt ist.',
+      gruppen: [
+        { titel: 'Klima', farbe: '#2B7BB9', felder: [
+          { k: 'ort', name: 'Region (Richtwert)', wahl: ORTE, bei: function (e, v, setze) { if (v !== 'frei') setze({ te: +v }); } },
+          { k: 'te', tex: '\\theta_\\text{e}', name: 'Norm-Außentemperatur', e: '°C', min: -30, max: 5, bei: function (e, v, setze) { setze({ ort: ORTE.some(function (o) { return o[0] === String(v); }) ? String(v) : 'frei' }); } }
+        ] },
+        { titel: 'Gebäude', farbe: '#B5533C', felder: [
+          { k: 'baualter', name: 'Baualter (füllt U-Werte)', wahl: [['alt', 'vor 1978, unsaniert'], ['b78', '1978 bis 1994'], ['b95', '1995 bis 2001'], ['b02', '2002 bis 2015'], ['neu', 'ab 2016, Neubau'], ['frei', 'eigene U-Werte']],
+            bei: function (e, v, setze) { const u = BAUALTER[v]; if (u) setze({ UW: u[0], UF: u[1], UD: u[2], UB: u[3] }); } },
+          { k: 'UW', tex: 'U_\\text{W}', name: 'Außenwand', e: 'W/(m²K)', min: 0.05, max: 4, bei: frei },
+          { k: 'UF', tex: 'U_\\text{F}', name: 'Fenster, Türen', e: 'W/(m²K)', min: 0.3, max: 6, bei: frei },
+          { k: 'UD', tex: 'U_\\text{D}', name: 'Dach, oberste Decke', e: 'W/(m²K)', min: 0.05, max: 4, bei: frei },
+          { k: 'UB', tex: 'U_\\text{B}', name: 'Boden, Kellerdecke', e: 'W/(m²K)', min: 0.05, max: 4, bei: frei },
+          { k: 'dU', name: 'Wärmebrückenzuschlag', wahl: [['0.05', '0,05 – nach Beiblatt 2'], ['0.1', '0,10 – pauschal'], ['0.15', '0,15 – Innendämmung, viele Anschlüsse']] },
+          { k: 'fB', tex: 'f_\\text{B}', name: 'Temperaturfaktor Boden', e: '', min: 0.1, max: 1, hilfe: '0,5 gegen Erdreich oder unbeheizten Keller, 1,0 gegen Außenluft' }
+        ] },
+        { titel: 'Lüftung und Aufheizen', farbe: '#6E6FA6', felder: [
+          { k: 'lueftung', name: 'Lüftung', wahl: [['fenster', 'Fensterlüftung'], ['wrg', 'Lüftungsanlage mit Wärmerückgewinnung']] },
+          { k: 'eta', tex: '\\eta_\\text{WRG}', name: 'Rückgewinnungsgrad', e: '%', min: 0, max: 95, wenn: function (e) { return e.lueftung === 'wrg'; } },
+          { k: 'fRH', name: 'Aufheizzuschlag', wahl: [['0', 'ohne (durchgehend beheizt)'], ['6', 'kurze Absenkung, ≈ 6 W/m²'], ['11', 'Nachtabsenkung 8 h, ≈ 11 W/m²']] }
+        ] },
+        { titel: 'Räume', farbe: '#0E6B6A', liste: { k: 'raeume', zeile: 'Raum', max: 30, kopieren: true,
+          neu: function (i) { return raum('Raum ' + (i + 1), 'wohnen', 15, 2.5, 10, 3, 0, 0); },
+          spalten: [
+            { k: 'name', name: 'Name', text: true, breit: true }, { k: 'art', name: 'Art', wahl: ARTWAHL, text: true, breit: true },
+            { k: 'A', name: 'Fläche', e: 'm²', min: 0.5, max: 2000 }, { k: 'h', name: 'Höhe', e: 'm', min: 1.5, max: 20 },
+            { k: 'AW', name: 'Außenwand', e: 'm²', min: 0, max: 5000 }, { k: 'AF', name: 'Fenster', e: 'm²', min: 0, max: 2000 },
+            { k: 'AD', name: 'Dach', e: 'm²', min: 0, max: 5000 }, { k: 'AB', name: 'Boden', e: 'm²', min: 0, max: 5000 }
+          ] } },
+        { titel: 'Heizkörper', farbe: '#E4572E', felder: [
+          { k: 'tV', tex: '\\theta_\\text{V}', name: 'Vorlauf', e: '°C', min: 25, max: 90 },
+          { k: 'tR', tex: '\\theta_\\text{R}', name: 'Rücklauf', e: '°C', min: 20, max: 85 },
+          { k: 'nHK', tex: 'n', name: 'Heizkörperexponent', e: '', min: 1, max: 1.6, hilfe: 'Plattenheizkörper 1,3, Konvektoren bis 1,4, Fußbodenheizung 1,1' }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne,
+      ergebnis: ergebnis,
+      weg: weg,
+      sammlung: [
+        ['Heizlast eines Raums', '\\Phi_\\text{HL} = \\Phi_\\text{T} + \\Phi_\\text{V} + \\Phi_\\text{RH}', 'Transmission, Lüftung, Aufheizen (DIN EN 12831-1, vereinfachtes Verfahren)'],
+        ['Transmission', '\\Phi_\\text{T} = \\Big(\\sum A_i \\cdot (U_i + \\Delta U_\\text{WB}) \\cdot f_i\\Big) \\cdot (\\theta_\\text{int} - \\theta_\\text{e})', 'Fenster ohne Wärmebrückenzuschlag; f = 1 gegen außen, f_B für den Boden'],
+        ['Lüftung', '\\Phi_\\text{V} = 0{,}34 \\cdot n \\cdot V \\cdot (\\theta_\\text{int} - \\theta_\\text{e})', '0,34 Wh/(m³·K) = ρ·c der Luft; n je Raumart 0,5 bis 1,5 1/h; mit Anlage n_eff = 0,1 + n·(1 − η)'],
+        ['Aufheizen', '\\Phi_\\text{RH} = f_\\text{RH} \\cdot A', 'nur bei Absenkbetrieb'],
+        ['Logarithmische Übertemperatur', '\\Delta\\theta_\\text{ln} = \\frac{\\theta_\\text{V} - \\theta_\\text{R}}{\\ln\\frac{\\theta_\\text{V} - \\theta_\\text{i}}{\\theta_\\text{R} - \\theta_\\text{i}}}', 'Normbedingung 75/65/20 °C: 49,83 K'],
+        ['Normleistung des Heizkörpers', '\\Phi_\\text{N} = \\Phi_\\text{HL} \\cdot \\left(\\frac{49{,}83\\,\\text{K}}{\\Delta\\theta_\\text{ln}}\\right)^{n}', 'diesen Wert im Katalog bei 75/65/20 °C suchen'],
+        ['Volumenstrom', '\\dot V = \\frac{\\Phi}{1{,}163 \\cdot (\\theta_\\text{V} - \\theta_\\text{R})}\\ \\text{in l/h}', '1,163 Wh/(l·K) = spezifische Wärme des Wassers']
+      ],
+      quellen: 'Grundlagen: DIN EN 12831-1:2017 mit DIN/TS 12831-1:2020 (vereinfachtes Verfahren), DIN EN 442-2 (Normleistung von Heizkörpern). Für den Nachweis nach GEG und für den Förderantrag gilt das ausführliche Verfahren mit Wärmebrücken, angrenzenden Räumen und Gebäudedichtheit.',
+      bild: {
+        titel: 'Wärmeverlust je Raum', label: 'Balken je Raum: Transmission, Lüftung und Aufheizen', animiert: !bewegungAus,
+        hoehe: function (B, e) { return 56 + e.raeume.length * 34; },
+        zeichne: zeichne,
+        hinweis: function () { return 'Die Pfeile laufen schneller, je mehr Wärme pro m² verloren geht.'; }
+      }
+    });
+    function frei(e, v, setze) { setze({ baualter: 'frei' }); }
+
+    function rechne(e) {
+      const r = { raeume: [], T: 0, V: 0, RH: 0, A: 0, Vdot: 0, PN: 0, fehler: [] };
+      if (e.tR >= e.tV) r.fehler.push('Der Rücklauf muss kälter sein als der Vorlauf.');
+      e.raeume.forEach(function (q) {
+        const art = ARTEN[q.art] || ARTEN.wohnen, ti = art[1], dt = ti - e.te;
+        const HT = q.AW * (e.UW + e.dU) + q.AF * e.UF + q.AD * (e.UD + e.dU) + q.AB * (e.UB + e.dU) * e.fB;
+        const n = e.lueftung === 'wrg' ? 0.1 + art[2] * (1 - e.eta / 100) : art[2];
+        const Vr = q.A * q.h;
+        const PT = HT * dt, PV = 0.34 * n * Vr * dt, PRH = e.fRH * q.A, P = PT + PV + PRH;
+        let ln = NaN, PN = NaN;
+        if (e.tR > ti && e.tV > e.tR) { ln = (e.tV - e.tR) / Math.log((e.tV - ti) / (e.tR - ti)); PN = P * Math.pow(49.83 / ln, e.nHK); }
+        const Vdot = e.tV > e.tR ? P / (1.163 * (e.tV - e.tR)) : NaN;
+        r.raeume.push({ q: q, art: art, ti: ti, dt: dt, HT: HT, n: n, Vr: Vr, PT: PT, PV: PV, PRH: PRH, P: P, ln: ln, PN: PN, Vdot: Vdot });
+        r.T += PT; r.V += PV; r.RH += PRH; r.A += q.A; r.Vdot += Vdot; r.PN += PN;
+        if (!(e.tR > ti)) r.fehler.push('Rücklauf ' + z(e.tR, 0) + ' °C liegt nicht über der Raumtemperatur von „' + q.name + '“ (' + ti + ' °C).');
+      });
+      r.P = r.T + r.V + r.RH;
+      r.spez = r.P / r.A;
+      return r;
+    }
+    function klasse(s) {
+      return s < 35 ? 'sehr gut gedämmt' : s < 60 ? 'gut gedämmt' : s < 90 ? 'teilsaniert' : s < 130 ? 'unsaniert' : 'sehr hoher Bedarf';
+    }
+    function ergebnis(r, e, H) {
+      r.fehler.forEach(function (t) { H.meldung(t, true); });
+      if (r.spez > 100 && e.tV <= 55) H.meldung('Über 100 W/m² bei 55 °C Vorlauf: Die Heizkörper werden groß. Dämmung oder größere Heizflächen prüfen, bevor eine Wärmepumpe geplant wird.');
+      H.urteil(null, z(r.spez, 0) + ' W/m² · ' + klasse(r.spez));
+      H.kacheln([
+        [z(r.P / 1000, 2) + ' kW', 'Heizlast gesamt', '#E4572E'],
+        [z(r.spez, 0) + ' W/m²', 'bezogen auf ' + z(r.A, 1) + ' m²', '#F2A541'],
+        [z(r.T / 1000, 2) + ' kW', 'Transmission (' + z(r.T / r.P * 100, 0) + ' %)', '#B5533C'],
+        [z(r.V / 1000, 2) + ' kW', 'Lüftung (' + z(r.V / r.P * 100, 0) + ' %)', '#6E6FA6'],
+        r.RH > 0 ? [z(r.RH / 1000, 2) + ' kW', 'Aufheizen', '#6B7785'] : null,
+        [z(r.Vdot, 0) + ' l/h', 'Volumenstrom bei ' + z(e.tV, 0) + '/' + z(e.tR, 0) + ' °C', '#2B7BB9'],
+        [isFinite(r.PN) ? z(r.PN / 1000, 2) + ' kW' : '–', 'Heizkörper-Normleistung 75/65/20', '#0E6B6A']
+      ]);
+      H.tabelle('Räume', ['Raum', 'θint', 'Φ_T', 'Φ_V', 'Φ_HL', 'W/m²', 'Φ_N 75/65', 'V̇'],
+        r.raeume.map(function (x) {
+          return [x.q.name, x.ti + ' °C', z(x.PT, 0) + ' W', z(x.PV, 0) + ' W', z(x.P, 0) + ' W', z(x.P / x.q.A, 0), z(x.PN, 0) + ' W', z(x.Vdot, 0) + ' l/h'];
+        }).concat([['Summe', '', z(r.T, 0) + ' W', z(r.V, 0) + ' W', z(r.P, 0) + ' W', z(r.spez, 0), z(r.PN, 0) + ' W', z(r.Vdot, 0) + ' l/h']]),
+        { zahl: [1, 2, 3, 4, 5, 6, 7], klasse: function (i) { return i === r.raeume.length ? 'summe' : ''; },
+          fuss: 'Φ_N ist die Leistung, die im Heizkörperkatalog bei 75/65/20 °C stehen muss. Den Volumenstrom V̇ für den hydraulischen Abgleich übernehmen.' });
+    }
+    function weg(r, e) {
+      const x = r.raeume[0]; if (!x) return [];
+      const q = x.q, W = '\\,\\text{W}';
+      return [
+        ['Temperaturdifferenz für „' + q.name + '“', '\\Delta\\theta = \\theta_\\text{int} - \\theta_\\text{e} = ' + tz(x.ti) + ' - (' + tz(e.te) + ') = ' + E(tz(x.dt) + '\\,\\text{K}')],
+        ['Transmissionsleitwert', 'H_\\text{T} = ' + tz(q.AW, 1) + ' \\cdot ' + tz(e.UW + e.dU, 2) + ' + ' + tz(q.AF, 1) + ' \\cdot ' + tz(e.UF, 2) + ' + ' + tz(q.AD, 1) + ' \\cdot ' + tz(e.UD + e.dU, 2) + ' + ' + tz(q.AB, 1) + ' \\cdot ' + tz(e.UB + e.dU, 2) + ' \\cdot ' + tz(e.fB, 2) + ' = ' + E(tz(x.HT, 1) + '\\,\\tfrac{\\text{W}}{\\text{K}}')],
+        ['Transmissionswärmeverlust', '\\Phi_\\text{T} = H_\\text{T} \\cdot \\Delta\\theta = ' + tz(x.HT, 1) + ' \\cdot ' + tz(x.dt) + ' = ' + E(tz(x.PT, 0) + W)],
+        ['Lüftungswärmeverlust', '\\Phi_\\text{V} = 0{,}34 \\cdot ' + tz(x.n, 2) + ' \\cdot ' + tz(x.Vr, 1) + '\\,\\text{m}^3 \\cdot ' + tz(x.dt) + ' = ' + E(tz(x.PV, 0) + W)],
+        ['Heizlast des Raums', '\\Phi_\\text{HL} = ' + tz(x.PT, 0) + ' + ' + tz(x.PV, 0) + ' + ' + tz(x.PRH, 0) + ' = ' + E(tz(x.P, 0) + W)],
+        isFinite(x.ln) ? ['Übertemperatur des Heizkörpers bei ' + z(e.tV, 0) + '/' + z(e.tR, 0) + ' °C', '\\Delta\\theta_\\text{ln} = \\frac{' + tz(e.tV) + ' - ' + tz(e.tR) + '}{\\ln\\frac{' + tz(e.tV) + ' - ' + tz(x.ti) + '}{' + tz(e.tR) + ' - ' + tz(x.ti) + '}} = ' + E(tz(x.ln, 2) + '\\,\\text{K}')] : null,
+        isFinite(x.PN) ? ['Nötige Normleistung', '\\Phi_\\text{N} = ' + tz(x.P, 0) + ' \\cdot \\left(\\frac{49{,}83}{' + tz(x.ln, 2) + '}\\right)^{' + tz(e.nHK, 2) + '} = ' + E(tz(x.PN, 0) + W)] : null,
+        ['Volumenstrom', '\\dot V = \\frac{' + tz(x.P, 0) + '}{1{,}163 \\cdot ' + tz(e.tV - e.tR) + '} = ' + E(tz(x.Vdot, 0) + '\\,\\tfrac{\\text{l}}{\\text{h}}')],
+        ['Ganzes Gebäude', '\\Phi_\\text{HL,ges} = \\sum \\Phi_\\text{HL} = ' + E(tz(r.P / 1000, 2) + '\\,\\text{kW}') + ',\\quad \\frac{' + tz(r.P, 0) + '}{' + tz(r.A, 1) + '} = ' + E(tz(r.spez, 0) + '\\,\\tfrac{\\text{W}}{\\text{m}^2}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, links = Math.min(110, B * 0.3), rechts = 70, max = Math.max.apply(null, r.raeume.map(function (x) { return x.P; }).concat([1]));
+      const k = (B - links - rechts) / max;
+      Z.text(cx, 'Transmission', links, 16, 'left', 11, false, '#B5533C');
+      Z.text(cx, 'Lüftung', links + 90, 16, 'left', 11, false, '#6E6FA6');
+      if (r.RH > 0) Z.text(cx, 'Aufheizen', links + 155, 16, 'left', 11, false, '#6B7785');
+      r.raeume.forEach(function (x, i) {
+        const y = 36 + i * 34, h = 20;
+        Z.text(cx, x.q.name.slice(0, 14), links - 8, y + h / 2, 'right', 12);
+        let x0 = links;
+        [[x.PT, '#B5533C'], [x.PV, '#6E6FA6'], [x.PRH, '#6B7785']].forEach(function (s) {
+          const w = Math.max(0, s[0] * k); cx.fillStyle = s[1]; cx.fillRect(x0, y, w, h); x0 += w;
+        });
+        // Wärmepfeile: Tempo nach W/m²
+        const spez = x.P / x.q.A, v = 0.02 + spez / 2500;
+        cx.fillStyle = Z.waerme(spez / 120);
+        for (let j = 0; j < 3; j++) {
+          const p = ((t * v / 16 + j / 3) % 1), xp = x0 + 4 + p * 30;
+          cx.globalAlpha = 1 - p; cx.beginPath(); cx.moveTo(xp, y + 4); cx.lineTo(xp + 7, y + h / 2); cx.lineTo(xp, y + h - 4); cx.closePath(); cx.fill();
+        }
+        cx.globalAlpha = 1;
+        Z.text(cx, z(x.P, 0) + ' W', Math.min(B - 4, x0 + 44), y + h / 2, x0 + 44 > B - 60 ? 'right' : 'left', 12);
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

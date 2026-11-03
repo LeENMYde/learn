@@ -204,11 +204,51 @@
         themen: ['Regenspende', 'Dachentwässerung', 'Rinnengröße', 'Fallrohr', 'Gefälle', 'Notentwässerung', 'Stückliste'],
         text: 'Regenwasserabfluss nach DIN 1986-100, Rinne mit Längenfaktor und Gefälle nach DIN EN 12056-3, Fallrohr und Ablauf, Notentwässerung und Stückliste mit Haltern und Schellen.',
         tex: 'Q = \\frac{r \\cdot C \\cdot A}{10\\,000}'
+      },
+      {
+        titel: 'Heizlast und Heizkörper',
+        pfad: 'heizung/heizlast.html',
+        bereich: 'Heizungstechnik',
+        themen: ['Heizlast', 'U-Wert', 'Lüftung', 'Heizkörper', 'Normleistung', 'Raum'],
+        text: 'Raumweise Heizlast nach DIN EN 12831-1 im vereinfachten Verfahren, nötige Normleistung der Heizkörper bei deinen Systemtemperaturen und Volumenstrom je Raum.',
+        tex: '\\Phi_\\text{HL} = \\Phi_\\text{T} + \\Phi_\\text{V}'
+      },
+      {
+        titel: 'Hydraulischer Abgleich',
+        pfad: 'heizung/hydraulischer-abgleich.html',
+        bereich: 'Heizungstechnik',
+        themen: ['Abgleich', 'Thermostatventil', 'Voreinstellung', 'kv-Wert', 'Pumpe', 'Förderhöhe'],
+        text: 'Verfahren B: Volumenstrom je Heizkörper, Druckverlust der Wege, kv-Wert und Voreinstellung der Ventile, Förderhöhe und Förderstrom der Pumpe.',
+        tex: 'k_\\text{v} = \\frac{\\dot V}{\\sqrt{\\Delta p}}'
+      },
+      {
+        titel: 'Ausdehnungsgefäß und Sicherheitsventil',
+        pfad: 'heizung/ausdehnungsgefaess.html',
+        bereich: 'Heizungstechnik',
+        themen: ['MAG', 'Vordruck', 'Fülldruck', 'Sicherheitsventil', 'Ausdehnung'],
+        text: 'Membran-Ausdehnungsgefäß nach DIN EN 12828 und VDI 4708: Vordruck, Fülldruck, Enddruck, Nenninhalt und Normgröße, Sicherheitsventil und Ausdehnungsleitung.',
+        tex: 'V_\\text{N} = (V_\\text{e} + V_\\text{V}) \\cdot \\frac{p_\\text{e} + 1}{p_\\text{e} - p_0}'
+      },
+      {
+        titel: 'Fußbodenheizung',
+        pfad: 'heizung/fussbodenheizung.html',
+        bereich: 'Heizungstechnik',
+        themen: ['Fußbodenheizung', 'Verlegeabstand', 'Heizkreis', 'Oberflächentemperatur', 'Durchfluss'],
+        text: 'Nach DIN EN 1264: Wärmestromdichte aus Verlegeabstand und Belag, Grenze der Oberflächentemperatur, nötiger Vorlauf, Heizkreise mit Durchfluss in l/min und Druckverlust.',
+        tex: 'q = K_\\text{H} \\cdot \\Delta\\theta_\\text{H}'
+      },
+      {
+        titel: 'Wärmepumpe auslegen',
+        pfad: 'heizung/waermepumpe.html',
+        bereich: 'Heizungstechnik',
+        themen: ['Wärmepumpe', 'JAZ', 'Bivalenzpunkt', 'Sperrzeit', 'Puffer', 'COP'],
+        text: 'Leistung mit Sperrzeiten und Warmwasser, Bivalenzpunkt, Heizstab-Anteil, Jahresarbeitszahl im Bin-Verfahren, Strombedarf, Kosten und Pufferspeicher.',
+        tex: '\\beta = \\frac{Q_\\text{H} + Q_\\text{WW}}{W_\\text{el}}'
       }
     ];
 
     // Reihenfolge und Farben der Bereiche; Untergruppen in dieser Reihenfolge
-    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A' };
+    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Heizungstechnik': '#C2410C', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A' };
     const GRUPPEN = ['Grundlagen', 'Installation und Schutz', 'Energie und Photovoltaik'];
     const farbe = function (b) { return BEREICHE[b] || 'var(--leise)'; };
 
