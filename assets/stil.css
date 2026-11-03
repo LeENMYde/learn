@@ -393,3 +393,50 @@ ol.weg li::before {
   ol.weg li, .formelsammlung section, .hinweis { break-inside: avoid; }
   canvas, svg { max-width: 100%; }
 }
+
+/* ---------- PDF-Export ---------- */
+.pdf-form { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin-top: 10px; padding: 12px 14px; border-radius: var(--rund); background: var(--flaeche); box-shadow: var(--schatten); }
+.pdf-form[hidden] { display: none; }
+.pdf-form label { display: flex; flex-direction: column; gap: 3px; font-size: .84rem; color: var(--leise); }
+.pdf-form input { padding: 7px 10px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font-size: .95rem; min-width: 180px; }
+.pdf-hinweis { font-size: .82rem; color: var(--leise); flex-basis: 100%; }
+.pdf-form label.pdf-haken { flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: .9rem; padding-bottom: 8px; }
+.pdf-form label.pdf-haken input { min-width: 0; width: 17px; height: 17px; accent-color: var(--ergebnis); }
+.druckkopf { display: none; }
+
+@media print {
+  @page { size: A4; margin: 13mm 12mm 15mm;
+    @bottom-right { content: "Seite " counter(page) " von " counter(pages); font-size: 8pt; color: #555; }
+    @bottom-left { content: "Formeln & Rechner – Berechnung ohne Gewähr, Annahmen siehe Rechenweg"; font-size: 8pt; color: #555; } }
+  html { font-size: 12px; }
+  .druckkopf { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px; padding: 0 0 6px; margin: 0 0 8px; border-bottom: 2px solid #000; font-size: 9.5pt; }
+  .druckkopf-titel { grid-column: 1 / -1; font-family: var(--technik); font-weight: 600; font-size: 15pt; }
+  .druckkopf-quelle { grid-column: 1 / -1; color: #555; font-size: 8pt; }
+  .held { padding: 0 !important; }
+  .held h1 { display: none; }
+  .held > p { font-size: 9.5pt; max-width: none; margin: 0 0 6px; }
+  .nur-bildschirm { display: none !important; }
+  .teilen-leiste, .pdf-form, .steuerung, .werkzeug, .zoom, .palette, .neu-flaeche, input[type="range"], .leeren, .weg-knopf { display: none !important; }
+  button:not([aria-pressed="true"]):not([aria-selected="true"]) { display: none !important; }
+  button[aria-pressed="true"], button[aria-selected="true"] { box-shadow: none !important; border: 1px solid #000 !important; background: none !important; color: #000 !important; }
+  input, select, textarea { border: none !important; background: none !important; box-shadow: none !important; -webkit-appearance: none; appearance: none; color: #000 !important; }
+  .feld.berechnet input { font-weight: 700; }
+  /* Löser: leere Felder weglassen, nur Eingetragenes und Ausgerechnetes drucken */
+  main:has(.feld.berechnet) .feld:has(input):not(.gegeben):not(.berechnet):not(.widerspruch) { display: none !important; }
+  main:has(.feld.berechnet) .gruppe:not(:has(.feld.gegeben, .feld.berechnet, .feld.widerspruch)) { display: none !important; }
+  .rechnen, .zwei, .planer-innen { display: block !important; }
+  .rechnen > *, .zwei > * { margin-top: 8px; }
+  .tafel { padding: 8px 10px !important; margin-top: 8px !important; }
+  h2, h3, legend { break-after: avoid; }
+  ol.weg li, .kachel, tr, .feld, .formelsammlung section, .nachweise li, .hinweis, canvas, svg { break-inside: avoid; }
+  .kacheln { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 6px !important; }
+  .rahmen { overflow: visible !important; }
+  table { font-size: 8pt; width: 100% !important; min-width: 0 !important; }
+  table th, table td { padding: 2px 3px !important; white-space: normal !important; font-size: 8pt !important; }
+  table input, table select { min-width: 0 !important; width: 100% !important; font-size: 8pt !important; padding: 0 !important; }
+  canvas { max-width: 100% !important; height: auto !important; }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  body.druck-ohne-sammlung .formelsammlung, body.druck-ohne-sammlung details.formeln, body.druck-ohne-sammlung section:has(> .formelsammlung), body.druck-ohne-sammlung details:has(> .formelsammlung) { display: none !important; }
+  body.druck-ohne-weg ol.weg, body.druck-ohne-weg section:has(> ol.weg), body.druck-ohne-weg #formelnAllgemein, body.druck-ohne-weg #formelnFlaechen { display: none !important; }
+}

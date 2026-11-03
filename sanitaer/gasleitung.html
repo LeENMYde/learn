@@ -66,7 +66,7 @@
     details.formeln { margin-top: 18px; }
     details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
     .formelsammlung p { margin: 4px 0 0; font-size: .85rem; color: var(--leise); }
-    @media print { .werkzeug, .steuerung { display: none !important; } table.strecken { min-width: 0; font-size: 8pt; } }
+    @media print { .werkzeug, .steuerung { display: none !important; } #ergebnisStrecken th, #ergebnisStrecken td { padding: 3px 2px; font-size: 7.5pt; } #ergebnisStrecken .zahl { font-size: 7.5pt; } #ergebnisStrecken tr > :nth-child(9), #ergebnisStrecken tr > :nth-child(10) { display: none; } #h-strecken + .hilfe { display: none; } }
   </style>
 </head>
 
@@ -88,7 +88,7 @@
     <section class="tafel abstand" aria-labelledby="h-strecken">
       <h2 id="h-strecken">Teilstrecken und Geräte</h2>
       <p class="hilfe">Jede Teilstrecke beginnt am Ende ihrer Vorgängerin („von“). Teilstrecke 1 beginnt hinter der Zählergruppe. Höhe Δh positiv, wenn die Leitung steigt. Ein Gerät am Ende macht die Teilstrecke zur Geräteleitung. „auto“ lässt die Seite die kleinste ausreichende Dimension wählen.</p>
-      <div class="rahmen"><table class="strecken" id="strecken"></table></div>
+      <div class="rahmen nur-bildschirm"><table class="strecken" id="strecken"></table></div>
       <div class="werkzeug">
         <button type="button" class="knopf" id="neueStrecke">+ Teilstrecke</button>
         <button type="button" class="knopf" id="alleAuto">alle Dimensionen auf „auto“</button>
@@ -558,11 +558,13 @@
 
       // Teilstrecken
       const ts = document.getElementById('ergebnisStrecken');
-      ts.innerHTML = '<thead><tr><th>TS</th><th class="zahl">Q</th><th class="zahl">V̇</th><th>Dimension</th><th class="zahl">v</th><th class="zahl">Re</th><th class="zahl">λ</th><th class="zahl">R</th><th class="zahl">R · l</th><th class="zahl">Σζ</th><th class="zahl">Z</th><th class="zahl">Δp_H</th><th class="zahl">GS / GAA</th><th class="zahl">Δp</th></tr></thead>';
+      ts.innerHTML = '<thead><tr><th>TS</th><th>Rohr</th><th class="zahl">l</th><th class="zahl">Δh</th><th class="zahl">Q</th><th class="zahl">V̇</th><th>Dimension</th><th class="zahl">v</th><th class="zahl">Re</th><th class="zahl">λ</th><th class="zahl">R</th><th class="zahl">R · l</th><th class="zahl">Σζ</th><th class="zahl">Z</th><th class="zahl">Δp_H</th><th class="zahl">GS / GAA</th><th class="zahl">Δp</th></tr></thead>';
       const tbs = document.createElement('tbody');
       anlage.strecken.forEach(function (s) {
         const r = erg.res[s.id], tr = document.createElement('tr');
-        zelle(tr, 'TS ' + s.id + (s.dn === 'auto' ? ' (auto)' : ''));
+        zelle(tr, 'TS ' + s.id + (s.dn === 'auto' ? ' (auto)' : '') + (s.geraet && s.q > 0 ? ' → ' + s.geraet : ''));
+        zelle(tr, (ROHRE[s.mat] || ROHRE.cu).name.split(' (')[0]);
+        zelle(tr, zahl(s.l, 1) + ' m', 'zahl'); zelle(tr, zahl(s.dh, 1) + ' m', 'zahl');
         zelle(tr, zahl(r.Q, 1) + ' kW', 'zahl'); zelle(tr, zahl(r.V, 2) + ' m³/h', 'zahl');
         zelle(tr, r.dimName + ' (d_i ' + zahl(r.d * 1000, 1) + ')');
         zelle(tr, zahl(r.v, 2) + ' m/s', 'zahl'); zelle(tr, zahl(r.Re, 0), 'zahl'); zelle(tr, zahl(r.lambda, 4), 'zahl');

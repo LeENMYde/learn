@@ -256,10 +256,87 @@
     }
   }
 
+  // ---------- PDF-Export (über den Druckdialog „Als PDF speichern“) ----------
+  // Jede Seite mit <main> bekommt einen Knopf; Kopf mit Bauvorhaben, Bearbeiter und Datum,
+  // Bedienelemente werden ausgeblendet, eingeklappte Bereiche geöffnet. Eigene Lösung: <main data-eigenes-pdf>.
+  const PDF_SPEICHER = 'pdf-angaben';
+  function pdfAngaben() { try { return JSON.parse(localStorage.getItem(PDF_SPEICHER) || '{}') || {}; } catch (e) { return {}; } }
+  function heute() { const d = new Date(); return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear(); }
+  function pdfEinrichten() {
+    const haupt = document.querySelector('main');
+    const held = document.querySelector('.held');
+    if (!haupt || !held || haupt.hasAttribute('data-eigenes-pdf') || document.getElementById('seitenkopf') && document.getElementById('seitenkopf').getAttribute('data-seite') === 'start') return;
+    // Kopf für den Druck
+    const kopf = document.createElement('div');
+    kopf.className = 'druckkopf';
+    kopf.setAttribute('aria-hidden', 'true');
+    haupt.insertBefore(kopf, haupt.firstChild);
+    const kopfFuellen = function () {
+      const a = pdfAngaben(), titel = (held.querySelector('h1') || {}).textContent || document.title;
+      kopf.innerHTML = '';
+      const z = function (k, v) { const d = document.createElement('div'); const b = document.createElement('b'); b.textContent = k; d.append(b, document.createTextNode(' ' + v)); kopf.append(d); };
+      const t = document.createElement('div'); t.className = 'druckkopf-titel'; t.textContent = titel.trim(); kopf.append(t);
+      z('Datum:', heute());
+      z('Bauvorhaben:', a.projekt || '—');
+      z('Bearbeiter:', a.bearbeiter || '—');
+      if (a.firma) z('Firma:', a.firma);
+      const q = document.createElement('div'); q.className = 'druckkopf-quelle'; q.textContent = 'Formeln & Rechner · ' + location.host + location.pathname.replace(/\/[^/]*$/, '/') ; kopf.append(q);
+    };
+    // Knopf und kleines Formular
+    let leiste = held.querySelector('.teilen-leiste');
+    if (!leiste) { leiste = document.createElement('div'); leiste.className = 'teilen-leiste'; held.append(leiste); }
+    const knopf = document.createElement('button');
+    knopf.type = 'button'; knopf.className = 'knopf pdf-knopf'; knopf.textContent = 'PDF erstellen';
+    knopf.setAttribute('aria-expanded', 'false');
+    leiste.insertBefore(knopf, leiste.firstChild);
+    const form = document.createElement('div');
+    form.className = 'pdf-form'; form.hidden = true;
+    form.innerHTML = '<label>Bauvorhaben <input type="text" data-k="projekt" data-nicht-merken autocomplete="off"></label>' +
+      '<label>Bearbeiter <input type="text" data-k="bearbeiter" data-nicht-merken autocomplete="name"></label>' +
+      '<label>Firma <input type="text" data-k="firma" data-nicht-merken autocomplete="organization"></label>' +
+      '<label class="pdf-haken"><input type="checkbox" data-h="weg"> Rechenweg mitdrucken</label>' +
+      '<label class="pdf-haken"><input type="checkbox" data-h="sammlung"> Formelsammlung mitdrucken</label>' +
+      '<button type="button" class="knopf-haupt">Als PDF speichern</button>' +
+      '<span class="pdf-hinweis">Im Druckdialog „Als PDF speichern“ wählen. Ohne Bedienknöpfe, mit Kopf und Seitenzahlen.</span>';
+    leiste.after(form);
+    const a0 = pdfAngaben();
+    const haken = function () { const a = pdfAngaben(); document.body.classList.toggle('druck-ohne-weg', a.weg === false); document.body.classList.toggle('druck-ohne-sammlung', a.sammlung !== true); };
+    form.querySelectorAll('input[data-h]').forEach(function (i) {
+      const k = i.getAttribute('data-h');
+      i.checked = k === 'weg' ? a0.weg !== false : a0.sammlung === true;
+      i.addEventListener('change', function () { const a = pdfAngaben(); a[k] = i.checked; try { localStorage.setItem(PDF_SPEICHER, JSON.stringify(a)); } catch (e) { /* ohne Speicher */ } haken(); });
+    });
+    haken();
+    form.querySelectorAll('input[data-k]').forEach(function (i) {
+      i.value = a0[i.getAttribute('data-k')] || '';
+      i.addEventListener('input', function () { const a = pdfAngaben(); a[i.getAttribute('data-k')] = i.value.slice(0, 120); try { localStorage.setItem(PDF_SPEICHER, JSON.stringify(a)); } catch (e) { /* ohne Speicher */ } });
+    });
+    knopf.addEventListener('click', function () { form.hidden = !form.hidden; knopf.setAttribute('aria-expanded', String(!form.hidden)); if (!form.hidden) form.querySelector('input').focus(); });
+    form.querySelector('.knopf-haupt').addEventListener('click', function () { window.print(); });
+    // vor und nach dem Druck
+    let geoeffnet = [], titelAlt = document.title;
+    window.addEventListener('beforeprint', function () {
+      kopfFuellen();
+      geoeffnet = [];
+      document.querySelectorAll('main details:not([open])').forEach(function (d) { d.open = true; geoeffnet.push(d); });
+      titelAlt = document.title;
+      const a = pdfAngaben();
+      document.title = titelAlt + (a.projekt ? ' – ' + a.projekt : '') + ' – ' + heute();
+      document.dispatchEvent(new CustomEvent('vordruck'));
+    });
+    window.addEventListener('afterprint', function () {
+      geoeffnet.forEach(function (d) { d.open = false; });
+      document.title = titelAlt;
+      document.dispatchEvent(new CustomEvent('nachdruck'));
+    });
+    kopfFuellen();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     kopfBauen();
     fussBauen();
     Formel.alle();
     merkenEinrichten();
+    pdfEinrichten();
   });
 })();
