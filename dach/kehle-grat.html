@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kehle und Grat</title>
+  <meta name="description" content="Grat und Kehle bei gleicher oder ungleicher Dachneigung: Neigung, Lage im Grundriss, wahre Länge, Flächenwinkel für das Kehlblech, Abgratung und Schifter mit Länge und Schmiegen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+    const G = Math.PI / 180;
+
+    const BEISPIEL = { art: 'grat', a1: 40, a2: 40, b1: 4.5, sa: 0.8, ueb: 200, dicke: 0.7 };
+
+    R.seite({
+      titel: 'Kehle und Grat',
+      einleitung: 'Geometrie von Grat und Kehle zwischen zwei Dachflächen mit gleicher oder ungleicher Neigung (Traufen im rechten Winkel): Grat- bzw. Kehlneigung, Lage im Grundriss, wahre Länge, Flächenwinkel für das Kehlblech, Abgratung des Gratsparrens und alle Schifter mit Länge und Schmiegen.',
+      hilfe: 'Dachfläche 1 und 2 stoßen im Grundriss rechtwinklig aneinander. Dachtiefe = waagerechter Abstand Traufe bis First von Fläche 1.',
+      gruppen: [
+        { titel: 'Dachflächen', farbe: '#A0785A', felder: [
+          { k: 'art', name: 'Verschneidung', wahl: [['grat', 'Grat (Außenecke, Walmdach)'], ['kehle', 'Kehle (Innenecke, Winkelhaus)']] },
+          { k: 'a1', tex: '\\alpha_1', name: 'Neigung Dachfläche 1', e: '°', min: 5, max: 80 },
+          { k: 'a2', tex: '\\alpha_2', name: 'Neigung Dachfläche 2', e: '°', min: 5, max: 80 },
+          { k: 'b1', tex: 'b_1', name: 'Dachtiefe Fläche 1 (waagerecht)', e: 'm', min: 0.3, max: 40 }
+        ] },
+        { titel: 'Sparren und Blech', farbe: '#6B7785', felder: [
+          { k: 'sa', tex: 'a', name: 'Sparrenabstand (Schifter)', e: 'm', min: 0.3, max: 1.5 },
+          { k: 'ueb', name: 'Kehlblech: Breite je Seite', e: 'mm', min: 80, max: 600, wenn: function (e) { return e.art === 'kehle'; } },
+          { k: 'dicke', name: 'Blechdicke', e: 'mm', min: 0.4, max: 2, wenn: function (e) { return e.art === 'kehle'; } }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Lage im Grundriss', '\\tan\\varphi = \\frac{\\tan\\alpha_2}{\\tan\\alpha_1}', 'φ Winkel zwischen Traufe 1 und Grat- bzw. Kehllinie; bei gleicher Neigung 45°'],
+        ['Grat- bzw. Kehlneigung', '\\tan\\beta = \\frac{\\tan\\alpha_1 \\cdot \\tan\\alpha_2}{\\sqrt{\\tan^2\\alpha_1 + \\tan^2\\alpha_2}}', ''],
+        ['Länge', 'H = b_1 \\tan\\alpha_1,\\quad l_\\text{G} = \\frac{H}{\\sin\\beta}', 'wahre Länge von der Traufecke bis zum First'],
+        ['Flächenwinkel', '\\cos\\theta = -\\frac{1}{\\sqrt{1 + \\tan^2\\alpha_1}\\sqrt{1 + \\tan^2\\alpha_2}} \\Rightarrow \\delta = 180^\\circ - \\arccos\\frac{1}{\\sqrt{(1+\\tan^2\\alpha_1)(1+\\tan^2\\alpha_2)}}', 'Winkel zwischen den Dachflächen; Biegewinkel des Kehlblechs'],
+        ['Abgratung (Neigung quer zum Grat)', '\\tan\\varepsilon_1 = \\tan\\alpha_1 \\cos\\varphi,\\quad \\tan\\varepsilon_2 = \\tan\\alpha_2 \\sin\\varphi', 'Schmiege an der Oberkante des Grat- bzw. Kehlsparrens'],
+        ['Schifter', 'l_i = \\frac{x_i \\tan\\varphi}{\\cos\\alpha_1}\\ \\text{(Grat)},\\quad l_i = \\frac{b_1 - x_i \\tan\\varphi}{\\cos\\alpha_1}\\ \\text{(Kehle)},\\quad \\cos\\psi = \\frac{\\sin\\varphi\\sqrt{1 + \\tan^2\\alpha_1}}{\\sqrt{1 + \\tan^2\\alpha_1 \\sin^2\\varphi}}', 'x_i Abstand von der Ecke an der Traufe; ψ Backenschmiege, Lotschnitt 90° − α']
+      ],
+      quellen: 'Geometrie der Dachausmittlung (Zimmerer- und Klempnerfachbücher), Fachregeln des Deutschen Dachdeckerhandwerks für Kehlen. Werte gelten für Traufen im rechten Winkel.',
+      bild: { titel: 'Dachecke räumlich', label: 'Räumliche Ansicht der zwei Dachflächen mit Grat oder Kehle und Schiftern', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(250, Math.min(360, B * 0.62))); }, zeichne: zeichne,
+        hinweis: function () { return 'Die Ansicht dreht sich langsam; Fläche 1 hell, Fläche 2 dunkel.'; } }
+    });
+
+    function rechne(e) {
+      const t1 = Math.tan(e.a1 * G), t2 = Math.tan(e.a2 * G), r = { t1: t1, t2: t2 };
+      r.phi = Math.atan(t2 / t1) / G;
+      r.beta = Math.atan(t1 * t2 / Math.sqrt(t1 * t1 + t2 * t2)) / G;
+      r.H = e.b1 * t1;
+      r.b2 = r.H / t2;
+      r.lPlan = Math.sqrt(e.b1 * e.b1 + r.b2 * r.b2);
+      r.lG = Math.sqrt(r.lPlan * r.lPlan + r.H * r.H);
+      const c = 1 / Math.sqrt((1 + t1 * t1) * (1 + t2 * t2));
+      r.delta = 180 - Math.acos(c) / G;
+      r.eps1 = Math.atan(t1 * Math.cos(r.phi * G)) / G;
+      r.eps2 = Math.atan(t2 * Math.sin(r.phi * G)) / G;
+      const sp = Math.sin(r.phi * G);
+      r.psi = Math.acos(Math.min(1, sp * Math.sqrt(1 + t1 * t1) / Math.sqrt(1 + t1 * t1 * sp * sp))) / G;
+      r.lot = 90 - e.a1;
+      r.schifter = [];
+      for (let i = 1; i < 60; i++) {
+        const x = i * e.sa; if (x >= r.b2 - 1e-9) break;
+        const y = x * t2 / t1, l = (e.art === 'kehle' ? e.b1 - y : y) / Math.cos(e.a1 * G);
+        r.schifter.push({ x: x, y: e.art === 'kehle' ? e.b1 - y : y, l: l, yk: y });
+      }
+      r.schifter2 = [];
+      for (let i = 1; i < 60; i++) {
+        const y = i * e.sa; if (y >= e.b1 - 1e-9) break;
+        const x = y * t1 / t2, l = (e.art === 'kehle' ? r.b2 - x : x) / Math.cos(e.a2 * G);
+        r.schifter2.push({ x: e.art === 'kehle' ? r.b2 - x : x, y: y, l: l });
+      }
+      if (e.art === 'kehle') { r.blech = 2 * e.ueb + 40; r.blechL = r.lG + 0.1; r.flaeche = r.blech / 1000 * r.blechL; }
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.art === 'kehle' && r.beta < 22) H.meldung('Kehlneigung unter 22°: Bei Ziegeldeckung ist eine eingebundene Kehle meist nicht mehr regelsicher. Metallkehle mit Wasserfalz oder Kehlrinne planen.');
+      if (Math.abs(e.a1 - e.a2) > 0.01) H.meldung('Ungleiche Neigung: Die Grat- bzw. Kehllinie liegt im Grundriss nicht unter 45°, sondern unter ' + z(r.phi, 2) + '° zur Traufe 1.');
+      H.urteil(null, (e.art === 'kehle' ? 'Kehle ' : 'Grat ') + z(r.beta, 2) + '°');
+      H.kacheln([
+        [z(r.beta, 2) + '°', (e.art === 'kehle' ? 'Kehl' : 'Grat') + 'neigung β', '#A0785A'],
+        [z(r.phi, 2) + '°', 'Winkel zur Traufe 1 im Grundriss', '#6E6FA6'],
+        [z(r.lG, 3) + ' m', 'wahre Länge (' + z(r.lPlan, 3) + ' m im Grundriss)', '#2B7BB9'],
+        [z(r.delta, 2) + '°', 'Flächenwinkel zwischen den Dachflächen', '#E4572E'],
+        [z(r.eps1, 1) + '° / ' + z(r.eps2, 1) + '°', 'Abgratung zu Fläche 1 / 2', '#0E6B6A'],
+        [z(r.H, 3) + ' m', 'Höhe Traufe bis First', '#6B7785'],
+        e.art === 'kehle' ? [z(r.blech, 0) + ' mm', 'Zuschnittbreite Kehlblech, ' + z(r.blechL, 2) + ' m lang', '#B5533C'] : null
+      ]);
+      H.tabelle('Schifter in Fläche 1 (Abstand ' + z(e.sa, 2) + ' m von der Ecke)', ['Nr.', 'Abstand an der Traufe', 'Länge im Grundriss', 'wahre Länge', 'Lotschnitt', 'Backenschmiege'],
+        r.schifter.map(function (s, i) { return [String(i + 1), z(s.x, 3) + ' m', z(s.y, 3) + ' m', z(s.l, 3) + ' m', z(r.lot, 1) + '°', z(r.psi, 1) + '°']; }),
+        { zahl: [0, 1, 2, 3, 4, 5], fuss: (e.art === 'kehle' ? 'Kehlschifter von der Kehle bis zum First. ' : 'Gratschifter von der Traufe bis zum Grat. ') + 'Länge bis Mitte Grat- bzw. Kehlsparren (Achsmaß); halbe Sparrenbreite abziehen.' });
+      if (Math.abs(e.a1 - e.a2) > 0.01) H.tabelle('Schifter in Fläche 2', ['Nr.', 'Abstand an der Traufe', 'Länge im Grundriss', 'wahre Länge'],
+        r.schifter2.map(function (s, i) { return [String(i + 1), z(s.y, 3) + ' m', z(s.x, 3) + ' m', z(s.l, 3) + ' m']; }), { zahl: [0, 1, 2, 3] });
+      if (e.art === 'kehle') {
+        const dichte = 7.2;
+        H.tabelle('Kehlblech', ['Was', 'Wert'], [
+          ['Zuschnittbreite', z(r.blech, 0) + ' mm (2 × ' + z(e.ueb, 0) + ' mm + 40 mm Wasserfalze)'],
+          ['Länge', z(r.blechL, 2) + ' m (wahre Kehllänge + 10 cm Überstand)'],
+          ['Biegewinkel in der Mitte', z(r.delta, 1) + '° (offen nach oben)'],
+          ['Fläche, Gewicht Titanzink', z(r.flaeche, 2) + ' m², ' + z(r.flaeche * e.dicke * dichte, 1) + ' kg']
+        ], {});
+      }
+    }
+    function weg(r, e) {
+      const g = '^\\circ';
+      return [
+        ['Lage im Grundriss', '\\varphi = \\arctan\\frac{\\tan ' + tz(e.a2, 1) + g + '}{\\tan ' + tz(e.a1, 1) + g + '} = ' + E(tz(r.phi, 2) + g)],
+        ['Neigung', '\\beta = \\arctan\\frac{' + tz(r.t1, 4) + ' \\cdot ' + tz(r.t2, 4) + '}{\\sqrt{' + tz(r.t1, 4) + '^2 + ' + tz(r.t2, 4) + '^2}} = ' + E(tz(r.beta, 2) + g)],
+        ['Höhe und Länge', 'H = ' + tz(e.b1, 2) + ' \\cdot ' + tz(r.t1, 4) + ' = ' + tz(r.H, 3) + '\\,\\text{m},\\quad l_\\text{G} = \\frac{' + tz(r.H, 3) + '}{\\sin ' + tz(r.beta, 2) + g + '} = ' + E(tz(r.lG, 3) + '\\,\\text{m}')],
+        ['Flächenwinkel', '\\delta = 180' + g + ' - \\arccos\\frac{1}{\\sqrt{(1 + ' + tz(r.t1 * r.t1, 3) + ')(1 + ' + tz(r.t2 * r.t2, 3) + ')}} = ' + E(tz(r.delta, 2) + g)],
+        ['Abgratung', '\\varepsilon_1 = \\arctan(' + tz(r.t1, 4) + ' \\cdot \\cos ' + tz(r.phi, 2) + g + ') = ' + E(tz(r.eps1, 2) + g) + ',\\quad \\varepsilon_2 = ' + E(tz(r.eps2, 2) + g)],
+        r.schifter[0] ? ['Erster Schifter (x = ' + z(e.sa, 2) + ' m)', 'l_1 = \\frac{' + (e.art === 'kehle' ? tz(e.b1, 2) + ' - ' : '') + tz(e.sa, 3) + ' \\cdot ' + tz(r.t2 / r.t1, 4) + '}{\\cos ' + tz(e.a1, 1) + g + '} = ' + E(tz(r.schifter[0].l, 3) + '\\,\\text{m}') + ',\\quad \\psi = ' + E(tz(r.psi, 2) + g)] : null
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z;
+      const L1 = Math.max(r.b2 * 1.6, 2), L2 = Math.max(e.b1 * 1.6, 2);
+      // Punkte im Raum: Ecke im Ursprung, Traufe 1 entlang x, Traufe 2 entlang y
+      const yaw = (e.art === 'kehle' ? 0.8 : 0.6) + 0.35 * Math.sin(t / 4000), pitch = 0.55;
+      const kehle = e.art === 'kehle';
+      const proj = function (p) {
+        const x = p[0] - (kehle ? 0 : L1 / 2), y = p[1] - (kehle ? 0 : L2 / 2), zz = p[2];
+        const xr = x * Math.cos(yaw) - y * Math.sin(yaw), yr = x * Math.sin(yaw) + y * Math.cos(yaw);
+        return [xr, -zz * Math.cos(pitch) - yr * Math.sin(pitch)];
+      };
+      // Fläche 1: z = t1·y, Fläche 2: z = t2·x (Grat); bei Kehle gespiegelt (Höhe umgekehrt)
+      const f1 = kehle ? [[0, 0, 0], [-L1, 0, 0], [-L1, e.b1, r.H], [r.b2, e.b1, r.H]] : [[0, 0, 0], [L1, 0, 0], [L1, e.b1, r.H], [r.b2, e.b1, r.H]];
+      const f2 = kehle ? [[0, 0, 0], [r.b2, e.b1, r.H], [r.b2, -L2, r.H], [0, -L2, 0]] : [[0, 0, 0], [r.b2, e.b1, r.H], [r.b2, L2, r.H], [0, L2, 0]];
+      const alle = f1.concat(f2).map(proj);
+      let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+      alle.forEach(function (p) { mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]); });
+      const k = Math.min((B - 40) / (mxx - mnx), (H - 50) / (mxy - mny));
+      const P = function (p) { const q = proj(p); return [B / 2 + (q[0] - (mnx + mxx) / 2) * k, H / 2 - 6 + (q[1] - (mny + mxy) / 2) * k]; };
+      const flaeche = function (pts, farbe) { cx.fillStyle = farbe; cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1.2; cx.beginPath(); pts.forEach(function (p, i) { const q = P(p); if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.closePath(); cx.fill(); cx.stroke(); };
+      flaeche(f2, 'rgba(160,120,90,.75)');
+      flaeche(f1, 'rgba(205,170,135,.85)');
+      // Schifter auf Fläche 1
+      cx.strokeStyle = 'rgba(19,35,58,.45)'; cx.lineWidth = 1;
+      const linie = function (p, q) { const a = P(p), b2 = P(q); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b2[0], b2[1]); cx.stroke(); };
+      if (kehle) {
+        r.schifter.forEach(function (s) { linie([s.x, s.yk, s.yk * r.t1], [s.x, e.b1, r.H]); });
+        for (let x = -e.sa; x > -L1; x -= e.sa) linie([x, 0, 0], [x, e.b1, r.H]);
+      } else {
+        r.schifter.forEach(function (s) { linie([s.x, 0, 0], [s.x, s.y, s.y * r.t1]); });
+        for (let x = r.b2 + e.sa; x < L1; x += e.sa) linie([x, 0, 0], [x, e.b1, r.H]);
+      }
+      // Grat/Kehle
+      const a = P([0, 0, 0]), b2 = P([r.b2, e.b1, r.H]);
+      cx.strokeStyle = kehle ? '#2B7BB9' : '#E4572E'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b2[0], b2[1]); cx.stroke();
+      // Wasser in der Kehle
+      if (kehle) { cx.fillStyle = '#FFFFFF'; for (let j = 0; j < 6; j++) { const q = ((t * 0.0003 + j / 6) % 1); cx.beginPath(); cx.arc(b2[0] + (a[0] - b2[0]) * q, b2[1] + (a[1] - b2[1]) * q, 2.5, 0, 2 * Math.PI); cx.fill(); } }
+      const m = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2];
+      Z.text(cx, (kehle ? 'Kehle ' : 'Grat ') + z(r.beta, 1) + '° · ' + z(r.lG, 2) + ' m', m[0] + 10, m[1], 'left', 12, true, kehle ? '#2B7BB9' : '#E4572E');
+      const p1 = kehle ? P([-L1 * 0.6, e.b1 * 0.4, e.b1 * 0.4 * r.t1]) : P([L1 * 0.8, e.b1 * 0.3, e.b1 * 0.3 * r.t1]), p2 = kehle ? P([r.b2 * 0.6, -L2 * 0.6, r.b2 * 0.6 * r.t2]) : P([r.b2 * 0.3, L2 * 0.8, r.b2 * 0.3 * r.t2]);
+      Z.text(cx, '1: ' + z(e.a1, 1) + '°', p1[0], p1[1], 'center', 11, true, '#13233A');
+      Z.text(cx, '2: ' + z(e.a2, 1) + '°', p2[0], p2[1], 'center', 11, true, '#FFFFFF');
+    }
+  })();
+  </script>
+</body>
+</html>
