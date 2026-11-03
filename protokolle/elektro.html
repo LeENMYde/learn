@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elektro-Prüfprotokoll</title>
+  <meta name="description" content="Prüfprotokolle nach DIN VDE 0100-600 (Anlagen) und DIN VDE 0701-0702 (Geräte): Besichtigung, Erprobung, Messungen je Stromkreis, Messgeräte, Unterschrift, PDF.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="protokoll.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite protokoll-seite" data-merken data-eigenes-pdf>
+    <section class="held">
+      <h1><span class="unterstrichen">Elektro-Prüfprotokoll</span></h1>
+      <p>Prüfprotokolle nach DIN VDE 0100-600 für Erst- und Wiederholungsprüfungen von Anlagen und nach DIN VDE 0701-0702 für ortsveränderliche Geräte: Besichtigung, Erprobung, Messwerte je Stromkreis, Messgeräte, Unterschriften und PDF. Alles bleibt in diesem Browser.</p>
+    </section>
+
+    <div class="protokoll">
+    <input type="hidden" id="zeilen-merken">
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('anlage')">DIN VDE 0100-600 (Anlagenprüfung)</button>
+  <button class="tab-btn" onclick="switchTab('geraet')">DIN VDE 0701-0702 (Geräteprüfung)</button>
+  <button class="tab-btn" onclick="switchTab('stammdaten')">Stammdaten & Verwaltung</button>
+</div>
+
+
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 1: ANLAGE (DIN VDE 0100-600) -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-anlage" class="tab-content active">
+
+<div class="form-header">
+  <h2>Prüfprotokoll - Erst- und Wiederholungsprüfung elektrischer Anlagen nach DIN VDE 0100-600</h2>
+</div>
+
+<!-- KOPFDATEN -->
+<div class="section-title">Kopfdaten</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Nr.:</td>
+    <td><input type="text" id="a-nr"></td>
+    <td class="label">Blatt:</td>
+    <td><input type="text" id="a-blatt"></td>
+    <td class="label">von:</td>
+    <td><input type="text" id="a-von"></td>
+    <td class="label">Kunden-Nr.:</td>
+    <td><input type="text" id="a-kundennr"></td>
+  </tr>
+  <tr>
+    <td class="label">Auftraggeber:</td>
+    <td colspan="3"><input type="text" id="a-auftraggeber"></td>
+    <td class="label">Auftrags-Nr.:</td>
+    <td colspan="3"><input type="text" id="a-auftragsnr"></td>
+  </tr>
+  <tr>
+    <td class="label">Auftragnehmer:</td>
+    <td colspan="3"><input type="text" id="a-auftragnehmer"></td>
+    <td class="label">Anlage:</td>
+    <td colspan="3"><input type="text" id="a-anlage"></td>
+  </tr>
+  <tr>
+    <td class="label">Prüfer/in:</td>
+    <td colspan="3"><input type="text" id="a-pruefer"></td>
+    <td class="label">Prüfdatum:</td>
+    <td colspan="3"><input type="date" id="a-datum"></td>
+  </tr>
+</table></div>
+
+<!-- PRÜFUNG NACH -->
+<div class="section-title">Prüfung nach</div>
+<div class="kasten">
+  <label class="inline"><input type="checkbox" id="a-norm-100"> DIN VDE 0100-600</label>
+  <label class="inline"><input type="checkbox" id="a-norm-105"> DIN VDE 0105</label>
+  <label class="inline"><input type="checkbox" id="a-norm-bgv"> BGV A3</label>
+</div>
+
+<!-- PRÜFGRUND -->
+<div class="section-title">Prüfgrund</div>
+<div class="kasten">
+  <label class="inline"><input type="checkbox" id="a-grund-neu"> Neuanlage</label>
+  <label class="inline"><input type="checkbox" id="a-grund-erw"> Erweiterung</label>
+  <label class="inline"><input type="checkbox" id="a-grund-and"> Änderung</label>
+  <label class="inline"><input type="checkbox" id="a-grund-inst"> Instandsetzung</label>
+  <label class="inline"><input type="checkbox" id="a-grund-wdh"> Wiederholungsprüfung</label>
+</div>
+
+<!-- NETZ -->
+<div class="section-title">Netzangaben</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Spannung (V):</td>
+    <td><input type="text" id="a-spannung" value="230/400"></td>
+    <td class="label">Frequenz (Hz):</td>
+    <td><input type="text" id="a-hz" value="50"></td>
+    <td class="label">Netzsystem:</td>
+    <td>
+      <select id="a-netz">
+        <option value="">--</option>
+        <option>TN-C</option>
+        <option>TN-S</option>
+        <option>TN-C-S</option>
+        <option>TT</option>
+        <option>IT</option>
+      </select>
+    </td>
+  </tr>
+  <tr>
+    <td class="label">Verteilnetzbetreiber:</td>
+    <td colspan="7"><input type="text" id="a-vnb"></td>
+  </tr>
+</table></div>
+
+<!-- BESICHTIGUNG -->
+<div class="section-title">Besichtigung</div>
+<div class="rollen"><table class="check-grid">
+  <thead>
+    <tr>
+      <th style="width: 50%;">Prüfpunkt</th>
+      <th style="width: 80px;">i.O.</th>
+      <th style="width: 80px;">n.i.O.</th>
+      <th>Bemerkung</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Auswahl der elektrischen Betriebsmittel</td><td class="center"><input type="checkbox" id="b1-io"></td><td class="center"><input type="checkbox" id="b1-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Trenn- und Schaltgeräte</td><td class="center"><input type="checkbox" id="b2-io"></td><td class="center"><input type="checkbox" id="b2-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Brandabschottungen</td><td class="center"><input type="checkbox" id="b3-io"></td><td class="center"><input type="checkbox" id="b3-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Kabel und Leitungen</td><td class="center"><input type="checkbox" id="b4-io"></td><td class="center"><input type="checkbox" id="b4-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Kennzeichnung</td><td class="center"><input type="checkbox" id="b5-io"></td><td class="center"><input type="checkbox" id="b5-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Leiterverbindungen</td><td class="center"><input type="checkbox" id="b6-io"></td><td class="center"><input type="checkbox" id="b6-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Schutz- und Überspannungsschutzgeräte</td><td class="center"><input type="checkbox" id="b7-io"></td><td class="center"><input type="checkbox" id="b7-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Schutz gegen Berührung</td><td class="center"><input type="checkbox" id="b8-io"></td><td class="center"><input type="checkbox" id="b8-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Zugänglichkeit</td><td class="center"><input type="checkbox" id="b9-io"></td><td class="center"><input type="checkbox" id="b9-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Hauptpotenzialausgleich</td><td class="center"><input type="checkbox" id="b10-io"></td><td class="center"><input type="checkbox" id="b10-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Zusätzlicher örtlicher Potenzialausgleich</td><td class="center"><input type="checkbox" id="b11-io"></td><td class="center"><input type="checkbox" id="b11-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Dokumentation</td><td class="center"><input type="checkbox" id="b12-io"></td><td class="center"><input type="checkbox" id="b12-nio"></td><td><input type="text"></td></tr>
+  </tbody>
+</table></div>
+
+<!-- ERPROBUNG -->
+<div class="section-title">Erprobung</div>
+<div class="rollen"><table class="check-grid">
+  <thead>
+    <tr>
+      <th style="width: 50%;">Prüfpunkt</th>
+      <th style="width: 80px;">i.O.</th>
+      <th style="width: 80px;">n.i.O.</th>
+      <th>Bemerkung</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Funktion der Anlage</td><td class="center"><input type="checkbox" id="e1-io"></td><td class="center"><input type="checkbox" id="e1-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Funktion der Schutzeinrichtungen</td><td class="center"><input type="checkbox" id="e2-io"></td><td class="center"><input type="checkbox" id="e2-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Rechtsdrehfeld</td><td class="center"><input type="checkbox" id="e3-io"></td><td class="center"><input type="checkbox" id="e3-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Drehrichtung der Motoren</td><td class="center"><input type="checkbox" id="e4-io"></td><td class="center"><input type="checkbox" id="e4-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Gebäudesystemtechnik</td><td class="center"><input type="checkbox" id="e5-io"></td><td class="center"><input type="checkbox" id="e5-nio"></td><td><input type="text"></td></tr>
+  </tbody>
+</table></div>
+
+<!-- STROMKREISMESSUNGEN -->
+<div class="section-title">Stromkreismessungen / Messen</div>
+<div style="overflow-x: auto;">
+<div class="rollen"><table class="measurement-table">
+  <thead>
+    <tr>
+      <th>Nr.</th>
+      <th>Bezeichnung</th>
+      <th>Typ</th>
+      <th>Aderquerschnitt mm²</th>
+      <th>Ltr</th>
+      <th>Charakteristik</th>
+      <th>Überstromschutz A</th>
+      <th>Schleifenwiderstand Zs / Ik</th>
+      <th>Isolationswiderstand MΩ</th>
+      <th>RCD Typ / IΔN</th>
+      <th>AC</th>
+      <th>DC</th>
+      <th>Berühr.- spannung V</th>
+      <th>RPE Ω</th>
+      <th>Ergebnis</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="measurement-tbody"></tbody>
+</table></div>
+</div>
+<div style="display: flex; gap: 10px; margin-bottom: 15px;">
+  <button onclick="addMeasurementRow()" class="btn btn-small">+ Zeile hinzufügen</button>
+  <span style="font-size: 11px; color: var(--leise); align-self: center;">10 Zeilen vorausgefüllt - weitere mit Button</span>
+</div>
+
+<!-- POTENZIALAUSGLEICH -->
+<div class="section-title">Potenzialausgleich</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label" colspan="4">Anschluss an Hauptpotenzialausgleichsschiene (HPAS) für:</td>
+  </tr>
+  <tr>
+    <td><label class="inline"><input type="checkbox" id="pa-1"> Fundamenterder</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-2"> Hauptwasserleitung</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-3"> Heizung</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-4"> EDV</label></td>
+  </tr>
+  <tr>
+    <td><label class="inline"><input type="checkbox" id="pa-5"> Antenne</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-6"> PA-Schiene</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-7"> Hauptschutzleiter</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-8"> Klima</label></td>
+  </tr>
+  <tr>
+    <td><label class="inline"><input type="checkbox" id="pa-9"> Telefon</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-10"> Gebäudekonstruktion</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-11"> Wasserzwischenzähler</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-12"> Gasinnenleitung</label></td>
+  </tr>
+  <tr>
+    <td><label class="inline"><input type="checkbox" id="pa-13"> Aufzug</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-14"> Blitzschutz</label></td>
+    <td><label class="inline"><input type="checkbox" id="pa-15"> Sonstiges</label></td>
+    <td><input type="text" id="pa-sonst" placeholder="Sonstiges Detail"></td>
+  </tr>
+  <tr>
+    <td class="label">Erdungswiderstand R_E (Ω):</td>
+    <td colspan="3"><input type="number" id="a-re" step="0.01"></td>
+  </tr>
+</table></div>
+
+<!-- VERWENDETE MESSGERÄTE -->
+<div class="section-title">Verwendete Messgeräte</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Fabrikat:</td>
+    <td><input type="text" id="a-mg-fabrikat"></td>
+    <td class="label">Typ:</td>
+    <td><input type="text" id="a-mg-typ"></td>
+    <td class="label">Seriennummer:</td>
+    <td><input type="text" id="a-mg-sn"></td>
+    <td class="label">Kalibriert bis:</td>
+    <td><input type="date" id="a-mg-kal"></td>
+  </tr>
+  <tr>
+    <td colspan="8" style="text-align: center;">
+      <button onclick="saveMeasurementDevice()" class="btn btn-small">Messgerät speichern</button>
+      <button onclick="loadMeasurementDevice()" class="btn btn-small">↓ Letztes Messgerät laden</button>
+      <span style="font-size: 11px; color: var(--leise); margin-left: 10px;">→ Geräte verwalten im Stammdaten-Tab</span>
+    </td>
+  </tr>
+</table></div>
+
+<!-- PRÜFERGEBNIS -->
+<div class="section-title">Prüfergebnis</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Ergebnis:</td>
+    <td><label class="inline"><input id="r-a-ergebnis-1" type="radio" name="a-ergebnis"> keine Mängel</label></td>
+    <td><label class="inline"><input id="r-a-ergebnis-2" type="radio" name="a-ergebnis"> Mängel festgestellt</label></td>
+  </tr>
+  <tr>
+    <td class="label">Prüfplakette angebracht:</td>
+    <td><label class="inline"><input id="r-a-plakette-1" type="radio" name="a-plakette"> ja</label></td>
+    <td><label class="inline"><input id="r-a-plakette-2" type="radio" name="a-plakette"> nein</label></td>
+  </tr>
+  <tr>
+    <td class="label">Nächster Prüftermin:</td>
+    <td colspan="2">
+      Monat: <input type="number" id="a-naechster-monat" min="1" max="12" style="width: 60px; display: inline-block;">
+      Jahr: <input type="number" id="a-naechster-jahr" min="2025" max="2050" style="width: 80px; display: inline-block;">
+    </td>
+  </tr>
+</table></div>
+
+<!-- MÄNGEL/BEMERKUNGEN -->
+<div class="section-title">Mängel / Bemerkungen</div>
+<textarea id="a-maengel" placeholder="Festgestellte Mängel und Bemerkungen..." style="min-height: 80px;"></textarea>
+
+<!-- KONFORMITÄTSERKLÄRUNG -->
+<div class="section-title">Konformitätserklärung</div>
+<div class="kasten">
+  <p style="margin-bottom: 8px;">Die elektrische Anlage entspricht den anerkannten Regeln der Elektrotechnik und ein sicherer Gebrauch ist gewährleistet:</p>
+  <label class="inline"><input id="r-a-konform-1" type="radio" name="a-konform"> ja</label>
+  <label class="inline"><input id="r-a-konform-2" type="radio" name="a-konform"> nein</label>
+</div>
+
+<!-- UNTERSCHRIFTEN -->
+<div class="section-title">Unterschriften</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Auftraggeber:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="a-ort-ag" placeholder="Ort" style="flex: 1;">
+      <input type="date" id="a-datum-ag" style="flex: 1;">
+    </div>
+    <canvas id="a-sig-ag" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('a-sig-ag')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('a-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+  <div class="sig-box">
+    <label><strong>Prüfer/in:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="a-ort-pruefer" placeholder="Ort" style="flex: 1;">
+      <input type="date" id="a-datum-pruefer" style="flex: 1;">
+    </div>
+    <canvas id="a-sig-pruefer" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('a-sig-pruefer')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('a-sig-pruefer')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUTTONS -->
+<div class="button-area">
+  <button onclick="exportPDF('anlage')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="resetForm('anlage')" class="btn">↺ Formular leeren</button>
+</div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 2: GERÄT (DIN VDE 0701-0702) -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-geraet" class="tab-content">
+
+<div class="form-header">
+  <h2>Prüfprotokoll - Wiederkehrende Prüfung ortsveränderlicher Elektrogeräte nach DIN VDE 0701-0702</h2>
+</div>
+
+<!-- KOPFDATEN GERÄT -->
+<div class="section-title">Kopfdaten</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Nr.:</td>
+    <td><input type="text" id="g-nr"></td>
+    <td class="label">Prüfdatum:</td>
+    <td><input type="date" id="g-datum"></td>
+  </tr>
+  <tr>
+    <td class="label">Auftraggeber:</td>
+    <td colspan="3"><input type="text" id="g-auftraggeber"></td>
+  </tr>
+  <tr>
+    <td class="label">Prüfer:</td>
+    <td colspan="3"><input type="text" id="g-pruefer"></td>
+  </tr>
+</table></div>
+
+<!-- GERÄTEDATEN -->
+<div class="section-title">Gerätedaten</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Gerätebeschreibung:</td>
+    <td colspan="3"><input type="text" id="g-geraet"></td>
+  </tr>
+  <tr>
+    <td class="label">Hersteller:</td>
+    <td><input type="text" id="g-hersteller"></td>
+    <td class="label">Modell:</td>
+    <td><input type="text" id="g-modell"></td>
+  </tr>
+  <tr>
+    <td class="label">Inventarnummer:</td>
+    <td><input type="text" id="g-inv"></td>
+    <td class="label">Seriennummer:</td>
+    <td><input type="text" id="g-sn"></td>
+  </tr>
+  <tr>
+    <td class="label">Schutzklasse:</td>
+    <td>
+      <select id="g-sk">
+        <option>SK I</option>
+        <option>SK II</option>
+        <option>SK III</option>
+      </select>
+    </td>
+    <td class="label">Nennspannung (V):</td>
+    <td><input type="text" id="g-nsp"></td>
+  </tr>
+  <tr>
+    <td class="label">Nennleistung (W):</td>
+    <td><input type="text" id="g-leist"></td>
+    <td class="label">Nennstrom (A):</td>
+    <td><input type="text" id="g-istrom"></td>
+  </tr>
+  <tr>
+    <td class="label">Standort:</td>
+    <td colspan="3"><input type="text" id="g-standort"></td>
+  </tr>
+</table></div>
+
+<!-- SICHTPRÜFUNG -->
+<div class="section-title">Sichtprüfung</div>
+<div class="rollen"><table class="check-grid">
+  <thead>
+    <tr>
+      <th style="width: 50%;">Prüfpunkt</th>
+      <th style="width: 80px;">i.O.</th>
+      <th style="width: 80px;">n.i.O.</th>
+      <th>Bemerkung</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Gehäuse (Beschädigung, Risse)</td><td class="center"><input type="checkbox" id="gs1-io"></td><td class="center"><input type="checkbox" id="gs1-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Anschlussleitung (Mantel, Knickschutz, Aderfarbe)</td><td class="center"><input type="checkbox" id="gs2-io"></td><td class="center"><input type="checkbox" id="gs2-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Zugentlastung</td><td class="center"><input type="checkbox" id="gs3-io"></td><td class="center"><input type="checkbox" id="gs3-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Stecker / Dose (Verbiegung, Verbrennungen)</td><td class="center"><input type="checkbox" id="gs4-io"></td><td class="center"><input type="checkbox" id="gs4-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Schalter / Bedienelemente</td><td class="center"><input type="checkbox" id="gs5-io"></td><td class="center"><input type="checkbox" id="gs5-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Typenschild / Kennzeichnung</td><td class="center"><input type="checkbox" id="gs6-io"></td><td class="center"><input type="checkbox" id="gs6-nio"></td><td><input type="text"></td></tr>
+    <tr><td>Lüftungsöffnungen / Reinheit</td><td class="center"><input type="checkbox" id="gs7-io"></td><td class="center"><input type="checkbox" id="gs7-nio"></td><td><input type="text"></td></tr>
+  </tbody>
+</table></div>
+
+<!-- MESSUNGEN -->
+<div class="section-title">Elektrische Messungen</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Schutzleiterwiderstand RPE (Ω):</td>
+    <td><input type="number" id="g-rpe" step="0.01"></td>
+    <td class="label">Grenzwert SK I:</td>
+    <td>≤ 0,3 Ω (bis 5m Leitung)</td>
+  </tr>
+  <tr>
+    <td class="label">Isolationswiderstand R-iso (MΩ):</td>
+    <td><input type="number" id="g-riso" step="0.1"></td>
+    <td class="label">Grenzwert:</td>
+    <td>SK I: ≥ 1 MΩ / SK II: ≥ 2 MΩ</td>
+  </tr>
+  <tr>
+    <td class="label">Schutzleiterstrom IPE (mA):</td>
+    <td><input type="number" id="g-ipe" step="0.1"></td>
+    <td class="label">Grenzwert:</td>
+    <td>≤ 3,5 mA (SK I)</td>
+  </tr>
+  <tr>
+    <td class="label">Berührungsstrom IBer (mA):</td>
+    <td><input type="number" id="g-iber" step="0.1"></td>
+    <td class="label">Grenzwert:</td>
+    <td>≤ 0,5 mA (SK II)</td>
+  </tr>
+  <tr>
+    <td class="label">Ersatzableitstrom (mA):</td>
+    <td><input type="number" id="g-iabl" step="0.1"></td>
+    <td class="label">Grenzwert:</td>
+    <td>SK I: ≤ 3,5 mA / SK II: ≤ 0,5 mA</td>
+  </tr>
+</table></div>
+
+<!-- FUNKTIONSPRÜFUNG -->
+<div class="section-title">Funktionsprüfung</div>
+<div class="kasten">
+  <label class="inline"><input id="r-g-funktion-1" type="radio" name="g-funktion"> Funktion in Ordnung</label>
+  <label class="inline"><input id="r-g-funktion-2" type="radio" name="g-funktion"> Funktion nicht in Ordnung</label>
+  <label class="inline"><input id="r-g-funktion-3" type="radio" name="g-funktion"> Funktion nicht prüfbar</label>
+</div>
+
+<!-- GESAMTERGEBNIS -->
+<div class="section-title">Gesamtergebnis</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Ergebnis:</td>
+    <td><label class="inline"><input id="r-g-ergebnis-1" type="radio" name="g-ergebnis"> ✓ Gerät ist sicher (i.O.)</label></td>
+    <td><label class="inline"><input id="r-g-ergebnis-2" type="radio" name="g-ergebnis"> ✗ Gerät ist nicht sicher (n.i.O.)</label></td>
+  </tr>
+  <tr>
+    <td class="label">Nächster Prüftermin:</td>
+    <td colspan="2"><input type="date" id="g-naechster"></td>
+  </tr>
+  <tr>
+    <td class="label">Prüfplakette angebracht:</td>
+    <td><label class="inline"><input id="r-g-plakette-1" type="radio" name="g-plakette"> ja</label></td>
+    <td><label class="inline"><input id="r-g-plakette-2" type="radio" name="g-plakette"> nein</label></td>
+  </tr>
+</table></div>
+
+<!-- BEMERKUNGEN -->
+<div class="section-title">Bemerkungen / Mängel</div>
+<textarea id="g-bemerkungen" placeholder="Mängel und Bemerkungen..." style="min-height: 80px;"></textarea>
+
+<!-- UNTERSCHRIFTEN -->
+<div class="section-title">Unterschriften</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Prüfer/in:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="g-ort-pruefer" placeholder="Ort" style="flex: 1;">
+      <input type="date" id="g-datum-pruefer" style="flex: 1;">
+    </div>
+    <canvas id="g-sig-pruefer" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('g-sig-pruefer')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('g-sig-pruefer')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+  <div class="sig-box">
+    <label><strong>Auftraggeber:</strong></label>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="g-ort-ag" placeholder="Ort" style="flex: 1;">
+      <input type="date" id="g-datum-ag" style="flex: 1;">
+    </div>
+    <canvas id="g-sig-ag" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('g-sig-ag')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="loadSignatureToCanvas('g-sig-ag')" class="btn btn-small">↓ Gespeicherte laden</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUTTONS -->
+<div class="button-area">
+  <button onclick="exportPDF('geraet')" class="btn btn-primary">PDF drucken / speichern</button>
+  <button onclick="resetForm('geraet')" class="btn">↺ Formular leeren</button>
+</div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 3: STAMMDATEN -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-stammdaten" class="tab-content">
+
+<div class="form-header">
+  <h2>Stammdaten, Messgeräte-Verwaltung & Einstellungen</h2>
+</div>
+
+<!-- FIRMENSTAMMDATEN -->
+<div class="section-title">Firmenstammdaten</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Firmenname:</td>
+    <td colspan="3"><input type="text" id="sd-firma"></td>
+    <td class="label">Telefon:</td>
+    <td><input type="text" id="sd-tel"></td>
+  </tr>
+  <tr>
+    <td class="label">Straße:</td>
+    <td colspan="2"><input type="text" id="sd-str"></td>
+    <td class="label">E-Mail:</td>
+    <td colspan="2"><input type="email" id="sd-mail"></td>
+  </tr>
+  <tr>
+    <td class="label">PLZ / Ort:</td>
+    <td colspan="2"><input type="text" id="sd-ort"></td>
+    <td class="label">Website:</td>
+    <td colspan="2"><input type="text" id="sd-web"></td>
+  </tr>
+  <tr>
+    <td class="label">UStId:</td>
+    <td><input type="text" id="sd-ustid"></td>
+    <td class="label">Innung:</td>
+    <td><input type="text" id="sd-innung"></td>
+    <td class="label">Meister:</td>
+    <td><input type="text" id="sd-meister"></td>
+  </tr>
+</table></div>
+
+<!-- PRÜFER-VORLAGEN -->
+<div class="section-title">Prüfer-Vorlagen</div>
+<div class="rollen"><table class="form-table">
+  <tr>
+    <td class="label">Prüfer 1:</td>
+    <td><input type="text" id="sd-p1"></td>
+    <td class="label">Befähigung:</td>
+    <td><input type="text" id="sd-p1-bef" placeholder="z.B. Elektrofachkraft"></td>
+  </tr>
+  <tr>
+    <td class="label">Prüfer 2:</td>
+    <td><input type="text" id="sd-p2"></td>
+    <td class="label">Befähigung:</td>
+    <td><input type="text" id="sd-p2-bef"></td>
+  </tr>
+</table></div>
+<button onclick="applyStammdaten()" class="btn">✓ Stammdaten in Formulare übernehmen</button>
+
+<!-- UNTERSCHRIFT SPEICHERN -->
+<div class="section-title">Deine Unterschrift speichern</div>
+<div class="sig-section">
+  <div class="sig-box">
+    <label><strong>Unterschrift zeichnen:</strong></label>
+    <canvas id="sig-canvas" class="signature" width="350" height="100"></canvas>
+    <div class="sig-buttons">
+      <button onclick="clearSignature('sig-canvas')" class="btn btn-small">✕ Löschen</button>
+      <button onclick="saveSignature()" class="btn btn-small btn-primary">Speichern</button>
+    </div>
+    <p style="font-size: 11px; color: var(--leise); margin-top: 8px;">Die Unterschrift wird im Browser gespeichert und kann in allen Formularen geladen werden.</p>
+  </div>
+  <div class="sig-box">
+    <label><strong>Aktuell gespeicherte Unterschrift:</strong></label>
+    <canvas id="sig-stored" class="signature" width="350" height="100" style="cursor: default;"></canvas>
+    <button onclick="deleteSavedSignature()" class="btn btn-small" style="width: 100%;">Gespeicherte Unterschrift löschen</button>
+  </div>
+</div>
+
+<!-- MESSGERÄTE-VERWALTUNG -->
+<div class="section-title">Messgeräte-Verwaltung</div>
+<div class="card">
+  <h3>Gespeicherte Messgeräte</h3>
+  <div id="devices-list">
+    <em style="color: var(--leise);">Keine Messgeräte gespeichert</em>
+  </div>
+  
+  <h3 style="margin-top: 20px;">Neues Messgerät hinzufügen</h3>
+  <div class="rollen"><table class="form-table">
+    <tr>
+      <td class="label">Fabrikat:</td>
+      <td><input type="text" id="sd-mg-fabrikat" placeholder="z.B. Fluke"></td>
+      <td class="label">Typ:</td>
+      <td><input type="text" id="sd-mg-typ" placeholder="z.B. 1653B"></td>
+    </tr>
+    <tr>
+      <td class="label">Seriennummer:</td>
+      <td><input type="text" id="sd-mg-sn"></td>
+      <td class="label">Kalibriert bis:</td>
+      <td><input type="date" id="sd-mg-kal"></td>
+    </tr>
+  </table></div>
+  <button onclick="addDeviceFromStammdaten()" class="btn btn-primary">Messgerät hinzufügen</button>
+  
+  <div style="display: flex; gap: 10px; margin-top: 15px;">
+    <button onclick="showDevicesJSON()" class="btn">JSON anzeigen</button>
+    <button onclick="exportDevicesJSON()" class="btn">Geräte exportieren</button>
+    <button onclick="importDevicesJSON()" class="btn">Geräte importieren</button>
+    <button onclick="clearAllDevices()" class="btn">Alle löschen</button>
+  </div>
+  <input type="file" id="devices-file-input" accept=".json" onchange="handleDevicesImport(this)" style="display:none;">
+</div>
+
+<!-- EINSTELLUNGEN -->
+<div class="section-title">Einstellungen</div>
+<div class="card">
+  <label class="inline" style="display:block; margin-bottom: 10px;">
+    <input type="checkbox" id="settings-auto-load"> 
+    Stammdaten automatisch beim Laden einfüllen
+  </label>
+  <label class="inline" style="display:block;">
+    <input type="checkbox" id="settings-auto-signature"> 
+    Unterschrift automatisch in Formulare laden
+  </label>
+</div>
+
+<!-- IMPORT / EXPORT -->
+<div class="section-title">/ Import & Export (Komplettes Backup)</div>
+<div class="card">
+  <div class="g2">
+    <div>
+      <h3>Exportieren</h3>
+      <p style="font-size: 11px; color: var(--leise); margin-bottom: 10px;">Speichere alle Daten als JSON-Datei</p>
+      <button onclick="exportStammdaten()" class="btn" style="width: 100%; margin-bottom: 8px;">Nur Stammdaten</button>
+      <button onclick="exportAllSettings()" class="btn btn-primary" style="width: 100%;">KOMPLETTES BACKUP (Stammdaten + Geräte + Einstellungen + Unterschrift)</button>
+    </div>
+    <div>
+      <h3>Importieren</h3>
+      <p style="font-size: 11px; color: var(--leise); margin-bottom: 10px;">JSON-Datei ablegen oder klicken</p>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click();">
+        JSON-Datei hier ablegen oder klicken
+      </div>
+      <input type="file" id="file-input" accept=".json" onchange="importStammdaten(this)" style="display:none;">
+    </div>
+  </div>
+</div>
+
+<!-- DATENSCHUTZ INFO -->
+<div class="section-title">Datenschutz</div>
+<div class="card">
+  <p style="font-size: 12px; line-height: 1.6;">
+    <strong>ElektroProtokoll ist 100% DSGVO-konform:</strong>
+  </p>
+  <ul style="margin: 10px 0 10px 20px; font-size: 12px;">
+    <li>Alle Daten werden <strong>NUR im Browser</strong> (LocalStorage) gespeichert</li>
+    <li>Keine Daten-Übertragung an Server</li>
+    <li>Keine Cookies</li>
+    <li>Kein Tracking, keine Analytics</li>
+    <li>Keine Drittanbieter-Verbindungen</li>
+    <li>Vollständig offline-fähig</li>
+    <li>Open Source unter MIT Lizenz</li>
+  </ul>
+  <p style="font-size: 11px; color: var(--leise); margin-top: 10px;">
+    Alle gespeicherten Daten kannst du jederzeit löschen über deine Browser-Einstellungen oder mit den Lösch-Buttons in dieser App.
+  </p>
+  <button onclick="clearAllData()" class="btn" style="margin-top: 10px;">ALLE Daten dieser App löschen</button>
+</div>
+
+</div>
+
+
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script>
+  // Animationen gibt es hier nicht; Konstante für den Seitenstandard
+  const bewegungAus = false;
+  </script>
+  <script src="elektro.js"></script>
+  <script>
+  // Zeilen der dynamischen Tabellen merken (basis.js speichert das versteckte Feld mit)
+  (function () {
+    'use strict';
+    const TABELLEN = [["measurement-tbody", "addMeasurementRow"]];
+    const feld = document.getElementById('zeilen-merken');
+    function lesen() {
+      const o = {};
+      TABELLEN.forEach(function (t) {
+        const tb = document.getElementById(t[0]); if (!tb) return;
+        o[t[0]] = Array.prototype.map.call(tb.rows, function (tr) {
+          return Array.prototype.map.call(tr.querySelectorAll('input, select, textarea'), function (x) { return x.type === 'checkbox' || x.type === 'radio' ? x.checked : x.value; });
+        });
+      });
+      feld.value = JSON.stringify(o);
+    }
+    TABELLEN.forEach(function (t) {
+      const tb = document.getElementById(t[0]); if (!tb) return;
+      tb.addEventListener('input', lesen); tb.addEventListener('change', lesen);
+      if (window.MutationObserver) new MutationObserver(lesen).observe(tb, { childList: true });
+    });
+    feld.addEventListener('input', function () {
+      let o = null; try { o = JSON.parse(feld.value); } catch (e) { o = null; }
+      if (!o || typeof o !== 'object') return;
+      TABELLEN.forEach(function (t) {
+        const tb = document.getElementById(t[0]), zeilen = o[t[0]];
+        if (!tb || !Array.isArray(zeilen) || typeof window[t[1]] !== 'function') return;
+        tb.innerHTML = '';
+        zeilen.slice(0, 300).forEach(function (z) {
+          window[t[1]]();
+          const tr = tb.rows[tb.rows.length - 1]; if (!tr || !Array.isArray(z)) return;
+          Array.prototype.forEach.call(tr.querySelectorAll('input, select, textarea'), function (x, i) {
+            if (i >= z.length) return;
+            if (x.type === 'checkbox' || x.type === 'radio') x.checked = !!z[i]; else x.value = String(z[i]).slice(0, 2000);
+            if (x.tagName === 'SELECT') x.dispatchEvent(new Event('change'));
+          });
+        });
+        if (typeof window.updateRowNumbers === 'function') window.updateRowNumbers();
+      });
+      lesen();
+    });
+    window.addEventListener('DOMContentLoaded', lesen);
+    // Unterschriften im Druck als Bild (Canvas lässt sich im PDF nicht zuverlässig skalieren)
+    function bilder() {
+      document.querySelectorAll('.protokoll canvas.signature').forEach(function (c) {
+        let img = c.nextElementSibling;
+        if (!img || !img.classList.contains('sig-bild')) { img = document.createElement('img'); img.className = 'sig-bild'; img.alt = 'Unterschrift'; c.after(img); }
+        try { img.src = c.toDataURL('image/png'); } catch (e) { /* leer */ }
+      });
+    }
+    document.addEventListener('mouseup', function (ev) { if (ev.target.closest && ev.target.closest('canvas.signature')) bilder(); });
+    document.addEventListener('touchend', function (ev) { if (ev.target.closest && ev.target.closest('canvas.signature')) bilder(); });
+    window.addEventListener('beforeprint', bilder);
+    window.addEventListener('beforeprint', function () { document.querySelectorAll('.protokoll input[type="date"]').forEach(function (d) { d.classList.toggle('leer', !d.value); }); });
+    window.addEventListener('load', function () { setTimeout(bilder, 800); });
+    // Strg+P ohne Knopf: den sichtbaren Reiter drucken
+    window.addEventListener('beforeprint', function () {
+      if (!document.querySelector('.print-active')) { const a = document.querySelector('.tab-content.active'); if (a) { a.classList.add('print-active'); a.dataset.automatisch = '1'; } }
+    });
+    window.addEventListener('afterprint', function () {
+      document.querySelectorAll('.tab-content[data-automatisch]').forEach(function (a) { a.classList.remove('print-active'); delete a.dataset.automatisch; });
+    });
+  })();
+  </script>
+</body>
+</html>
