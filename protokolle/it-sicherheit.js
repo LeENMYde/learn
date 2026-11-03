@@ -17,7 +17,7 @@ const TOOLS_KEY     = 'itsec_tools';
 
 const PORT_CATEGORIES = {
   web: {
-    label: '🌐 Web-Services',
+    label: 'Web-Services',
     ports: [
       { port:'80',   proto:'HTTP',   transport:'TCP',  desc:'HTTP – unverschlüsselt',                 sev:'warn', note:'Sollte auf HTTPS umleiten (301)' },
       { port:'443',  proto:'HTTPS',  transport:'TCP',  desc:'HTTPS – TLS-verschlüsselt',              sev:'ok',   note:'TLS-Version und Cipher prüfen' },
@@ -32,7 +32,7 @@ const PORT_CATEGORIES = {
     ]
   },
   db: {
-    label: '🗄️ Datenbanken',
+    label: 'Datenbanken',
     ports: [
       { port:'3306', proto:'MySQL',     transport:'TCP', desc:'MySQL / MariaDB',               sev:'fail', note:'NIEMALS öffentlich exponieren' },
       { port:'5432', proto:'PostgreSQL',transport:'TCP', desc:'PostgreSQL',                    sev:'fail', note:'NIEMALS öffentlich exponieren' },
@@ -52,7 +52,7 @@ const PORT_CATEGORIES = {
     ]
   },
   remote: {
-    label: '🖥️ Remote-Zugang',
+    label: 'Remote-Zugang',
     ports: [
       { port:'22',   proto:'SSH',    transport:'TCP',  desc:'SSH – Secure Shell',              sev:'warn', note:'Key-only, Root deaktiviert?' },
       { port:'23',   proto:'Telnet', transport:'TCP',  desc:'Telnet – UNVERSCHLÜSSELT',        sev:'fail', note:'Sofort deaktivieren!' },
@@ -68,7 +68,7 @@ const PORT_CATEGORIES = {
     ]
   },
   mail: {
-    label: '📧 Mail & Messaging',
+    label: 'Mail & Messaging',
     ports: [
       { port:'25',   proto:'SMTP',     transport:'TCP', desc:'SMTP – Mail-Eingang (MTAs)',     sev:'warn', note:'Open-Relay prüfen!' },
       { port:'465',  proto:'SMTPS',    transport:'TCP', desc:'SMTP over TLS (Legacy)',         sev:'info', note:'' },
@@ -82,7 +82,7 @@ const PORT_CATEGORIES = {
     ]
   },
   dns: {
-    label: '🔁 DNS & Netzwerkdienste',
+    label: 'DNS & Netzwerkdienste',
     ports: [
       { port:'53',   proto:'DNS',    transport:'TCP/UDP', desc:'Domain Name System',              sev:'warn', note:'Recursion für externe prüfen!' },
       { port:'67',   proto:'DHCP',   transport:'UDP',  desc:'DHCP Server',                        sev:'info', note:'Rogue DHCP möglich?' },
@@ -101,7 +101,7 @@ const PORT_CATEGORIES = {
     ]
   },
   file: {
-    label: '📁 Datei- & Druckfreigabe',
+    label: 'Datei- & Druckfreigabe',
     ports: [
       { port:'21',   proto:'FTP',    transport:'TCP',  desc:'FTP – UNVERSCHLÜSSELT',             sev:'fail', note:'Durch SFTP/FTPS ersetzen' },
       { port:'20',   proto:'FTP-data',transport:'TCP', desc:'FTP Data Transfer',                  sev:'fail', note:'' },
@@ -119,7 +119,7 @@ const PORT_CATEGORIES = {
     ]
   },
   monitor: {
-    label: '📊 Monitoring, Admin & DevOps',
+    label: 'Monitoring, Admin & DevOps',
     ports: [
       { port:'3000', proto:'Grafana',   transport:'TCP', desc:'Grafana Dashboard',                sev:'warn', note:'Standardpasswort: admin/admin!' },
       { port:'9090', proto:'Prometheus',transport:'TCP', desc:'Prometheus Metrics API',           sev:'warn', note:'Keine Auth by default' },
@@ -139,7 +139,7 @@ const PORT_CATEGORIES = {
     ]
   },
   container: {
-    label: '🐳 Container, K8s & Cloud',
+    label: 'Container, K8s & Cloud',
     ports: [
       { port:'2375', proto:'Docker',   transport:'TCP', desc:'Docker API (UNVERSCHLÜSSELT)',      sev:'fail', note:'Root-Zugriff ohne Auth! Kritisch!' },
       { port:'2376', proto:'Docker-TLS',transport:'TCP',desc:'Docker API (TLS)',                  sev:'warn', note:'Client-Zertifikat prüfen' },
@@ -159,7 +159,7 @@ const PORT_CATEGORIES = {
     ]
   },
   vpn: {
-    label: '🔐 VPN, Proxy & Tunnel',
+    label: 'VPN, Proxy & Tunnel',
     ports: [
       { port:'1194', proto:'OpenVPN',    transport:'UDP/TCP',desc:'OpenVPN',                   sev:'ok',   note:'TLS-Zertifikate prüfen' },
       { port:'51820',proto:'WireGuard',  transport:'UDP',   desc:'WireGuard VPN',              sev:'ok',   note:'Moderne, sichere Lösung' },
@@ -177,7 +177,7 @@ const PORT_CATEGORIES = {
     ]
   },
   iot: {
-    label: '📡 IoT / Industrial / SCADA',
+    label: 'IoT / Industrial / SCADA',
     ports: [
       { port:'102',  proto:'S7comm',    transport:'TCP', desc:'Siemens S7 PLC (Stuxnet!)',    sev:'fail', note:'Direktzugriff auf Steuerungen!' },
       { port:'502',  proto:'Modbus',    transport:'TCP', desc:'Modbus Industrial Protocol',   sev:'fail', note:'Kein Auth, keine Verschlüsselung' },
@@ -408,7 +408,7 @@ function addFindingRow() {
     <td><input type="text" placeholder="Kurzbeschreibung der Schwachstelle"></td>
     <td><select><option>--</option><option>Auth</option><option>Crypto</option><option>Config</option><option>Patch</option><option>Network</option><option>Injection</option><option>Priv-Esc</option><option>Info-Leak</option><option>Sonstiges</option></select></td>
     <td><input type="number" step="0.1" min="0" max="10" placeholder="0.0" style="width:100%;"></td>
-    <td><select onchange="colorRow(this)"><option value="">--</option><option value="fail">🔴 Kritisch</option><option value="fail">🔴 Hoch</option><option value="warn">🟡 Mittel</option><option value="ok">🟢 Niedrig</option><option value="info">🔵 Info</option></select></td>
+    <td><select onchange="colorRow(this)"><option value="">--</option><option value="fail">Kritisch</option><option value="fail">Hoch</option><option value="warn">Mittel</option><option value="ok">Niedrig</option><option value="info">Info</option></select></td>
     <td><select><option>Offen</option><option>In Arbeit</option><option>Behoben</option><option>Akzeptiert</option><option>N/A</option></select></td>
     <td><input type="text" placeholder="Empfohlene Maßnahme"></td>
     <td><input type="date"></td>
@@ -751,7 +751,7 @@ function downloadJSON(content, filename) {
 }
 
 function clearAllData() {
-  if (!confirm('⚠️ ALLE gespeicherten Daten löschen? Unwiderruflich!')) return;
+  if (!confirm('⚠ALLE gespeicherten Daten löschen? Unwiderruflich!')) return;
   [STORAGE_KEY,SETTINGS_KEY,SIGNATURE_KEY,TOOLS_KEY,'itsec_banner'].forEach(k=>localStorage.removeItem(k));
   location.reload();
 }

@@ -133,7 +133,7 @@
   <tr><td>OS vollständig gepatcht (kritische Updates eingespielt)</td><td class="center"><input id="r-upd1-1" type="radio" name="upd1" value="ok"></td><td class="center"><input id="r-upd1-2" type="radio" name="upd1" value="warn"></td><td class="center"><input id="r-upd1-3" type="radio" name="upd1" value="fail"></td><td class="center"><input id="r-upd1-4" type="radio" name="upd1" value="na"></td><td><input type="text" placeholder="ausstehende Updates: "></td></tr>
   <tr><td>Automatische Sicherheitsupdates konfiguriert</td><td class="center"><input id="r-upd2-1" type="radio" name="upd2" value="ok"></td><td class="center"><input id="r-upd2-2" type="radio" name="upd2" value="warn"></td><td class="center"><input id="r-upd2-3" type="radio" name="upd2" value="fail"></td><td class="center"><input id="r-upd2-4" type="radio" name="upd2" value="na"></td><td><input type="text" placeholder="unattended-upgrades / dnf-automatic"></td></tr>
   <tr><td>Applikationen & Docker-Images aktuell</td><td class="center"><input id="r-upd3-1" type="radio" name="upd3" value="ok"></td><td class="center"><input id="r-upd3-2" type="radio" name="upd3" value="warn"></td><td class="center"><input id="r-upd3-3" type="radio" name="upd3" value="fail"></td><td class="center"><input id="r-upd3-4" type="radio" name="upd3" value="na"></td><td><input type="text"></td></tr>
-  <tr><td>CVE-Scan durchgeführt (Trivy / Grype / OpenVAS / Nessus)</td><td class="center"><input id="r-upd4-1" type="radio" name="upd4" value="ok"></td><td class="center"><input id="r-upd4-2" type="radio" name="upd4" value="warn"></td><td class="center"><input id="r-upd4-3" type="radio" name="upd4" value="fail"></td><td class="center"><input id="r-upd4-4" type="radio" name="upd4" value="na"></td><td><input type="text" placeholder="Tool + Ergebnis: "></td></tr>
+  <tr><td>CVE-Scan durchgeführt (Container- und Schwachstellenscanner)</td><td class="center"><input id="r-upd4-1" type="radio" name="upd4" value="ok"></td><td class="center"><input id="r-upd4-2" type="radio" name="upd4" value="warn"></td><td class="center"><input id="r-upd4-3" type="radio" name="upd4" value="fail"></td><td class="center"><input id="r-upd4-4" type="radio" name="upd4" value="na"></td><td><input type="text" placeholder="Tool + Ergebnis: "></td></tr>
   <tr><td>Abhängigkeiten (npm / pip / composer / go) auf CVEs geprüft</td><td class="center"><input id="r-upd5-1" type="radio" name="upd5" value="ok"></td><td class="center"><input id="r-upd5-2" type="radio" name="upd5" value="warn"></td><td class="center"><input id="r-upd5-3" type="radio" name="upd5" value="fail"></td><td class="center"><input id="r-upd5-4" type="radio" name="upd5" value="na"></td><td><input type="text"></td></tr>
 </tbody></table></div>
 
@@ -161,7 +161,7 @@
   <tr><td>.env / Konfigdateien nicht öffentlich erreichbar (HTTP)</td><td class="center"><input id="r-cfg2-1" type="radio" name="cfg2" value="ok"></td><td class="center"><input id="r-cfg2-2" type="radio" name="cfg2" value="warn"></td><td class="center"><input id="r-cfg2-3" type="radio" name="cfg2" value="fail"></td><td class="center"><input id="r-cfg2-4" type="radio" name="cfg2" value="na"></td><td><input type="text"></td></tr>
   <tr><td>Dateirechte korrekt (sensitive Dateien 600 / 640)</td><td class="center"><input id="r-cfg3-1" type="radio" name="cfg3" value="ok"></td><td class="center"><input id="r-cfg3-2" type="radio" name="cfg3" value="warn"></td><td class="center"><input id="r-cfg3-3" type="radio" name="cfg3" value="fail"></td><td class="center"><input id="r-cfg3-4" type="radio" name="cfg3" value="na"></td><td><input type="text"></td></tr>
   <tr><td>App läuft nicht als Root (dedizierter Service-User)</td><td class="center"><input id="r-cfg4-1" type="radio" name="cfg4" value="ok"></td><td class="center"><input id="r-cfg4-2" type="radio" name="cfg4" value="warn"></td><td class="center"><input id="r-cfg4-3" type="radio" name="cfg4" value="fail"></td><td class="center"><input id="r-cfg4-4" type="radio" name="cfg4" value="na"></td><td><input type="text"></td></tr>
-  <tr><td>HTTP Security-Header gesetzt (CSP, X-Frame, CORP…)</td><td class="center"><input id="r-cfg5-1" type="radio" name="cfg5" value="ok"></td><td class="center"><input id="r-cfg5-2" type="radio" name="cfg5" value="warn"></td><td class="center"><input id="r-cfg5-3" type="radio" name="cfg5" value="fail"></td><td class="center"><input id="r-cfg5-4" type="radio" name="cfg5" value="na"></td><td><input type="text" placeholder="securityheaders.com Score: "></td></tr>
+  <tr><td>HTTP Security-Header gesetzt (CSP, X-Frame, CORP…)</td><td class="center"><input id="r-cfg5-1" type="radio" name="cfg5" value="ok"></td><td class="center"><input id="r-cfg5-2" type="radio" name="cfg5" value="warn"></td><td class="center"><input id="r-cfg5-3" type="radio" name="cfg5" value="fail"></td><td class="center"><input id="r-cfg5-4" type="radio" name="cfg5" value="na"></td><td><input type="text" placeholder="Ergebnis des Header-Checks: "></td></tr>
   <tr><td>Keine Versionsinformationen in HTTP-Headern / Fehlerseiten</td><td class="center"><input id="r-cfg6-1" type="radio" name="cfg6" value="ok"></td><td class="center"><input id="r-cfg6-2" type="radio" name="cfg6" value="warn"></td><td class="center"><input id="r-cfg6-3" type="radio" name="cfg6" value="fail"></td><td class="center"><input id="r-cfg6-4" type="radio" name="cfg6" value="na"></td><td><input type="text"></td></tr>
   <tr><td>Docker: Keine privilegierten Container ohne Begründung</td><td class="center"><input id="r-cfg7-1" type="radio" name="cfg7" value="ok"></td><td class="center"><input id="r-cfg7-2" type="radio" name="cfg7" value="warn"></td><td class="center"><input id="r-cfg7-3" type="radio" name="cfg7" value="fail"></td><td class="center"><input id="r-cfg7-4" type="radio" name="cfg7" value="na"></td><td><input type="text"></td></tr>
 </tbody></table></div>
@@ -174,7 +174,7 @@
     <td class="label">Zweck:</td><td><input type="text" id="a-tool1-use" placeholder="Port-Scan"></td>
   </tr>
   <tr>
-    <td class="label">Tool 2:</td><td><input type="text" id="a-tool2" placeholder="testssl.sh"></td>
+    <td class="label">Tool 2:</td><td><input type="text" id="a-tool2" placeholder="TLS-Prüfwerkzeug"></td>
     <td class="label">Version:</td><td><input type="text" id="a-tool2-ver"></td>
     <td class="label">Zweck:</td><td><input type="text" id="a-tool2-use" placeholder="TLS-Prüfung"></td>
   </tr>
@@ -266,8 +266,8 @@
     <td><select id="ps-tool">
       <option>nmap</option><option>masscan</option><option>rustscan</option>
       <option>zmap</option><option>unicornscan</option><option>netcat (nc)</option>
-      <option>Metasploit / msfconsole</option><option>Nessus</option>
-      <option>OpenVAS / GVM</option><option>Sonstiges</option>
+      <option>Exploit-Framework</option><option>Schwachstellenscanner (kommerziell)</option>
+      <option>Schwachstellenscanner (frei)</option><option>Sonstiges</option>
     </select></td>
     <td class="label">Scan-Typ:</td>
     <td><select id="ps-scantyp">
@@ -339,7 +339,7 @@
   <span style="font-size:11px;color: var(--leise);align-self:center;">10 Zeilen vorausgefüllt · Kategorien oben für Schnell-Import</span>
 </div>
 
-<div class="section-title">SSL/TLS Scan (testssl.sh / sslscan / sslyze)</div>
+<div class="section-title">SSL/TLS-Scan</div>
 <div style="overflow-x:auto;">
 <div class="rollen"><table class="measurement-table">
   <thead><tr><th>Prüfpunkt</th><th style="width:130px;">Wert / Ergebnis</th><th style="width:75px;">Bewertung</th><th>Bemerkung</th></tr></thead>
@@ -351,12 +351,12 @@
     <tr><td>Zertifikat CN / SAN</td><td><input type="text" placeholder="*.example.com"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
     <tr><td>Zertifikat gültig bis</td><td><input type="date"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
     <tr><td>HSTS vorhanden</td><td><input type="text" placeholder="ja / nein"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text" placeholder="max-age=…"></td></tr>
-    <tr><td>SSL Labs / testssl.sh Gesamtnote</td><td><input type="text" placeholder="A+ / A / B …"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
+    <tr><td>TLS-Gesamtnote (Online-Test oder Prüfwerkzeug)</td><td><input type="text" placeholder="A+ / A / B …"></td><td><select><option>--</option><option>OK</option><option>WARN</option><option>FAIL</option></select></td><td><input type="text"></td></tr>
   </tbody>
 </table></div>
 </div>
 
-<div class="section-title">HTTP Security-Header (securityheaders.com)</div>
+<div class="section-title">HTTP-Sicherheitsheader</div>
 <div style="overflow-x:auto;">
 <div class="rollen"><table class="measurement-table">
   <thead><tr><th>Header</th><th style="width:180px;">Wert (Kurzform)</th><th style="width:75px;">Vorhanden</th><th style="width:75px;">Bewertung</th><th>Bemerkung</th></tr></thead>
@@ -440,7 +440,7 @@
   <button onclick="addFindingRow()" class="btn btn-small">+ Finding hinzufügen</button>
 </div>
 
-<div class="section-title">CVE-Scan Ergebnisse (Trivy / Grype / OpenVAS / Nessus)</div>
+<div class="section-title">CVE-Scan-Ergebnisse (Container- und Schwachstellenscanner)</div>
 <div style="overflow-x:auto;">
 <div class="rollen"><table class="measurement-table">
   <thead><tr>
@@ -639,6 +639,7 @@
   const bewegungAus = false;
   </script>
   <script src="it-sicherheit.js"></script>
+  <script src="it-pruefung.js"></script>
   <script>
   // Zeilen der dynamischen Tabellen merken (basis.js speichert das versteckte Feld mit)
   (function () {
