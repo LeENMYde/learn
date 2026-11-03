@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schleifenimpedanz und Kurzschlussstrom</title>
+  <meta name="description" content="Abschaltbedingung nach DIN VDE 0100-410: Schleifenimpedanz, kleinster Kurzschlussstrom, Abschaltstrom von LS-Schalter oder Sicherung, größte Leitungslänge und Grenzwert für die Messung.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Abschaltstrom I_a für gG-Sicherungen (DIN VDE 0636): [I_n, I_a bei 0,4 s, I_a bei 5 s]
+    const GG = [[2, 16, 9.2], [4, 32, 19], [6, 47, 28], [10, 82, 47], [13, 100, 58], [16, 107, 65], [20, 146, 85], [25, 180, 110], [32, 240, 150], [35, 265, 173], [40, 300, 190], [50, 425, 250], [63, 520, 320], [80, 700, 425], [100, 950, 580], [125, 1250, 715], [160, 1650, 950]];
+    const NENN = [2, 4, 6, 10, 13, 16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160];
+    const QS = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150];
+    const BEISPIEL = { U0: 230, ZV: 0.35, mat: 'cu', A: 2.5, L: 25, temp: 70, organ: 'B', In: 16, zeit: '0.4', rcd: 'ohne', netz: 'tn' };
+
+    R.seite({
+      titel: 'Schleifenimpedanz und Kurzschlussstrom',
+      einleitung: 'Abschaltbedingung nach DIN VDE 0100-410: Schleifenimpedanz aus Netz und Leitung, kleinster Kurzschlussstrom am Leitungsende, Abschaltstrom des Schutzorgans, größte zulässige Leitungslänge und Grenzwert für die Messung nach DIN VDE 0100-600.',
+      hilfe: 'Netzimpedanz Z_V = gemessene Schleifenimpedanz am Anfang des Stromkreises (Verteiler) oder Angabe des Netzbetreibers am Hausanschluss.',
+      gruppen: [
+        { titel: 'Netz', farbe: '#2B7BB9', felder: [
+          { k: 'netz', name: 'Netzform', wahl: [['tn', 'TN-System'], ['tt', 'TT-System']] },
+          { k: 'U0', tex: 'U_0', name: 'Spannung gegen Erde', e: 'V', min: 50, max: 1000 },
+          { k: 'ZV', tex: 'Z_\\text{V}', name: 'Schleifenimpedanz vor dem Stromkreis', e: 'Ω', min: 0.001, max: 50 }
+        ] },
+        { titel: 'Leitung', farbe: '#B5533C', felder: [
+          { k: 'mat', name: 'Leiterwerkstoff', wahl: [['cu', 'Kupfer'], ['al', 'Aluminium']] },
+          { k: 'A', name: 'Querschnitt', wahl: QS.map(function (q) { return [String(q), String(q).replace('.', ',') + ' mm²']; }) },
+          { k: 'L', tex: 'l', name: 'einfache Leitungslänge', e: 'm', min: 0.1, max: 2000 },
+          { k: 'temp', name: 'Leitertemperatur', wahl: [['20', '20 °C (kalt, wie gemessen)'], ['70', '70 °C (PVC im Betrieb)'], ['90', '90 °C (VPE im Betrieb)']] }
+        ] },
+        { titel: 'Schutzorgan', farbe: '#E4572E', felder: [
+          { k: 'organ', name: 'Art', wahl: [['B', 'Leitungsschutzschalter B'], ['C', 'Leitungsschutzschalter C'], ['D', 'Leitungsschutzschalter D'], ['gG', 'Schmelzsicherung gG']] },
+          { k: 'In', name: 'Bemessungsstrom', wahl: NENN.map(function (n) { return [String(n), n + ' A']; }) },
+          { k: 'zeit', name: 'geforderte Abschaltzeit', wahl: [['0.4', '0,4 s (Endstromkreis bis 63 A, TN)'], ['0.2', '0,2 s (Endstromkreis bis 63 A, TT)'], ['5', '5 s (Verteilerstromkreis, TN)'], ['1', '1 s (Verteilerstromkreis, TT)']] },
+          { k: 'rcd', name: 'Fehlerstromschutzschalter', wahl: [['ohne', 'ohne'], ['0.03', '30 mA'], ['0.1', '100 mA'], ['0.3', '300 mA']] }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Schleifenimpedanz am Leitungsende', 'Z_\\text{S} = \\sqrt{(R_\\text{V} + 2 R_\\text{L})^2 + (X_\\text{V} + 2 X_\\text{L})^2} \\approx Z_\\text{V} + 2 \\cdot \\frac{\\rho_\\theta \\cdot l}{A}', 'Hin- und Rückleiter (L und PE gleicher Querschnitt); Leitungsreaktanz 0,08 mΩ/m'],
+        ['Widerstand bei Leitertemperatur', '\\rho_\\theta = \\rho_{20} \\cdot (1 + \\alpha \\cdot (\\theta - 20\\,{}^\\circ\\text{C}))', 'Kupfer ρ₂₀ = 0,0178, α = 0,00393; Aluminium 0,0286 und 0,00403 Ω·mm²/m'],
+        ['Kleinster Kurzschlussstrom', 'I_\\text{k,min} = \\frac{c_\\text{min} \\cdot U_0}{Z_\\text{S}}', 'c_min = 0,95 (DIN EN 60909-0)'],
+        ['Abschaltbedingung TN', 'Z_\\text{S} \\cdot I_\\text{a} \\le U_0', 'LS B: I_a = 5·I_n, C: 10·I_n, D: 20·I_n; Sicherung gG aus der Kennlinie für 0,4 s bzw. 5 s'],
+        ['Größte Leitungslänge', 'l_\\text{max} = \\frac{\\left(\\frac{c_\\text{min} U_0}{I_\\text{a}} - Z_\\text{V}\\right) \\cdot A}{2 \\cdot \\rho_\\theta}', ''],
+        ['Grenzwert bei der Messung', 'Z_\\text{S,mess} \\le \\frac{2}{3} \\cdot \\frac{U_0}{I_\\text{a}}', 'kalte Leitung bei der Messung; Faktor nach DIN VDE 0100-600 Anhang C'],
+        ['TT-System mit RCD', 'R_\\text{A} \\cdot I_{\\Delta n} \\le 50\\,\\text{V}', 'Erdungswiderstand der Anlage']
+      ],
+      quellen: 'DIN VDE 0100-410 (Schutz gegen elektrischen Schlag), DIN VDE 0100-600 (Erstprüfung), DIN EN 60909-0 (Kurzschlussströme), DIN VDE 0636 (Sicherungen), DIN EN 60898-1 (LS-Schalter).',
+      bild: { titel: 'Fehlerschleife', label: 'Fehlerschleife vom Netz über Außenleiter zum Körperschluss und zurück über den Schutzleiter', animiert: !bewegungAus,
+        hoehe: function (B) { return B < 520 ? 300 : 270; }, zeichne: zeichne,
+        hinweis: function (r) { return 'Bei Körperschluss fließt I_k durch die Schleife; der Zeiger zeigt, wie weit er über dem Abschaltstrom liegt.'; } }
+    });
+
+    function rho(e) { const r20 = e.mat === 'al' ? 0.0286 : 0.0178, a = e.mat === 'al' ? 0.00403 : 0.00393; return r20 * (1 + a * (+e.temp - 20)); }
+    function abschaltstrom(e) {
+      if (e.organ === 'gG') { const g = GG.filter(function (x) { return x[0] === +e.In; })[0]; return g ? (+e.zeit >= 5 ? g[2] : g[1]) : NaN; }
+      return { B: 5, C: 10, D: 20 }[e.organ] * e.In;
+    }
+    function rechne(e) {
+      const r = {};
+      r.rho = rho(e);
+      r.RL = 2 * r.rho * e.L / e.A;
+      r.XL = 2 * 0.00008 * e.L;
+      r.ZS = Math.sqrt(Math.pow(e.ZV * 0.9 + r.RL, 2) + Math.pow(e.ZV * 0.44 + r.XL, 2));   // Netz: R/X ≈ 0,9/0,44
+      r.Ik = 0.95 * e.U0 / r.ZS;
+      r.Ia = abschaltstrom(e);
+      r.ZSmax = 0.95 * e.U0 / r.Ia;
+      r.ok = r.Ik >= r.Ia;
+      r.Lmax = Math.max(0, (r.ZSmax - e.ZV) * e.A / (2 * r.rho));
+      r.mess = 2 / 3 * e.U0 / r.Ia;
+      r.ZSkalt = e.ZV + 2 * 0.0178 * (e.mat === 'al' ? 0.0286 / 0.0178 : 1) * e.L / e.A;
+      r.faktor = r.Ik / r.Ia;
+      if (e.rcd !== 'ohne') { r.RAmax = 50 / +e.rcd; r.IkRCD = 5 * +e.rcd; }
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.organ === 'gG' && (+e.zeit === 0.2 || +e.zeit === 1)) H.meldung('Für TT-Systeme sind die Kennwerte der Sicherung bei 0,2 s bzw. 1 s nicht hinterlegt; gerechnet wird mit 0,4 s bzw. 5 s. Im TT-System übernimmt meist der Fehlerstromschutzschalter.');
+      if (e.netz === 'tt' && e.rcd === 'ohne') H.meldung('Im TT-System ist die Abschaltung über Überstromschutz kaum erreichbar. Fehlerstromschutzschalter vorsehen.', true);
+      if (e.organ !== 'gG' && e.In > 63) H.meldung('Leitungsschutzschalter über 63 A sind unüblich; Kennwerte gelten bis 63 A.');
+      const okRCD = e.rcd !== 'ohne';
+      const ok = r.ok || okRCD;
+      H.urteil(ok, r.ok ? 'schaltet rechtzeitig ab' : okRCD ? 'nur über RCD' : 'schaltet nicht rechtzeitig ab');
+      H.kacheln([
+        [z(r.ZS, 3) + ' Ω', 'Schleifenimpedanz am Ende (' + e.temp + ' °C)', '#2B7BB9'],
+        [z(r.Ik, 0) + ' A', 'kleinster Kurzschlussstrom', r.ok ? '#0E6B6A' : '#C0392B'],
+        [z(r.Ia, 0) + ' A', 'Abschaltstrom ' + e.organ + ' ' + e.In + ' A in ' + z(+e.zeit, 1) + ' s', '#E4572E'],
+        [z(r.Lmax, 0) + ' m', 'größte Leitungslänge', r.Lmax >= e.L ? '#0E6B6A' : '#C0392B'],
+        [z(r.mess, 2) + ' Ω', 'Grenzwert Messung (2/3-Regel)', '#6E6FA6'],
+        [z(r.faktor, 1) + ' ×', 'I_k im Verhältnis zu I_a', '#6B7785']
+      ]);
+      H.nachweise([
+        [r.ok, 'Abschaltbedingung Z_S · I_a ≤ c·U₀', z(r.ZS, 3) + ' Ω · ' + z(r.Ia, 0) + ' A = ' + z(r.ZS * r.Ia, 0) + ' V ' + (r.ok ? '≤ ' : '> ') + z(0.95 * e.U0, 0) + ' V'],
+        [r.Lmax >= e.L, 'Leitungslänge', z(e.L, 1) + ' m ' + (r.Lmax >= e.L ? '≤ ' : '> ') + z(r.Lmax, 1) + ' m'],
+        [r.ZSkalt <= r.mess, 'Erwarteter Messwert (kalt) unter dem Grenzwert', z(r.ZSkalt, 3) + ' Ω ' + (r.ZSkalt <= r.mess ? '≤ ' : '> ') + z(r.mess, 3) + ' Ω'],
+        okRCD ? [true, 'Fehlerstromschutzschalter ' + z(+e.rcd * 1000, 0) + ' mA', e.netz === 'tt' ? 'Erdungswiderstand R_A ≤ 50 V / I_Δn = ' + z(r.RAmax, 0) + ' Ω' : 'zusätzlicher Schutz; Abschaltung ab ' + z(r.IkRCD * 1000, 0) + ' mA in 40 ms'] : null
+      ]);
+      H.tabelle('Querschnitte im Vergleich', ['Querschnitt', 'Z_S', 'I_k', 'l_max', 'Abschaltung'],
+        QS.filter(function (q) { return q >= 1.5 && q <= Math.max(16, e.A * 4); }).slice(0, 7).map(function (q) {
+          const x = rechne(Object.assign({}, e, { A: q }));
+          return [String(q).replace('.', ',') + ' mm²', z(x.ZS, 3) + ' Ω', z(x.Ik, 0) + ' A', z(x.Lmax, 0) + ' m', x.ok ? 'ja' : 'nein'];
+        }), { zahl: [1, 2, 3], klasse: function (i) { return QS.filter(function (q) { return q >= 1.5 && q <= Math.max(16, e.A * 4); })[i] === +e.A ? 'gewaehlt' : ''; } });
+    }
+    function weg(r, e) {
+      const O = '\\,\\Omega';
+      return [
+        ['Spezifischer Widerstand bei ' + e.temp + ' °C', '\\rho_\\theta = ' + tz(e.mat === 'al' ? 0.0286 : 0.0178, 4) + ' \\cdot (1 + ' + tz(e.mat === 'al' ? 0.00403 : 0.00393, 5) + ' \\cdot ' + tz(+e.temp - 20) + ') = ' + E(tz(r.rho, 5) + '\\,\\tfrac{\\Omega\\,\\text{mm}^2}{\\text{m}}')],
+        ['Widerstand von Hin- und Rückleiter', 'R_\\text{L} = 2 \\cdot \\frac{' + tz(r.rho, 5) + ' \\cdot ' + tz(e.L, 1) + '}{' + tz(+e.A, 1) + '} = ' + E(tz(r.RL, 4) + O)],
+        ['Schleifenimpedanz (Netz R/X ≈ 0,9/0,44)', 'Z_\\text{S} = \\sqrt{(' + tz(e.ZV * 0.9, 3) + ' + ' + tz(r.RL, 4) + ')^2 + (' + tz(e.ZV * 0.44, 3) + ' + ' + tz(r.XL, 4) + ')^2} = ' + E(tz(r.ZS, 4) + O)],
+        ['Kleinster Kurzschlussstrom', 'I_\\text{k,min} = \\frac{0{,}95 \\cdot ' + tz(e.U0) + '}{' + tz(r.ZS, 4) + '} = ' + R.EF(r.ok)(tz(r.Ik, 0) + '\\,\\text{A}')],
+        ['Abschaltstrom', 'I_\\text{a} = ' + (e.organ === 'gG' ? '\\text{Kennlinie gG}' : { B: 5, C: 10, D: 20 }[e.organ] + ' \\cdot ' + e.In) + ' = ' + E(tz(r.Ia, 0) + '\\,\\text{A}') + (r.ok ? ' \\le ' : ' > ') + tz(r.Ik, 0) + '\\,\\text{A}'],
+        ['Größte Leitungslänge', 'l_\\text{max} = \\frac{(' + tz(r.ZSmax, 4) + ' - ' + tz(e.ZV, 3) + ') \\cdot ' + tz(+e.A, 1) + '}{2 \\cdot ' + tz(r.rho, 5) + '} = ' + E(tz(r.Lmax, 1) + '\\,\\text{m}')],
+        ['Grenzwert für die Messung', 'Z_\\text{S,mess} \\le \\frac{2}{3} \\cdot \\frac{' + tz(e.U0) + '}{' + tz(r.Ia, 0) + '} = ' + E(tz(r.mess, 3) + O)]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, x0 = 40, x1 = B - 60, yL = 60, yPE = H - 70;
+      const ok = r.ok, farbeStrom = ok ? '#E4572E' : '#C0392B';
+      // Quelle
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 2;
+      cx.beginPath(); cx.arc(x0, (yL + yPE) / 2, 18, 0, 2 * Math.PI); cx.stroke();
+      Z.text(cx, '~', x0, (yL + yPE) / 2, 'center', 18);
+      Z.text(cx, 'Z_V ' + z(e.ZV, 2) + ' Ω', x0 + 24, (yL + yPE) / 2, 'left', 10, false);
+      // Leitungen
+      cx.strokeStyle = '#8B5A2B'; cx.lineWidth = 3;
+      cx.beginPath(); cx.moveTo(x0, (yL + yPE) / 2 - 18); cx.lineTo(x0, yL); cx.lineTo(x1, yL); cx.lineTo(x1, yL + 40); cx.stroke();
+      cx.strokeStyle = '#3C9A3C'; cx.setLineDash([10, 4]);
+      cx.beginPath(); cx.moveTo(x0, (yL + yPE) / 2 + 18); cx.lineTo(x0, yPE); cx.lineTo(x1, yPE); cx.lineTo(x1, yPE - 40); cx.stroke(); cx.setLineDash([]);
+      // Schutzorgan
+      const xs = x0 + 70;
+      cx.fillStyle = R.farbe('--flaeche'); cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 1.5;
+      cx.fillRect(xs - 16, yL - 14, 32, 28); cx.strokeRect(xs - 16, yL - 14, 32, 28);
+      Z.text(cx, e.organ + e.In, xs, yL, 'center', 11);
+      // Verbraucher mit Körperschluss
+      cx.strokeStyle = R.farbe('--text'); cx.strokeRect(x1 - 30, yL + 40, 60, yPE - yL - 80);
+      Z.text(cx, 'Gerät', x1 - 36, (yL + yPE) / 2 - 10, 'right', 11);
+      cx.strokeStyle = farbeStrom; cx.lineWidth = 2; cx.beginPath();
+      cx.moveTo(x1 - 6, yL + 50); cx.lineTo(x1 + 6, (yL + yPE) / 2); cx.lineTo(x1 - 6, (yL + yPE) / 2 + 6); cx.lineTo(x1 + 4, yPE - 50); cx.stroke();
+      Z.text(cx, 'Körperschluss', x1 - 36, (yL + yPE) / 2 + 22, 'right', 10, false, farbeStrom);
+      Z.text(cx, 'L  ' + z(+e.A, 1).replace(',0', '') + ' mm², ' + z(e.L, 0) + ' m', (x0 + x1) / 2, yL - 14, 'center', 11, true, '#8B5A2B');
+      Z.text(cx, 'PE', (x0 + x1) / 2, yPE + 14, 'center', 11, true, '#3C9A3C');
+      // Strom: Punkte um die Schleife
+      const pfad = [[x0, (yL + yPE) / 2 - 18], [x0, yL], [x1, yL], [x1, yPE], [x0, yPE], [x0, (yL + yPE) / 2 + 18]];
+      let gesamt = 0; const s = [0];
+      for (let i = 1; i < pfad.length; i++) { gesamt += Math.abs(pfad[i][0] - pfad[i - 1][0]) + Math.abs(pfad[i][1] - pfad[i - 1][1]); s.push(gesamt); }
+      const v = Math.min(3, 0.4 + r.faktor * 0.3);
+      cx.fillStyle = farbeStrom;
+      for (let j = 0; j < 16; j++) {
+        const p = ((t * 0.00008 * v + j / 16) % 1) * gesamt;
+        let i = 1; while (i < s.length - 1 && s[i] < p) i++;
+        const a = pfad[i - 1], b2 = pfad[i], f = (p - s[i - 1]) / Math.max(1, s[i] - s[i - 1]);
+        cx.beginPath(); cx.arc(a[0] + (b2[0] - a[0]) * f, a[1] + (b2[1] - a[1]) * f, 3, 0, 2 * Math.PI); cx.fill();
+      }
+      // Balken I_k gegen I_a
+      const by = H - 30, bx = x0, bw = B - x0 - 20, max = Math.max(r.Ik, r.Ia) * 1.2;
+      cx.fillStyle = R.farbe('--linie'); cx.fillRect(bx, by, bw, 10);
+      cx.fillStyle = farbeStrom; cx.fillRect(bx, by, bw * r.Ik / max, 10);
+      cx.fillStyle = R.farbe('--text'); cx.fillRect(bx + bw * r.Ia / max - 1, by - 6, 2, 22);
+      Z.text(cx, 'I_k ' + z(r.Ik, 0) + ' A', bx, by + 20, 'left', 10, true, farbeStrom);
+      Z.text(cx, 'I_a ' + z(r.Ia, 0) + ' A', Math.min(bx + bw - 4, bx + bw * r.Ia / max + 4), by - 10, bx + bw * r.Ia / max > bw - 60 ? 'right' : 'left', 10, true);
+    }
+  })();
+  </script>
+</body>
+</html>

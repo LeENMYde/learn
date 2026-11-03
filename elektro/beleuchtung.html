@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beleuchtung planen</title>
+  <meta name="description" content="Innenbeleuchtung nach DIN EN 12464-1: Raumindex, Raumwirkungsgrad, Anzahl und Raster der Leuchten, Wartungswert, Gleichmäßigkeit mit Punktberechnung und Leistungsdichte.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Wartungswerte der Beleuchtungsstärke nach DIN EN 12464-1 (Auswahl)
+    const AUFGABEN = [
+      ['500', 'Büro, Schreiben, Lesen, PC – 500 lx'], ['300', 'Besprechung, Lager mit Lesen – 300 lx'], ['750', 'Technisches Zeichnen, Feinmontage – 750 lx'],
+      ['300.', 'Werkstatt grob, Montage – 300 lx'], ['500.', 'Werkstatt fein, Elektro – 500 lx'], ['100', 'Flur, Verkehrsfläche – 100 lx'],
+      ['150', 'Treppe – 150 lx'], ['200', 'Sanitärraum, Umkleide – 200 lx'], ['300,', 'Klassenraum – 300 lx (500 lx Abendschule)'], ['frei', 'eigener Wert']
+    ];
+    // Raumwirkungsgrad für breit strahlende Direkt-Leuchten, Reflexion Decke/Wand/Boden 0,7/0,5/0,2
+    const ETA_K = [[0.6, 0.45], [0.8, 0.55], [1, 0.62], [1.25, 0.69], [1.5, 0.74], [2, 0.8], [2.5, 0.85], [3, 0.88], [4, 0.92], [5, 0.94]];
+    function lin(t, x) { if (x <= t[0][0]) return t[0][1] * Math.max(0.4, x / t[0][0]); for (let i = 1; i < t.length; i++) if (x <= t[i][0]) return t[i - 1][1] + (t[i][1] - t[i - 1][1]) * (x - t[i - 1][0]) / (t[i][0] - t[i - 1][0]); return t[t.length - 1][1]; }
+
+    const BEISPIEL = { a: 8, b: 6, h: 3, hn: 0.75, aufgabe: '500', Em: 500, refl: '1', MF: 0.8, phi: 3600, P: 30, nx: 0, ny: 0 };
+
+    R.seite({
+      titel: 'Beleuchtung planen',
+      einleitung: 'Innenbeleuchtung nach DIN EN 12464-1 mit dem Wirkungsgradverfahren: Raumindex, Raumwirkungsgrad, Wartungsfaktor, Anzahl und Raster der Leuchten, Anschlussleistung. Dazu eine Punktberechnung der direkten Beleuchtungsstärke mit Gleichmäßigkeit als Falschfarbenbild.',
+      hilfe: 'Leuchtenlichtstrom aus dem Datenblatt (LED-Leuchten: Lichtstrom der Leuchte, nicht der Lampe). Rasterzahlen 0 = automatisch.',
+      gruppen: [
+        { titel: 'Raum', farbe: '#F2A541', felder: [
+          { k: 'a', tex: 'a', name: 'Länge', e: 'm', min: 1, max: 200 },
+          { k: 'b', tex: 'b', name: 'Breite', e: 'm', min: 1, max: 200 },
+          { k: 'h', tex: 'h', name: 'Raumhöhe (Leuchte)', e: 'm', min: 2, max: 30 },
+          { k: 'hn', tex: 'h_\\text{N}', name: 'Höhe der Nutzebene', e: 'm', min: 0, max: 2 },
+          { k: 'refl', name: 'Oberflächen', wahl: [['1', 'hell (Decke 0,7, Wand 0,5, Boden 0,2)'], ['0.9', 'mittel (0,5 / 0,3 / 0,1)'], ['0.8', 'dunkel (0,3 / 0,1 / 0,1)']] }
+        ] },
+        { titel: 'Anforderung', farbe: '#0E6B6A', felder: [
+          { k: 'aufgabe', name: 'Sehaufgabe', wahl: AUFGABEN, bei: function (e, v, setze) { if (v !== 'frei') setze({ Em: parseFloat(v) }); } },
+          { k: 'Em', tex: '\\bar E_\\text{m}', name: 'Wartungswert', e: 'lx', min: 10, max: 5000, bei: function (e, v, setze) { const t = AUFGABEN.filter(function (x) { return parseFloat(x[0]) === v; })[0]; setze({ aufgabe: t ? t[0] : 'frei' }); } },
+          { k: 'MF', tex: 'MF', name: 'Wartungsfaktor', e: '', min: 0.4, max: 1, hilfe: 'LED in sauberer Umgebung 0,8; staubig 0,6 bis 0,7' }
+        ] },
+        { titel: 'Leuchte', farbe: '#2B7BB9', felder: [
+          { k: 'phi', tex: '\\Phi_\\text{L}', name: 'Lichtstrom je Leuchte', e: 'lm', min: 100, max: 100000 },
+          { k: 'P', tex: 'P_\\text{L}', name: 'Leistung je Leuchte', e: 'W', min: 1, max: 2000 },
+          { k: 'nx', tex: 'n_x', name: 'Leuchten entlang der Länge', e: '', min: 0, max: 60, ganz: true },
+          { k: 'ny', tex: 'n_y', name: 'Leuchten entlang der Breite', e: '', min: 0, max: 60, ganz: true }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Raumindex', 'k = \\frac{a \\cdot b}{h_\\text{m} \\cdot (a + b)},\\quad h_\\text{m} = h - h_\\text{N}', 'h_m: Lichtpunkthöhe über der Nutzebene'],
+        ['Anzahl der Leuchten', 'n = \\frac{\\bar E_\\text{m} \\cdot A}{\\Phi_\\text{L} \\cdot \\eta_\\text{R} \\cdot MF}', 'η_R Raumwirkungsgrad (Tabelle über k, hier für breit strahlende Direktleuchten); MF Wartungsfaktor'],
+        ['Erreichte Beleuchtungsstärke', '\\bar E = \\frac{n \\cdot \\Phi_\\text{L} \\cdot \\eta_\\text{R} \\cdot MF}{A}', ''],
+        ['Punktberechnung (direkt)', 'E_\\text{P} = \\sum \\frac{I(\\gamma) \\cdot \\cos^3\\gamma}{h_\\text{m}^2},\\quad I(\\gamma) = \\frac{\\Phi_\\text{L}}{\\pi} \\cos\\gamma', 'Lambert-Strahler; ohne Reflexion, daher kleiner als der Mittelwert nach Wirkungsgrad'],
+        ['Gleichmäßigkeit', 'U_0 = \\frac{E_\\text{min}}{\\bar E} \\ge 0{,}6', 'Bereich der Sehaufgabe (DIN EN 12464-1); Verkehrsflächen 0,4'],
+        ['Leistungsdichte', 'p = \\frac{n \\cdot P_\\text{L}}{A}\\ \\text{in W/m}^2', 'gute LED-Planung im Büro unter 6 W/m²']
+      ],
+      quellen: 'DIN EN 12464-1:2021 (Beleuchtung von Arbeitsstätten in Innenräumen), ASR A3.4, LiTG-Schriften zum Wirkungsgradverfahren. Für Nachweise mit realen Lichtstärkeverteilungen ein Lichtplanungsprogramm verwenden.',
+      bild: { titel: 'Beleuchtungsstärke auf der Nutzebene', label: 'Draufsicht mit Leuchtenraster und Falschfarben der direkten Beleuchtungsstärke', animiert: !bewegungAus,
+        hoehe: function (B, e) { return Math.round(Math.max(200, Math.min(420, (B - 40) * e.b / e.a + 50))); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Blau = dunkler, gelb = heller; Zahlen sind Lux (direkt, ohne Reflexion).'; } }
+    });
+
+    function raster(n, a, b) {
+      let best = null;
+      for (let nx = 1; nx <= Math.min(60, n); nx++) {
+        const ny = Math.max(1, Math.ceil(n / nx));
+        const sx = a / nx, sy = b / ny, guete = Math.abs(sx - sy) + (nx * ny - n) * 0.3;
+        if (!best || guete < best.g) best = { nx: nx, ny: ny, g: guete };
+      }
+      return best;
+    }
+    function punkt(e, r, x, y) {
+      let E2 = 0; const hm = r.hm, I0 = e.phi / Math.PI;
+      for (let i = 0; i < r.nx; i++) for (let j = 0; j < r.ny; j++) {
+        const lx = (i + 0.5) * e.a / r.nx, ly = (j + 0.5) * e.b / r.ny;
+        const d2 = Math.pow(x - lx, 2) + Math.pow(y - ly, 2) + hm * hm, c = hm / Math.sqrt(d2);
+        E2 += I0 * c * c * c * c / (hm * hm) * 1;        // I(γ) = I0·cosγ, E = I·cos³γ/h²
+      }
+      return E2 * e.MF;
+    }
+    function rechne(e) {
+      const r = {};
+      r.A = e.a * e.b; r.hm = e.h - e.hn;
+      if (r.hm <= 0.3) throw new Error('Leuchte unter der Nutzebene');
+      r.k = r.A / (r.hm * (e.a + e.b));
+      r.eta = lin(ETA_K, r.k) * +e.refl;
+      r.nRech = e.Em * r.A / (e.phi * r.eta * e.MF);
+      const ras = raster(Math.max(1, Math.ceil(r.nRech - 1e-9)), e.a, e.b);
+      r.nx = e.nx > 0 ? e.nx : ras.nx; r.ny = e.ny > 0 ? e.ny : ras.ny;
+      if (e.nx > 0 && !(e.ny > 0)) r.ny = Math.max(1, Math.ceil(Math.ceil(r.nRech) / r.nx));
+      if (e.ny > 0 && !(e.nx > 0)) r.nx = Math.max(1, Math.ceil(Math.ceil(r.nRech) / r.ny));
+      r.n = r.nx * r.ny;
+      r.Eist = r.n * e.phi * r.eta * e.MF / r.A;
+      r.p = r.n * e.P / r.A;
+      r.sx = e.a / r.nx; r.sy = e.b / r.ny;
+      // Punktraster 0,5 m Randzone ausgenommen
+      const nxG = 24, nyG = Math.max(8, Math.round(24 * e.b / e.a));
+      let summe = 0, min = Infinity, max = 0, n = 0; r.gitter = [];
+      for (let j = 0; j < nyG; j++) { const zeile = []; for (let i = 0; i < nxG; i++) {
+        const x = (i + 0.5) * e.a / nxG, y = (j + 0.5) * e.b / nyG, w = punkt(e, r, x, y);
+        zeile.push(w);
+        if (x > 0.5 && x < e.a - 0.5 && y > 0.5 && y < e.b - 0.5) { summe += w; n++; min = Math.min(min, w); max = Math.max(max, w); }
+      } r.gitter.push(zeile); }
+      r.Edir = n ? summe / n : NaN; r.Emin = min; r.Emax = max; r.U0 = r.Emin / r.Edir;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (r.sx > 1.5 * r.hm || r.sy > 1.5 * r.hm) H.meldung('Leuchtenabstand größer als das 1,5-fache der Lichtpunkthöhe: dunkle Zonen zwischen den Leuchten wahrscheinlich.');
+      if (r.k < 0.6) H.meldung('Raumindex unter 0,6 (schmaler, hoher Raum): Raumwirkungsgrad unsicher, eher mehr Leuchten einplanen.');
+      const ok = r.Eist >= e.Em - 0.5, okU = r.U0 >= 0.6 || e.Em <= 150 && r.U0 >= 0.4;
+      H.urteil(ok && okU, ok ? (okU ? 'Anforderung erfüllt' : 'zu ungleichmäßig') : 'zu dunkel');
+      H.kacheln([
+        [z(r.nRech, 1), 'Leuchten rechnerisch nötig', '#F2A541'],
+        [r.nx + ' × ' + r.ny + ' = ' + r.n, 'gewähltes Raster', '#2B7BB9'],
+        [z(r.Eist, 0) + ' lx', 'Wartungswert erreicht (soll ' + z(e.Em, 0) + ')', ok ? '#0E6B6A' : '#C0392B'],
+        [z(r.U0, 2), 'Gleichmäßigkeit U₀ (direkt)', okU ? '#0E6B6A' : '#C0392B'],
+        [z(r.p, 1) + ' W/m²', 'Leistungsdichte (' + z(r.n * e.P, 0) + ' W)', r.p <= 6 ? '#0E6B6A' : '#E4572E'],
+        [z(r.sx, 2) + ' × ' + z(r.sy, 2) + ' m', 'Leuchtenabstand', '#6B7785']
+      ]);
+      H.nachweise([
+        [ok, 'Wartungswert der Beleuchtungsstärke', z(r.Eist, 0) + ' lx ' + (ok ? '≥ ' : '< ') + z(e.Em, 0) + ' lx'],
+        [okU, 'Gleichmäßigkeit', 'U₀ = E_min / E = ' + z(r.Emin, 0) + ' / ' + z(r.Edir, 0) + ' = ' + z(r.U0, 2) + (e.Em <= 150 ? ' (Verkehrsfläche ≥ 0,4)' : ' ≥ 0,6')],
+        [null, 'Raumindex und Raumwirkungsgrad', 'k = ' + z(r.k, 2) + ', η_R = ' + z(r.eta, 2) + ' (Tabellenwert × Reflexionsfaktor ' + z(+e.refl, 1) + ')']
+      ]);
+      H.tabelle('Leuchtenpositionen (Mitte, vom Raumeck)', ['Reihe', 'Abstand zur Wand', 'Abstand untereinander', 'Leuchten'], [
+        ['entlang der Länge ' + z(e.a, 2) + ' m', z(r.sx / 2, 2) + ' m', z(r.sx, 2) + ' m', String(r.nx)],
+        ['entlang der Breite ' + z(e.b, 2) + ' m', z(r.sy / 2, 2) + ' m', z(r.sy, 2) + ' m', String(r.ny)]
+      ], { zahl: [1, 2, 3] });
+    }
+    function weg(r, e) {
+      return [
+        ['Lichtpunkthöhe und Raumindex', 'h_\\text{m} = ' + tz(e.h, 2) + ' - ' + tz(e.hn, 2) + ' = ' + tz(r.hm, 2) + '\\,\\text{m},\\quad k = \\frac{' + tz(e.a, 1) + ' \\cdot ' + tz(e.b, 1) + '}{' + tz(r.hm, 2) + ' \\cdot (' + tz(e.a, 1) + ' + ' + tz(e.b, 1) + ')} = ' + E(tz(r.k, 2))],
+        ['Raumwirkungsgrad', '\\eta_\\text{R} = ' + tz(lin(ETA_K, r.k), 3) + ' \\cdot ' + tz(+e.refl, 1) + ' = ' + E(tz(r.eta, 3))],
+        ['Anzahl der Leuchten', 'n = \\frac{' + tz(e.Em) + ' \\cdot ' + tz(r.A, 1) + '}{' + tz(e.phi) + ' \\cdot ' + tz(r.eta, 3) + ' \\cdot ' + tz(e.MF, 2) + '} = ' + E(tz(r.nRech, 2)) + ' \\Rightarrow ' + r.nx + ' \\times ' + r.ny + ' = ' + E(String(r.n))],
+        ['Erreichter Wartungswert', '\\bar E = \\frac{' + r.n + ' \\cdot ' + tz(e.phi) + ' \\cdot ' + tz(r.eta, 3) + ' \\cdot ' + tz(e.MF, 2) + '}{' + tz(r.A, 1) + '} = ' + R.EF(r.Eist >= e.Em - 0.5)(tz(r.Eist, 0) + '\\,\\text{lx}')],
+        ['Punktberechnung direkt (Mittelwert, Minimum)', '\\bar E_\\text{dir} = ' + tz(r.Edir, 0) + '\\,\\text{lx},\\quad E_\\text{min} = ' + tz(r.Emin, 0) + '\\,\\text{lx} \\Rightarrow U_0 = ' + E(tz(r.U0, 2))],
+        ['Leistungsdichte', 'p = \\frac{' + r.n + ' \\cdot ' + tz(e.P) + '}{' + tz(r.A, 1) + '} = ' + E(tz(r.p, 2) + '\\,\\tfrac{\\text{W}}{\\text{m}^2}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, rand = 20, w = B - 2 * rand, h = H - 2 * rand - 10;
+      const k = Math.min(w / e.a, h / e.b), x0 = (B - e.a * k) / 2, y0 = rand;
+      const g = r.gitter, ny = g.length, nx = g[0].length, cw = e.a * k / nx, ch = e.b * k / ny;
+      let gmin = Infinity, gmax = 0; g.forEach(function (z2) { z2.forEach(function (v) { gmin = Math.min(gmin, v); gmax = Math.max(gmax, v); }); });
+      const spanne = Math.max(1, gmax - gmin);
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        cx.fillStyle = Z.waerme(0.05 + 0.9 * (g[j][i] - gmin) / spanne);
+        cx.fillRect(x0 + i * cw, y0 + j * ch, cw + 0.6, ch + 0.6);
+      }
+      cx.strokeStyle = R.farbe('--text'); cx.lineWidth = 2; cx.strokeRect(x0, y0, e.a * k, e.b * k);
+      // Leuchten mit pulsierendem Lichtkegel
+      const puls = 0.5 + 0.5 * Math.sin(t / 600);
+      for (let i = 0; i < r.nx; i++) for (let j = 0; j < r.ny; j++) {
+        const lx = x0 + (i + 0.5) * e.a * k / r.nx, ly = y0 + (j + 0.5) * e.b * k / r.ny;
+        cx.strokeStyle = 'rgba(255,255,255,' + (0.25 + 0.35 * puls) + ')'; cx.lineWidth = 1;
+        cx.beginPath(); cx.arc(lx, ly, r.hm * k * (0.6 + 0.2 * puls), 0, 2 * Math.PI); cx.stroke();
+        cx.fillStyle = '#FFFFFF'; cx.fillRect(lx - 6, ly - 6, 12, 12);
+        cx.strokeStyle = '#13233A'; cx.strokeRect(lx - 6, ly - 6, 12, 12);
+      }
+      // Werte an einigen Punkten
+      const sx = Math.max(1, Math.floor(nx / 6)), sy = Math.max(1, Math.floor(ny / 4));
+      const lpos = [];
+      for (let i = 0; i < r.nx; i++) for (let j = 0; j < r.ny; j++) lpos.push([x0 + (i + 0.5) * e.a * k / r.nx, y0 + (j + 0.5) * e.b * k / r.ny]);
+      if (cw * sx > 30) for (let j = Math.floor(sy / 2); j < ny; j += sy) for (let i = Math.floor(sx / 2); i < nx; i += sx) {
+        const px = x0 + (i + 0.5) * cw, py = y0 + (j + 0.5) * ch;
+        if (lpos.some(function (l) { return Math.abs(l[0] - px) < 22 && Math.abs(l[1] - py) < 14; })) continue;
+        cx.fillStyle = 'rgba(255,255,255,.7)'; cx.fillRect(px - 15, py - 7, 30, 14);
+        Z.text(cx, z(g[j][i], 0), px, py, 'center', 10, true, '#13233A');
+      }
+      Z.text(cx, z(e.a, 1) + ' × ' + z(e.b, 1) + ' m · ' + r.n + ' Leuchten', x0, H - 12, 'left', 11);
+    }
+  })();
+  </script>
+</body>
+</html>
