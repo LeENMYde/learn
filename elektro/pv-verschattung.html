@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PV-Verschattung</title>
+  <meta name="description" content="Sonnenstand über das Jahr: Reihenabstand aufgeständerter Module, Schatten von Hindernissen mit Stunden je Monat und geschätztem Ertragsverlust.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+    const G = Math.PI / 180;
+    const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    const TAG21 = [21, 52, 80, 111, 141, 172, 202, 233, 264, 294, 325, 355];
+
+    const BEISPIEL = { phi: 51, beta: 30, gamma: 0, Lm: 1.72, ref: 'dez', d: 0, oh: 4, od: 8, oa: -30, ob: 2, direkt: 60 };
+
+    R.seite({
+      titel: 'PV-Verschattung',
+      einleitung: 'Sonnenstand über das Jahr für deinen Breitengrad: Reihenabstand aufgeständerter Module ohne gegenseitige Verschattung, Schatten eines Hindernisses (Schornstein, Gaube, Baum, Nachbarhaus) mit verschatteten Stunden je Monat und dem geschätzten Ertragsverlust.',
+      hilfe: 'Richtungen als Azimut von Süden: Osten negativ, Westen positiv. Hindernishöhe über der Modulunterkante.',
+      gruppen: [
+        { titel: 'Standort und Module', farbe: '#F2A541', felder: [
+          { k: 'phi', tex: '\\varphi', name: 'Breitengrad', e: '°', min: 0, max: 66 },
+          { k: 'beta', tex: '\\beta', name: 'Modulneigung', e: '°', min: 0, max: 90 },
+          { k: 'gamma', tex: '\\gamma', name: 'Modulausrichtung (Süd = 0)', e: '°', min: -180, max: 180 }
+        ] },
+        { titel: 'Reihenabstand (Flachdach)', farbe: '#0E6B6A', felder: [
+          { k: 'Lm', tex: 'L_\\text{M}', name: 'Modullänge in Neigungsrichtung', e: 'm', min: 0.2, max: 10 },
+          { k: 'ref', name: 'verschattungsfrei ab', wahl: [['dez', '21. Dezember (ganzjährig)'], ['feb', '1. Februar'], ['mrz', '21. März']] },
+          { k: 'd', tex: 'd', name: 'eigener Reihenabstand (0 = berechnen)', e: 'm', min: 0, max: 30 }
+        ] },
+        { titel: 'Hindernis', farbe: '#6E6FA6', felder: [
+          { k: 'oh', tex: 'h_\\text{H}', name: 'Höhe über Modulunterkante', e: 'm', min: 0, max: 200 },
+          { k: 'od', tex: 'a_\\text{H}', name: 'waagerechter Abstand', e: 'm', min: 0.2, max: 1000 },
+          { k: 'oa', tex: 'A_\\text{H}', name: 'Richtung (Süd = 0, Ost −, West +)', e: '°', min: -180, max: 180 },
+          { k: 'ob', tex: 'b_\\text{H}', name: 'Breite des Hindernisses', e: 'm', min: 0.05, max: 500 },
+          { k: 'direkt', name: 'Anteil Direktstrahlung am Ertrag', e: '%', min: 20, max: 90, hilfe: 'Deutschland etwa 50 bis 60 %; der diffuse Anteil bleibt im Schatten weitgehend erhalten' }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Deklination', '\\delta = 23{,}44^\\circ \\cdot \\sin\\left(\\frac{360^\\circ}{365} \\cdot (284 + N)\\right)', 'N Tag im Jahr'],
+        ['Sonnenhöhe', '\\sin h = \\sin\\varphi \\sin\\delta + \\cos\\varphi \\cos\\delta \\cos\\omega,\\quad \\omega = 15^\\circ \\cdot (t - 12\\,\\text{h})', 't wahre Ortszeit'],
+        ['Azimut', 'A = \\operatorname{atan2}(\\sin\\omega,\\ \\cos\\omega \\sin\\varphi - \\tan\\delta \\cos\\varphi)', 'von Süden, Westen positiv'],
+        ['Sonnenhöhe mittags', 'h_\\text{mittag} = 90^\\circ - \\varphi + \\delta', '21. Dezember: δ = −23,44°'],
+        ['Reihenabstand', 'd = L_\\text{M} \\cdot \\left(\\cos\\beta + \\frac{\\sin\\beta}{\\tan h}\\right)', 'von Vorderkante zu Vorderkante, Ausrichtung Süd'],
+        ['Einfallswinkel', '\\cos\\theta = \\sin h \\cos\\beta + \\cos h \\sin\\beta \\cos(A - \\gamma)', 'Direktstrahlung auf die Modulebene'],
+        ['Direktstrahlung (klarer Himmel)', 'G_\\text{b} \\sim 1\\,361 \\cdot 0{,}7^{AM^{0{,}678}} \\cdot \\cos\\theta,\\quad AM = \\frac{1}{\\sin h}', 'Verschattet, wenn die Sonne hinter dem Hindernis steht: |A − A_H| < Breitenwinkel/2 und h < Höhenwinkel']
+      ],
+      quellen: 'Sonnenstand nach den astronomischen Grundformeln (Genauigkeit etwa 1°), Klarhimmelmodell nach Meinel. Der Ertragsverlust ist eine Abschätzung; Teilverschattung kann je nach Modulverschaltung und Bypassdioden mehr kosten.',
+      bild: { titel: 'Sonnenbahnen und Hindernis', label: 'Sonnenstandsdiagramm mit Bahnen im Juni, März und Dezember, Hindernis und Horizont der Vorderreihe', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(260, Math.min(360, B * 0.62))); }, zeichne: zeichne,
+        hinweis: function () { return 'Die Sonne läuft durch die Monate; rot = Schatten auf dem Modul.'; } }
+    });
+
+    function dekl(N) { return 23.44 * Math.sin(360 / 365 * (284 + N) * G); }
+    function sonne(phi, N, t) {
+      const d = dekl(N) * G, w = 15 * (t - 12) * G, p = phi * G;
+      const sh = Math.sin(p) * Math.sin(d) + Math.cos(p) * Math.cos(d) * Math.cos(w);
+      const h = Math.asin(Math.max(-1, Math.min(1, sh)));
+      const A = Math.atan2(Math.sin(w), Math.cos(w) * Math.sin(p) - Math.tan(d) * Math.cos(p));
+      return { h: h / G, A: A / G };
+    }
+    function winkelDiff(a, b) { let d = a - b; while (d > 180) d -= 360; while (d < -180) d += 360; return d; }
+    function rechne(e) {
+      const r = {};
+      const Nref = e.ref === 'dez' ? 355 : e.ref === 'feb' ? 32 : 80;
+      r.hMittag = 90 - e.phi + dekl(Nref);
+      r.hRef = r.hMittag;
+      r.dBer = r.hRef > 0.5 ? e.Lm * (Math.cos(e.beta * G) + Math.sin(e.beta * G) / Math.tan(r.hRef * G)) : Infinity;
+      r.d = e.d > 0 ? e.d : r.dBer;
+      r.gcr = e.Lm / r.d;
+      const tiefe = r.d - e.Lm * Math.cos(e.beta * G);
+      r.hReihe = tiefe > 0 ? Math.atan(e.Lm * Math.sin(e.beta * G) / tiefe) / G : 90;
+      r.hHind = Math.atan(e.oh / e.od) / G;
+      r.bHind = 2 * Math.atan(e.ob / 2 / e.od) / G;
+      r.monate = [];
+      let summe = 0, verlust = 0, reihe = 0;
+      TAG21.forEach(function (N, m) {
+        let s = 0, v = 0, vr = 0, stunden = 0, von = null, bis = null;
+        for (let t = 3; t <= 21; t += 0.1) {
+          const p = sonne(e.phi, N, t);
+          if (p.h <= 0) continue;
+          const cosT = Math.sin(p.h * G) * Math.cos(e.beta * G) + Math.cos(p.h * G) * Math.sin(e.beta * G) * Math.cos((p.A - e.gamma) * G);
+          if (cosT <= 0) continue;
+          const AM = 1 / Math.max(0.05, Math.sin(p.h * G)), Gb = 1361 * Math.pow(0.7, Math.pow(AM, 0.678)) * cosT * 0.1;
+          s += Gb;
+          if (Math.abs(winkelDiff(p.A, e.oa)) < r.bHind / 2 && p.h < r.hHind) { v += Gb; stunden += 0.1; if (von === null) von = t; bis = t; }
+          if (Math.abs(winkelDiff(p.A, 0)) < 90 && p.h < r.hReihe && e.beta > 0) vr += Gb;
+        }
+        summe += s; verlust += v; reihe += vr;
+        r.monate.push({ m: m, s: s, v: v, anteil: s > 0 ? v / s : 0, stunden: stunden, von: von, bis: bis });
+      });
+      r.anteilDirekt = summe > 0 ? verlust / summe : 0;
+      r.ertrag = r.anteilDirekt * e.direkt / 100;
+      r.anteilReihe = summe > 0 ? reihe / summe * e.direkt / 100 : 0;
+      return r;
+    }
+    function uhr(t) { if (t === null) return '–'; const m = Math.round(t * 60); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+    function ergebnis(r, e, H) {
+      if (r.hRef <= 0.5) H.meldung('Am gewählten Tag geht die Sonne mittags nicht über den Horizont: Bezugstag ändern.', true);
+      if (e.d > 0 && e.d < r.dBer) H.meldung('Eigener Reihenabstand kleiner als nötig: Im Winter verschatten sich die Reihen gegenseitig (Verlust etwa ' + z(r.anteilReihe * 100, 1) + ' % des Jahresertrags).');
+      const ok = r.ertrag <= 0.03;
+      H.urteil(ok, ok ? 'Verschattung gering' : 'Verschattung beachten');
+      H.kacheln([
+        [z(r.hMittag, 1) + '°', 'Sonnenhöhe mittags am Bezugstag', '#F2A541'],
+        [isFinite(r.dBer) ? z(r.dBer, 2) + ' m' : '–', 'Reihenabstand (Vorderkante zu Vorderkante)', '#0E6B6A'],
+        [z(r.gcr * 100, 0) + ' %', 'Flächenbelegung (Modullänge / Abstand)', '#6B7785'],
+        [z(r.hHind, 1) + '° / ' + z(r.bHind, 1) + '°', 'Hindernis: Höhen- und Breitenwinkel', '#6E6FA6'],
+        [z(r.anteilDirekt * 100, 1) + ' %', 'Direktstrahlung verschattet', '#E4572E'],
+        [z(r.ertrag * 100, 1) + ' %', 'geschätzter Ertragsverlust im Jahr', ok ? '#0E6B6A' : '#C0392B']
+      ]);
+      H.tabelle('Verschattung durch das Hindernis je Monat (21. des Monats)', ['Monat', 'Stunden im Schatten', 'von', 'bis', 'Direktstrahlung verschattet'],
+        r.monate.map(function (x) { return [MONATE[x.m], z(x.stunden, 1) + ' h', uhr(x.von), uhr(x.bis), z(x.anteil * 100, 1) + ' %']; }),
+        { zahl: [1, 2, 3, 4], klasse: function (i) { return r.monate[i].stunden > 0 ? 'schlecht' : ''; }, fuss: 'Zeiten in wahrer Ortszeit (Sonne steht um 12:00 im Süden; MEZ etwa 12:20 bis 12:40, Sommerzeit eine Stunde später).' });
+    }
+    function weg(r, e) {
+      const g = '^\\circ';
+      return [
+        ['Sonnenhöhe mittags am Bezugstag', 'h = 90' + g + ' - ' + tz(e.phi, 1) + g + ' + (' + tz(r.hMittag - 90 + e.phi, 2) + g + ') = ' + E(tz(r.hMittag, 2) + g)],
+        ['Reihenabstand', 'd = ' + tz(e.Lm, 2) + ' \\cdot \\left(\\cos ' + tz(e.beta, 1) + g + ' + \\frac{\\sin ' + tz(e.beta, 1) + g + '}{\\tan ' + tz(r.hRef, 2) + g + '}\\right) = ' + E(tz(r.dBer, 3) + '\\,\\text{m}')],
+        ['Höhenwinkel der Vorderreihe', 'h_\\text{R} = \\arctan\\frac{' + tz(e.Lm, 2) + ' \\sin\\beta}{' + tz(r.d, 2) + ' - ' + tz(e.Lm, 2) + ' \\cos\\beta} = ' + E(tz(r.hReihe, 2) + g)],
+        ['Hindernis als Winkel', 'h_\\text{H} = \\arctan\\frac{' + tz(e.oh, 2) + '}{' + tz(e.od, 2) + '} = ' + E(tz(r.hHind, 2) + g) + ',\\quad b = 2 \\arctan\\frac{' + tz(e.ob / 2, 2) + '}{' + tz(e.od, 2) + '} = ' + E(tz(r.bHind, 2) + g)],
+        ['Ertragsverlust', '\\Delta E \\approx ' + tz(r.anteilDirekt * 100, 2) + '\\,\\% \\cdot ' + tz(e.direkt / 100, 2) + ' = ' + E(tz(r.ertrag * 100, 2) + '\\,\\%')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, x0 = 40, y0 = 20, w = B - x0 - 14, h = H - y0 - 40;
+      const hmax = Math.min(90, Math.ceil((90 - e.phi + 23.44 + 5) / 10) * 10);
+      const ac = Z.achsen(cx, x0, y0, w, h, -135, 135, 0, hmax, { xSchritt: 45, ySchritt: 10, xName: 'Azimut (Ost − / West +)', yName: 'Höhe °' });
+      // Vorderreihe als Horizont
+      if (e.beta > 0 && r.hReihe < hmax) { cx.fillStyle = 'rgba(14,107,106,.14)'; cx.fillRect(ac.X(-90), ac.Y(r.hReihe), ac.X(90) - ac.X(-90), ac.Y(0) - ac.Y(r.hReihe)); }
+      // Hindernis
+      cx.fillStyle = 'rgba(110,111,166,.55)';
+      const hx1 = ac.X(Math.max(-135, e.oa - r.bHind / 2)), hx2 = ac.X(Math.min(135, e.oa + r.bHind / 2));
+      cx.fillRect(hx1, ac.Y(Math.min(hmax, r.hHind)), Math.max(2, hx2 - hx1), ac.Y(0) - ac.Y(Math.min(hmax, r.hHind)));
+      // Sonnenbahnen
+      [[172, '#E4572E', 'Juni'], [80, '#F2A541', 'März/Sep'], [355, '#2B7BB9', 'Dez']].forEach(function (b) {
+        cx.strokeStyle = b[1]; cx.lineWidth = 2; cx.beginPath(); let erst = true, letzte = null;
+        for (let tt = 3; tt <= 21; tt += 0.1) { const p = sonne(e.phi, b[0], tt); if (p.h < 0 || Math.abs(p.A) > 135) { erst = true; continue; } const X = ac.X(p.A), Y = ac.Y(p.h); if (erst) { cx.moveTo(X, Y); erst = false; } else cx.lineTo(X, Y); letzte = [X, Y]; }
+        cx.stroke();
+        const m = sonne(e.phi, b[0], 12); Z.text(cx, b[2], ac.X(0) + 4, ac.Y(m.h) - 8, 'left', 10, true, b[1]);
+      });
+      // Sonne läuft
+      const tag = 1 + Math.floor((t / 5000) % 12) * 30.4 + 20, stunde = 6 + ((t / 400) % 12);
+      const p = sonne(e.phi, tag, stunde);
+      if (p.h > 0 && Math.abs(p.A) <= 135) {
+        const schatten = Math.abs(winkelDiff(p.A, e.oa)) < r.bHind / 2 && p.h < r.hHind;
+        cx.fillStyle = schatten ? '#C0392B' : '#F2A541'; cx.beginPath(); cx.arc(ac.X(p.A), ac.Y(p.h), 8, 0, 2 * Math.PI); cx.fill();
+        Z.text(cx, MONATE[Math.min(11, Math.floor((tag - 1) / 30.4))] + ' ' + uhr(stunde), ac.X(p.A) + 12, ac.Y(p.h), 'left', 11, true);
+      }
+    }
+  })();
+  </script>
+</body>
+</html>

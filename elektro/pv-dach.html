@@ -369,6 +369,22 @@
     function tf(w, n) { return Formel.zahl(fest(w, n)); }
     function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
     function F(t) { return '\\htmlClass{fehlertext}{' + t + '}'; }
+    // Vorlagen für Unterkonstruktion: typische Werte ohne Herstellerbezug (Datenblatt hat Vorrang)
+    const SCHIENEN_VORLAGEN = [
+      ['eigen', 'eigene Werte'],
+      ['leicht', 'Aluschiene leicht (≈ 37 × 28 mm)', { Wy: 1.5, Wz: 2.0, f0: 200, lSmax: 1.4, krag: 0.4 }],
+      ['mittel', 'Aluschiene Standard (≈ 40 × 40 mm)', { Wy: 2.25, Wz: 3.54, f0: 200, lSmax: 2.0, krag: 0.6 }],
+      ['schwer', 'Aluschiene verstärkt (≈ 40 × 60 mm)', { Wy: 5.0, Wz: 4.5, f0: 200, lSmax: 2.5, krag: 0.8 }],
+      ['extra', 'Aluschiene hoch (≈ 50 × 80 mm)', { Wy: 9.5, Wz: 6.5, f0: 200, lSmax: 3.0, krag: 1.0 }]
+    ];
+    const HALTER_VORLAGEN = [
+      ['eigen', 'eigene Werte'],
+      ['standard', 'Dachhaken Edelstahl, Ziegel/Pfanne', { FzD: 1.5, FzS: 1.2, FzP: 1.0 }],
+      ['verstaerkt', 'Dachhaken verstärkt, höhenverstellbar', { FzD: 2.5, FzS: 2.0, FzP: 1.5 }],
+      ['biber', 'Dachhaken Biberschwanz, Schiefer', { FzD: 1.2, FzS: 1.0, FzP: 0.8 }],
+      ['stock', 'Stockschraube M10 (Wellplatte)', { FzD: 2.0, FzS: 2.0, FzP: 0.8 }],
+      ['trapez', 'Kurzschiene auf Trapezblech', { FzD: 2.0, FzS: 1.5, FzP: 1.0 }]
+    ];
     const KNM = '\\,\\tfrac{\\text{kN}}{\\text{m}^2}', MT = '\\,\\text{m}', KN = '\\,\\text{kN}';
     function rund3(x) { return Math.round(x * 1000) / 1000; }
     function richtungName(az) {
@@ -422,7 +438,7 @@
         version: 2,
         modul: { L: 1.762, B: 1.134, P: 430, G: 21.5, fuge: 0.02, fugeR: 0.01, pD: 5400, pS: 2400 },
         standort: { schnee: '2', A: 300, wind: '2', hoehe: 0, hoeheM: 8, nutzung: '25', fs: 0.929, fw: 0.901, cc: 'CC1', phi: 51, y0: 1000, fV: 8 },
-        uk: { kb: 22, ue: 0.05, stab: 4.2, lSmax: 2.0, krag: 0.6, FzD: 1.5, FzS: 1.2, FzP: 1.0, kD: 1.1, Wy: 2.25, Wz: 3.54, f0: 200, gM1: 1.1, gUK: 3, gZul: 0.6 },
+        uk: { vorlageS: 'mittel', vorlageH: 'standard', kb: 22, ue: 0.05, stab: 4.2, lSmax: 2.0, krag: 0.6, FzD: 1.5, FzS: 1.2, FzP: 1.0, kD: 1.1, Wy: 2.25, Wz: 3.54, f0: 200, gM1: 1.1, gUK: 3, gZul: 0.6 },
         wind: WIND_STANDARD(),
         flaechen: []
       };
@@ -2161,20 +2177,34 @@
       zahlFeld(g, globalFelder, 'zulässige Zusatzlast Dach', function () { return u.gZul; }, function (w) { u.gZul = w; }, 'kN/m²', { min: 0, titel: 'aus der Statik des Dachs' });
 
       g = gruppe('Schienen und Haken', '#8B5A2B');
+      g.append(el('p', { class: 'klein-hinweis', text: 'Vorlagen füllen typische Werte ein. Für den Nachweis immer die Werte aus dem Datenblatt der verbauten Teile eintragen.' }));
+      let wahlS = null, wahlH = null;
+      const eigenS = function () { u.vorlageS = 'eigen'; if (wahlS) wahlS.value = 'eigen'; };
+      const eigenH = function () { u.vorlageH = 'eigen'; if (wahlH) wahlH.value = 'eigen'; };
+      wahlS = auswahlFeld(g, 'Vorlage Schiene', SCHIENEN_VORLAGEN.map(function (v) { return [v[0], v[1]]; }), function () { return u.vorlageS || 'eigen'; }, function (v) {
+        u.vorlageS = v;
+        const w = SCHIENEN_VORLAGEN.filter(function (x) { return x[0] === v; })[0];
+        if (w && w[2]) { u.Wy = w[2].Wy; u.Wz = w[2].Wz; u.f0 = w[2].f0; u.lSmax = w[2].lSmax; u.krag = w[2].krag; }
+      });
+      wahlH = auswahlFeld(g, 'Vorlage Halter', HALTER_VORLAGEN.map(function (v) { return [v[0], v[1]]; }), function () { return u.vorlageH || 'eigen'; }, function (v) {
+        u.vorlageH = v;
+        const w = HALTER_VORLAGEN.filter(function (x) { return x[0] === v; })[0];
+        if (w && w[2]) { u.FzD = w[2].FzD; u.FzS = w[2].FzS; u.FzP = w[2].FzP; }
+      });
       zahlFeld(g, globalFelder, 'Klemmbereich ab Modulkante', function () { return u.kb; }, function (w) { u.kb = w; }, '%', { min: 5, max: 45 });
       zahlFeld(g, globalFelder, 'Schienenüberstand', function () { return u.ue; }, function (w) { u.ue = w; }, 'm', { min: 0 });
       zahlFeld(g, globalFelder, 'Lieferlänge Schiene', function () { return u.stab; }, function (w) { u.stab = w; }, 'm', { min: 0.5 });
-      zahlFeld(g, globalFelder, 'größte Stützweite (Hersteller)', function () { return u.lSmax; }, function (w) { u.lSmax = w; }, 'm', { min: 0.2, max: 5 });
-      zahlFeld(g, globalFelder, 'größte Auskragung (Hersteller)', function () { return u.krag; }, function (w) { u.krag = w; }, 'm', { min: 0, max: 2 });
-      zahlFeld(g, globalFelder, 'Widerstandsmoment W_y (senkrecht)', function () { return u.Wy; }, function (w) { u.Wy = w; }, 'cm³', { min: 0.1, max: 100 });
-      zahlFeld(g, globalFelder, 'Widerstandsmoment W_z (parallel)', function () { return u.Wz; }, function (w) { u.Wz = w; }, 'cm³', { min: 0.1, max: 100 });
-      zahlFeld(g, globalFelder, 'Festigkeit Schiene f_0', function () { return u.f0; }, function (w) { u.f0 = w; }, 'N/mm²', { min: 50, max: 600, titel: 'Aluminium EN AW-6063 T66: 200 N/mm²' });
+      zahlFeld(g, globalFelder, 'größte Stützweite (Hersteller)', function () { return u.lSmax; }, function (w) { u.lSmax = w; eigenS(); }, 'm', { min: 0.2, max: 5 });
+      zahlFeld(g, globalFelder, 'größte Auskragung (Hersteller)', function () { return u.krag; }, function (w) { u.krag = w; eigenS(); }, 'm', { min: 0, max: 2 });
+      zahlFeld(g, globalFelder, 'Widerstandsmoment W_y (senkrecht)', function () { return u.Wy; }, function (w) { u.Wy = w; eigenS(); }, 'cm³', { min: 0.1, max: 100 });
+      zahlFeld(g, globalFelder, 'Widerstandsmoment W_z (parallel)', function () { return u.Wz; }, function (w) { u.Wz = w; eigenS(); }, 'cm³', { min: 0.1, max: 100 });
+      zahlFeld(g, globalFelder, 'Festigkeit Schiene f_0', function () { return u.f0; }, function (w) { u.f0 = w; eigenS(); }, 'N/mm²', { min: 50, max: 600, titel: 'Aluminium EN AW-6063 T66: 200 N/mm²' });
       zahlFeld(g, globalFelder, 'Teilsicherheit Material γ_M1', function () { return u.gM1; }, function (w) { u.gM1 = w; }, '–', { min: 1, max: 2 });
       zahlFeld(g, globalFelder, 'Durchlauffaktor k_D', function () { return u.kD; }, function (w) { u.kD = w; }, '–', { min: 1, max: 1.5, titel: 'Mehrfeldträger: Mittelstütze bekommt mehr als den halben Feldanteil' });
       g.append(el('p', { class: 'klein-hinweis', text: 'Tragfähigkeit eines Dachhakens aus dem Datenblatt (Bemessungswert F_Rd), in Newton:' }));
-      zahlFeld(g, globalFelder, 'Halter senkrecht (Druck)', function () { return u.FzD * 1000; }, function (w) { u.FzD = w / 1000; }, 'N', { min: 50, max: 50000, stellen: 5 });
-      zahlFeld(g, globalFelder, 'Halter abhebend (Sog)', function () { return u.FzS * 1000; }, function (w) { u.FzS = w / 1000; }, 'N', { min: 50, max: 50000, stellen: 5 });
-      zahlFeld(g, globalFelder, 'Halter parallel (Schub)', function () { return u.FzP * 1000; }, function (w) { u.FzP = w / 1000; }, 'N', { min: 50, max: 50000, stellen: 5, titel: 'Last entlang der Dachfläche hangabwärts, aus Eigengewicht und Schnee' });
+      zahlFeld(g, globalFelder, 'Halter senkrecht (Druck)', function () { return u.FzD * 1000; }, function (w) { u.FzD = w / 1000; eigenH(); }, 'N', { min: 50, max: 50000, stellen: 5 });
+      zahlFeld(g, globalFelder, 'Halter abhebend (Sog)', function () { return u.FzS * 1000; }, function (w) { u.FzS = w / 1000; eigenH(); }, 'N', { min: 50, max: 50000, stellen: 5 });
+      zahlFeld(g, globalFelder, 'Halter parallel (Schub)', function () { return u.FzP * 1000; }, function (w) { u.FzP = w / 1000; eigenH(); }, 'N', { min: 50, max: 50000, stellen: 5, titel: 'Last entlang der Dachfläche hangabwärts, aus Eigengewicht und Schnee' });
       zahlFeld(g, globalFelder, 'Gewicht Unterkonstruktion', function () { return u.gUK; }, function (w) { u.gUK = w; }, 'kg/m²', { min: 0 });
 
       g = gruppe('Windbeiwerte je Dachbereich', '#6E6FA6');

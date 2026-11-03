@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PV-Strings auslegen</title>
+  <meta name="description" content="Module je String und Strings je MPP-Tracker: Leerlaufspannung bei Kälte, MPP-Bereich, Kurzschlussstrom, Strangsicherung, DC/AC-Verhältnis und DC-Leitungsverlust.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    const BEISPIEL = { Pm: 430, Voc: 38.9, Vmpp: 32.4, Isc: 13.9, Impp: 13.3, tkV: -0.25, tkI: 0.045, tkP: -0.30, IR: 25,
+      Udc: 1000, Umin: 160, Umax: 850, Ustart: 180, Imax: 16, Iscmax: 20, mppt: 2, Pac: 10,
+      n: 12, s: 1, Tmin: -10, Tmax: 70, L: 25, A: 6 };
+
+    R.seite({
+      titel: 'PV-Strings auslegen',
+      einleitung: 'Modulanzahl je String und Strings je MPP-Tracker passend zum Wechselrichter: Leerlaufspannung bei Kälte, MPP-Spannung bei Hitze und Kälte, Kurzschlussstrom, Rückstrom und Strangsicherung, DC/AC-Verhältnis, Spannungsfall und Verlust der DC-Leitung nach DIN VDE 0100-712.',
+      hilfe: 'Moduldaten unter Standard-Testbedingungen (STC) aus dem Datenblatt, Wechselrichterdaten je MPP-Tracker. Temperaturen sind Zelltemperaturen.',
+      gruppen: [
+        { titel: 'Modul', farbe: '#1E3A5F', felder: [
+          { k: 'Pm', tex: 'P_\\text{MPP}', name: 'Nennleistung', e: 'Wp', min: 10, max: 1000 },
+          { k: 'Voc', tex: 'U_\\text{OC}', name: 'Leerlaufspannung', e: 'V', min: 5, max: 200 },
+          { k: 'Vmpp', tex: 'U_\\text{MPP}', name: 'MPP-Spannung', e: 'V', min: 5, max: 200 },
+          { k: 'Isc', tex: 'I_\\text{SC}', name: 'Kurzschlussstrom', e: 'A', min: 0.5, max: 30 },
+          { k: 'Impp', tex: 'I_\\text{MPP}', name: 'MPP-Strom', e: 'A', min: 0.5, max: 30 },
+          { k: 'tkV', tex: '\\beta_U', name: 'TK Spannung', e: '%/K', min: -1, max: 0 },
+          { k: 'tkI', tex: '\\alpha_I', name: 'TK Strom', e: '%/K', min: 0, max: 0.2 },
+          { k: 'tkP', tex: '\\gamma_P', name: 'TK Leistung', e: '%/K', min: -1, max: 0 },
+          { k: 'IR', tex: 'I_\\text{R}', name: 'Rückstrombelastbarkeit', e: 'A', min: 1, max: 60 }
+        ] },
+        { titel: 'Wechselrichter (je MPP-Tracker)', farbe: '#0E6B6A', felder: [
+          { k: 'Udc', tex: 'U_\\text{DC,max}', name: 'größte DC-Eingangsspannung', e: 'V', min: 50, max: 1500 },
+          { k: 'Umin', tex: 'U_\\text{MPP,min}', name: 'MPP-Bereich von', e: 'V', min: 10, max: 1500 },
+          { k: 'Umax', tex: 'U_\\text{MPP,max}', name: 'MPP-Bereich bis', e: 'V', min: 20, max: 1500 },
+          { k: 'Ustart', tex: 'U_\\text{start}', name: 'Startspannung', e: 'V', min: 0, max: 1500 },
+          { k: 'Imax', tex: 'I_\\text{max}', name: 'größter Eingangsstrom', e: 'A', min: 1, max: 100 },
+          { k: 'Iscmax', tex: 'I_\\text{SC,max}', name: 'größter Kurzschlussstrom', e: 'A', min: 1, max: 150 },
+          { k: 'mppt', tex: 'n_\\text{T}', name: 'MPP-Tracker (gleich belegt)', e: '', min: 1, max: 12, ganz: true },
+          { k: 'Pac', tex: 'P_\\text{AC}', name: 'AC-Nennleistung', e: 'kW', min: 0.1, max: 500 }
+        ] },
+        { titel: 'Belegung und Umgebung', farbe: '#F2A541', felder: [
+          { k: 'n', tex: 'n', name: 'Module je String', e: '', min: 1, max: 60, ganz: true },
+          { k: 's', tex: 's', name: 'Strings je MPP-Tracker', e: '', min: 1, max: 10, ganz: true },
+          { k: 'Tmin', tex: 'T_\\text{min}', name: 'kälteste Zelltemperatur', e: '°C', min: -40, max: 10, hilfe: 'Deutschland üblich −10 °C, Bergland −15 bis −20 °C' },
+          { k: 'Tmax', tex: 'T_\\text{max}', name: 'heißeste Zelltemperatur', e: '°C', min: 40, max: 90, hilfe: 'Aufdach hinterlüftet 70 °C, Indach 80 °C' },
+          { k: 'L', tex: 'l', name: 'DC-Leitung einfach je String', e: 'm', min: 1, max: 500 },
+          { k: 'A', name: 'DC-Querschnitt', wahl: [['4', '4 mm²'], ['6', '6 mm²'], ['10', '10 mm²'], ['16', '16 mm²']] }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Temperaturkorrektur', 'X(T) = X_\\text{STC} \\cdot \\left(1 + \\frac{k}{100} \\cdot (T - 25\\,{}^\\circ\\text{C})\\right)', 'k = β_U für Spannungen, α_I für Ströme'],
+        ['Größte Stringspannung', 'n \\cdot U_\\text{OC}(T_\\text{min}) \\le U_\\text{DC,max}', 'Leerlauf an einem kalten, hellen Morgen'],
+        ['MPP-Bereich', 'n \\cdot U_\\text{MPP}(T_\\text{max}) \\ge U_\\text{MPP,min},\\quad n \\cdot U_\\text{MPP}(T_\\text{min}) \\le U_\\text{MPP,max}', 'MPP-Spannung mit β_U korrigiert'],
+        ['Ströme', 's \\cdot I_\\text{MPP} \\le I_\\text{max},\\quad s \\cdot 1{,}25 \\cdot I_\\text{SC}(T_\\text{max}) \\le I_\\text{SC,max}', '1,25-facher Kurzschlussstrom nach DIN VDE 0100-712'],
+        ['Rückstrom', '(s_\\text{par} - 1) \\cdot 1{,}25 \\cdot I_\\text{SC} > I_\\text{R} \\Rightarrow \\text{Strangsicherung}', 's_par: parallele Strings an einem Punkt'],
+        ['DC/AC-Verhältnis', 'v = \\frac{n \\cdot s \\cdot n_\\text{T} \\cdot P_\\text{MPP}}{P_\\text{AC}}', 'üblich 1,0 bis 1,3'],
+        ['DC-Verlust', 'P_\\text{V} = 2 \\cdot \\frac{l \\cdot I_\\text{MPP}^2}{\\kappa \\cdot A},\\quad \\kappa_{70} = 47\\,\\tfrac{\\text{m}}{\\Omega\\,\\text{mm}^2}', 'Hin- und Rückleiter, Kupfer bei 70 °C']
+      ],
+      quellen: 'DIN VDE 0100-712 (PV-Stromversorgungssysteme), DIN EN 62548 (Auslegung von PV-Generatoren), Datenblätter von Modul und Wechselrichter. Bifaziale Module: Strom um den Bifazialgewinn erhöhen.',
+      bild: { titel: 'Kennlinie des Strings', label: 'Strom-Spannungs-Kennlinie bei Kälte, 25 °C und Hitze mit MPP-Bereich und Spannungsgrenze des Wechselrichters', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(250, Math.min(340, B * 0.6))); }, zeichne: zeichne,
+        hinweis: function () { return 'Der Punkt wandert mit der Zelltemperatur; er muss im grünen MPP-Bereich bleiben, die Leerlaufspannung links der roten Linie.'; } }
+    });
+
+    function tk(x, k, T) { return x * (1 + k / 100 * (T - 25)); }
+    function rechne(e) {
+      const r = {};
+      r.VocMin = tk(e.Voc, e.tkV, e.Tmin); r.VmppMin = tk(e.Vmpp, e.tkV, e.Tmin); r.VmppMax = tk(e.Vmpp, e.tkV, e.Tmax); r.VocMax = tk(e.Voc, e.tkV, e.Tmax);
+      r.IscMax = tk(e.Isc, e.tkI, e.Tmax);
+      r.Uoc = e.n * r.VocMin; r.UmppHeiss = e.n * r.VmppMax; r.UmppKalt = e.n * r.VmppMin; r.UmppStc = e.n * e.Vmpp;
+      r.Impp = e.s * e.Impp; r.Isc = e.s * 1.25 * r.IscMax;
+      r.nMax = Math.floor(e.Udc / r.VocMin + 1e-9);
+      r.nMin = Math.ceil(Math.max(e.Umin, e.Ustart) / r.VmppMax - 1e-9);
+      r.nMaxMpp = Math.floor(e.Umax / r.VmppMin + 1e-9);
+      r.okU = r.Uoc <= e.Udc; r.okMin = r.UmppHeiss >= e.Umin && r.UmppHeiss >= e.Ustart; r.okMax = r.UmppKalt <= e.Umax;
+      r.okI = r.Impp <= e.Imax + 1e-9; r.okIsc = r.Isc <= e.Iscmax + 1e-9;
+      r.rueck = (e.s - 1) * 1.25 * e.Isc;
+      r.sicherung = e.s >= 3 && r.rueck > e.IR;
+      r.Pdc = e.n * e.s * e.mppt * e.Pm / 1000;
+      r.v = r.Pdc / e.Pac;
+      r.module = e.n * e.s * e.mppt;
+      r.PV = 2 * e.L * e.Impp * e.Impp / (47 * +e.A) * e.s;
+      r.PVanteil = r.PV / (e.n * e.s * e.Pm) * 100;
+      r.du = 2 * e.L * e.Impp / (47 * +e.A) / r.UmppStc * 100;
+      r.PheissProz = e.tkP * (e.Tmax - 25);
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.Umax <= e.Umin) H.meldung('MPP-Bereich: obere Grenze muss über der unteren liegen.', true);
+      if (r.sicherung) H.meldung('Ab drei parallelen Strings kann der Rückstrom ' + z(r.rueck, 1) + ' A die Rückstrombelastbarkeit ' + z(e.IR, 0) + ' A übersteigen: Strangsicherungen (gPV) je String vorsehen.', true);
+      if (r.v > 1.35) H.meldung('DC/AC-Verhältnis über 1,35: Der Wechselrichter regelt an sonnigen Tagen häufig ab.');
+      if (r.v < 0.85) H.meldung('DC/AC-Verhältnis unter 0,85: Der Wechselrichter ist überdimensioniert.');
+      if (r.Uoc > 120) H.meldung('Über 120 V DC: Arbeiten an der DC-Seite nur mit Schutz vor gefährlicher Berührungsspannung; Feuerwehrschalter nach Landesrecht prüfen.');
+      const ok = r.okU && r.okMin && r.okMax && r.okI && r.okIsc;
+      H.urteil(ok, ok ? 'Belegung passt' : 'Belegung passt nicht');
+      H.kacheln([
+        [r.nMin + ' bis ' + Math.min(r.nMax, r.nMaxMpp), 'Module je String möglich', ok ? '#0E6B6A' : '#C0392B'],
+        [z(r.Uoc, 0) + ' V', 'Leerlauf bei ' + z(e.Tmin, 0) + ' °C (max. ' + z(e.Udc, 0) + ')', r.okU ? '#0E6B6A' : '#C0392B'],
+        [z(r.UmppHeiss, 0) + '–' + z(r.UmppKalt, 0) + ' V', 'MPP-Spannung heiß bis kalt', r.okMin && r.okMax ? '#0E6B6A' : '#C0392B'],
+        [z(r.Isc, 1) + ' A', '1,25 · I_SC je Tracker', r.okIsc ? '#0E6B6A' : '#C0392B'],
+        [z(r.Pdc, 2) + ' kWp', r.module + ' Module', '#1E3A5F'],
+        [z(r.v, 2), 'DC/AC-Verhältnis', r.v <= 1.35 && r.v >= 0.85 ? '#0E6B6A' : '#F2A541'],
+        [z(r.PVanteil, 2) + ' %', 'DC-Leitungsverlust (' + z(r.PV, 0) + ' W je Tracker)', r.PVanteil <= 1 ? '#0E6B6A' : '#F2A541']
+      ]);
+      H.nachweise([
+        [r.okU, 'Größte DC-Spannung', e.n + ' · ' + z(r.VocMin, 2) + ' V = ' + z(r.Uoc, 1) + ' V ' + (r.okU ? '≤ ' : '> ') + z(e.Udc, 0) + ' V'],
+        [r.okMin, 'MPP-Spannung bei Hitze', e.n + ' · ' + z(r.VmppMax, 2) + ' V = ' + z(r.UmppHeiss, 1) + ' V ' + (r.okMin ? '≥ ' : '< ') + z(Math.max(e.Umin, e.Ustart), 0) + ' V'],
+        [r.okMax, 'MPP-Spannung bei Kälte', z(r.UmppKalt, 1) + ' V ' + (r.okMax ? '≤ ' : '> ') + z(e.Umax, 0) + ' V'],
+        [r.okI, 'Betriebsstrom je Tracker', e.s + ' · ' + z(e.Impp, 2) + ' A = ' + z(r.Impp, 2) + ' A ' + (r.okI ? '≤ ' : '> ') + z(e.Imax, 1) + ' A'],
+        [r.okIsc, 'Kurzschlussstrom je Tracker', e.s + ' · 1,25 · ' + z(r.IscMax, 2) + ' A = ' + z(r.Isc, 2) + ' A ' + (r.okIsc ? '≤ ' : '> ') + z(e.Iscmax, 1) + ' A'],
+        [!r.sicherung, 'Rückstrom', r.sicherung ? 'Strangsicherung nötig' : e.s < 3 ? 'unter drei parallelen Strings keine Strangsicherung nötig' : z(r.rueck, 1) + ' A ≤ ' + z(e.IR, 0) + ' A']
+      ]);
+      const zeilen = [];
+      for (let n = Math.max(1, r.nMin - 2); n <= Math.min(60, Math.max(r.nMax, r.nMaxMpp) + 2); n++) {
+        const okn = n * r.VocMin <= e.Udc && n * r.VmppMax >= Math.max(e.Umin, e.Ustart) && n * r.VmppMin <= e.Umax;
+        zeilen.push([String(n), z(n * r.VocMin, 0) + ' V', z(n * r.VmppMax, 0) + ' V', z(n * r.VmppMin, 0) + ' V', z(n * e.s * e.mppt * e.Pm / 1000, 2) + ' kWp', okn ? 'ja' : 'nein']);
+      }
+      H.tabelle('Module je String im Vergleich', ['n', 'U_OC kalt', 'U_MPP heiß', 'U_MPP kalt', 'Leistung', 'passt'], zeilen,
+        { zahl: [0, 1, 2, 3, 4], klasse: function (i) { return +zeilen[i][0] === e.n ? 'gewaehlt' : zeilen[i][5] === 'nein' ? 'leise' : ''; } });
+    }
+    function weg(r, e) {
+      const V = '\\,\\text{V}';
+      return [
+        ['Leerlaufspannung bei ' + z(e.Tmin, 0) + ' °C', 'U_\\text{OC} = ' + tz(e.Voc, 2) + ' \\cdot (1 + ' + tz(e.tkV / 100, 4) + ' \\cdot (' + tz(e.Tmin) + ' - 25)) = ' + E(tz(r.VocMin, 2) + V)],
+        ['Stringspannung im Leerlauf', e.n + ' \\cdot ' + tz(r.VocMin, 2) + ' = ' + R.EF(r.okU)(tz(r.Uoc, 1) + V) + (r.okU ? ' \\le ' : ' > ') + tz(e.Udc) + V],
+        ['MPP-Spannung bei ' + z(e.Tmax, 0) + ' °C', 'U_\\text{MPP} = ' + tz(e.Vmpp, 2) + ' \\cdot (1 + ' + tz(e.tkV / 100, 4) + ' \\cdot (' + tz(e.Tmax) + ' - 25)) = ' + tz(r.VmppMax, 2) + V + ' \\Rightarrow ' + e.n + ' \\cdot ' + tz(r.VmppMax, 2) + ' = ' + R.EF(r.okMin)(tz(r.UmppHeiss, 1) + V)],
+        ['Module je String', 'n_\\text{max} = \\left\\lfloor \\frac{' + tz(e.Udc) + '}{' + tz(r.VocMin, 2) + '} \\right\\rfloor = ' + E(String(r.nMax)) + ',\\quad n_\\text{min} = \\left\\lceil \\frac{' + tz(Math.max(e.Umin, e.Ustart)) + '}{' + tz(r.VmppMax, 2) + '} \\right\\rceil = ' + E(String(r.nMin))],
+        ['Kurzschlussstrom je Tracker', 'I = ' + e.s + ' \\cdot 1{,}25 \\cdot ' + tz(e.Isc, 2) + ' \\cdot (1 + ' + tz(e.tkI / 100, 5) + ' \\cdot ' + tz(e.Tmax - 25) + ') = ' + R.EF(r.okIsc)(tz(r.Isc, 2) + '\\,\\text{A}')],
+        ['DC/AC-Verhältnis', 'v = \\frac{' + tz(r.Pdc, 2) + '\\,\\text{kWp}}{' + tz(e.Pac, 1) + '\\,\\text{kW}} = ' + E(tz(r.v, 3))],
+        ['Leitungsverlust je Tracker', 'P_\\text{V} = ' + e.s + ' \\cdot 2 \\cdot \\frac{' + tz(e.L, 1) + ' \\cdot ' + tz(e.Impp, 2) + '^2}{47 \\cdot ' + e.A + '} = ' + E(tz(r.PV, 1) + '\\,\\text{W}') + '\\ (' + tz(r.PVanteil, 2) + '\\,\\%)']
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, x0 = 50, y0 = 24, w = B - x0 - 20, h = H - y0 - 46;
+      const Umax = Math.max(e.Udc, r.Uoc) * 1.08, Imax = Math.max(e.Isc * e.s * 1.3, e.Imax * 1.1);
+      const ac = Z.achsen(cx, x0, y0, w, h, 0, Umax, 0, Imax, { xSchritt: Umax > 800 ? 200 : Umax > 300 ? 100 : 50, ySchritt: Imax > 40 ? 10 : Imax > 15 ? 5 : 2, xName: 'Spannung V', yName: 'A' });
+      // MPP-Bereich und Spannungsgrenze
+      cx.fillStyle = 'rgba(14,107,106,.12)'; cx.fillRect(ac.X(e.Umin), y0, ac.X(e.Umax) - ac.X(e.Umin), h);
+      cx.strokeStyle = '#C0392B'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(ac.X(e.Udc), y0); cx.lineTo(ac.X(e.Udc), y0 + h); cx.stroke();
+      // Kennlinien (Ein-Dioden-Näherung)
+      const kurve = function (T, farbe) {
+        const Voc = e.n * tk(e.Voc, e.tkV, T), Isc = e.s * tk(e.Isc, e.tkI, T), Vm = e.n * tk(e.Vmpp, e.tkV, T), Im = e.s * tk(e.Impp, e.tkI, T);
+        const c2 = (Vm / Voc - 1) / Math.log(Math.max(1e-6, 1 - Im / Isc)), c1 = (1 - Im / Isc) * Math.exp(-Vm / (c2 * Voc));
+        cx.strokeStyle = farbe; cx.lineWidth = 2; cx.beginPath();
+        for (let i = 0; i <= 80; i++) { const U = Voc * i / 80, I = Math.max(0, Isc * (1 - c1 * (Math.exp(U / (c2 * Voc)) - 1))); if (i) cx.lineTo(ac.X(U), ac.Y(I)); else cx.moveTo(ac.X(U), ac.Y(I)); }
+        cx.stroke();
+        return [Vm, Im];
+      };
+      kurve(e.Tmin, '#2B7BB9'); kurve(25, '#6B7785'); kurve(e.Tmax, '#E4572E');
+      const T = e.Tmin + (e.Tmax - e.Tmin) * (Math.sin(t / 1800) + 1) / 2;
+      const p = kurve(T, Z.waerme((T - e.Tmin) / (e.Tmax - e.Tmin)));
+      const drin = p[0] >= e.Umin && p[0] <= e.Umax;
+      cx.fillStyle = drin ? '#0E6B6A' : '#C0392B'; cx.beginPath(); cx.arc(ac.X(p[0]), ac.Y(p[1]), 6, 0, 2 * Math.PI); cx.fill();
+      Z.text(cx, z(T, 0) + ' °C · ' + z(p[0], 0) + ' V · ' + z(p[0] * p[1] / 1000, 2) + ' kW', Math.min(ac.X(p[0]) + 10, B - 170), ac.Y(p[1]) - 14, 'left', 11, true);
+      Z.text(cx, 'U_DC,max', ac.X(e.Udc) - 4, y0 + 10, 'right', 10, true, '#C0392B');
+      Z.text(cx, 'MPP-Bereich', ac.X(e.Umin) + 4, y0 + 10, 'left', 10, true, '#0E6B6A');
+    }
+  })();
+  </script>
+</body>
+</html>
