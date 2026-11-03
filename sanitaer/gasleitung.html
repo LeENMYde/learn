@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gasleitung bemessen</title>
+  <meta name="description" content="Rohrnetzberechnung für Gasleitungen nach TRGI und TRF: Teilstrecken, Belastung, Volumenstrom, Druckverlust mit Formstücken, Zähler, Strömungswächter, Höhenunterschied und Fließdruck an jedem Gerät, mit automatischer Bemessung.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <script src="../assets/basis.js"></script>
+
+  <style>
+    /* Nur was es auf dieser Seite gibt; alles andere kommt aus assets/stil.css */
+    .tafel.abstand { margin-top: 18px; }
+    .zwei { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+    @media (max-width: 960px) { .zwei { grid-template-columns: minmax(0, 1fr); } }
+    .einstellungen { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 4px 26px; }
+    .feld select { grid-column: span 2; font-size: .95rem; padding: 7px 6px; cursor: pointer; color: var(--text); }
+    .feld .einheit { white-space: nowrap; }
+    .feld .name { white-space: normal; line-height: 1.25; }
+
+    .buehne { background: var(--flaeche); border-radius: var(--rund-gross); overflow: hidden; box-shadow: var(--schatten); margin-top: 18px; }
+    #schema { display: block; width: 100%; }
+    #verlauf { display: block; width: 100%; border-top: 1px solid var(--linie); }
+    .steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 18px 14px; border-top: 1px solid var(--linie); }
+    .steuerung label { display: inline-flex; gap: 6px; align-items: center; font-size: .92rem; cursor: pointer; }
+    .steuerung select { padding: 6px 8px; border-radius: var(--rund-klein); border: 1.5px solid var(--linie); background: var(--flaeche); color: var(--text); }
+    .zustand { color: var(--leise); font-size: .9rem; }
+
+    .rahmen { overflow-x: auto; }
+    table.strecken { border-collapse: collapse; min-width: 1060px; width: 100%; font-variant-numeric: tabular-nums; }
+    .strecken th { color: var(--leise); font-weight: 400; font-size: .8rem; text-align: left; padding: 4px; line-height: 1.2; vertical-align: bottom; }
+    .strecken td { padding: 3px 4px; border-top: 1px solid var(--linie); }
+    .strecken input, .strecken select { width: 100%; padding: 5px 6px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font-size: .92rem; }
+    .strecken input.zahl { text-align: right; font-family: var(--technik); font-size: 1rem; }
+    .strecken input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .strecken td.nr { font-family: var(--technik); font-weight: 600; white-space: nowrap; }
+    .strecken tr.gewaehlt td { background: var(--ergebnis-flaeche); }
+    .weg-knopf { border: none; background: none; color: var(--leise); cursor: pointer; width: 28px; height: 28px; border-radius: 50%; }
+    .weg-knopf:hover { background: var(--fehler-flaeche); color: var(--fehler); }
+    .werkzeug { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 10px; }
+
+    .kopf-zeile { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+    .urteil { display: inline-block; padding: 4px 12px; border-radius: 999px; font-family: var(--technik); font-size: 1rem; background: var(--flaeche2); color: var(--leise); }
+    .urteil.gut { background: var(--ergebnis-flaeche); color: var(--ergebnis); }
+    .urteil.schlecht { background: var(--fehler-flaeche); color: var(--fehler); }
+    .kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+    .kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+    .kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.3rem, 3.2vw, 1.7rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; }
+    h3.zwischen { margin: 22px 0 6px; font-size: 1.15rem; }
+    .tabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .tabelle th, .tabelle td { padding: 6px; border-bottom: 1px solid var(--linie); text-align: left; }
+    .tabelle th { color: var(--leise); font-weight: 400; font-size: .82rem; }
+    .tabelle td { font-size: .93rem; }
+    .tabelle .zahl { text-align: right; font-family: var(--technik); font-size: 1rem; white-space: nowrap; }
+    .tabelle tr.schlecht td { background: var(--fehler-flaeche); }
+    .tabelle tr.gut td.status { color: var(--ergebnis); font-weight: 600; }
+    .tabelle tr.schlecht td.status { color: var(--fehler); font-weight: 600; }
+    .fehlertext { color: var(--fehler); }
+    details.formeln { margin-top: 18px; }
+    details.formeln summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.15rem; margin-bottom: 10px; }
+    .formelsammlung p { margin: 4px 0 0; font-size: .85rem; color: var(--leise); }
+    @media print { .werkzeug, .steuerung { display: none !important; } table.strecken { min-width: 0; font-size: 8pt; } }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Gasleitung bemessen</span></h1>
+      <p>Rohrnetzberechnung für Gas-Niederdruckanlagen nach TRGI (Erdgas) und TRF (Flüssiggas): Teilstrecken mit Länge, Höhe und Formstücken eintragen, Geräte anhängen. Die Seite rechnet Volumenstrom, Druckverlust, Auftrieb, Zähler und Strömungswächter und zeigt den Fließdruck an jedem Gerät. Auf Wunsch bemisst sie die Rohre selbst.</p>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-anlage">
+      <h2 id="h-anlage">Gas und Anlage</h2>
+      <p class="hilfe">Gasart wählen, die übrigen Werte füllt die Seite mit Richtwerten. Alles lässt sich überschreiben, z. B. mit Werten des Netzbetreibers oder aus Datenblättern.</p>
+      <div class="einstellungen" id="einstellungen"></div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-strecken">
+      <h2 id="h-strecken">Teilstrecken und Geräte</h2>
+      <p class="hilfe">Jede Teilstrecke beginnt am Ende ihrer Vorgängerin („von“). Teilstrecke 1 beginnt hinter der Zählergruppe. Höhe Δh positiv, wenn die Leitung steigt. Ein Gerät am Ende macht die Teilstrecke zur Geräteleitung. „auto“ lässt die Seite die kleinste ausreichende Dimension wählen.</p>
+      <div class="rahmen"><table class="strecken" id="strecken"></table></div>
+      <div class="werkzeug">
+        <button type="button" class="knopf" id="neueStrecke">+ Teilstrecke</button>
+        <button type="button" class="knopf" id="alleAuto">alle Dimensionen auf „auto“</button>
+        <button type="button" class="knopf" id="teilen">Link mit dieser Anlage kopieren</button>
+        <button type="button" class="knopf-leise" id="beispiel">Beispielanlage wiederherstellen</button>
+        <span class="zustand" id="meldung" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="buehne" aria-label="Strangschema und Druckverlauf">
+      <canvas id="schema" role="img" aria-label="Strangschema der Gasleitung mit strömendem Gas, Druck farbig"></canvas>
+      <canvas id="verlauf" role="img" aria-label="Druckverlauf vom Zähler bis zum gewählten Gerät"></canvas>
+      <div class="steuerung">
+        <label>Druckverlauf bis <select id="pfadWahl"></select></label>
+        <label><input type="checkbox" id="oFluss" checked> Gas strömen lassen</label>
+        <span class="zustand" id="schemaHinweis">Teilstrecke anklicken, um sie in der Tabelle zu markieren.</span>
+      </div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-ergebnis">
+      <div class="kopf-zeile"><h2 id="h-ergebnis">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div id="meldungen" style="margin-top:10px"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <h3 class="zwischen">Fließdruck an den Geräten</h3>
+      <div class="rahmen"><table class="tabelle" id="geraete"></table></div>
+      <h3 class="zwischen">Teilstrecken</h3>
+      <div class="rahmen"><table class="tabelle" id="ergebnisStrecken"></table></div>
+    </section>
+
+    <div class="zwei">
+      <section class="tafel" aria-labelledby="h-weg">
+        <h2 id="h-weg">So wird gerechnet</h2>
+        <p class="hilfe" id="wegHinweis">Der ungünstigste Weg bis zum Gerät mit dem kleinsten Fließdruck, Schritt für Schritt.</p>
+        <ol class="weg" id="rechenweg"></ol>
+      </section>
+      <section class="tafel" aria-labelledby="h-formeln">
+        <h2 id="h-formeln">Formelsammlung</h2>
+        <p class="hilfe">Alle Formeln, die der Rechner verwendet.</p>
+        <div class="formelsammlung" id="formelsammlung"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    const bewegungAus = false;
+    const SCHLUESSEL = 'gasleitung-1';
+    const g0 = 9.81, RHO_LUFT = 1.2;
+
+    // ============================================================
+    // Tabellen
+    // ============================================================
+
+    // Gasarten: Heizwert H_i,B (kWh/m³ Betrieb), Dichte (kg/m³), kin. Zähigkeit (m²/s), Drücke in mbar, zul. Druckverlust in Pa
+    const GASE = {
+      trgi: { name: 'Erdgas, Bemessung nach TRGI', Hi: 8.6, rho: 0.83, nu: 1.4e-5, pV: 23, dpZul: 300, pMin: 17, pMax: 25, pN: 20 },
+      h:    { name: 'Erdgas H', Hi: 10.0, rho: 0.79, nu: 1.4e-5, pV: 23, dpZul: 300, pMin: 17, pMax: 25, pN: 20 },
+      l:    { name: 'Erdgas L', Hi: 8.9, rho: 0.83, nu: 1.4e-5, pV: 23, dpZul: 300, pMin: 17, pMax: 25, pN: 20 },
+      fg:   { name: 'Flüssiggas (Propan), nach TRF', Hi: 24.5, rho: 1.9, nu: 4.2e-6, pV: 50, dpZul: 500, pMin: 42.5, pMax: 57.5, pN: 50 }
+    };
+    // Rohre: Außen × Wand → Innendurchmesser (mm), Rauigkeit k (mm)
+    const ROHRE = {
+      cu: { name: 'Kupfer (DIN EN 1057)', k: 0.0015, dim: [['15 × 1', 13], ['18 × 1', 16], ['22 × 1', 20], ['28 × 1,5', 25], ['35 × 1,5', 32], ['42 × 1,5', 39], ['54 × 2', 50]] },
+      es: { name: 'Edelstahl (Pressrohr)', k: 0.0015, dim: [['15 × 1', 13], ['18 × 1', 16], ['22 × 1,2', 19.6], ['28 × 1,2', 25.6], ['35 × 1,5', 32], ['42 × 1,5', 39], ['54 × 1,5', 51]] },
+      ps: { name: 'Präzisionsstahl (C-Stahl)', k: 0.1, dim: [['15 × 1,2', 12.6], ['18 × 1,2', 15.6], ['22 × 1,5', 19], ['28 × 1,5', 25], ['35 × 1,5', 32], ['42 × 1,5', 39], ['54 × 1,5', 51]] },
+      st: { name: 'Stahl-Gewinderohr verzinkt (DIN EN 10255)', k: 0.15, dim: [['DN 15', 16], ['DN 20', 21.6], ['DN 25', 27.2], ['DN 32', 35.9], ['DN 40', 41.8], ['DN 50', 53]] },
+      mv: { name: 'Mehrschichtverbundrohr (Gas)', k: 0.0015, dim: [['16 × 2', 12], ['20 × 2', 16], ['26 × 3', 20], ['32 × 3', 26], ['40 × 3,5', 33], ['50 × 4', 42]] },
+      pe: { name: 'PE 100 SDR 11 (erdverlegt)', k: 0.007, dim: [['d 32', 26.2], ['d 40', 32.6], ['d 50', 40.8], ['d 63', 51.4]] }
+    };
+    // Formstücke: Widerstandsbeiwert ζ (Richtwerte für Press- und Lötfittings)
+    const ZETA = { bogen: 0.5, winkel: 1.3, tAbzw: 1.3, tDurch: 0.3, absperr: 0.5 };
+    // Balgengaszähler: Q_max in m³/h
+    const ZAEHLER = [['G 2,5', 4], ['G 4', 6], ['G 6', 10], ['G 10', 16], ['G 16', 25], ['G 25', 40]];
+    // Gasströmungswächter Typ K: Nenndurchfluss in m³/h
+    const GS = [['GS 1,6', 1.6], ['GS 2,5', 2.5], ['GS 4', 4], ['GS 6', 6], ['GS 10', 10], ['GS 16', 16]];
+
+    // ============================================================
+    // Anlage
+    // ============================================================
+
+    let naechsteId = 1;
+    function strecke(name, von, mat, l, dh, b, w, ta, td, geraet, q) {
+      return { id: naechsteId++, name: name, von: von, mat: mat, dn: 'auto', l: l, dh: dh, bogen: b, winkel: w, tAbzw: ta, tDurch: td, absperr: 0, zeta: 0, f: 1, gs: false, geraet: geraet || '', q: q || 0 };
+    }
+    function beispiel() {
+      naechsteId = 1;
+      const s1 = strecke('Kellerverteilung', 0, 'cu', 4, 0, 0, 2, 0, 1);
+      const s2 = strecke('zum Brennwertgerät', s1.id, 'cu', 3, 0.5, 2, 1, 1, 0, 'Brennwertgerät', 24);
+      const s3 = strecke('Steigleitung EG/OG', s1.id, 'cu', 7, 5.5, 2, 2, 1, 0);
+      const s4 = strecke('Küche EG', s3.id, 'cu', 4, -1.2, 2, 1, 1, 0, 'Gasherd', 9);
+      const s5 = strecke('Wohnen OG', s3.id, 'cu', 6, 1.5, 3, 1, 0, 1, 'Gaskamin', 7);
+      return {
+        version: 1, gas: 'trgi', Hi: 8.6, rho: 0.83, nu: 1.4e-5, pV: 23, dpZul: 300, pMin: 17, pMax: 25,
+        zaehler: 'auto', dpZ: 100, dpHAE: 15, gs: 'auto', dpGS: 50, dpGAA: 15, auftrieb: true,
+        strecken: [s1, s2, s3, s4, s5]
+      };
+    }
+    let anlage = beispiel();
+    let gewaehlt = null, pfadZiel = null;
+
+    // ============================================================
+    // Zahlen
+    // ============================================================
+
+    function lies(text) {
+      const s = String(text).trim().replace(/\s/g, '').replace(',', '.').replace('−', '-');
+      if (s === '' || s === '-') return NaN;
+      return Number(s);
+    }
+    function zahl(w, n) {
+      if (!isFinite(w)) return '–';
+      const t = (Math.round(w * Math.pow(10, n || 0)) / Math.pow(10, n || 0)).toFixed(n || 0).replace('.', ',').replace('-', '−');
+      const teile = t.split(',');
+      teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return teile.join(',');
+    }
+    function tz(w, n) { return Formel.zahl(zahl(w, n || 0)).replace(/ /g, '\\,'); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function F(t) { return '\\htmlClass{fehlertext}{' + t + '}'; }
+
+    // ============================================================
+    // Rechnen
+    // ============================================================
+
+    // Rohrreibungszahl: laminar 64/Re, sonst Colebrook (iterativ, Start mit Swamee-Jain)
+    function reibung(Re, kd) {
+      if (Re < 1) return 0;
+      if (Re < 2320) return 64 / Re;
+      let l = 0.25 / Math.pow(Math.log10(kd / 3.7 + 5.74 / Math.pow(Re, 0.9)), 2);
+      for (let i = 0; i < 30; i++) {
+        const neu = Math.pow(-2 * Math.log10(kd / 3.71 + 2.51 / (Re * Math.sqrt(l))), -2);
+        if (Math.abs(neu - l) < 1e-10) { l = neu; break; }
+        l = neu;
+      }
+      return l;
+    }
+    function streckeById(id) { return anlage.strecken.filter(function (s) { return s.id === id; })[0]; }
+    function kinder(id) { return anlage.strecken.filter(function (s) { return s.von === id; }); }
+    function pfad(s) {
+      const p = [];
+      let x = s, n = 0;
+      while (x && n++ < 200) { p.unshift(x); x = x.von ? streckeById(x.von) : null; }
+      return p;
+    }
+    // Geräte hinter einer Teilstrecke (einschließlich ihres eigenen)
+    function geraeteHinter(s, tiefe) {
+      if ((tiefe || 0) > 200) return [];
+      let liste = s.geraet && s.q > 0 ? [s] : [];
+      kinder(s.id).forEach(function (k) { liste = liste.concat(geraeteHinter(k, (tiefe || 0) + 1)); });
+      return liste;
+    }
+    function waehle(liste, v) { for (let i = 0; i < liste.length; i++) if (liste[i][1] >= v - 1e-9) return liste[i]; return liste[liste.length - 1]; }
+
+    function streckeRechnen(s, idx, ein) {
+      const r = { s: s };
+      const geraete = geraeteHinter(s);
+      r.Qsum = geraete.reduce(function (a, x) { return a + x.q; }, 0);
+      r.Q = r.Qsum * s.f;
+      r.V = r.Q / ein.Hi;                                   // m³/h
+      const rohr = ROHRE[s.mat] || ROHRE.cu;
+      const i = Math.max(0, Math.min(rohr.dim.length - 1, idx));
+      r.idx = i; r.dimName = rohr.dim[i][0]; r.d = rohr.dim[i][1] / 1000; r.k = rohr.k / 1000;
+      r.A = Math.PI * r.d * r.d / 4;
+      r.v = r.V / 3600 / r.A;
+      r.Re = r.v * r.d / ein.nu;
+      r.lambda = reibung(r.Re, r.k / r.d);
+      r.pdyn = ein.rho * r.v * r.v / 2;
+      r.R = r.lambda / r.d * r.pdyn;                         // Pa/m
+      r.zeta = s.bogen * ZETA.bogen + s.winkel * ZETA.winkel + s.tAbzw * ZETA.tAbzw + s.tDurch * ZETA.tDurch + s.absperr * ZETA.absperr + s.zeta;
+      r.Z = r.zeta * r.pdyn;
+      r.Rl = r.R * s.l;
+      r.lAeq = r.lambda > 0 ? r.zeta * r.d / r.lambda : 0;
+      r.dpH = ein.auftrieb ? -(RHO_LUFT - ein.rho) * g0 * s.dh : 0;   // positiv = Verlust
+      r.gs = null; r.dpGS = 0;
+      if (s.gs) { r.gs = waehle(GS, r.V); r.dpGS = ein.dpGS * Math.pow(r.V / r.gs[1], 2); }
+      r.dpGAA = s.geraet && s.q > 0 ? ein.dpGAA : 0;
+      r.dp = r.Rl + r.Z + r.dpH + r.dpGS + r.dpGAA;
+      return r;
+    }
+
+    function rechnen(ein, dims) {
+      const res = {};
+      anlage.strecken.forEach(function (s) { res[s.id] = streckeRechnen(s, dims[s.id], ein); });
+      // Gesamtlast, Zähler, Strömungswächter am Anfang
+      const wurzeln = anlage.strecken.filter(function (s) { return !s.von; });
+      const alle = anlage.strecken.filter(function (s) { return s.geraet && s.q > 0; });
+      const Qges = wurzeln.reduce(function (a, s) { return a + res[s.id].Q; }, 0);
+      const Vges = Qges / ein.Hi;
+      const z = ein.zaehler === 'kein' ? null : ein.zaehler === 'auto' ? waehle(ZAEHLER, Vges) : ZAEHLER.filter(function (x) { return x[0] === ein.zaehler; })[0] || waehle(ZAEHLER, Vges);
+      const gs = ein.gs === 'kein' ? null : ein.gs === 'auto' ? waehle(GS, Vges) : GS.filter(function (x) { return x[0] === ein.gs; })[0] || waehle(GS, Vges);
+      const dpZ = z ? ein.dpZ * Math.pow(Vges / z[1], 2) : 0;
+      const dpG = gs ? ein.dpGS * Math.pow(Vges / gs[1], 2) : 0;
+      const kopf = { Qges: Qges, Vges: Vges, z: z, gs: gs, dpZ: dpZ, dpGS: dpG, dpHAE: ein.dpHAE, summe: dpZ + dpG + ein.dpHAE };
+      // Geräte: Summe entlang des Weges
+      const geraete = alle.map(function (s) {
+        const p = pfad(s);
+        const dp = kopf.summe + p.reduce(function (a, x) { return a + res[x.id].dp; }, 0);
+        const pF = ein.pV - dp / 100;
+        return { s: s, pfad: p, dp: dp, pF: pF, ok: dp <= ein.dpZul + 1e-9 && pF >= ein.pMin - 1e-9 && pF <= ein.pMax + 1e-9, budgetOk: dp <= ein.dpZul + 1e-9 };
+      });
+      return { res: res, kopf: kopf, geraete: geraete };
+    }
+
+    // Kleinste ausreichende Dimensionen: so lange die Teilstrecke mit dem größten Verlust auf dem schlechtesten Weg vergrößern, bis alles passt
+    function bemessen(ein) {
+      const dims = {};
+      anlage.strecken.forEach(function (s) {
+        const rohr = ROHRE[s.mat] || ROHRE.cu;
+        dims[s.id] = s.dn === 'auto' ? 0 : Math.max(0, Math.min(rohr.dim.length - 1, +s.dn));
+      });
+      let erg = rechnen(ein, dims);
+      for (let runde = 0; runde < 300; runde++) {
+        const schlecht = erg.geraete.filter(function (g) { return g.dp > ein.dpZul + 1e-9 || g.pF < ein.pMin - 1e-9; })
+          .sort(function (a, b) { return b.dp - a.dp; })[0];
+        if (!schlecht) break;
+        let beste = null;
+        schlecht.pfad.forEach(function (s) {
+          if (s.dn !== 'auto') return;
+          const rohr = ROHRE[s.mat] || ROHRE.cu;
+          if (dims[s.id] >= rohr.dim.length - 1) return;
+          const vorher = erg.res[s.id].Rl + erg.res[s.id].Z;
+          const nachher = streckeRechnen(s, dims[s.id] + 1, ein);
+          const gewinn = vorher - (nachher.Rl + nachher.Z);
+          if (!beste || gewinn > beste.gewinn) beste = { s: s, gewinn: gewinn };
+        });
+        if (!beste || beste.gewinn <= 1e-6) break;
+        dims[beste.s.id]++;
+        erg = rechnen(ein, dims);
+      }
+      // Geschwindigkeit begrenzen: über 6 m/s Geräusche und Abrieb, eine Stufe größer
+      erg.dims = dims;
+      return erg;
+    }
+
+    // ============================================================
+    // Eingaben Anlage
+    // ============================================================
+
+    const FELDER = [
+      { titel: 'Gas', farbe: '#E4572E', felder: [
+        { k: 'gas', name: 'Gasart', wahl: Object.keys(GASE).map(function (k) { return [k, GASE[k].name]; }) },
+        { k: 'Hi', tex: 'H_\\text{i,B}', name: 'Heizwert (Betriebszustand)', e: 'kWh/m³', min: 1, max: 40 },
+        { k: 'rho', tex: '\\rho_\\text{G}', name: 'Dichte des Gases', e: 'kg/m³', min: 0.3, max: 3 },
+        { k: 'pV', tex: 'p_\\text{V}', name: 'Versorgungsdruck hinter Regler', e: 'mbar', min: 5, max: 100 },
+        { k: 'dpZul', tex: '\\Delta p_\\text{zul}', name: 'zulässiger Gesamtdruckverlust', e: 'Pa', min: 10, max: 5000 },
+        { k: 'pMin', tex: 'p_\\text{min}', name: 'kleinster Fließdruck am Gerät', e: 'mbar', min: 1, max: 100 },
+        { k: 'pMax', tex: 'p_\\text{max}', name: 'größter Fließdruck am Gerät', e: 'mbar', min: 1, max: 100 }
+      ] },
+      { titel: 'Zählergruppe und Armaturen', farbe: '#2B7BB9', felder: [
+        { k: 'zaehler', name: 'Gaszähler', wahl: [['auto', 'automatisch nach Volumenstrom'], ['kein', 'kein Zähler']].concat(ZAEHLER.map(function (z) { return [z[0], z[0] + ' (Q_max ' + zahl(z[1], 0) + ' m³/h)']; })) },
+        { k: 'dpZ', tex: '\\Delta p_\\text{Z,max}', name: 'Druckverlust Zähler bei Q_max', e: 'Pa', min: 0, max: 1000 },
+        { k: 'dpHAE', tex: '\\Delta p_\\text{HAE}', name: 'Hauptabsperreinrichtung', e: 'Pa', min: 0, max: 500 },
+        { k: 'gs', name: 'Gasströmungswächter am Anfang', wahl: [['auto', 'automatisch nach Volumenstrom'], ['kein', 'keiner']].concat(GS.map(function (z) { return [z[0], z[0] + ' (' + zahl(z[1], 1) + ' m³/h)']; })) },
+        { k: 'dpGS', tex: '\\Delta p_\\text{GS,N}', name: 'Druckverlust Strömungswächter bei Nenndurchfluss', e: 'Pa', min: 0, max: 1000 },
+        { k: 'dpGAA', tex: '\\Delta p_\\text{GAA}', name: 'Geräteanschlussarmatur (mit TAE)', e: 'Pa', min: 0, max: 500 },
+        { k: 'auftrieb', name: 'Höhenunterschied (Auftrieb) berücksichtigen', wahl: [['ja', 'ja'], ['nein', 'nein']] }
+      ] }
+    ];
+    const inputs = {};
+    function feldWert(k) { return k === 'auftrieb' ? (anlage.auftrieb ? 'ja' : 'nein') : anlage[k]; }
+    function einstellungenAufbauen() {
+      const ziel = document.getElementById('einstellungen');
+      ziel.innerHTML = '';
+      FELDER.forEach(function (gr) {
+        const fs = document.createElement('fieldset'); fs.className = 'gruppe'; fs.style.setProperty('--farbe', gr.farbe);
+        const lg = document.createElement('legend'); lg.textContent = gr.titel; fs.append(lg);
+        gr.felder.forEach(function (f) {
+          const zeile = document.createElement('div'); zeile.className = 'feld gegeben';
+          const id = 'g-' + f.k;
+          const label = document.createElement('label'); label.htmlFor = id;
+          const sym = document.createElement('span'); sym.className = 'symbol'; if (f.tex) Formel.setze(sym, f.tex);
+          const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = f.name;
+          label.append(sym, nm); zeile.append(label);
+          if (f.wahl) {
+            const sel = document.createElement('select'); sel.id = id;
+            f.wahl.forEach(function (w) { const o = document.createElement('option'); o.value = w[0]; o.textContent = w[1]; sel.append(o); });
+            sel.value = feldWert(f.k);
+            sel.addEventListener('change', function () {
+              if (f.k === 'auftrieb') anlage.auftrieb = sel.value === 'ja';
+              else anlage[f.k] = sel.value;
+              if (f.k === 'gas') {
+                const gsa = GASE[sel.value];
+                ['Hi', 'rho', 'nu', 'pV', 'dpZul', 'pMin', 'pMax'].forEach(function (x) { anlage[x] = gsa[x]; });
+                Object.keys(inputs).forEach(zeigen);
+              }
+              neu();
+            });
+            zeile.append(sel, document.createElement('span'));
+            inputs[f.k] = { el: sel, f: f };
+          } else {
+            const inp = document.createElement('input'); inp.id = id; inp.type = 'text'; inp.inputMode = 'decimal'; inp.autocomplete = 'off';
+            const ein = document.createElement('span'); ein.className = 'einheit'; ein.textContent = f.e;
+            inp.addEventListener('input', function () {
+              const w = lies(inp.value);
+              const ok = isFinite(w) && w >= f.min && w <= f.max;
+              zeile.classList.toggle('widerspruch', !ok);
+              if (!ok) return;
+              anlage[f.k] = w; neu();
+            });
+            inp.addEventListener('blur', function () { zeile.classList.remove('widerspruch'); zeigen(f.k); });
+            zeile.append(inp, ein, document.createElement('span'));
+            inputs[f.k] = { el: inp, f: f };
+          }
+          fs.append(zeile);
+        });
+        ziel.append(fs);
+      });
+      Object.keys(inputs).forEach(zeigen);
+    }
+    function zeigen(k) {
+      const i = inputs[k]; if (!i) return;
+      if (i.f.wahl) i.el.value = feldWert(k);
+      else i.el.value = String(Math.round(anlage[k] * 1000) / 1000).replace('.', ',');
+    }
+
+    // ============================================================
+    // Tabelle der Teilstrecken
+    // ============================================================
+
+    const SPALTEN = [
+      ['name', 'Bezeichnung', 'text'], ['von', 'von', 'von'], ['mat', 'Rohr', 'mat'], ['dn', 'Dimension', 'dn'],
+      ['l', 'Länge l (m)', 'zahl', 0, 300], ['dh', 'Höhe Δh (m)', 'zahl', -100, 100],
+      ['bogen', 'Bögen 90°', 'zahl', 0, 99], ['winkel', 'Winkel 90°', 'zahl', 0, 99], ['tAbzw', 'T-Abzweig', 'zahl', 0, 99], ['tDurch', 'T-Durch&shy;gang', 'zahl', 0, 99],
+      ['absperr', 'Absperr&shy;hähne', 'zahl', 0, 99], ['zeta', 'weitere ζ', 'zahl', 0, 100], ['f', 'Gleichzeitig&shy;keit f', 'zahl', 0.05, 1],
+      ['gs', 'GS am Anfang', 'haken'], ['geraet', 'Gerät am Ende', 'text'], ['q', 'Nenn&shy;belastung (kW)', 'zahl', 0, 2000]
+    ];
+    function tabelleAufbauen() {
+      const t = document.getElementById('strecken');
+      t.innerHTML = '';
+      const kopf = document.createElement('tr');
+      kopf.innerHTML = '<th>Nr.</th>' + SPALTEN.map(function (s) { return '<th>' + s[1] + '</th>'; }).join('') + '<th></th>';
+      const th = document.createElement('thead'); th.append(kopf); t.append(th);
+      const tb = document.createElement('tbody');
+      anlage.strecken.forEach(function (s, nr) {
+        const tr = document.createElement('tr'); tr.dataset.id = s.id;
+        if (gewaehlt === s.id) tr.className = 'gewaehlt';
+        const tdn = document.createElement('td'); tdn.className = 'nr'; tdn.textContent = 'TS ' + s.id; tr.append(tdn);
+        SPALTEN.forEach(function (sp) {
+          const td = document.createElement('td');
+          const aria = sp[1].replace(/&shy;/g, '') + ' Teilstrecke ' + s.id;
+          let el;
+          if (sp[2] === 'text') {
+            el = document.createElement('input'); el.type = 'text'; el.value = s[sp[0]];
+            el.style.minWidth = sp[0] === 'name' ? '130px' : '110px';
+            el.addEventListener('input', function () { s[sp[0]] = el.value.slice(0, 60); neu(true); });
+          } else if (sp[2] === 'von') {
+            el = document.createElement('select');
+            const o0 = document.createElement('option'); o0.value = '0'; o0.textContent = 'Zähler'; el.append(o0);
+            anlage.strecken.forEach(function (x) {
+              if (x.id === s.id || pfad(x).indexOf(s) >= 0) return;
+              const o = document.createElement('option'); o.value = String(x.id); o.textContent = 'TS ' + x.id; el.append(o);
+            });
+            el.value = String(s.von || 0);
+            el.addEventListener('change', function () { s.von = +el.value; neu(); tabelleAufbauen(); });
+          } else if (sp[2] === 'mat') {
+            el = document.createElement('select');
+            Object.keys(ROHRE).forEach(function (k) { const o = document.createElement('option'); o.value = k; o.textContent = ROHRE[k].name; el.append(o); });
+            el.value = s.mat; el.style.minWidth = '150px';
+            el.addEventListener('change', function () { s.mat = el.value; s.dn = 'auto'; neu(); tabelleAufbauen(); });
+          } else if (sp[2] === 'dn') {
+            el = document.createElement('select');
+            const oa = document.createElement('option'); oa.value = 'auto'; oa.textContent = 'auto'; el.append(oa);
+            (ROHRE[s.mat] || ROHRE.cu).dim.forEach(function (d, i) { const o = document.createElement('option'); o.value = String(i); o.textContent = d[0]; el.append(o); });
+            el.value = String(s.dn); el.style.minWidth = '86px';
+            el.addEventListener('change', function () { s.dn = el.value === 'auto' ? 'auto' : +el.value; neu(); });
+          } else if (sp[2] === 'haken') {
+            el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!s.gs; el.style.width = '18px';
+            el.addEventListener('change', function () { s.gs = el.checked; neu(); });
+          } else {
+            el = document.createElement('input'); el.type = 'text'; el.inputMode = 'decimal'; el.className = 'zahl';
+            el.value = String(s[sp[0]]).replace('.', ',');
+            el.style.minWidth = sp[0] === 'l' || sp[0] === 'dh' || sp[0] === 'q' ? '64px' : '46px';
+            el.addEventListener('input', function () {
+              const w = lies(el.value);
+              const ok = isFinite(w) && w >= sp[3] && w <= sp[4];
+              el.classList.toggle('falsch', !ok);
+              if (ok) { s[sp[0]] = w; neu(true); }
+            });
+            el.addEventListener('blur', function () { el.classList.remove('falsch'); el.value = String(s[sp[0]]).replace('.', ','); });
+          }
+          el.setAttribute('aria-label', aria);
+          el.addEventListener('focus', function () { gewaehlt = s.id; markieren(); });
+          td.append(el); tr.append(td);
+        });
+        const tdx = document.createElement('td');
+        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'weg-knopf'; weg.textContent = '✕';
+        weg.title = 'Teilstrecke löschen'; weg.setAttribute('aria-label', 'Teilstrecke ' + s.id + ' löschen');
+        weg.addEventListener('click', function () {
+          if (anlage.strecken.length <= 1) return;
+          kinder(s.id).forEach(function (k) { k.von = s.von; });
+          anlage.strecken = anlage.strecken.filter(function (x) { return x !== s; });
+          if (gewaehlt === s.id) gewaehlt = null;
+          neu(); tabelleAufbauen();
+        });
+        tdx.append(weg); tr.append(tdx);
+        tb.append(tr);
+      });
+      t.append(tb);
+    }
+    function markieren() {
+      document.querySelectorAll('#strecken tbody tr').forEach(function (tr) { tr.classList.toggle('gewaehlt', +tr.dataset.id === gewaehlt); });
+      zeichnen();
+    }
+    document.getElementById('neueStrecke').addEventListener('click', function () {
+      if (anlage.strecken.length >= 60) return;
+      const letzte = anlage.strecken[anlage.strecken.length - 1];
+      anlage.strecken.push(strecke('neue Teilstrecke', letzte ? letzte.id : 0, letzte ? letzte.mat : 'cu', 3, 0, 1, 0, 0, 0));
+      neu(); tabelleAufbauen();
+    });
+    document.getElementById('alleAuto').addEventListener('click', function () { anlage.strecken.forEach(function (s) { s.dn = 'auto'; }); neu(); tabelleAufbauen(); });
+    document.getElementById('beispiel').addEventListener('click', function () { anlage = beispiel(); gewaehlt = null; pfadZiel = null; einstellungenAufbauen(); tabelleAufbauen(); neu(); });
+
+    // ============================================================
+    // Ergebnis
+    // ============================================================
+
+    let erg = null;
+    function kachel(wert, text, farbe) { return '<div class="kachel" style="--farbe:' + farbe + '"><div class="wert">' + wert + '</div><small>' + text + '</small></div>'; }
+    function zelle(tr, t, kl) { const td = document.createElement('td'); if (kl) td.className = kl; td.textContent = t; tr.append(td); return td; }
+
+    function auswerten() {
+      erg = bemessen(anlage);
+      const mel = document.getElementById('meldungen'); mel.innerHTML = '';
+      const hinweis = function (t, fehler) { const d = document.createElement('div'); d.className = 'hinweis' + (fehler ? ' fehler' : ''); d.textContent = t; mel.append(d); };
+      const k = erg.kopf;
+      if (!erg.geraete.length) hinweis('Noch kein Gerät eingetragen: bei mindestens einer Teilstrecke „Gerät am Ende“ und die Nennbelastung angeben.');
+      if (anlage.pMin > anlage.pMax) hinweis('Der kleinste Fließdruck ist größer als der größte – Werte prüfen.', true);
+      if (anlage.pV - anlage.dpZul / 100 < anlage.pMin) hinweis('Versorgungsdruck minus zulässigem Druckverlust liegt unter dem kleinsten Fließdruck am Gerät. Das Budget reicht nicht für die Geräte.', true);
+      const vmax = Object.keys(erg.res).reduce(function (a, id) { return Math.max(a, erg.res[id].v); }, 0);
+      if (vmax > 6) hinweis('Strömungsgeschwindigkeit bis ' + zahl(vmax, 1) + ' m/s: über etwa 6 m/s Geräusche möglich, größere Dimension prüfen.');
+      if (k.z && k.Vges > k.z[1] + 1e-9) hinweis('Der Volumenstrom ' + zahl(k.Vges, 2) + ' m³/h überschreitet Q_max des Zählers ' + k.z[0] + '.', true);
+      if (k.gs && k.Vges > k.gs[1] + 1e-9) hinweis('Der Volumenstrom überschreitet den Nenndurchfluss des Strömungswächters ' + k.gs[0] + ' – er kann schließen.', true);
+      const kreis = anlage.strecken.some(function (s) { return pfad(s).length > 150; });
+      if (kreis) hinweis('Die Teilstrecken bilden einen Kreis – „von“ prüfen.', true);
+      const schlecht = erg.geraete.filter(function (g) { return !g.ok; });
+      const min = erg.geraete.slice().sort(function (a, b) { return a.pF - b.pF; })[0];
+      const u = document.getElementById('urteil');
+      u.textContent = !erg.geraete.length ? 'keine Geräte' : schlecht.length ? schlecht.length + ' Gerät' + (schlecht.length === 1 ? '' : 'e') + ' unterversorgt' : 'alle Geräte versorgt';
+      u.className = 'urteil' + (!erg.geraete.length ? '' : schlecht.length ? ' schlecht' : ' gut');
+      const sumL = anlage.strecken.reduce(function (a, s) { return a + s.l; }, 0);
+      document.getElementById('kacheln').innerHTML =
+        kachel(zahl(k.Qges, 1) + ' kW', 'Belastung gesamt', '#E4572E') +
+        kachel(zahl(k.Vges, 2) + ' m³/h', 'Volumenstrom gesamt', '#2B7BB9') +
+        kachel(k.z ? k.z[0] : '–', 'Gaszähler', '#6E6FA6') +
+        kachel(k.gs ? k.gs[0] : '–', 'Strömungswächter am Anfang', '#6E6FA6') +
+        kachel(min ? zahl(min.pF, 2) + ' mbar' : '–', 'kleinster Fließdruck' + (min ? ' (' + min.s.geraet + ')' : ''), min && !min.ok ? '#C0392B' : '#0E6B6A') +
+        kachel(min ? zahl(Math.max.apply(null, erg.geraete.map(function (g) { return g.dp; })), 0) + ' Pa' : '–', 'größter Druckverlust (zul. ' + zahl(anlage.dpZul, 0) + ' Pa)', '#C0392B') +
+        kachel(zahl(sumL, 1) + ' m', 'Leitungslänge', '#8B5A2B');
+
+      // Geräte
+      const tg = document.getElementById('geraete'); tg.innerHTML = '<thead><tr><th>Gerät</th><th class="zahl">Belastung</th><th class="zahl">Volumenstrom</th><th>Weg</th><th class="zahl">Σ Δp</th><th class="zahl">Fließdruck</th><th>Bewertung</th></tr></thead>';
+      const tbg = document.createElement('tbody');
+      erg.geraete.forEach(function (gr) {
+        const tr = document.createElement('tr'); tr.className = gr.ok ? 'gut' : 'schlecht';
+        zelle(tr, gr.s.geraet); zelle(tr, zahl(gr.s.q, 1) + ' kW', 'zahl'); zelle(tr, zahl(gr.s.q / anlage.Hi, 2) + ' m³/h', 'zahl');
+        zelle(tr, 'Zähler → ' + gr.pfad.map(function (x) { return 'TS ' + x.id; }).join(' → '));
+        zelle(tr, zahl(gr.dp, 0) + ' Pa', 'zahl'); zelle(tr, zahl(gr.pF, 2) + ' mbar', 'zahl');
+        zelle(tr, !gr.budgetOk ? 'Druckverlust über ' + zahl(anlage.dpZul, 0) + ' Pa' : gr.pF < anlage.pMin ? 'Fließdruck unter ' + zahl(anlage.pMin, 1) + ' mbar' : gr.pF > anlage.pMax ? 'Fließdruck über ' + zahl(anlage.pMax, 1) + ' mbar' : 'ausreichend', 'status');
+        tbg.append(tr);
+      });
+      tg.append(tbg);
+
+      // Teilstrecken
+      const ts = document.getElementById('ergebnisStrecken');
+      ts.innerHTML = '<thead><tr><th>TS</th><th class="zahl">Q</th><th class="zahl">V̇</th><th>Dimension</th><th class="zahl">v</th><th class="zahl">Re</th><th class="zahl">λ</th><th class="zahl">R</th><th class="zahl">R · l</th><th class="zahl">Σζ</th><th class="zahl">Z</th><th class="zahl">Δp_H</th><th class="zahl">GS / GAA</th><th class="zahl">Δp</th></tr></thead>';
+      const tbs = document.createElement('tbody');
+      anlage.strecken.forEach(function (s) {
+        const r = erg.res[s.id], tr = document.createElement('tr');
+        zelle(tr, 'TS ' + s.id + (s.dn === 'auto' ? ' (auto)' : ''));
+        zelle(tr, zahl(r.Q, 1) + ' kW', 'zahl'); zelle(tr, zahl(r.V, 2) + ' m³/h', 'zahl');
+        zelle(tr, r.dimName + ' (d_i ' + zahl(r.d * 1000, 1) + ')');
+        zelle(tr, zahl(r.v, 2) + ' m/s', 'zahl'); zelle(tr, zahl(r.Re, 0), 'zahl'); zelle(tr, zahl(r.lambda, 4), 'zahl');
+        zelle(tr, zahl(r.R, 2) + ' Pa/m', 'zahl'); zelle(tr, zahl(r.Rl, 1) + ' Pa', 'zahl'); zelle(tr, zahl(r.zeta, 1), 'zahl');
+        zelle(tr, zahl(r.Z, 1) + ' Pa', 'zahl'); zelle(tr, zahl(r.dpH, 1) + ' Pa', 'zahl');
+        zelle(tr, zahl(r.dpGS + r.dpGAA, 1) + ' Pa' + (r.gs ? ' (' + r.gs[0] + ')' : ''), 'zahl');
+        zelle(tr, zahl(r.dp, 1) + ' Pa', 'zahl');
+        tbs.append(tr);
+      });
+      ts.append(tbs);
+
+      // Auswahl Druckverlauf
+      const sel = document.getElementById('pfadWahl'), alt = pfadZiel;
+      sel.innerHTML = '';
+      erg.geraete.forEach(function (gr) { const o = document.createElement('option'); o.value = String(gr.s.id); o.textContent = gr.s.geraet + ' (TS ' + gr.s.id + ')'; sel.append(o); });
+      if (!erg.geraete.some(function (gr) { return gr.s.id === alt; })) pfadZiel = min ? min.s.id : null;
+      if (pfadZiel) sel.value = String(pfadZiel);
+      rechenweg(min);
+      zeichnen();
+      zeichneVerlauf();
+    }
+    document.getElementById('pfadWahl').addEventListener('change', function (ev) { pfadZiel = +ev.target.value; zeichneVerlauf(); });
+
+    // ============================================================
+    // Rechenweg und Formelsammlung
+    // ============================================================
+
+    function schritt(titel, tex) {
+      const li = document.createElement('li');
+      const t = document.createElement('div'); t.className = 'titel'; t.textContent = titel;
+      const r = document.createElement('div'); r.className = 'rechnung'; Formel.setze(r, tex, false);
+      li.append(t, r); return li;
+    }
+    function rechenweg(ziel) {
+      const ol = document.getElementById('rechenweg'); ol.innerHTML = '';
+      if (!ziel) return;
+      const k = erg.kopf, PA = '\\,\\text{Pa}';
+      document.getElementById('wegHinweis').textContent = 'Weg vom Zähler bis „' + ziel.s.geraet + '“ (kleinster Fließdruck), Schritt für Schritt.';
+      ol.append(schritt('Volumenstrom gesamt aus der Belastung', '\\dot V = \\frac{Q_\\text{NB}}{H_\\text{i,B}} = \\frac{' + tz(k.Qges, 1) + '\\,\\text{kW}}{' + tz(anlage.Hi, 2) + '\\,\\tfrac{\\text{kWh}}{\\text{m}^3}} = ' + E(tz(k.Vges, 3) + '\\,\\tfrac{\\text{m}^3}{\\text{h}}')));
+      if (k.z) ol.append(schritt('Gaszähler ' + k.z[0] + ': Druckverlust quadratisch mit dem Volumenstrom', '\\Delta p_\\text{Z} = \\Delta p_\\text{Z,max} \\cdot \\left(\\frac{\\dot V}{Q_\\text{max}}\\right)^2 = ' + tz(anlage.dpZ) + ' \\cdot \\left(\\frac{' + tz(k.Vges, 3) + '}{' + tz(k.z[1]) + '}\\right)^2 = ' + E(tz(k.dpZ, 1) + PA)));
+      if (k.gs) ol.append(schritt('Gasströmungswächter ' + k.gs[0] + ' am Anfang', '\\Delta p_\\text{GS} = \\Delta p_\\text{GS,N} \\cdot \\left(\\frac{\\dot V}{\\dot V_\\text{N}}\\right)^2 = ' + tz(anlage.dpGS) + ' \\cdot \\left(\\frac{' + tz(k.Vges, 3) + '}{' + tz(k.gs[1], 1) + '}\\right)^2 = ' + E(tz(k.dpGS, 1) + PA) + ',\\quad \\Delta p_\\text{HAE} = ' + tz(anlage.dpHAE) + PA));
+      ziel.pfad.forEach(function (s) {
+        const r = erg.res[s.id];
+        const tit = 'TS ' + s.id + ' „' + s.name + '“: ' + r.dimName + ', ' + zahl(r.Q, 1) + ' kW';
+        ol.append(schritt(tit + ' – Volumenstrom, Geschwindigkeit, Reynolds', '\\dot V = ' + tz(r.V, 3) + '\\,\\tfrac{\\text{m}^3}{\\text{h}},\\ v = \\frac{\\dot V}{A} = \\frac{' + tz(r.V / 3600, 6) + '}{' + tz(r.A * 1e6, 1) + '\\cdot 10^{-6}} = ' + E(tz(r.v, 2) + '\\,\\tfrac{\\text{m}}{\\text{s}}') + ',\\ Re = \\frac{v \\cdot d_\\text{i}}{\\nu} = ' + E(tz(r.Re, 0))));
+        ol.append(schritt('TS ' + s.id + ' – Rohrreibung (' + (r.Re < 2320 ? 'laminar' : 'Colebrook') + ') und Druckgefälle', (r.Re < 2320 ? '\\lambda = \\frac{64}{Re}' : '\\frac{1}{\\sqrt{\\lambda}} = -2 \\log\\left(\\frac{k/d_\\text{i}}{3{,}71} + \\frac{2{,}51}{Re\\sqrt{\\lambda}}\\right)') + ' \\Rightarrow \\lambda = ' + tz(r.lambda, 4) + ',\\ R = \\frac{\\lambda}{d_\\text{i}} \\cdot \\frac{\\rho v^2}{2} = ' + E(tz(r.R, 2) + '\\,\\tfrac{\\text{Pa}}{\\text{m}}')));
+        ol.append(schritt('TS ' + s.id + ' – Rohr, Formstücke, Höhe' + (r.dpGS ? ', Strömungswächter' : '') + (r.dpGAA ? ', Geräteanschlussarmatur' : ''), '\\Delta p = R \\cdot l + \\Sigma\\zeta \\cdot \\frac{\\rho v^2}{2} - (\\rho_\\text{L} - \\rho_\\text{G})\\, g\\, \\Delta h' + (r.dpGS ? ' + \\Delta p_\\text{GS}' : '') + (r.dpGAA ? ' + \\Delta p_\\text{GAA}' : '') + ' = ' + tz(r.Rl, 1) + ' + ' + tz(r.Z, 1) + ' ' + (r.dpH >= 0 ? '+ ' : '- ') + tz(Math.abs(r.dpH), 1) + (r.dpGS ? ' + ' + tz(r.dpGS, 1) : '') + (r.dpGAA ? ' + ' + tz(r.dpGAA, 1) : '') + ' = ' + E(tz(r.dp, 1) + PA)));
+      });
+      const ok = ziel.budgetOk;
+      ol.append(schritt('Summe bis zum Gerät und Vergleich mit dem zulässigen Druckverlust', '\\Sigma \\Delta p = \\Delta p_\\text{HAE} + \\Delta p_\\text{Z} + \\Delta p_\\text{GS} + \\sum \\Delta p_\\text{TS} = ' + (ok ? E : F)(tz(ziel.dp, 1) + PA) + (ok ? ' \\le ' : ' > ') + tz(anlage.dpZul) + PA));
+      const okp = ziel.pF >= anlage.pMin - 1e-9 && ziel.pF <= anlage.pMax + 1e-9;
+      ol.append(schritt('Fließdruck an der Geräteanschlussarmatur', 'p_\\text{F} = p_\\text{V} - \\frac{\\Sigma \\Delta p}{100} = ' + tz(anlage.pV, 1) + ' - ' + tz(ziel.dp / 100, 2) + ' = ' + (okp ? E : F)(tz(ziel.pF, 2) + '\\,\\text{mbar}') + '\\quad (' + tz(anlage.pMin, 1) + ' \\ldots ' + tz(anlage.pMax, 1) + '\\,\\text{mbar})'));
+    }
+    const SAMMLUNG = [
+      ['Volumenstrom', '\\dot V = \\frac{f \\cdot \\sum Q_\\text{NB}}{H_\\text{i,B}}', 'Q_NB Nennbelastung der Geräte hinter der Teilstrecke, f Gleichzeitigkeit, H_i,B Heizwert im Betriebszustand (TRGI-Bemessung 8,6 kWh/m³)'],
+      ['Geschwindigkeit und Reynoldszahl', 'v = \\frac{4 \\dot V}{\\pi d_\\text{i}^2}, \\quad Re = \\frac{v \\, d_\\text{i}}{\\nu}'],
+      ['Rohrreibungszahl', '\\lambda = \\frac{64}{Re}\\ (Re < 2320), \\quad \\frac{1}{\\sqrt{\\lambda}} = -2 \\log\\left(\\frac{k/d_\\text{i}}{3{,}71} + \\frac{2{,}51}{Re\\sqrt{\\lambda}}\\right)', 'Colebrook-White; k: Kupfer, Edelstahl, Kunststoff 0,0015 mm, Präzisionsstahl 0,10 mm, verzinkter Stahl 0,15 mm'],
+      ['Druckgefälle im Rohr', 'R = \\frac{\\lambda}{d_\\text{i}} \\cdot \\frac{\\rho \\, v^2}{2}, \\quad \\Delta p_\\text{R} = R \\cdot l'],
+      ['Formstücke und Armaturen', 'Z = \\Sigma\\zeta \\cdot \\frac{\\rho \\, v^2}{2}, \\quad l_\\text{äq} = \\frac{\\Sigma\\zeta \\cdot d_\\text{i}}{\\lambda}', 'ζ (Richtwerte): Bogen 0,5, Winkel 1,3, T-Abzweig 1,3, T-Durchgang 0,3, Absperrhahn 0,5'],
+      ['Höhenunterschied (Auftrieb)', '\\Delta p_\\text{H} = -(\\rho_\\text{L} - \\rho_\\text{G}) \\cdot g \\cdot \\Delta h', 'Erdgas ist leichter als Luft: Steigen bringt Druck (≈ 4 Pa/m). Flüssiggas ist schwerer: Steigen kostet Druck (≈ 7–10 Pa/m).'],
+      ['Zähler und Strömungswächter', '\\Delta p = \\Delta p_\\text{N} \\cdot \\left(\\frac{\\dot V}{\\dot V_\\text{N}}\\right)^2', 'Auswahl: kleinster Zähler mit Q_max ≥ V̇, kleinster GS mit Nenndurchfluss ≥ V̇; Δp_N aus dem Datenblatt'],
+      ['Druckbudget und Fließdruck', '\\Sigma \\Delta p \\le \\Delta p_\\text{zul}, \\quad p_\\text{F} = p_\\text{V} - \\Sigma \\Delta p \\ge p_\\text{min}', 'Erdgas: p_V 23 mbar, Δp_zul 300 Pa (TRGI), Gerät 17–25 mbar (DIN EN 437). Flüssiggas: 50 mbar, 500 Pa (TRF), 42,5–57,5 mbar.']
+    ];
+    function sammlungAufbauen() {
+      const ziel = document.getElementById('formelsammlung');
+      SAMMLUNG.forEach(function (x) {
+        const sec = document.createElement('section');
+        const h = document.createElement('h3'); h.textContent = x[0];
+        const b = document.createElement('div'); b.className = 'formelblock'; Formel.setze(b, x[1], true);
+        sec.append(h, b);
+        if (x[2]) { const p = document.createElement('p'); p.textContent = x[2]; sec.append(p); }
+        ziel.append(sec);
+      });
+    }
+
+    // ============================================================
+    // Strangschema mit strömendem Gas und Druckverlauf
+    // ============================================================
+
+    const cv = document.getElementById('schema'), cx = cv.getContext('2d');
+    const cv2 = document.getElementById('verlauf'), cx2 = cv2.getContext('2d');
+    let B = 800, H = 380, dpr = 1, zeit = 0, fluss = true, lage = {};
+    function farbe(n) { return Thema.farbe(n); }
+    function groesse() {
+      const b = cv.parentElement.clientWidth;
+      dpr = window.devicePixelRatio || 1;
+      B = b;
+      const zeilen = layout().zeilen, eng = b < 600;
+      H = Math.round(Math.max(eng ? 320 : 300, Math.min(eng ? 640 : 520, zeilen * (eng ? 96 : 76) + 90)));
+      cv.width = Math.round(B * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+      cv2.width = Math.round(B * dpr); cv2.height = Math.round(170 * dpr); cv2.style.height = '170px';
+    }
+    // Ebenen-Layout: Tiefe nach rechts, Blätter verteilt nach unten
+    function layout() {
+      lage = {};
+      const wurzeln = anlage.strecken.filter(function (s) { return !s.von; });
+      let zeile = 0, tiefeMax = 0;
+      const besuche = function (s, tiefe, n) {
+        if (n > 200) return 0;
+        tiefeMax = Math.max(tiefeMax, tiefe);
+        const k = kinder(s.id);
+        let y;
+        if (!k.length) { y = zeile++; }
+        else { const ys = k.map(function (c) { return besuche(c, tiefe + 1, n + 1); }); y = (ys[0] + ys[ys.length - 1]) / 2; }
+        lage[s.id] = { tiefe: tiefe, y: y };
+        return y;
+      };
+      wurzeln.forEach(function (w) { besuche(w, 1, 0); });
+      return { zeilen: Math.max(1, zeile), tiefe: tiefeMax };
+    }
+    function druckFarbe(p) {
+      const t = Math.max(0, Math.min(1, (anlage.pV - p) / Math.max(0.1, anlage.dpZul / 100)));
+      const a = [43, 123, 185], b = [242, 165, 65], c = [192, 57, 43];
+      const m = t < 0.7 ? [a, b, t / 0.7] : [b, c, (t - 0.7) / 0.3];
+      return 'rgb(' + [0, 1, 2].map(function (i) { return Math.round(m[0][i] + (m[1][i] - m[0][i]) * m[2]); }).join(',') + ')';
+    }
+    function druckAm(s) {
+      // Druck am Ende der Teilstrecke
+      const p = pfad(s);
+      return anlage.pV - (erg.kopf.summe + p.reduce(function (a, x) { return a + erg.res[x.id].dp; }, 0)) / 100;
+    }
+    function zeichnen() {
+      if (!erg) return;
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.fillStyle = farbe('--flaeche'); cx.fillRect(0, 0, B, H);
+      const L = layout();
+      const eng = B < 600, x0 = eng ? 64 : 70, breiteSpalte = (B - x0 - (eng ? 112 : 160)) / Math.max(1, L.tiefe), zeilenH = (H - 70) / Math.max(1, L.zeilen);
+      const X = function (t) { return x0 + t * breiteSpalte; }, Y = function (y) { return 40 + (y + 0.5) * zeilenH; };
+      const yWurzel = anlage.strecken.filter(function (s) { return !s.von; }).map(function (s) { return lage[s.id].y; });
+      const y0 = yWurzel.length ? (Math.min.apply(null, yWurzel) + Math.max.apply(null, yWurzel)) / 2 : 0;
+      // Zählergruppe
+      cx.fillStyle = farbe('--flaeche2'); cx.strokeStyle = farbe('--text'); cx.lineWidth = 1.5;
+      cx.fillRect(x0 - 56, Y(y0) - 22, 44, 44); cx.strokeRect(x0 - 56, Y(y0) - 22, 44, 44);
+      cx.fillStyle = farbe('--text'); cx.font = '600 11px ' + farbe('--technik'); cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.fillText(erg.kopf.z ? erg.kopf.z[0] : 'HAE', x0 - 34, Y(y0) - 4);
+      cx.font = '11px ' + farbe('--technik'); cx.fillText(zahl(anlage.pV, 0) + ' mbar', x0 - 34, Y(y0) + 10);
+      anlage.strecken.forEach(function (s) {
+        const r = erg.res[s.id], l = lage[s.id]; if (!l) return;
+        const vor = s.von ? lage[s.von] : null;
+        const xa = vor ? X(vor.tiefe) : x0 - 12, ya = vor ? Y(vor.y) : Y(y0), xb = X(l.tiefe), yb = Y(l.y);
+        const pA = vor ? druckAm(streckeById(s.von)) : anlage.pV - erg.kopf.summe / 100, pB = druckAm(s);
+        const dicke = 3 + r.idx * 1.6;
+        const gr = cx.createLinearGradient(xa, ya, xb, yb);
+        gr.addColorStop(0, druckFarbe(pA)); gr.addColorStop(1, druckFarbe(pB));
+        cx.strokeStyle = gr; cx.lineWidth = dicke; cx.lineCap = 'round'; cx.lineJoin = 'round';
+        cx.beginPath(); cx.moveTo(xa, ya); cx.lineTo(xa + 16, ya); cx.lineTo(xa + 16, yb); cx.lineTo(xb, yb); cx.stroke();
+        if (gewaehlt === s.id) { cx.strokeStyle = farbe('--ergebnis'); cx.lineWidth = dicke + 6; cx.globalAlpha = 0.3; cx.stroke(); cx.globalAlpha = 1; }
+        // strömendes Gas: Punkte mit Abstand nach Geschwindigkeit
+        if (fluss && r.v > 0) {
+          const strecke1 = Math.abs(yb - ya), strecke2 = xb - xa - 16, ges = 16 + strecke1 + Math.max(0, strecke2);
+          const tempo = Math.min(120, 12 + r.v * 14);
+          cx.fillStyle = 'rgba(255,255,255,.9)';
+          for (let d = (zeit * tempo) % 22; d < ges; d += 22) {
+            let px, py;
+            if (d < 16) { px = xa + d; py = ya; } else if (d < 16 + strecke1) { px = xa + 16; py = ya + (yb > ya ? 1 : -1) * (d - 16); } else { px = xa + 16 + (d - 16 - strecke1); py = yb; }
+            cx.beginPath(); cx.arc(px, py, Math.max(1.5, dicke / 3.2), 0, 7); cx.fill();
+          }
+        }
+        // Beschriftung
+        cx.fillStyle = farbe('--text'); cx.font = '600 11px ' + farbe('--technik'); cx.textAlign = 'center'; cx.textBaseline = 'bottom';
+        cx.fillText(eng ? 'TS ' + s.id : 'TS ' + s.id + ' · ' + r.dimName, (xa + 16 + xb) / 2, yb - dicke / 2 - 3);
+        cx.font = '10px ' + farbe('--technik'); cx.fillStyle = farbe('--leise'); cx.textBaseline = 'top';
+        cx.fillText(eng ? r.dimName : zahl(s.l, 1) + ' m · ' + zahl(r.v, 1) + ' m/s' + (s.dh ? ' · Δh ' + zahl(s.dh, 1) : ''), (xa + 16 + xb) / 2, yb + dicke / 2 + 3);
+        lage[s.id].px = [xa, ya, xb, yb];
+        if (s.geraet && s.q > 0) {
+          const gg = erg.geraete.filter(function (g) { return g.s === s; })[0];
+          const okG = gg && gg.ok;
+          cx.fillStyle = okG ? farbe('--ergebnis') : farbe('--fehler');
+          cx.beginPath(); cx.arc(xb + 10, yb, 9, 0, 7); cx.fill();
+          cx.fillStyle = '#FFFFFF'; cx.font = '600 11px ' + farbe('--technik'); cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(okG ? '✓' : '!', xb + 10, yb + 1);
+          cx.fillStyle = farbe('--text'); cx.textAlign = 'left'; cx.font = '600 12px ' + farbe('--technik');
+          if (eng) cx.font = '600 11px ' + farbe('--technik');
+          const nmax = eng ? 12 : 22; cx.fillText(s.geraet.length > nmax ? s.geraet.slice(0, nmax - 1) + '…' : s.geraet, xb + 24, yb - 7);
+          cx.font = (eng ? '10px ' : '11px ') + farbe('--technik'); cx.fillStyle = okG ? farbe('--ergebnis') : farbe('--fehler');
+          cx.fillText(zahl(gg ? gg.pF : 0, 2) + ' mbar' + (eng ? '' : ' · ' + zahl(s.q, 0) + ' kW'), xb + 24, yb + 8);
+        }
+      });
+      // Legende
+      cx.font = '11px ' + farbe('--technik'); cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      const lg = cx.createLinearGradient(14, 0, 134, 0);
+      lg.addColorStop(0, druckFarbe(anlage.pV)); lg.addColorStop(0.7, druckFarbe(anlage.pV - 0.7 * anlage.dpZul / 100)); lg.addColorStop(1, druckFarbe(anlage.pV - anlage.dpZul / 100));
+      cx.fillStyle = lg; cx.fillRect(14, H - 20, 120, 8);
+      cx.fillStyle = farbe('--leise'); cx.fillText(eng ? 'Druck hoch → niedrig' : 'Druck: hoch → Budget aufgebraucht · Strichstärke = Dimension', 142, H - 16);
+    }
+    function zeichneVerlauf() {
+      cx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const W = B, Hh = 170;
+      cx2.fillStyle = farbe('--flaeche'); cx2.fillRect(0, 0, W, Hh);
+      const g = erg && erg.geraete.filter(function (x) { return x.s.id === pfadZiel; })[0];
+      if (!g) return;
+      // Punkte: Versorgung → nach Zählergruppe → je Teilstrecke
+      const pkt = [{ x: 0, p: anlage.pV, t: 'p_V' }, { x: 0, p: anlage.pV - erg.kopf.summe / 100, t: 'Zähler/GS' }];
+      let xl = 0, p = pkt[1].p;
+      g.pfad.forEach(function (s) { xl += Math.max(0.3, s.l); p -= erg.res[s.id].dp / 100; pkt.push({ x: xl, p: p, t: 'TS ' + s.id }); });
+      const ml = 56, mr = 20, mo = 16, mu = 28;
+      const pmin = Math.min(anlage.pMin, p) - 0.3, pmax = anlage.pV + 0.3;
+      const X = function (x) { return ml + x / Math.max(0.1, xl) * (W - ml - mr); }, Y = function (pp) { return mo + (pmax - pp) / (pmax - pmin) * (Hh - mo - mu); };
+      cx2.strokeStyle = farbe('--linie'); cx2.lineWidth = 1; cx2.font = '11px ' + farbe('--technik'); cx2.fillStyle = farbe('--leise'); cx2.textAlign = 'right'; cx2.textBaseline = 'middle';
+      [anlage.pV, anlage.pV - anlage.dpZul / 100, anlage.pMin].forEach(function (pp, i) {
+        cx2.setLineDash(i ? [4, 4] : []); cx2.strokeStyle = i === 2 ? farbe('--fehler') : farbe('--linie');
+        cx2.beginPath(); cx2.moveTo(ml, Y(pp)); cx2.lineTo(W - mr, Y(pp)); cx2.stroke();
+        cx2.fillText(zahl(pp, 1), ml - 6, Y(pp));
+      });
+      cx2.setLineDash([]);
+      cx2.textAlign = 'left'; cx2.fillText(W < 600 ? 'oben p_V · Budget · unten p_min' : ['Versorgungsdruck', 'Budget (p_V − Δp_zul)', 'kleinster Fließdruck'].join('  ·  '), ml, Hh - 10);
+      cx2.strokeStyle = farbe('--kalt'); cx2.lineWidth = 2.5; cx2.beginPath();
+      pkt.forEach(function (q, i) { if (i) cx2.lineTo(X(q.x), Y(q.p)); else cx2.moveTo(X(q.x), Y(q.p)); }); cx2.stroke();
+      pkt.forEach(function (q) { cx2.fillStyle = farbe('--kalt'); cx2.beginPath(); cx2.arc(X(q.x), Y(q.p), 3.5, 0, 7); cx2.fill(); });
+      cx2.fillStyle = g.ok ? farbe('--ergebnis') : farbe('--fehler'); cx2.font = '600 12px ' + farbe('--technik'); cx2.textAlign = 'right'; cx2.textBaseline = 'bottom';
+      cx2.fillText(g.s.geraet + ': ' + zahl(g.pF, 2) + ' mbar', W - mr, Y(g.pF) - 6);
+      cx2.save(); cx2.translate(14, Hh / 2); cx2.rotate(-Math.PI / 2); cx2.textAlign = 'center'; cx2.fillStyle = farbe('--leise'); cx2.font = '11px ' + farbe('--technik'); cx2.fillText('Druck in mbar', 0, 0); cx2.restore();
+    }
+    cv.addEventListener('click', function (ev) {
+      const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      let best = null, bd = 14;
+      anlage.strecken.forEach(function (s) {
+        const p = lage[s.id] && lage[s.id].px; if (!p) return;
+        const d = Math.min(Math.abs(my - p[3]) + (mx < p[0] + 16 || mx > p[2] ? 999 : 0), Math.abs(mx - p[0] - 16) + (my < Math.min(p[1], p[3]) || my > Math.max(p[1], p[3]) ? 999 : 0));
+        if (d < bd) { bd = d; best = s; }
+      });
+      gewaehlt = best ? best.id : null;
+      markieren();
+      if (best) { const tr = document.querySelector('#strecken tr[data-id="' + best.id + '"]'); if (tr && tr.scrollIntoView) tr.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+    });
+    document.getElementById('oFluss').addEventListener('change', function (ev) { fluss = ev.target.checked; zeichnen(); });
+    let letzte = 0;
+    function schleife(t) {
+      if (fluss && !bewegungAus) { zeit += Math.min(0.05, (t - letzte) / 1000 || 0); zeichnen(); }
+      letzte = t;
+      requestAnimationFrame(schleife);
+    }
+
+    // ============================================================
+    // Speichern, Teilen, Start
+    // ============================================================
+
+    let uhr = 0;
+    function neu(nurWerte) {
+      const hAlt = H; groesse(); if (H !== hAlt) { /* neue Höhe */ }
+      auswerten();
+      clearTimeout(uhr);
+      uhr = setTimeout(function () { try { localStorage.setItem(SCHLUESSEL, JSON.stringify(anlage)); } catch (e) { /* ohne Speicher */ } }, 400);
+      void nurWerte;
+    }
+    function gueltig(a) {
+      return a && a.version === 1 && Array.isArray(a.strecken) && a.strecken.length > 0 && a.strecken.length <= 60 && GASE[a.gas] &&
+        a.strecken.every(function (s) { return typeof s.id === 'number' && ROHRE[s.mat] && isFinite(s.l) && isFinite(s.q); });
+    }
+    function uebernehmen(a) {
+      anlage = a;
+      naechsteId = 1 + anlage.strecken.reduce(function (m, s) { return Math.max(m, s.id); }, 0);
+      anlage.strecken.forEach(function (s) { ['absperr', 'zeta', 'dh', 'bogen', 'winkel', 'tAbzw', 'tDurch'].forEach(function (k) { if (!isFinite(s[k])) s[k] = 0; }); if (!(s.f > 0)) s.f = 1; });
+    }
+    document.getElementById('teilen').addEventListener('click', function () {
+      const kurz = btoa(unescape(encodeURIComponent(JSON.stringify(anlage)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const url = location.origin + location.pathname + '?anlage=' + kurz;
+      const m = document.getElementById('meldung');
+      const fertig = function () { m.textContent = 'Link kopiert.'; setTimeout(function () { m.textContent = ''; }, 4000); };
+      if (navigator.clipboard && navigator.clipboard.writeText && location.protocol !== 'file:') navigator.clipboard.writeText(url).then(fertig, function () { window.prompt('Link kopieren:', url); });
+      else window.prompt('Link kopieren:', url);
+    });
+    window.addEventListener('resize', function () { groesse(); zeichnen(); zeichneVerlauf(); });
+    document.addEventListener('themawechsel', function () { zeichnen(); zeichneVerlauf(); });
+
+    (function start() {
+      let a = null;
+      const m = /[?&]anlage=([^&#]+)/.exec(location.search);
+      if (m) { try { a = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { a = null; } }
+      if (!gueltig(a)) { try { a = JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null'); } catch (e) { a = null; } }
+      if (gueltig(a)) uebernehmen(a);
+      sammlungAufbauen();
+      einstellungenAufbauen();
+      tabelleAufbauen();
+      groesse();
+      neu();
+      requestAnimationFrame(schleife);
+    })();
+  })();
+  </script>
+</body>
+</html>
