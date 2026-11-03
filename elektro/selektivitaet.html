@@ -107,7 +107,8 @@
 <body>
   <div id="seitenkopf" data-wurzel="../"></div>
 
-  <main class="seite">
+  <main class="seite" data-merken>
+    <input type="hidden" id="kette-merken">
     <section class="held">
       <h1><span class="unterstrichen">Selektivität</span></h1>
       <p>Schutzorgane hintereinander: Löst bei einem Fehler nur das Gerät direkt davor aus, oder fliegt auch das nächste? Schmelzsicherungen, LS-Schalter, selektive Hauptleitungsschutzschalter und Leistungsschalter mit ihren Kennlinien, bis zu welchem Strom selektiv, mit Rechenweg.</p>
@@ -115,11 +116,11 @@
 
     <nav class="vorlagen" id="vorlagen" aria-label="Beispiel wählen"></nav>
 
-    <div class="kette" id="kette"></div>
+    <div class="kette" id="kette" data-nicht-merken></div>
 
     <section class="buehne" aria-label="Zeit-Strom-Kennlinien">
       <canvas id="szene" role="img" aria-label="Zeit-Strom-Kennlinien aller Schutzorgane, doppelt logarithmisch, daneben das Schaltbild mit Fehlerort"></canvas>
-      <div class="steuerung">
+      <div class="steuerung" data-nicht-merken>
         <button type="button" class="knopf-haupt" id="abspielen">▶ Fehlerstrom hochfahren</button>
         <select id="fehlerort" aria-label="Fehlerort"></select>
         <div class="zeitachse">
@@ -601,7 +602,25 @@
       sel.value = alt && +alt < kette.length && +alt > 0 ? alt : String(kette.length - 1);
     }
 
+    // Schutzkette für Merken und Teilen-Link (basis.js liest das versteckte Feld)
+    document.getElementById('kette-merken').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!Array.isArray(a) || !a.length) return;
+      const neuK = [];
+      a.slice(0, 8).forEach(function (x) {
+        if (!x || !ARTEN[x.art] || NENN[x.art].indexOf(+x.In) < 0) return;
+        const d = geraet(x.art, +x.In);
+        ['char', 'icn', 'ikmax', 'ik1', 'tzul', 'isel'].forEach(function (k) { if (x[k] !== undefined && (typeof x[k] === 'string' || x[k] === null || isFinite(x[k]))) d[k] = x[k] === null ? NaN : x[k]; });
+        if (x.leitung) Object.keys(d.leitung).forEach(function (k) { if (x.leitung[k] !== undefined) d.leitung[k] = x.leitung[k]; });
+        if (x.lsi) Object.keys(d.lsi).forEach(function (k) { if (x.lsi[k] !== undefined) d.lsi[k] = x.lsi[k]; });
+        neuK.push(d);
+      });
+      if (!neuK.length) return;
+      kette = neuK; ketteAufbauen(); neu();
+    });
+
     function neu(aktiv) {
+      const km = document.getElementById('kette-merken'); if (km) km.value = JSON.stringify(kette);
       auswerten();
       ikFelderAktualisieren(aktiv);
       ergebnisZeigen();

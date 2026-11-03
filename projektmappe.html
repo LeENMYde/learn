@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projektmappe</title>
+  <meta name="description" content="Alle gemerkten Eingaben der Rechner als Projekt sammeln: Bauvorhaben benennen, Projekte speichern und wechseln, als Datei sichern oder weitergeben, Übersicht mit Links drucken.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/symbol-apple.png">
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+  <link rel="stylesheet" href="assets/stil.css">
+  <link rel="stylesheet" href="assets/rechner.css">
+  <script src="assets/basis.js"></script>
+  <style>
+    .formular { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; margin-top: 10px; }
+    .formular label { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; color: var(--leise); }
+    .formular input, .formular textarea { padding: 8px 10px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; }
+    .formular textarea { min-height: 70px; resize: vertical; }
+    .formular .breit { grid-column: 1 / -1; }
+    .leiste { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 12px; }
+    .liste-seiten { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+    .liste-seiten li { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+    .liste-seiten .farbe { align-self: stretch; border-radius: 3px; background: var(--farbe, var(--linie)); }
+    .liste-seiten .titel { font-family: var(--technik); font-weight: 600; }
+    .liste-seiten .info { font-size: .85rem; color: var(--leise); grid-column: 2; }
+    .liste-seiten .knoepfe { grid-row: span 2; grid-column: 3; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .liste-seiten a.knopf { text-decoration: none; }
+    @media (max-width: 560px) { .liste-seiten li { grid-template-columns: 6px minmax(0, 1fr); } .liste-seiten .knoepfe { grid-column: 2; grid-row: auto; justify-content: flex-start; } }
+    .leer { color: var(--leise); margin-top: 10px; }
+    .meldung { color: var(--ergebnis); font-size: .9rem; min-height: 1.3em; }
+    @media print {
+      .leiste, .knoepfe, .formular input[type=file], #h-speicher-tafel { display: none !important; }
+      .liste-seiten li { break-inside: avoid; background: none; border-bottom: 1px solid #ccc; border-radius: 0; }
+      .druck-link { display: block !important; font-size: 7pt; word-break: break-all; color: #333; }
+    }
+    .druck-link { display: none; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel=""></div>
+
+  <main class="seite" data-eigenes-pdf>
+    <section class="held">
+      <h1><span class="unterstrichen">Projektmappe</span></h1>
+      <p>Alle Rechner merken sich deine Eingaben in diesem Browser. Hier fasst du sie zu einem Projekt zusammen: Bauvorhaben benennen, mehrere Projekte speichern und wechseln, als Datei sichern oder an Kollegen weitergeben und eine Übersicht mit Links drucken.</p>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-projekt">
+      <h2 id="h-projekt">Aktuelles Projekt</h2>
+      <p class="hilfe">Bauvorhaben, Bearbeiter und Firma stehen auch im Kopf jedes PDFs.</p>
+      <div class="formular">
+        <label>Bauvorhaben <input type="text" id="p-projekt" autocomplete="off"></label>
+        <label>Bearbeiter <input type="text" id="p-bearbeiter" autocomplete="name"></label>
+        <label>Firma <input type="text" id="p-firma" autocomplete="organization"></label>
+        <label class="breit">Notizen <textarea id="p-notiz"></textarea></label>
+      </div>
+      <h3 class="zwischen">Rechner mit Eingaben</h3>
+      <ul class="liste-seiten" id="seiten"></ul>
+      <p class="leer" id="leer" hidden>Noch keine Eingaben gemerkt. Öffne einen Rechner und trage Werte ein; sie erscheinen dann hier.</p>
+      <div class="leiste">
+        <button type="button" class="knopf-haupt" id="drucken">PDF der Übersicht</button>
+        <button type="button" class="knopf" id="alleLeeren">Alle Eingaben zurücksetzen</button>
+        <span class="meldung" id="meldung1" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-speicher" id="h-speicher-tafel">
+      <h2 id="h-speicher">Projekte speichern und wechseln</h2>
+      <p class="hilfe">Ein gespeichertes Projekt enthält die Eingaben aller Rechner. Beim Laden werden die aktuellen Eingaben ersetzt – vorher speichern, wenn du sie behalten willst.</p>
+      <div class="leiste">
+        <button type="button" class="knopf-haupt" id="speichern">Aktuellen Stand als Projekt speichern</button>
+        <button type="button" class="knopf" id="export">Als Datei sichern</button>
+        <label class="knopf" style="cursor:pointer">Datei laden <input type="file" id="import" accept=".json,application/json" hidden></label>
+        <span class="meldung" id="meldung2" aria-live="polite"></span>
+      </div>
+      <ul class="liste-seiten" id="projekte"></ul>
+      <p class="leer" id="keineProjekte">Noch keine Projekte gespeichert.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel=""></div>
+
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;   // keine Animation auf dieser Seite
+    // Seiten der Sammlung: Pfad, Titel, Farbe des Bereichs
+    const SEITEN = [
+      ['elektro/ohmsches-gesetz.html', 'Ohmsches Gesetz und Kirchhoff', '#2B7BB9'], ['elektro/transformator.html', 'Transformator', '#2B7BB9'],
+      ['elektro/leitungsdimensionierung.html', 'Leitungsdimensionierung', '#2B7BB9'], ['elektro/selektivitaet.html', 'Selektivität', '#2B7BB9'],
+      ['elektro/schleifenimpedanz.html', 'Schleifenimpedanz und Kurzschlussstrom', '#2B7BB9'], ['elektro/blitzschutz.html', 'Blitzschutz', '#2B7BB9'],
+      ['elektro/beleuchtung.html', 'Beleuchtung planen', '#2B7BB9'], ['elektro/warmwasser.html', 'Warmwasser-Rechner', '#2B7BB9'],
+      ['elektro/pv-notstrom.html', 'PV und Notstrom', '#2B7BB9'], ['elektro/pv-dach.html', 'PV-Dachplaner', '#2B7BB9', 'pv-dachplaner-2'],
+      ['elektro/pv-string.html', 'PV-Strings auslegen', '#2B7BB9'], ['elektro/pv-verschattung.html', 'PV-Verschattung', '#2B7BB9'],
+      ['elektro/wallbox.html', 'Wallbox und Lastmanagement', '#2B7BB9'], ['mechanik/kraefte.html', 'Kräfte', '#6E6FA6'],
+      ['sanitaer/abwasser.html', 'Abwasser bemessen', '#0E6B6A'], ['sanitaer/trinkwasserschutz.html', 'Trinkwasserschutz', '#0E6B6A'],
+      ['sanitaer/trinkwasser-rohrnetz.html', 'Trinkwasser-Rohrnetz', '#0E6B6A'], ['sanitaer/gasleitung.html', 'Gasleitung bemessen', '#0E6B6A', 'gasleitung-1'],
+      ['heizung/heizlast.html', 'Heizlast und Heizkörper', '#C2410C'], ['heizung/hydraulischer-abgleich.html', 'Hydraulischer Abgleich', '#C2410C'],
+      ['heizung/ausdehnungsgefaess.html', 'Ausdehnungsgefäß und Sicherheitsventil', '#C2410C'], ['heizung/fussbodenheizung.html', 'Fußbodenheizung', '#C2410C'],
+      ['heizung/waermepumpe.html', 'Wärmepumpe auslegen', '#C2410C'], ['brandschutz/brandsimulation.html', 'Brandsimulation', '#E4572E'],
+      ['dach/gaubenwange.html', 'Gaubenwange bekleiden', '#A0785A', 'gaubenwange-1'], ['dach/dachrinne.html', 'Dachrinne und Fallrohr', '#A0785A'],
+      ['dach/kehle-grat.html', 'Kehle und Grat', '#A0785A'], ['dach/schornsteinverwahrung.html', 'Schornsteinverwahrung', '#A0785A'],
+      ['dach/schneefang.html', 'Schneefang', '#A0785A'], ['dach/sparren-lattung.html', 'Sparren und Lattung', '#A0785A']
+    ];
+    const PROJEKTE = 'projektmappe-1', ANGABEN = 'pdf-angaben', NOTIZ = 'projektmappe-notiz';
+    const basis = location.pathname.replace(/[^\/]*$/, '');           // Ordner dieser Seite = Wurzel der Sammlung
+    const schluessel = function (pfad) { return 'eingaben:' + basis + pfad; };
+
+    function lesen(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function schreiben(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    function json(k, std) { try { const v = JSON.parse(lesen(k)); return v === null ? std : v; } catch (e) { return std; } }
+    function melden(id, t) { const m = document.getElementById(id); m.textContent = t; setTimeout(function () { if (m.textContent === t) m.textContent = ''; }, 4000); }
+    function kurz(json) { return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+    function datum(ms) { const d = new Date(ms); return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+
+    // ---------- Projektangaben ----------
+    const angaben = json(ANGABEN, {});
+    ['projekt', 'bearbeiter', 'firma'].forEach(function (k) {
+      const inp = document.getElementById('p-' + k);
+      inp.value = angaben[k] || '';
+      inp.addEventListener('input', function () { const a = json(ANGABEN, {}); a[k] = inp.value.slice(0, 120); schreiben(ANGABEN, JSON.stringify(a)); });
+    });
+    const notiz = document.getElementById('p-notiz');
+    notiz.value = lesen(NOTIZ) || '';
+    notiz.addEventListener('input', function () { schreiben(NOTIZ, notiz.value.slice(0, 5000)); });
+
+    // ---------- Stand aller Rechner ----------
+    function stand() {
+      const daten = {};
+      SEITEN.forEach(function (s) {
+        const v = lesen(schluessel(s[0])); if (v) daten[s[0]] = v;
+        if (s[3]) { const w = lesen(s[3]); if (w) daten['#' + s[3]] = w; }
+      });
+      return daten;
+    }
+    function anzahlWerte(v) { try { const o = JSON.parse(v); return o && o.werte ? Object.keys(o.werte).filter(function (k) { return o.werte[k] !== ''; }).length : 0; } catch (e) { return 0; } }
+
+    function seitenZeigen() {
+      const ul = document.getElementById('seiten'); ul.innerHTML = '';
+      const d = stand(); let n = 0;
+      SEITEN.forEach(function (s) {
+        const v = d[s[0]], eigen = s[3] ? d['#' + s[3]] : null;
+        if (!v && !eigen) return;
+        n++;
+        const li = document.createElement('li'); li.style.setProperty('--farbe', s[2]);
+        const f = document.createElement('span'); f.className = 'farbe';
+        const t = document.createElement('span'); t.className = 'titel'; t.textContent = s[1];
+        const info = document.createElement('span'); info.className = 'info';
+        info.textContent = v ? anzahlWerte(v) + ' gemerkte Werte' : 'eigener Speicher der Seite (Planung)';
+        const kn = document.createElement('span'); kn.className = 'knoepfe';
+        const a = document.createElement('a'); a.className = 'knopf'; a.textContent = 'Öffnen';
+        a.href = s[0] + (v ? '?werte=' + kurz(v) : '');
+        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'knopf-leise'; weg.textContent = 'zurücksetzen';
+        weg.addEventListener('click', function () { schreiben(schluessel(s[0]), null); if (s[3]) schreiben(s[3], null); seitenZeigen(); melden('meldung1', s[1] + ' zurückgesetzt.'); });
+        kn.append(a, weg);
+        const dl = document.createElement('span'); dl.className = 'druck-link info'; dl.textContent = new URL(a.getAttribute('href'), location.href).href;
+        li.append(f, t, kn, info, dl);
+        ul.append(li);
+      });
+      document.getElementById('leer').hidden = n > 0;
+    }
+
+    // ---------- Projekte ----------
+    function projekte() { const p = json(PROJEKTE, []); return Array.isArray(p) ? p : []; }
+    function projekteZeigen() {
+      const ul = document.getElementById('projekte'); ul.innerHTML = '';
+      const liste = projekte();
+      document.getElementById('keineProjekte').hidden = liste.length > 0;
+      liste.forEach(function (p, i) {
+        const li = document.createElement('li'); li.style.setProperty('--farbe', '#6B7785');
+        const f = document.createElement('span'); f.className = 'farbe';
+        const t = document.createElement('span'); t.className = 'titel'; t.textContent = p.name || 'Projekt ' + (i + 1);
+        const info = document.createElement('span'); info.className = 'info';
+        info.textContent = datum(p.zeit) + ' · ' + Object.keys(p.daten || {}).length + ' Rechner' + (p.angaben && p.angaben.bearbeiter ? ' · ' + p.angaben.bearbeiter : '');
+        const kn = document.createElement('span'); kn.className = 'knoepfe';
+        const laden = document.createElement('button'); laden.type = 'button'; laden.className = 'knopf'; laden.textContent = 'Laden';
+        laden.addEventListener('click', function () { anwenden(p); melden('meldung2', '„' + t.textContent + '“ geladen.'); });
+        const datei = document.createElement('button'); datei.type = 'button'; datei.className = 'knopf-leise'; datei.textContent = 'Datei';
+        datei.addEventListener('click', function () { herunterladen(p); });
+        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'knopf-leise'; weg.textContent = 'löschen';
+        weg.addEventListener('click', function () {
+          if (!window.confirm('Projekt „' + t.textContent + '“ löschen?')) return;
+          const l = projekte(); l.splice(i, 1); schreiben(PROJEKTE, JSON.stringify(l)); projekteZeigen();
+        });
+        kn.append(laden, datei, weg);
+        li.append(f, t, kn, info); ul.append(li);
+      });
+    }
+    function paket(name) {
+      return { art: 'formeln-rechner-projekt', version: 1, name: name, zeit: Date.now(), angaben: json(ANGABEN, {}), notiz: lesen(NOTIZ) || '', daten: stand() };
+    }
+    function anwenden(p) {
+      if (!p || !p.daten) return;
+      SEITEN.forEach(function (s) { schreiben(schluessel(s[0]), null); if (s[3]) schreiben(s[3], null); });
+      Object.keys(p.daten).forEach(function (k) {
+        const v = p.daten[k]; if (typeof v !== 'string' || v.length > 2e6) return;
+        if (k.charAt(0) === '#') { if (SEITEN.some(function (s) { return '#' + s[3] === k; })) schreiben(k.slice(1), v); }
+        else if (SEITEN.some(function (s) { return s[0] === k; })) schreiben(schluessel(k), v);
+      });
+      if (p.angaben && typeof p.angaben === 'object') {
+        const a = {}; ['projekt', 'bearbeiter', 'firma'].forEach(function (k) { if (typeof p.angaben[k] === 'string') a[k] = p.angaben[k].slice(0, 120); });
+        schreiben(ANGABEN, JSON.stringify(a));
+        ['projekt', 'bearbeiter', 'firma'].forEach(function (k) { document.getElementById('p-' + k).value = a[k] || ''; });
+      }
+      notiz.value = typeof p.notiz === 'string' ? p.notiz.slice(0, 5000) : ''; schreiben(NOTIZ, notiz.value);
+      seitenZeigen();
+    }
+    function dateiname(p) { return (p.name || 'Projekt').replace(/[^\wäöüÄÖÜß\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 60) + '.json'; }
+    function herunterladen(p) {
+      const blob = new Blob([JSON.stringify(p, null, 1)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = dateiname(p);
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    }
+
+    document.getElementById('speichern').addEventListener('click', function () {
+      const vorschlag = (json(ANGABEN, {}).projekt || 'Projekt') + ' ' + new Date().toLocaleDateString('de-DE');
+      const name = window.prompt('Name des Projekts:', vorschlag);
+      if (name === null) return;
+      const l = projekte(); l.unshift(paket(name.slice(0, 80) || vorschlag));
+      if (!schreiben(PROJEKTE, JSON.stringify(l.slice(0, 50)))) { melden('meldung2', 'Speicher voll oder gesperrt – älteste Projekte löschen oder als Datei sichern.'); return; }
+      projekteZeigen(); melden('meldung2', 'Projekt gespeichert.');
+    });
+    document.getElementById('export').addEventListener('click', function () { herunterladen(paket(json(ANGABEN, {}).projekt || 'Projekt')); });
+    document.getElementById('import').addEventListener('change', function (ev) {
+      const f = ev.target.files && ev.target.files[0]; if (!f) return;
+      if (f.size > 5e6) { melden('meldung2', 'Datei zu groß.'); return; }
+      const r = new FileReader();
+      r.onload = function () {
+        let p = null; try { p = JSON.parse(r.result); } catch (e) { p = null; }
+        if (!p || p.art !== 'formeln-rechner-projekt' || typeof p.daten !== 'object') { melden('meldung2', 'Das ist keine Projektdatei dieser Sammlung.'); return; }
+        const l = projekte(); l.unshift(p); schreiben(PROJEKTE, JSON.stringify(l.slice(0, 50)));
+        anwenden(p); projekteZeigen(); melden('meldung2', '„' + (p.name || 'Projekt') + '“ geladen und gespeichert.');
+      };
+      r.readAsText(f); ev.target.value = '';
+    });
+    document.getElementById('alleLeeren').addEventListener('click', function () {
+      if (!window.confirm('Eingaben aller Rechner zurücksetzen? Gespeicherte Projekte bleiben erhalten.')) return;
+      SEITEN.forEach(function (s) { schreiben(schluessel(s[0]), null); if (s[3]) schreiben(s[3], null); });
+      seitenZeigen(); melden('meldung1', 'Alle Eingaben zurückgesetzt.');
+    });
+    document.getElementById('drucken').addEventListener('click', function () { window.print(); });
+    window.addEventListener('beforeprint', function () { const p = json(ANGABEN, {}).projekt; if (p) document.title = 'Projektmappe – ' + p; });
+    window.addEventListener('afterprint', function () { document.title = 'Projektmappe'; });
+    window.addEventListener('storage', function () { seitenZeigen(); projekteZeigen(); });
+
+    seitenZeigen();
+    projekteZeigen();
+  })();
+  </script>
+</body>
+</html>
