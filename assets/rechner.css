@@ -1,0 +1,86 @@
+/*
+ * Ergänzung zu stil.css für Seiten mit assets/rechner.js
+ * (Eingaben, Listen, Ergebnis-Kacheln, Nachweise, Tabellen, Druck)
+ */
+.rechnen { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+.rechnen.ohne-bild { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 961px) { .rechnen > .tafel.bild-tafel { position: sticky; top: 12px; } }
+@media (max-width: 960px) { .rechnen { grid-template-columns: minmax(0, 1fr); } }
+.zwei { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 18px 0 0; align-items: start; }
+@media (max-width: 920px) { .zwei { grid-template-columns: minmax(0, 1fr); } }
+.tafel.abstand { margin-top: 18px; }
+
+.feld select { grid-column: span 2; font-size: .95rem; padding: 7px 6px; cursor: pointer; color: var(--text); min-width: 0; }
+.feld .einheit { white-space: nowrap; }
+.feld .name { white-space: normal; line-height: 1.25; overflow: visible; text-overflow: clip; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
+.feld .symbol { min-width: 52px; }
+.gruppen-hilfe { margin: 0 0 8px; font-size: .85rem; color: var(--leise); }
+
+/* Listen (Räume, Heizkörper, Stränge …) */
+.liste { display: grid; gap: 10px; margin: 6px 0 10px; }
+.listen-zeile { border: 1px solid var(--linie); border-radius: var(--rund); padding: 4px 10px 10px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px 8px; min-width: 0; }
+.listen-zeile legend { display: flex; align-items: center; gap: 8px; font-family: var(--technik); font-weight: 600; font-size: .95rem; padding: 0 4px; }
+.listen-zeile .entfernen { width: 26px; height: 26px; border: 1px solid var(--linie); border-radius: 50%; background: var(--flaeche); cursor: pointer; color: var(--leise); line-height: 1; }
+.listen-zeile .entfernen:hover:not(:disabled) { background: var(--fehler-flaeche); color: var(--fehler); border-color: var(--fehler); }
+.listen-zeile .entfernen:disabled { opacity: .35; cursor: default; }
+.listen-feld { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.listen-feld.breit { grid-column: span 2; }
+.listen-feld input.text { text-align: left; font-family: var(--schrift); font-size: .95rem; }
+.listen-name { font-size: .78rem; color: var(--leise); line-height: 1.2; }
+.listen-feld input, .listen-feld select { width: 100%; min-width: 0; padding: 6px 7px; border: 1.5px solid var(--text); border-radius: var(--rund-klein); background: var(--flaeche); font-family: var(--technik); font-size: 1rem; }
+.listen-feld input { text-align: right; }
+.listen-feld select { border-color: var(--linie); font-family: var(--schrift); font-size: .9rem; }
+.listen-feld.widerspruch input { background: var(--fehler-flaeche); border-color: var(--fehler); color: var(--fehler); }
+.liste + .knopf { margin-bottom: 8px; }
+
+/* Ansicht */
+.rechner-bild { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); margin-top: 10px; }
+.steuerung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 10px; }
+.zustand { color: var(--leise); font-size: .9rem; }
+
+/* Ergebnis */
+.kopf-zeile { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+.urteil { display: inline-block; padding: 4px 12px; border-radius: 999px; font-family: var(--technik); font-size: 1rem; background: var(--flaeche2); color: var(--leise); }
+.urteil:empty { display: none; }
+.urteil.gut { background: var(--ergebnis-flaeche); color: var(--ergebnis); }
+.urteil.schlecht { background: var(--fehler-flaeche); color: var(--fehler); }
+.meldungen { margin-top: 10px; }
+.kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.kachel { padding: 10px 14px 12px; border-radius: var(--rund); background: var(--flaeche2); border-left: 4px solid var(--farbe, var(--linie)); min-width: 0; }
+.kachel .wert { font-family: var(--technik); font-weight: 600; font-size: clamp(1.25rem, 3.2vw, 1.65rem); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+.kachel small { display: block; color: var(--leise); font-size: .85rem; line-height: 1.3; margin-top: 2px; }
+h3.zwischen { margin: 22px 0 6px; font-size: 1.15rem; }
+.rahmen { overflow-x: auto; }
+.tabelle { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tabelle th, .tabelle td { padding: 6px; border-bottom: 1px solid var(--linie); text-align: left; vertical-align: top; }
+.tabelle th { color: var(--leise); font-weight: 400; font-size: .84rem; }
+.tabelle .zahl { text-align: right; font-family: var(--technik); font-size: 1.02rem; white-space: nowrap; }
+.tabelle tr.gewaehlt td { background: var(--ergebnis-flaeche); }
+.tabelle tr.schlecht td { color: var(--fehler); }
+.tabelle tr.leise td { color: var(--leise); }
+.tabelle tr.summe td { font-weight: 600; border-top: 2px solid var(--text); }
+.tabellen-fuss, .absatz { font-size: .88rem; color: var(--leise); margin: 6px 0 0; }
+.nachweise { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.nachweise:empty { display: none; }
+.nachweise li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border-radius: var(--rund); background: var(--flaeche2); }
+.nachweise .marke-n { grid-row: span 2; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; background: var(--linie); color: var(--leise); }
+.nachweise li.gut .marke-n { background: var(--ergebnis); color: var(--flaeche); }
+.nachweise li.schlecht .marke-n { background: var(--fehler); color: var(--flaeche); }
+.nachweise .was { font-family: var(--technik); font-weight: 600; }
+.nachweise .wie { font-size: .9rem; color: var(--leise); grid-column: 2; }
+.fehlertext { color: var(--fehler); }
+.formelsammlung p { margin: 4px 0 0; font-size: .85rem; color: var(--leise); }
+.quellen { margin: 14px 0 0; font-size: .82rem; color: var(--leise); }
+
+@media print {
+  .tafel { break-inside: auto !important; }
+  .listen-zeile { break-inside: avoid; padding: 2px 6px 4px; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px 6px; }
+  .listen-zeile .entfernen, .liste + .knopf { display: none !important; }
+  .listen-feld input, .listen-feld select { border: none !important; padding: 0 !important; text-align: left; font-size: 9pt; appearance: none; -webkit-appearance: none; background: none; }
+  .listen-name { font-size: 7pt; }
+  .feld { padding-top: 0 !important; padding-bottom: 0 !important; min-height: 0 !important; break-inside: avoid; }
+  .gruppe { margin: 4px 0 !important; }
+  .rechner-bild { max-height: 75mm; width: auto !important; max-width: 100%; height: auto !important; margin: 4px auto 0; }
+  .steuerung { display: none !important; }
+  .kachel .wert { font-size: 13pt; }
+}
