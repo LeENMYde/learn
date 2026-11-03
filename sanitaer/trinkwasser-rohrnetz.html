@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trinkwasser-Rohrnetz</title>
+  <meta name="description" content="Rohrweiten nach DIN 1988-300: Summen- und Spitzendurchfluss, Rohr je Teilstrecke, Rohrreibung, Einzelwiderstände und Druckbilanz bis zur ungünstigsten Entnahmestelle.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, F = R.F;
+
+    // Berechnungsdurchfluss V_R (l/s) und Mindestfließdruck (hPa) von Entnahmestellen, DIN 1988-300
+    const STELLEN = [
+      ['wt', 'Waschtisch', 0.07, 1000], ['spuele', 'Spüle', 0.07, 1000], ['dusche', 'Dusche', 0.15, 1000], ['wanne', 'Badewanne', 0.15, 1000],
+      ['wc', 'WC mit Spülkasten', 0.13, 500], ['gs', 'Geschirrspüler', 0.07, 1000], ['wm', 'Waschmaschine', 0.15, 1000], ['aussen', 'Außenzapfstelle DN 15', 0.3, 1000],
+      ['bidet', 'Bidet', 0.07, 1000], ['urinal', 'Urinal mit Druckspüler', 0.3, 1000]
+    ];
+    // Spitzendurchfluss V_S = a · (ΣV_R)^b − c je Gebäudeart (DIN 1988-300, Tabelle 2)
+    const GEBAEUDE = {
+      wohn: ['Wohngebäude', 1.48, 0.19, 0.94], pflege: ['Pflegeheim', 1.4, 0.14, 0.92], hotel: ['Hotel', 0.7, 0.48, 0.13],
+      buero: ['Verwaltung, Büro', 0.91, 0.31, 0.38], schule: ['Schule', 0.91, 0.31, 0.38], kranken: ['Krankenhaus, Bettenhaus', 0.75, 0.44, 0.18]
+    };
+    const ROHRE = {
+      cu: { name: 'Kupfer', k: 0.0015, d: [['12 × 1', 10], ['15 × 1', 13], ['18 × 1', 16], ['22 × 1', 20], ['28 × 1,5', 25], ['35 × 1,5', 32], ['42 × 1,5', 39], ['54 × 2', 50]] },
+      es: { name: 'Edelstahl', k: 0.0015, d: [['15 × 1', 13], ['18 × 1', 16], ['22 × 1,2', 19.6], ['28 × 1,2', 25.6], ['35 × 1,5', 32], ['42 × 1,5', 39], ['54 × 1,5', 51]] },
+      mv: { name: 'Mehrschichtverbund', k: 0.007, d: [['16 × 2', 12], ['20 × 2', 16], ['26 × 3', 20], ['32 × 3', 26], ['40 × 3,5', 33], ['50 × 4', 42], ['63 × 4,5', 54]] },
+      vz: { name: 'Stahl verzinkt (Bestand)', k: 0.15, d: [['DN 15', 16], ['DN 20', 21.6], ['DN 25', 27.2], ['DN 32', 35.9], ['DN 40', 41.8], ['DN 50', 53]] }
+    };
+    const ZAEHLER = [['2.5', 'Q3 = 2,5 m³/h'], ['4', 'Q3 = 4 m³/h'], ['6.3', 'Q3 = 6,3 m³/h'], ['10', 'Q3 = 10 m³/h'], ['16', 'Q3 = 16 m³/h']];
+
+    function ts(name, L, dh, we, extra, zeta) { return { name: name, L: L, dh: dh, we: we, extra: extra, zeta: zeta }; }
+    const BEISPIEL = {
+      geb: 'wohn', rohr: 'cu', warm: 'kalt', vmax: 2, pV: 4, dm: 'ohne', zaehler: '4', filter: 200, app: 0, letzte: 'dusche',
+      wt: 1, spuele: 1, dusche: 1, wanne: 1, wc: 1, gs: 1, wm: 1, aussen: 0, bidet: 0, urinal: 0,
+      strecken: [
+        ts('Hausanschluss bis Verteiler', 8, 0, 6, 0.3, 4), ts('Steigleitung EG–1. OG', 3, 3, 4, 0, 2), ts('Steigleitung 1.–2. OG', 3, 3, 2, 0, 2),
+        ts('Stockwerksleitung 2. OG', 6, 0, 1, 0, 4), ts('Bad, bis Dusche', 4, 1.2, 0, 0.15, 6)
+      ]
+    };
+
+    const zahlFelder = STELLEN.map(function (s) { return { k: s[0], name: s[1] + ' (' + z(s[2], 2) + ' l/s)', e: 'Stück', min: 0, max: 20, ganz: true }; });
+
+    R.seite({
+      titel: 'Trinkwasser-Rohrnetz',
+      einleitung: 'Rohrweiten nach DIN 1988-300: Summendurchfluss aus den Entnahmestellen, Spitzendurchfluss je Gebäudeart, Rohr je Teilstrecke über die zulässige Fließgeschwindigkeit, Rohrreibung und Einzelwiderstände, Druckbilanz vom Versorgungsdruck bis zur ungünstigsten Entnahmestelle.',
+      hilfe: 'Teilstrecken in Fließrichtung vom Hausanschluss bis zur ungünstigsten Entnahmestelle eintragen. Je Teilstrecke: wie viele Wohnungen sie versorgt und welche einzelnen Stellen noch dazukommen.',
+      gruppen: [
+        { titel: 'Gebäude und Leitung', farbe: '#0E6B6A', felder: [
+          { k: 'geb', name: 'Gebäudeart', wahl: Object.keys(GEBAEUDE).map(function (k) { return [k, GEBAEUDE[k][0]]; }) },
+          { k: 'rohr', name: 'Rohrwerkstoff', wahl: Object.keys(ROHRE).map(function (k) { return [k, ROHRE[k].name]; }) },
+          { k: 'warm', name: 'Leitung', wahl: [['kalt', 'Trinkwasser kalt (10 °C)'], ['warm', 'Trinkwasser warm (60 °C)']] },
+          { k: 'vmax', tex: 'v_\\text{max}', name: 'zulässige Fließgeschwindigkeit', e: 'm/s', min: 0.5, max: 5, hilfe: 'DIN 1988-300: 2 m/s; bis 5 m/s bei Teilstrecken mit geringen Einzelwiderständen' }
+        ] },
+        { titel: 'Ausstattung je Wohnung', farbe: '#2B7BB9', hilfe: 'Daraus ergibt sich der Summendurchfluss einer Wohnung.', felder: zahlFelder },
+        { titel: 'Druck', farbe: '#6E6FA6', felder: [
+          { k: 'pV', tex: 'p_\\text{min,V}', name: 'Mindestversorgungsdruck (Auskunft Versorger)', e: 'bar', min: 1, max: 16 },
+          { k: 'dm', name: 'Druckminderer', wahl: [['ohne', 'ohne'], ['3', 'eingestellt auf 3 bar'], ['3.5', 'eingestellt auf 3,5 bar'], ['4', 'eingestellt auf 4 bar']] },
+          { k: 'zaehler', name: 'Wasserzähler', wahl: ZAEHLER },
+          { k: 'filter', tex: '\\Delta p_\\text{FIL}', name: 'Filter', e: 'hPa', min: 0, max: 2000 },
+          { k: 'app', tex: '\\Delta p_\\text{Ap}', name: 'weitere Apparate (Enthärtung, Durchlauferhitzer)', e: 'hPa', min: 0, max: 5000 },
+          { k: 'letzte', name: 'ungünstigste Entnahmestelle', wahl: STELLEN.map(function (s) { return [s[0], s[1] + ', ' + z(s[3], 0) + ' hPa']; }) }
+        ] },
+        { titel: 'Teilstrecken', farbe: '#E4572E', liste: { k: 'strecken', zeile: 'Teilstrecke', max: 30,
+          neu: function (i) { return ts('Teilstrecke ' + (i + 1), 3, 0, 0, 0.07, 3); },
+          spalten: [
+            { k: 'name', name: 'Bezeichnung', text: true, breit: true },
+            { k: 'L', name: 'Länge', e: 'm', min: 0.1, max: 2000 }, { k: 'dh', name: 'Höhe', e: 'm', min: -50, max: 100 },
+            { k: 'we', name: 'Wohnungen', e: '', min: 0, max: 2000, ganz: true }, { k: 'extra', name: 'weitere V_R', e: 'l/s', min: 0, max: 50 },
+            { k: 'zeta', name: 'Σζ', e: '', min: 0, max: 200 }
+          ] } }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Summendurchfluss', '\\Sigma\\dot V_\\text{R} = n_\\text{WE} \\cdot \\Sigma\\dot V_\\text{R,WE} + \\Sigma\\dot V_\\text{R,einzeln}', 'Berechnungsdurchflüsse: Waschtisch 0,07, Dusche 0,15, Wanne 0,15, WC 0,13, Waschmaschine 0,15 l/s'],
+        ['Spitzendurchfluss', '\\dot V_\\text{S} = a \\cdot (\\Sigma\\dot V_\\text{R})^b - c', 'Wohngebäude a = 1,48, b = 0,19, c = 0,94; nicht kleiner als der größte Einzeldurchfluss, nicht größer als ΣV_R'],
+        ['Fließgeschwindigkeit', 'v = \\frac{4 \\cdot \\dot V_\\text{S}}{\\pi \\cdot d_\\text{i}^2}', 'kleinstes Rohr mit v ≤ v_max'],
+        ['Rohrreibung', 'R = \\frac{\\lambda}{d_\\text{i}} \\cdot \\frac{\\rho\\,v^2}{2},\\quad \\frac{1}{\\sqrt\\lambda} = -2\\lg\\left(\\frac{2{,}51}{Re\\sqrt\\lambda} + \\frac{k}{3{,}71\\,d_\\text{i}}\\right)', 'Colebrook-White; k = 0,0015 mm (Kupfer, Edelstahl), 0,007 mm (Kunststoff), 0,15 mm (verzinkt)'],
+        ['Einzelwiderstände', 'Z = \\Sigma\\zeta \\cdot \\frac{\\rho\\,v^2}{2}', 'Bogen 0,5 … 1, T-Stück Abzweig 1,3, Absperrventil 0,5 … 3'],
+        ['Geodätischer Druckverlust', '\\Delta p_\\text{geo} = \\rho \\cdot g \\cdot \\Delta h \\approx 98{,}1\\,\\text{hPa/m}', ''],
+        ['Druckbilanz', '\\Delta p_\\text{verf} = p_\\text{min,V} - \\Delta p_\\text{geo} - \\Delta p_\\text{WZ} - \\Delta p_\\text{FIL} - \\Delta p_\\text{Ap} - p_\\text{minFl} \\ge \\Sigma(R \\cdot l + Z)', 'Wasserzähler: Δp ≈ 630 hPa · (V_S / Q3)²']
+      ],
+      quellen: 'DIN 1988-300 (Ermittlung der Rohrdurchmesser), DIN EN 806-3 (vereinfachtes Verfahren), DIN 1988-200. Für große oder verzweigte Anlagen jede Fließstrecke einzeln nachweisen; Warmwasser mit Zirkulation nach DIN 1988-300 Abschnitt 9.',
+      bild: { titel: 'Druckverlauf entlang der Leitung', label: 'Diagramm: Druck vom Hausanschluss bis zur Entnahmestelle', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(250, Math.min(340, B * 0.6))); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Unten fließt das Wasser; die Punkte werden in engen Rohren schneller.'; } }
+    });
+
+    function stelle(k) { return STELLEN.filter(function (s) { return s[0] === k; })[0]; }
+    function spitze(e, sum, maxEinzel) {
+      const g = GEBAEUDE[e.geb];
+      if (sum <= 0) return 0;
+      const vs = g[1] * Math.pow(sum, g[2]) - g[3];
+      return Math.min(sum, Math.max(maxEinzel, vs));
+    }
+    function reibung(V, di, k, nu) {
+      const d = di / 1000, A = Math.PI * d * d / 4, v = V / 1000 / A, Re = v * d / nu;
+      let lam = 0.02;
+      if (Re < 1) return { v: 0, R: 0, lam: 0, Re: 0 };
+      if (Re < 2320) lam = 64 / Re;
+      else for (let i = 0; i < 30; i++) lam = Math.pow(-2 * Math.log10(2.51 / (Re * Math.sqrt(lam)) + k / 1000 / d / 3.71), -2);
+      return { v: v, R: lam / d * 1000 * v * v / 2 / 100, lam: lam, Re: Re };   // R in hPa/m
+    }
+    function rechne(e) {
+      const r = { fehler: [], ts: [] };
+      const nu = e.warm === 'warm' ? 0.475e-6 : 1.31e-6, rho = e.warm === 'warm' ? 983 : 1000;
+      r.sumWE = 0; r.maxWE = 0;
+      STELLEN.forEach(function (s) { r.sumWE += (e[s[0]] || 0) * s[2]; if (e[s[0]] > 0) r.maxWE = Math.max(r.maxWE, s[2]); });
+      const rohr = ROHRE[e.rohr];
+      let summeRZ = 0, summeH = 0;
+      e.strecken.forEach(function (t) {
+        const sum = t.we * r.sumWE + t.extra, maxE = Math.max(t.we > 0 ? r.maxWE : 0, Math.min(t.extra, 0.3));
+        const VS = spitze(e, sum, maxE);
+        let wahl = null;
+        rohr.d.some(function (d) { const f = reibung(VS, d[1], rohr.k, nu); if (f.v <= e.vmax) { wahl = { n: d[0], di: d[1], f: f }; return true; } return false; });
+        if (!wahl) { const d = rohr.d[rohr.d.length - 1]; wahl = { n: d[0] + ' (zu klein)', di: d[1], f: reibung(VS, d[1], rohr.k, nu), zuklein: true }; }
+        const Rl = wahl.f.R * t.L, Z = t.zeta * rho * wahl.f.v * wahl.f.v / 2 / 100;
+        summeRZ += Rl + Z; summeH += t.dh;
+        r.ts.push({ t: t, sum: sum, VS: VS, rohr: wahl, Rl: Rl, Z: Z, RZ: Rl + Z, kumuliert: summeRZ });
+      });
+      r.summeRZ = summeRZ; r.dh = summeH;
+      r.VS = r.ts.length ? r.ts[0].VS : 0;
+      r.pEin = e.dm === 'ohne' ? e.pV : Math.min(e.pV, +e.dm);
+      r.dpGeo = summeH * 98.1;
+      const q3 = +e.zaehler / 3.6;
+      r.dpWZ = 630 * Math.pow(r.VS / q3, 2);
+      if (r.VS > q3) r.fehler.push('Spitzendurchfluss ' + z(r.VS, 2) + ' l/s über dem Dauerdurchfluss des Zählers (' + z(q3, 2) + ' l/s): größeren Zähler wählen.');
+      r.pFl = stelle(e.letzte)[3];
+      r.verf = r.pEin * 1000 - r.dpGeo - r.dpWZ - e.filter - e.app - r.pFl;
+      r.rest = r.verf - r.summeRZ;
+      r.rho = rho;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      r.fehler.forEach(function (t) { H.meldung(t, true); });
+      if (e.pV > 5 && e.dm === 'ohne') H.meldung('Über 5 bar Ruhedruck: Druckminderer nach DIN 1988-200 einbauen (Geräusche, Armaturen).');
+      const zuklein = r.ts.filter(function (x) { return x.rohr.zuklein; });
+      if (zuklein.length) H.meldung('Größtes Rohr reicht nicht für: ' + zuklein.map(function (x) { return x.t.name; }).join(', '), true);
+      if (r.rest < 0) H.meldung('Der Druck reicht nicht bis zur Entnahmestelle. Einzelne Teilstrecken eine Nennweite größer wählen, Einzelwiderstände verringern oder Druckerhöhung planen.', true);
+      if (e.warm === 'kalt' && r.ts.some(function (x) { return x.rohr.f.v < 0.2 && x.VS > 0; })) H.meldung('Teilstrecken mit unter 0,2 m/s: Stagnationsgefahr prüfen (Hygiene, DIN 1988-200).');
+      const ok = r.rest >= 0 && !zuklein.length && !r.fehler.length;
+      H.urteil(ok, ok ? 'Druck reicht' : 'Druck reicht nicht');
+      H.kacheln([
+        [z(r.sumWE, 2) + ' l/s', 'Summendurchfluss je Wohnung', '#2B7BB9'],
+        [z(r.VS, 2) + ' l/s', 'Spitzendurchfluss am Hausanschluss', '#0E6B6A'],
+        [z(r.verf, 0) + ' hPa', 'verfügbar für Rohrreibung und Einzelwiderstände', '#6E6FA6'],
+        [z(r.summeRZ, 0) + ' hPa', 'gebraucht (R·l + Z)', r.rest >= 0 ? '#0E6B6A' : '#C0392B'],
+        [z(r.rest, 0) + ' hPa', 'Reserve', r.rest >= 0 ? '#F2A541' : '#C0392B'],
+        [r.ts.length ? r.ts[0].rohr.n : '–', 'Rohr am Hausanschluss', '#6B7785']
+      ]);
+      H.tabelle('Teilstrecken', ['Teilstrecke', 'ΣV_R', 'V_S', 'Rohr', 'v', 'R', 'l', 'R·l', 'Z', 'Summe'],
+        r.ts.map(function (x) {
+          return [x.t.name, z(x.sum, 2), z(x.VS, 2), x.rohr.n, z(x.rohr.f.v, 2), z(x.rohr.f.R, 1), z(x.t.L, 1), z(x.Rl, 0), z(x.Z, 0), z(x.kumuliert, 0)];
+        }), { zahl: [1, 2, 4, 5, 6, 7, 8, 9], klasse: function (i) { return r.ts[i].rohr.zuklein ? 'schlecht' : ''; },
+          fuss: 'Durchflüsse in l/s, v in m/s, R in hPa/m, Längen in m, Druckverluste in hPa. Rohr: kleinste Nennweite mit v ≤ ' + z(e.vmax, 1) + ' m/s.' });
+      H.tabelle('Druckbilanz', ['Posten', 'hPa'], [
+        ['Versorgungsdruck' + (e.dm !== 'ohne' ? ' nach Druckminderer' : ''), z(r.pEin * 1000, 0)],
+        ['− geodätischer Höhenunterschied (' + z(r.dh, 1) + ' m)', z(r.dpGeo, 0)],
+        ['− Wasserzähler', z(r.dpWZ, 0)],
+        ['− Filter', z(e.filter, 0)],
+        ['− weitere Apparate', z(e.app, 0)],
+        ['− Mindestfließdruck ' + stelle(e.letzte)[1], z(r.pFl, 0)],
+        ['= verfügbar für Rohrnetz', z(r.verf, 0)],
+        ['− Rohrreibung und Einzelwiderstände', z(r.summeRZ, 0)],
+        ['= Reserve', z(r.rest, 0)]
+      ], { zahl: [1], klasse: function (i) { return i === 6 || i === 8 ? 'summe' : ''; } });
+    }
+    function weg(r, e) {
+      const x = r.ts[0]; if (!x) return [];
+      const g = GEBAEUDE[e.geb];
+      return [
+        ['Summendurchfluss einer Wohnung', '\\Sigma\\dot V_\\text{R,WE} = ' + STELLEN.filter(function (s) { return e[s[0]] > 0; }).map(function (s) { return e[s[0]] + ' \\cdot ' + tz(s[2], 2); }).join(' + ') + ' = ' + E(tz(r.sumWE, 2) + '\\,\\tfrac{\\text{l}}{\\text{s}}')],
+        ['Summendurchfluss „' + x.t.name + '“', '\\Sigma\\dot V_\\text{R} = ' + x.t.we + ' \\cdot ' + tz(r.sumWE, 2) + ' + ' + tz(x.t.extra, 2) + ' = ' + E(tz(x.sum, 2) + '\\,\\tfrac{\\text{l}}{\\text{s}}')],
+        ['Spitzendurchfluss (' + g[0] + ')', '\\dot V_\\text{S} = ' + tz(g[1], 2) + ' \\cdot ' + tz(x.sum, 2) + '^{' + tz(g[2], 2) + '} - ' + tz(g[3], 2) + ' = ' + E(tz(x.VS, 3) + '\\,\\tfrac{\\text{l}}{\\text{s}}')],
+        ['Rohr und Geschwindigkeit', 'd_\\text{i} = ' + tz(x.rohr.di, 1) + '\\,\\text{mm} \\Rightarrow v = \\frac{4 \\cdot ' + tz(x.VS / 1000, 5) + '}{\\pi \\cdot ' + tz(x.rohr.di / 1000, 4) + '^2} = ' + E(tz(x.rohr.f.v, 2) + '\\,\\tfrac{\\text{m}}{\\text{s}}')],
+        ['Rohrreibung (Re = ' + z(x.rohr.f.Re, 0) + ', λ = ' + z(x.rohr.f.lam, 4) + ')', 'R = \\frac{' + tz(x.rohr.f.lam, 4) + '}{' + tz(x.rohr.di / 1000, 4) + '} \\cdot \\frac{' + r.rho + ' \\cdot ' + tz(x.rohr.f.v, 2) + '^2}{2} = ' + E(tz(x.rohr.f.R, 2) + '\\,\\tfrac{\\text{hPa}}{\\text{m}}')],
+        ['Druckverlust der Teilstrecke', 'R \\cdot l + Z = ' + tz(x.rohr.f.R, 2) + ' \\cdot ' + tz(x.t.L, 1) + ' + ' + tz(x.t.zeta, 1) + ' \\cdot \\frac{' + r.rho + ' \\cdot ' + tz(x.rohr.f.v, 2) + '^2}{2 \\cdot 100} = ' + E(tz(x.RZ, 0) + '\\,\\text{hPa}')],
+        ['Wasserzähler', '\\Delta p_\\text{WZ} = 630 \\cdot \\left(\\frac{' + tz(r.VS, 3) + '}{' + tz(+e.zaehler / 3.6, 3) + '}\\right)^2 = ' + E(tz(r.dpWZ, 0) + '\\,\\text{hPa}')],
+        ['Verfügbares Druckgefälle', '\\Delta p_\\text{verf} = ' + tz(r.pEin * 1000, 0) + ' - ' + tz(r.dpGeo, 0) + ' - ' + tz(r.dpWZ, 0) + ' - ' + tz(e.filter) + ' - ' + tz(e.app) + ' - ' + tz(r.pFl) + ' = ' + E(tz(r.verf, 0) + '\\,\\text{hPa}')],
+        ['Nachweis', '\\Sigma(R \\cdot l + Z) = ' + tz(r.summeRZ, 0) + (r.rest >= 0 ? ' \\le ' : ' > ') + tz(r.verf, 0) + '\\ \\Rightarrow\\ \\text{Reserve } ' + R.EF(r.rest >= 0)(tz(r.rest, 0) + '\\,\\text{hPa}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, x0 = 52, y0 = 24, w = B - x0 - 16, h = H - y0 - 80;
+      const Lges = r.ts.reduce(function (s, x) { return s + x.t.L; }, 0) || 1;
+      // Druckpunkte: Start nach Apparaten und Zähler
+      let p = r.pEin * 1000 - r.dpWZ - e.filter - e.app;
+      const pts = [[0, r.pEin * 1000], [0, p]];
+      let s = 0;
+      r.ts.forEach(function (x) { s += x.t.L; p -= x.RZ + x.t.dh * 98.1; pts.push([s, p]); });
+      const pmax = r.pEin * 1000 * 1.05, pmin = Math.min(0, p - 200);
+      const ac = Z.achsen(cx, x0, y0, w, h, 0, Lges, pmin, pmax, { xSchritt: Lges > 60 ? 20 : Lges > 25 ? 10 : 5, ySchritt: pmax - pmin > 6000 ? 2000 : 1000, xName: 'Fließweg m', yName: 'hPa' });
+      // Mindestfließdruck
+      cx.fillStyle = 'rgba(192,57,43,.12)'; cx.fillRect(x0, ac.Y(r.pFl), w, ac.Y(pmin) - ac.Y(r.pFl));
+      Z.text(cx, 'Mindestfließdruck ' + z(r.pFl, 0) + ' hPa', x0 + w - 4, ac.Y(r.pFl) + 10, 'right', 10, false, '#C0392B');
+      cx.strokeStyle = '#2B7BB9'; cx.lineWidth = 2.5; cx.beginPath();
+      pts.forEach(function (q, i) { const X = ac.X(q[0]), Y = ac.Y(q[1]); if (i) cx.lineTo(X, Y); else cx.moveTo(X, Y); });
+      cx.stroke();
+      const ende = pts[pts.length - 1];
+      cx.fillStyle = ende[1] >= r.pFl ? '#0E6B6A' : '#C0392B'; cx.beginPath(); cx.arc(ac.X(ende[0]), ac.Y(ende[1]), 5, 0, 2 * Math.PI); cx.fill();
+      // Leitung unten mit Wasser
+      const yL = H - 22; let xs = x0;
+      const vmax = Math.max.apply(null, r.ts.map(function (x) { return x.rohr.f.v; }).concat([0.1]));
+      r.ts.forEach(function (x, i) {
+        const bw = x.t.L / Lges * w, dick = Math.max(3, Math.min(14, x.rohr.di / 4));
+        cx.fillStyle = i % 2 ? '#7FB3D9' : '#5B9BCB'; cx.fillRect(xs, yL - dick / 2, bw, dick);
+        cx.fillStyle = '#FFFFFF';
+        const n = Math.max(1, Math.round(bw / 22));
+        for (let j = 0; j < n; j++) { const q = ((t * 0.00025 * (0.3 + x.rohr.f.v / vmax) + j / n) % 1); cx.beginPath(); cx.arc(xs + q * bw, yL, 1.8, 0, 2 * Math.PI); cx.fill(); }
+        if (bw > 40) Z.text(cx, x.rohr.n, xs + bw / 2, yL - dick / 2 - 8, 'center', 10, false);
+        xs += bw;
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
