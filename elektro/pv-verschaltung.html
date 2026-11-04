@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PV-Verschaltung und Stromlaufplan</title>
+  <meta name="description" content="Module auf mehreren Dachflächen anordnen, Strings von Modul zu Modul verlegen, mehrere Wechselrichter und MPP-Tracker belegen, Spannungen und Ströme prüfen und daraus den Stromlaufplan mit DC- und AC-Seite erzeugen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .planer { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 18px; align-items: start; }
+    @media (max-width: 1000px) { .planer { grid-template-columns: minmax(0, 1fr); } .planer > section:last-child { order: -1; } }
+    .werkzeug-leiste .knopf[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    #plan { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #plan .plan-svg { min-width: 860px; }
+    .einstellungen details { border-top: 1px solid var(--linie); padding: 8px 0; }
+    .einstellungen details:first-of-type { border-top: none; }
+    .einstellungen summary { cursor: pointer; font-family: var(--technik); font-weight: 600; font-size: 1.05rem; padding: 4px 0; }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 10px; margin: 8px 0; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster input, .raster select { padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .92rem; min-width: 0; width: 100%; }
+    .raster input:focus, .raster select:focus { border-color: var(--text); outline: none; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .karte-klein { border: 1px solid var(--linie); border-radius: var(--rund); padding: 8px 10px 10px; margin: 8px 0; background: var(--flaeche2); }
+    .karte-klein h4 { margin: 0 0 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--technik); font-size: .98rem; }
+    .weg-k { border: 1px solid var(--linie); background: var(--flaeche); color: var(--fehler); border-radius: 999px; width: 28px; height: 28px; cursor: pointer; }
+    .werkzeug-leiste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+    .strings-wahl { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .strings-wahl button { border: 2px solid var(--farbe); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 5px 12px; cursor: pointer; font: inherit; font-size: .88rem; font-weight: 600; }
+    .strings-wahl button[aria-pressed="true"] { background: var(--farbe); color: #FFFFFF; }
+    .dachbild { display: block; width: 100%; margin-left: 0; height: auto; background: var(--flaeche2); border-radius: var(--rund); margin-top: 6px; touch-action: manipulation; user-select: none; }
+    .dachbild .modul { cursor: pointer; }
+    .flaeche-titel { margin: 14px 0 0; font-family: var(--technik); font-weight: 600; }
+    .plan-svg { display: block; width: 100%; height: auto; background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--rund); }
+    .status { font-size: .9rem; color: var(--leise); min-height: 1.4em; }
+    .tabelle td.ok { color: var(--ergebnis); font-weight: 600; }
+    .tabelle td.nok { color: var(--fehler); font-weight: 600; }
+    .tabelle td.warn { color: #B7791F; font-weight: 600; }
+    @media print {
+      .planer { display: block; }
+      .einstellungen, .werkzeug-leiste, .strings-wahl, .status { display: none !important; }
+      .dachbild, .plan-svg { break-inside: avoid; max-height: 120mm; }
+      .plan-svg { border: none; }
+      #plan .plan-svg { min-width: 0; }
+      #plan { overflow: visible; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">PV-Verschaltung</span></h1>
+      <p>Module auf einer oder mehreren Dachflächen anordnen, Strings von Modul zu Modul verlegen und auf mehrere Wechselrichter und MPP-Tracker verteilen. Spannungen und Ströme werden bei Kälte und Hitze geprüft; daraus entstehen Stringplan, Stromlaufplan mit DC- und AC-Seite und Stückliste.</p>
+    </section>
+
+    <div class="planer">
+      <section class="tafel einstellungen" aria-labelledby="h-ein">
+        <h2 id="h-ein">Anlage</h2>
+        <p class="hilfe">Werte aus den Datenblättern. Alles wird in diesem Browser gespeichert.</p>
+        <details open><summary>Modul und Temperaturen</summary><div class="raster" id="modul"></div></details>
+        <details open><summary>Dachflächen</summary><div id="flaechen"></div><button type="button" class="knopf" id="neueFlaeche">+ Dachfläche</button></details>
+        <details open><summary>Wechselrichter</summary><div id="wrs"></div><button type="button" class="knopf" id="neuerWR">+ Wechselrichter</button></details>
+        <details><summary>Leitungen und Netz</summary><div class="raster" id="netz"></div></details>
+        <div class="werkzeug-leiste">
+          <button type="button" class="knopf-leise" id="beispiel">Beispiel laden</button>
+          <button type="button" class="knopf-leise" id="teilen">Link kopieren</button>
+          <span class="teilen-meldung" id="teilenMeldung" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <section class="tafel" aria-labelledby="h-dach">
+        <h2 id="h-dach">Modulanordnung und Strings</h2>
+        <p class="hilfe">String wählen und Module der Reihe nach antippen – vom Plus- zum Minusende. Erneutes Antippen des letzten Moduls nimmt es wieder heraus. Im Modus „Module setzen“ schaltest du Plätze an oder aus (Schornstein, Fenster).</p>
+        <div class="werkzeug-leiste">
+          <button type="button" class="knopf" id="modusString" aria-pressed="true">Verstringen</button>
+          <button type="button" class="knopf" id="modusModul" aria-pressed="false">Module setzen</button>
+          <button type="button" class="knopf" id="neuerString">+ String</button>
+          <button type="button" class="knopf" id="auto">Automatisch verstringen</button>
+          <button type="button" class="knopf-leise" id="stringLeeren">aktiven String leeren</button>
+          <button type="button" class="knopf-leise" id="stringWeg">aktiven String löschen</button>
+        </div>
+        <div class="strings-wahl" id="stringsWahl" role="group" aria-label="Aktiver String"></div>
+        <div class="status" id="status" aria-live="polite"></div>
+        <div id="daecher"></div>
+      </section>
+    </div>
+
+    <section class="tafel abstand" aria-labelledby="h-pruef">
+      <div class="kopf-zeile"><h2 id="h-pruef">Prüfung der Belegung</h2><span class="urteil" id="urteil"></span></div>
+      <div class="meldungen" id="meldungen"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <h3 class="zwischen">Strings</h3>
+      <div class="rahmen"><table class="tabelle" id="tabStrings"></table></div>
+      <h3 class="zwischen">MPP-Tracker</h3>
+      <div class="rahmen"><table class="tabelle" id="tabMppt"></table></div>
+      <h3 class="zwischen">Wechselrichter</h3>
+      <div class="rahmen"><table class="tabelle" id="tabWr"></table></div>
+      <h3 class="zwischen" id="wegTitel">Rechenweg</h3>
+      <ol class="weg" id="weg"></ol>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-plan">
+      <h2 id="h-plan">Stromlaufplan</h2>
+      <p class="hilfe">Übersicht in einpoliger Darstellung: Strings, DC-Trennung und Überspannungsschutz, Wechselrichter mit MPP-Trackern, AC-Leitung, Schutzorgane, Zähler und Netz. Bezeichnungen nach DIN VDE 0100-712 und VDE-AR-N 4105.</p>
+      <div id="plan"></div>
+      <h3 class="zwischen">Stückliste</h3>
+      <div class="rahmen"><table class="tabelle" id="tabListe"></table></div>
+    </section>
+
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung</h2>
+      <p class="hilfe">Grundlagen der Prüfung (DIN VDE 0100-712, DIN EN 62548).</p>
+      <section><h3>Temperaturkorrektur</h3><p>X(T) = X<sub>STC</sub> · (1 + k/100 · (T − 25 °C)), k = β<sub>U</sub> für Spannungen, α<sub>I</sub> für Ströme.</p></section>
+      <section><h3>Spannungen je String</h3><p>n · U<sub>OC</sub>(T<sub>min</sub>) ≤ U<sub>DC,max</sub>; n · U<sub>MPP</sub>(T<sub>max</sub>) ≥ U<sub>MPP,min</sub> und ≥ U<sub>Start</sub>; n · U<sub>MPP</sub>(T<sub>min</sub>) ≤ U<sub>MPP,max</sub>.</p></section>
+      <section><h3>Ströme je MPP-Tracker</h3><p>s · I<sub>MPP</sub> ≤ I<sub>max</sub>; s · 1,25 · I<sub>SC</sub>(T<sub>max</sub>) ≤ I<sub>SC,max</sub>. Parallele Strings an einem Tracker brauchen gleiche Modulzahl und gleiche Ausrichtung.</p></section>
+      <section><h3>Rückstrom</h3><p>Ab drei parallelen Strings: (s − 1) · 1,25 · I<sub>SC</sub> &gt; I<sub>R</sub> ⇒ Strangsicherung gPV je String.</p></section>
+      <section><h3>DC-Leitung</h3><p>Länge = Weg durch die Module + 2 · Abstand zum Wechselrichter; P<sub>V</sub> = 2 · l · I<sub>MPP</sub>² / (κ · A), κ = 47 m/(Ω·mm²) bei 70 °C.</p></section>
+      <section><h3>AC-Seite</h3><p>I<sub>AC</sub> = P<sub>AC</sub> / (√3 · 400 V) bzw. P<sub>AC</sub> / 230 V; Leitungsschutz ≥ I<sub>AC,max</sub> nach Herstellerangabe; RCD nach Herstellerangabe (Typ A genügt, wenn der Wechselrichter keinen DC-Fehlerstrom einspeisen kann).</p></section>
+      <p class="quellen">DIN VDE 0100-712, DIN EN 62548, VDE-AR-N 4105, VDE-AR-N 4100. Der Plan ersetzt keine Ausführungsplanung; Herstellerangaben von Modul und Wechselrichter haben Vorrang.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const SPEICHER = 'pv-verschaltung-1';
+    const FARBEN = ['#E4572E', '#2B7BB9', '#0E6B6A', '#6E6FA6', '#F2A541', '#B5533C', '#C2185B', '#4C9F38', '#8B5A2B', '#1E3A5F'];
+    const $ = function (id) { return document.getElementById(id); };
+    function zahl(w, n) { if (!isFinite(w)) return '–'; const t = (Math.round(w * Math.pow(10, n || 0)) / Math.pow(10, n || 0)).toFixed(n || 0).replace('.', ','); return t.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+    function lies(t) { const s = String(t).trim().replace(/\s/g, '').replace(',', '.'); return s === '' ? NaN : Number(s); }
+    function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function kopie(o) { return JSON.parse(JSON.stringify(o)); }
+    let nr = 1;
+    function neueId(p) { return p + (nr++) + Math.random().toString(36).slice(2, 5); }
+
+    // ---------- Projekt ----------
+    function beispiel() {
+      const f1 = { id: 'f1', name: 'Süddach', neigung: 35, azimut: 0, spalten: 10, reihen: 2, hoch: true, aus: [], abstand: 15 };
+      const f2 = { id: 'f2', name: 'Westdach', neigung: 35, azimut: 90, spalten: 6, reihen: 2, hoch: true, aus: [5], abstand: 20 };
+      return {
+        modul: { name: 'Glas-Folie 430 Wp', P: 430, Voc: 38.9, Vmpp: 32.4, Isc: 13.9, Impp: 13.3, tkV: -0.25, tkI: 0.045, IR: 25, L: 1.72, B: 1.13 },
+        temp: { min: -10, max: 70 },
+        netz: { dcA: 6, acA: 4, acL: 15, zp: 'Zählerschrank, Hausanschlussraum', rcd: 'A' },
+        flaechen: [f1, f2],
+        wr: [{ id: 'w1', name: 'WR 1', pac: 10, udc: 1000, umin: 160, umax: 850, ustart: 180, phasen: 3, mppt: [{ imax: 16, iscmax: 20 }, { imax: 16, iscmax: 20 }] }],
+        strings: [], aktiv: null
+      };
+    }
+    let P = laden() || beispiel();
+    if (!P.strings.length) autoVerstringen(true);
+    function laden() {
+      const m = /[?&]plan=([^&#]+)/.exec(location.search);
+      let roh = null;
+      if (m) { try { roh = decodeURIComponent(escape(atob(decodeURIComponent(m[1]).replace(/-/g, '+').replace(/_/g, '/')))); } catch (e) { roh = null; } }
+      if (!roh) { try { roh = localStorage.getItem(SPEICHER); } catch (e) { roh = null; } }
+      if (!roh) return null;
+      try { const p = JSON.parse(roh); return pruefeProjekt(p) ? p : null; } catch (e) { return null; }
+    }
+    function pruefeProjekt(p) {
+      if (!p || !p.modul || !Array.isArray(p.flaechen) || !Array.isArray(p.wr) || !Array.isArray(p.strings)) return false;
+      p.flaechen = p.flaechen.slice(0, 12).filter(function (f) { return f && f.id; });
+      p.flaechen.forEach(function (f) { f.spalten = Math.max(1, Math.min(40, Math.round(+f.spalten || 1))); f.reihen = Math.max(1, Math.min(20, Math.round(+f.reihen || 1))); if (!Array.isArray(f.aus)) f.aus = []; });
+      p.wr = p.wr.slice(0, 8).filter(function (w) { return w && w.id && Array.isArray(w.mppt) && w.mppt.length; });
+      p.strings = p.strings.slice(0, 60).filter(function (s) { return s && s.id && Array.isArray(s.module); });
+      if (!p.temp) p.temp = { min: -10, max: 70 };
+      if (!p.netz) p.netz = beispiel().netz;
+      return p.wr.length > 0;
+    }
+    let uhr = 0;
+    function speichern() {
+      clearTimeout(uhr);
+      uhr = setTimeout(function () { try { localStorage.setItem(SPEICHER, JSON.stringify(P)); } catch (e) { /* ohne Speicher */ } }, 300);
+    }
+
+    // ---------- Eingabefelder ----------
+    function feld(ziel, name, hole, setze, opt) {
+      opt = opt || {};
+      const l = document.createElement('label'); l.textContent = name;
+      let e;
+      if (opt.wahl) {
+        e = document.createElement('select');
+        opt.wahl.forEach(function (w) { const o = document.createElement('option'); o.value = String(w[0]); o.textContent = w[1]; e.append(o); });
+        e.value = String(hole());
+        e.addEventListener('change', function () { setze(opt.zahl ? +e.value : e.value); aenderung(opt.neu); });
+      } else {
+        e = document.createElement('input'); e.type = 'text';
+        if (!opt.text) e.inputMode = 'decimal';
+        e.value = opt.text ? hole() : String(hole()).replace('.', ',');
+        e.addEventListener('input', function () {
+          if (opt.text) { setze(e.value.slice(0, 60)); aenderung(opt.neu); return; }
+          const w = lies(e.value), ok = isFinite(w) && w >= (opt.min === undefined ? -1e9 : opt.min) && w <= (opt.max === undefined ? 1e9 : opt.max);
+          e.classList.toggle('falsch', !ok);
+          if (ok) { setze(opt.ganz ? Math.round(w) : w); aenderung(opt.neu); }
+        });
+        e.addEventListener('blur', function () { e.classList.remove('falsch'); if (!opt.text) e.value = String(hole()).replace('.', ','); });
+      }
+      l.append(e); ziel.append(l);
+      return e;
+    }
+    function einstellungenAufbauen() {
+      const m = $('modul'); m.innerHTML = '';
+      const mo = P.modul, t = P.temp;
+      feld(m, 'Bezeichnung', function () { return mo.name; }, function (v) { mo.name = v; }, { text: true });
+      feld(m, 'Leistung Wp', function () { return mo.P; }, function (v) { mo.P = v; }, { min: 10, max: 1000 });
+      feld(m, 'U_OC V', function () { return mo.Voc; }, function (v) { mo.Voc = v; }, { min: 5, max: 200 });
+      feld(m, 'U_MPP V', function () { return mo.Vmpp; }, function (v) { mo.Vmpp = v; }, { min: 5, max: 200 });
+      feld(m, 'I_SC A', function () { return mo.Isc; }, function (v) { mo.Isc = v; }, { min: 0.5, max: 30 });
+      feld(m, 'I_MPP A', function () { return mo.Impp; }, function (v) { mo.Impp = v; }, { min: 0.5, max: 30 });
+      feld(m, 'TK Spannung %/K', function () { return mo.tkV; }, function (v) { mo.tkV = v; }, { min: -1, max: 0 });
+      feld(m, 'TK Strom %/K', function () { return mo.tkI; }, function (v) { mo.tkI = v; }, { min: 0, max: 0.2 });
+      feld(m, 'Rückstrom I_R A', function () { return mo.IR; }, function (v) { mo.IR = v; }, { min: 1, max: 60 });
+      feld(m, 'Länge m', function () { return mo.L; }, function (v) { mo.L = v; }, { min: 0.3, max: 3, neu: true });
+      feld(m, 'Breite m', function () { return mo.B; }, function (v) { mo.B = v; }, { min: 0.3, max: 2, neu: true });
+      feld(m, 'Zelle kalt °C', function () { return t.min; }, function (v) { t.min = v; }, { min: -40, max: 10 });
+      feld(m, 'Zelle heiß °C', function () { return t.max; }, function (v) { t.max = v; }, { min: 40, max: 90 });
+      flaechenAufbauen(); wrAufbauen();
+      const n = $('netz'); n.innerHTML = '';
+      const nz = P.netz;
+      feld(n, 'DC-Querschnitt', function () { return nz.dcA; }, function (v) { nz.dcA = v; }, { wahl: [[4, '4 mm²'], [6, '6 mm²'], [10, '10 mm²']], zahl: true });
+      feld(n, 'AC-Querschnitt', function () { return nz.acA; }, function (v) { nz.acA = v; }, { wahl: [[2.5, '2,5 mm²'], [4, '4 mm²'], [6, '6 mm²'], [10, '10 mm²'], [16, '16 mm²']], zahl: true });
+      feld(n, 'AC-Leitung bis Zählerplatz m', function () { return nz.acL; }, function (v) { nz.acL = v; }, { min: 1, max: 500 });
+      feld(n, 'RCD je Wechselrichter', function () { return nz.rcd; }, function (v) { nz.rcd = v; }, { wahl: [['A', 'Typ A (Herstellerfreigabe)'], ['B', 'Typ B'], ['kein', 'keine eigene RCD']] });
+      feld(n, 'Zählerplatz', function () { return nz.zp; }, function (v) { nz.zp = v; }, { text: true });
+    }
+    function flaechenAufbauen() {
+      const z = $('flaechen'); z.innerHTML = '';
+      P.flaechen.forEach(function (f) {
+        const k = document.createElement('div'); k.className = 'karte-klein';
+        const h = document.createElement('h4'); h.textContent = f.name;
+        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'weg-k'; weg.textContent = '✕'; weg.setAttribute('aria-label', f.name + ' entfernen');
+        weg.disabled = P.flaechen.length < 2;
+        weg.addEventListener('click', function () {
+          P.flaechen = P.flaechen.filter(function (x) { return x !== f; });
+          P.strings.forEach(function (s) { s.module = s.module.filter(function (m) { return m[0] !== f.id; }); });
+          aenderung(true); einstellungenAufbauen();
+        });
+        h.append(weg); k.append(h);
+        const r = document.createElement('div'); r.className = 'raster';
+        feld(r, 'Name', function () { return f.name; }, function (v) { f.name = v || 'Fläche'; h.firstChild.textContent = f.name; }, { text: true, neu: true });
+        feld(r, 'Ausrichtung', function () { return f.azimut; }, function (v) { f.azimut = v; }, { wahl: [[-90, 'Ost'], [-45, 'Südost'], [0, 'Süd'], [45, 'Südwest'], [90, 'West'], [180, 'Nord'], [999, 'Flachdach Ost-West']], zahl: true, neu: true });
+        feld(r, 'Neigung °', function () { return f.neigung; }, function (v) { f.neigung = v; }, { min: 0, max: 90 });
+        feld(r, 'Module nebeneinander', function () { return f.spalten; }, function (v) { f.spalten = v; aufraeumen(f); }, { min: 1, max: 40, ganz: true, neu: true });
+        feld(r, 'Reihen', function () { return f.reihen; }, function (v) { f.reihen = v; aufraeumen(f); }, { min: 1, max: 20, ganz: true, neu: true });
+        feld(r, 'Lage', function () { return f.hoch ? 'hoch' : 'quer'; }, function (v) { f.hoch = v === 'hoch'; }, { wahl: [['hoch', 'hochkant'], ['quer', 'quer']], neu: true });
+        feld(r, 'Leitungsweg zum WR m', function () { return f.abstand; }, function (v) { f.abstand = v; }, { min: 0, max: 500 });
+        k.append(r); z.append(k);
+      });
+    }
+    function aufraeumen(f) {
+      const max = f.spalten * f.reihen;
+      f.aus = f.aus.filter(function (i) { return i < max; });
+      P.strings.forEach(function (s) { s.module = s.module.filter(function (m) { return m[0] !== f.id || m[1] < max; }); });
+    }
+    function wrAufbauen() {
+      const z = $('wrs'); z.innerHTML = '';
+      P.wr.forEach(function (w) {
+        const k = document.createElement('div'); k.className = 'karte-klein';
+        const h = document.createElement('h4'); h.textContent = w.name;
+        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'weg-k'; weg.textContent = '✕'; weg.setAttribute('aria-label', w.name + ' entfernen');
+        weg.disabled = P.wr.length < 2;
+        weg.addEventListener('click', function () { P.wr = P.wr.filter(function (x) { return x !== w; }); P.strings.forEach(function (s) { if (s.wr === w.id) { s.wr = P.wr[0].id; s.mppt = 0; } }); aenderung(true); einstellungenAufbauen(); });
+        h.append(weg); k.append(h);
+        const r = document.createElement('div'); r.className = 'raster';
+        feld(r, 'Name', function () { return w.name; }, function (v) { w.name = v || 'WR'; h.firstChild.textContent = w.name; }, { text: true, neu: true });
+        feld(r, 'AC-Leistung kW', function () { return w.pac; }, function (v) { w.pac = v; }, { min: 0.3, max: 300 });
+        feld(r, 'Phasen', function () { return w.phasen; }, function (v) { w.phasen = v; }, { wahl: [[3, 'dreiphasig'], [1, 'einphasig']], zahl: true });
+        feld(r, 'U_DC,max V', function () { return w.udc; }, function (v) { w.udc = v; }, { min: 50, max: 1500 });
+        feld(r, 'MPP von V', function () { return w.umin; }, function (v) { w.umin = v; }, { min: 10, max: 1500 });
+        feld(r, 'MPP bis V', function () { return w.umax; }, function (v) { w.umax = v; }, { min: 20, max: 1500 });
+        feld(r, 'Startspannung V', function () { return w.ustart; }, function (v) { w.ustart = v; }, { min: 0, max: 1500 });
+        feld(r, 'MPP-Tracker', function () { return w.mppt.length; }, function (v) {
+          while (w.mppt.length < v) w.mppt.push(kopie(w.mppt[w.mppt.length - 1]));
+          w.mppt.length = v;
+          P.strings.forEach(function (s) { if (s.wr === w.id && s.mppt >= v) s.mppt = v - 1; });
+        }, { min: 1, max: 12, ganz: true, neu: true });
+        feld(r, 'I_max je Tracker A', function () { return w.mppt[0].imax; }, function (v) { w.mppt.forEach(function (m) { m.imax = v; }); }, { min: 1, max: 100 });
+        feld(r, 'I_SC,max je Tracker A', function () { return w.mppt[0].iscmax; }, function (v) { w.mppt.forEach(function (m) { m.iscmax = v; }); }, { min: 1, max: 150 });
+        k.append(r); z.append(k);
+      });
+    }
+    $('neueFlaeche').addEventListener('click', function () { P.flaechen.push({ id: neueId('f'), name: 'Fläche ' + (P.flaechen.length + 1), neigung: 30, azimut: 0, spalten: 6, reihen: 2, hoch: true, aus: [], abstand: 15 }); einstellungenAufbauen(); aenderung(true); });
+    $('neuerWR').addEventListener('click', function () { const v = kopie(P.wr[P.wr.length - 1]); v.id = neueId('w'); v.name = 'WR ' + (P.wr.length + 1); P.wr.push(v); einstellungenAufbauen(); aenderung(true); });
+    $('beispiel').addEventListener('click', function () { if (!window.confirm('Beispiel laden? Die aktuelle Planung wird ersetzt.')) return; P = beispiel(); autoVerstringen(true); einstellungenAufbauen(); aenderung(true); });
+    $('teilen').addEventListener('click', function () {
+      const k = btoa(unescape(encodeURIComponent(JSON.stringify(P)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const url = location.origin + location.pathname + '?plan=' + k;
+      const ok = function () { $('teilenMeldung').textContent = 'Link kopiert.'; setTimeout(function () { $('teilenMeldung').textContent = ''; }, 3000); };
+      if (navigator.clipboard && location.protocol !== 'file:') navigator.clipboard.writeText(url).then(ok, function () { window.prompt('Link kopieren:', url); });
+      else window.prompt('Link kopieren:', url);
+    });
+
+    // ---------- Strings ----------
+    let modus = 'string';
+    function stringVon(fid, i) { return P.strings.filter(function (s) { return s.module.some(function (m) { return m[0] === fid && m[1] === i; }); })[0]; }
+    function neuerString() {
+      const n = P.strings.length;
+      const s = { id: neueId('s'), name: 'S' + (n + 1), farbe: FARBEN[n % FARBEN.length], wr: P.wr[0].id, mppt: 0, module: [] };
+      // freien Tracker vorschlagen
+      outer: for (let w = 0; w < P.wr.length; w++) for (let m = 0; m < P.wr[w].mppt.length; m++) { if (!P.strings.some(function (x) { return x.wr === P.wr[w].id && x.mppt === m; })) { s.wr = P.wr[w].id; s.mppt = m; break outer; } }
+      P.strings.push(s); P.aktiv = s.id;
+      return s;
+    }
+    function aktiver() { return P.strings.filter(function (s) { return s.id === P.aktiv; })[0]; }
+    $('neuerString').addEventListener('click', function () { neuerString(); modusSetzen('string'); aenderung(); });
+    $('stringLeeren').addEventListener('click', function () { const s = aktiver(); if (s) { s.module = []; aenderung(); } });
+    $('stringWeg').addEventListener('click', function () {
+      const s = aktiver(); if (!s) return;
+      P.strings = P.strings.filter(function (x) { return x !== s; });
+      P.strings.forEach(function (x, i) { if (/^S\d+$/.test(x.name)) x.name = 'S' + (i + 1); });
+      P.aktiv = P.strings.length ? P.strings[P.strings.length - 1].id : null; aenderung();
+    });
+    function modusSetzen(m) { modus = m; $('modusString').setAttribute('aria-pressed', String(m === 'string')); $('modusModul').setAttribute('aria-pressed', String(m === 'modul')); }
+    $('modusString').addEventListener('click', function () { modusSetzen('string'); status('Modus Verstringen.'); });
+    $('modusModul').addEventListener('click', function () { modusSetzen('modul'); status('Modus Module setzen: Plätze an- und ausschalten.'); });
+    function status(t) { $('status').textContent = t; }
+
+    function tk(x, k, T) { return x * (1 + k / 100 * (T - 25)); }
+    function grenzen(w) {
+      const mo = P.modul, t = P.temp;
+      const vocK = tk(mo.Voc, mo.tkV, t.min), vmH = tk(mo.Vmpp, mo.tkV, t.max), vmK = tk(mo.Vmpp, mo.tkV, t.min);
+      return { nMax: Math.min(Math.floor(w.udc / vocK + 1e-9), Math.floor(w.umax / vmK + 1e-9)), nMin: Math.ceil(Math.max(w.umin, w.ustart) / vmH - 1e-9) };
+    }
+    function reihenfolge(f) {
+      // Schlangenlinie: Reihe für Reihe, abwechselnd links und rechts beginnend
+      const o = [];
+      for (let r = 0; r < f.reihen; r++) for (let c = 0; c < f.spalten; c++) { const cc = r % 2 ? f.spalten - 1 - c : c; const i = r * f.spalten + cc; if (f.aus.indexOf(i) < 0) o.push(i); }
+      return o;
+    }
+    function autoVerstringen(still) {
+      // Gleich lange Strings je Fläche, Länge im zulässigen Fenster aller Wechselrichter;
+      // Tracker: zuerst freie (abwechselnd über die Wechselrichter), sonst parallel zu gleich langen Strings derselben Fläche, solange der Strom reicht.
+      P.strings = [];
+      const mo = P.modul, iscH = tk(mo.Isc, mo.tkI, P.temp.max);
+      const gs = P.wr.map(grenzen);
+      const nMax = Math.min.apply(null, gs.map(function (g) { return g.nMax; })), nMin = Math.max.apply(null, gs.map(function (g) { return g.nMin; }));
+      const slots = [];
+      const maxM = Math.max.apply(null, P.wr.map(function (w) { return w.mppt.length; }));
+      for (let i = 0; i < maxM; i++) P.wr.forEach(function (w) { if (i < w.mppt.length) slots.push({ wr: w.id, mppt: i, m: w.mppt[i], belegt: [] }); });
+      let rest = 0, ziel = nMax;
+      P.flaechen.forEach(function (f) {
+        const o = reihenfolge(f); if (!o.length) return;
+        let k, n;
+        if (nMin > nMax || nMax < 1) { k = 1; n = o.length; }
+        else {
+          // möglichst viele Module verschalten, dabei möglichst wenige Strings
+          let best = null;
+          for (let kk = 1; kk <= 60; kk++) { const nn = Math.min(nMax, Math.floor(o.length / kk)); if (nn < nMin) break; const v = kk * nn; if (!best || v > best.v) best = { v: v, k: kk, n: nn }; }
+          if (best) { k = best.k; n = best.n; } else { k = 1; n = o.length; }
+        }
+        ziel = n;
+        for (let i = 0; i < k; i++) {
+          const teil = o.slice(i * n, (i + 1) * n); if (!teil.length) continue;
+          const s = neuerString();
+          s.module = teil.map(function (x) { return [f.id, x]; });
+          let platz = slots.filter(function (p) { return !p.belegt.length; })[0];
+          if (!platz) platz = slots.filter(function (p) { const sp = p.belegt.length + 1; return p.belegt.every(function (b) { return b.f === f.id && b.n === teil.length; }) && sp * mo.Impp <= p.m.imax + 1e-9 && sp * 1.25 * iscH <= p.m.iscmax + 1e-9; })[0];
+          if (!platz) platz = slots.slice().sort(function (a, b) { return a.belegt.length - b.belegt.length; })[0];
+          platz.belegt.push({ f: f.id, n: teil.length });
+          s.wr = platz.wr; s.mppt = platz.mppt;
+        }
+        rest += o.length - k * n > 0 ? o.length - k * n : 0;
+      });
+      P.aktiv = P.strings.length ? P.strings[0].id : null;
+      if (!still) { status('Automatisch verstringt: ' + P.strings.length + ' Strings' + (nMin <= nMax ? ', zulässig ' + nMin + ' bis ' + nMax + ' Module je String' : ' – kein zulässiges Fenster, Grenzen prüfen') + (rest ? '; ' + rest + ' Module bleiben frei (gleich lange Strings).' : '.')); aenderung(); }
+    }
+    $('auto').addEventListener('click', function () {
+      if (P.strings.some(function (s) { return s.module.length; }) && !window.confirm('Alle Strings neu verlegen?')) return;
+      autoVerstringen(false);
+    });
+
+    function stringsWahlAufbauen() {
+      const z = $('stringsWahl'); z.innerHTML = '';
+      P.strings.forEach(function (s) {
+        const b = document.createElement('button'); b.type = 'button'; b.style.setProperty('--farbe', s.farbe);
+        const w = P.wr.filter(function (x) { return x.id === s.wr; })[0];
+        b.textContent = s.name + ' · ' + s.module.length + ' Mod. · ' + (w ? w.name : '?') + '/' + String.fromCharCode(65 + s.mppt);
+        b.setAttribute('aria-pressed', String(s.id === P.aktiv));
+        b.addEventListener('click', function () { P.aktiv = s.id; modusSetzen('string'); aenderung(); });
+        z.append(b);
+      });
+      // Zuordnung des aktiven Strings
+      const s = aktiver();
+      if (s) {
+        const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Wechselrichter und Tracker des aktiven Strings');
+        sel.style.cssText = 'padding:5px 8px;border-radius:999px;border:1.5px solid var(--linie);background:var(--flaeche);color:var(--text);font:inherit;font-size:.88rem';
+        P.wr.forEach(function (w) { w.mppt.forEach(function (m, i) { const o = document.createElement('option'); o.value = w.id + '|' + i; o.textContent = s.name + ' an ' + w.name + ', Tracker ' + String.fromCharCode(65 + i); sel.append(o); }); });
+        sel.value = s.wr + '|' + s.mppt;
+        sel.addEventListener('change', function () { const p = sel.value.split('|'); s.wr = p[0]; s.mppt = +p[1]; aenderung(); });
+        z.append(sel);
+      }
+    }
+
+    // ---------- Dachbilder ----------
+    const NS = 'http://www.w3.org/2000/svg';
+    function el(tag, attr, text) { const e = document.createElementNS(NS, tag); Object.keys(attr || {}).forEach(function (k) { e.setAttribute(k, attr[k]); }); if (text !== undefined) e.textContent = text; return e; }
+    function richtung(a) { return a === 999 ? 'Ost-West' : a === 0 ? 'Süd' : a === -90 ? 'Ost' : a === 90 ? 'West' : a === 180 ? 'Nord' : a < 0 ? 'Südost' : 'Südwest'; }
+    function dachZeichnen() {
+      const z = $('daecher'); z.innerHTML = '';
+      const mo = P.modul;
+      const breiteste = Math.max.apply(null, P.flaechen.map(function (f) { return f.spalten * (f.hoch ? mo.B : mo.L); }));
+      P.flaechen.forEach(function (f) {
+        const mw = f.hoch ? mo.B : mo.L, mh = f.hoch ? mo.L : mo.B, fuge = 0.02;
+        const k = 100;                      // Pixel je Meter im viewBox
+        const W = f.spalten * (mw + fuge) * k + 40, Hh = f.reihen * (mh + fuge) * k + 40;
+        const t = document.createElement('div'); t.className = 'flaeche-titel';
+        t.textContent = f.name + ' · ' + richtung(f.azimut) + ', ' + zahl(f.neigung, 0) + '° · ' + (f.spalten * f.reihen - f.aus.length) + ' Module · ' + zahl((f.spalten * f.reihen - f.aus.length) * mo.P / 1000, 2) + ' kWp';
+        z.append(t);
+        const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + Hh, class: 'dachbild', role: 'img', 'aria-label': 'Modulfeld ' + f.name });
+        svg.style.maxWidth = Math.max(30, f.spalten * mw / breiteste * 100) + '%';
+        const texte = [];
+        svg.append(el('rect', { x: 4, y: 4, width: W - 8, height: Hh - 8, rx: 10, fill: 'none', stroke: 'var(--linie)', 'stroke-width': 3, 'stroke-dasharray': '10 8' }));
+        const mitte = {};
+        for (let r = 0; r < f.reihen; r++) for (let c = 0; c < f.spalten; c++) {
+          const i = r * f.spalten + c, x = 20 + c * (mw + fuge) * k, y = 20 + r * (mh + fuge) * k;
+          mitte[i] = [x + mw * k / 2, y + mh * k / 2];
+          const aus = f.aus.indexOf(i) >= 0, s = aus ? null : stringVon(f.id, i);
+          const g = el('g', { class: 'modul', 'data-i': i, tabindex: 0, role: 'button', 'aria-label': 'Modul ' + (i + 1) + (s ? ', ' + s.name : aus ? ', kein Modul' : '') });
+          g.append(el('rect', { x: x, y: y, width: mw * k, height: mh * k, rx: 4, fill: aus ? 'transparent' : s ? s.farbe : '#1E3A5F', 'fill-opacity': aus ? 0 : s ? 0.85 : 0.55, stroke: aus ? 'var(--linie)' : s && s.id === P.aktiv ? 'var(--text)' : '#13233A', 'stroke-width': s && s.id === P.aktiv ? 5 : 2, 'stroke-dasharray': aus ? '6 6' : '' }));
+          if (!aus) for (let lz = 1; lz < 3; lz++) g.append(el('line', { x1: x + 6, x2: x + mw * k - 6, y1: y + lz * mh * k / 3, y2: y + lz * mh * k / 3, stroke: '#FFFFFF', 'stroke-opacity': 0.25, 'stroke-width': 2 }));
+          if (s) {
+            const pos = s.module.findIndex(function (m) { return m[0] === f.id && m[1] === i; }) + 1, gr = Math.min(30, mw * k * 0.26);
+            texte.push(el('text', { x: x + mw * k / 2, y: y + mh * k * 0.3 + gr / 2, 'text-anchor': 'middle', 'font-size': gr, 'font-weight': 700, fill: '#FFFFFF', stroke: '#13233A', 'stroke-width': gr / 7, 'paint-order': 'stroke', 'pointer-events': 'none', 'font-family': 'system-ui, sans-serif' }, s.name + '.' + pos));
+          }
+          g.addEventListener('click', function () { modulKlick(f, i); });
+          g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); modulKlick(f, i); } });
+          svg.append(g);
+        }
+        // Leitungsweg der Strings: Linie durch die Module, Plus am Anfang, Minus am Ende
+        P.strings.forEach(function (s) {
+          const pts = s.module.filter(function (m) { return m[0] === f.id; }).map(function (m) { return mitte[m[1]]; }).filter(Boolean);
+          if (pts.length < 1) return;
+          if (pts.length > 1) svg.append(el('polyline', { points: pts.map(function (p) { return p.join(','); }).join(' '), fill: 'none', stroke: '#FFFFFF', 'stroke-width': 11, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'pointer-events': 'none' }));
+          if (pts.length > 1) svg.append(el('polyline', { points: pts.map(function (p) { return p.join(','); }).join(' '), fill: 'none', stroke: s.farbe, 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-opacity': 0.95, 'pointer-events': 'none' }));
+          const a = pts[0], b = pts[pts.length - 1];
+          [[a, '+', '#C0392B'], [b, '−', '#13233A']].forEach(function (q) {
+            const dy = Math.min(mh * k * 0.32, 60);
+            svg.append(el('circle', { cx: q[0][0], cy: q[0][1] + dy, r: 15, fill: q[2], stroke: '#FFFFFF', 'stroke-width': 2, 'pointer-events': 'none' }));
+            svg.append(el('text', { x: q[0][0], y: q[0][1] + dy + 9, 'text-anchor': 'middle', 'font-size': 25, 'font-weight': 700, fill: '#FFFFFF', 'pointer-events': 'none' }, q[1]));
+          });
+        });
+        texte.forEach(function (t) { svg.append(t); });
+        z.append(svg);
+      });
+    }
+    function modulKlick(f, i) {
+      const aus = f.aus.indexOf(i) >= 0;
+      if (modus === 'modul') {
+        if (aus) f.aus = f.aus.filter(function (x) { return x !== i; });
+        else { f.aus.push(i); P.strings.forEach(function (s) { s.module = s.module.filter(function (m) { return !(m[0] === f.id && m[1] === i); }); }); }
+        aenderung(); return;
+      }
+      if (aus) { status('An dieser Stelle ist kein Modul. Mit „Module setzen“ einschalten.'); return; }
+      let s = aktiver(); if (!s) s = neuerString();
+      const in_ = stringVon(f.id, i);
+      if (in_ && in_ !== s) { status('Modul gehört schon zu ' + in_.name + '. String ' + in_.name + ' wählen, um es zu ändern.'); return; }
+      const letzte = s.module[s.module.length - 1];
+      if (in_ === s) {
+        if (letzte && letzte[0] === f.id && letzte[1] === i) { s.module.pop(); status(s.name + ': letztes Modul entfernt.'); }
+        else status('Nur das letzte Modul eines Strings lässt sich herausnehmen.');
+      } else { s.module.push([f.id, i]); status(s.name + ': ' + s.module.length + ' Module.'); }
+      aenderung();
+    }
+
+    // ---------- Prüfung ----------
+    let A = null;
+    function auswerten() {
+      const mo = P.modul, t = P.temp, r = { strings: [], mppt: [], wr: [], fehler: [], hinweise: [] };
+      const vocK = tk(mo.Voc, mo.tkV, t.min), vmH = tk(mo.Vmpp, mo.tkV, t.max), vmK = tk(mo.Vmpp, mo.tkV, t.min), iscH = tk(mo.Isc, mo.tkI, t.max);
+      const fl = {}; P.flaechen.forEach(function (f) { fl[f.id] = f; });
+      P.strings.forEach(function (s) {
+        const w = P.wr.filter(function (x) { return x.id === s.wr; })[0], n = s.module.length;
+        if (!w || !n) { r.strings.push({ s: s, w: w, n: n, leer: true }); return; }
+        const fls = []; s.module.forEach(function (m) { if (fls.indexOf(m[0]) < 0) fls.push(m[0]); });
+        const ausr = fls.map(function (id) { return fl[id] ? fl[id].azimut + '/' + fl[id].neigung : '?'; });
+        // Weg im String: Abstand der Modulmitten + Leitung zum WR
+        let weg = 0; const mw = function (f) { return f.hoch ? mo.B : mo.L; }, mh = function (f) { return f.hoch ? mo.L : mo.B; };
+        for (let i = 1; i < n; i++) {
+          const a = s.module[i - 1], b = s.module[i], fa = fl[a[0]], fb = fl[b[0]];
+          if (!fa || !fb) continue;
+          if (a[0] !== b[0]) { weg += 10; continue; }
+          const dx = Math.abs(a[1] % fa.spalten - b[1] % fa.spalten) * mw(fa), dy = Math.abs(Math.floor(a[1] / fa.spalten) - Math.floor(b[1] / fa.spalten)) * mh(fa);
+          weg += Math.max(0, Math.hypot(dx, dy) - mw(fa));   // Modulanschlussleitungen decken etwa einen Modulabstand
+        }
+        const fa0 = fl[s.module[0][0]], faN = fl[s.module[n - 1][0]];
+        const dc = (fa0 ? fa0.abstand : 10) + (faN ? faN.abstand : 10) + weg;
+        const x = { s: s, w: w, n: n, uoc: n * vocK, umH: n * vmH, umK: n * vmK, pdc: n * mo.P, fls: fls, ausr: ausr, dc: dc };
+        x.okU = x.uoc <= w.udc; x.okMin = x.umH >= Math.max(w.umin, w.ustart); x.okMax = x.umK <= w.umax;
+        x.pv = dc * mo.Impp * mo.Impp / (47 * P.netz.dcA);
+        if (fls.length > 1 && new Set(ausr).size > 1) r.hinweise.push(s.name + ' liegt auf Flächen mit unterschiedlicher Ausrichtung: Mismatch-Verluste, eigene Strings je Fläche sind besser.');
+        r.strings.push(x);
+      });
+      P.wr.forEach(function (w) {
+        const wx = { w: w, pdc: 0, strings: 0 };
+        w.mppt.forEach(function (m, i) {
+          const ss = r.strings.filter(function (x) { return !x.leer && x.w === w && x.s.mppt === i; });
+          const sp = ss.length, ip = sp * mo.Impp, isc = sp * 1.25 * iscH;
+          const laengen = ss.map(function (x) { return x.n; }), ausr = ss.map(function (x) { return x.ausr.join(','); });
+          const mx = { w: w, i: i, ss: ss, sp: sp, ip: ip, isc: isc, okI: ip <= m.imax + 1e-9, okIsc: isc <= m.iscmax + 1e-9, gleich: new Set(laengen).size <= 1, gleichA: new Set(ausr).size <= 1, sich: sp >= 3 && (sp - 1) * 1.25 * mo.Isc > mo.IR };
+          if (!mx.gleich) r.fehler.push(w.name + '/Tracker ' + String.fromCharCode(65 + i) + ': parallele Strings mit unterschiedlicher Modulzahl (' + laengen.join(', ') + ').');
+          if (mx.gleich && !mx.gleichA) r.hinweise.push(w.name + '/Tracker ' + String.fromCharCode(65 + i) + ': parallele Strings mit unterschiedlicher Ausrichtung.');
+          if (mx.sich) r.hinweise.push(w.name + '/Tracker ' + String.fromCharCode(65 + i) + ': ' + sp + ' parallele Strings – Strangsicherungen gPV je String nötig.');
+          r.mppt.push(mx);
+          ss.forEach(function (x) { wx.pdc += x.pdc; wx.strings++; });
+        });
+        wx.v = wx.pdc / 1000 / w.pac;
+        wx.iac = w.pac * 1000 / (w.phasen === 3 ? Math.sqrt(3) * 400 : 230);
+        wx.ls = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250].filter(function (x) { return x >= wx.iac * 1.0; })[0] || 250;
+        r.wr.push(wx);
+        if (wx.v > 1.35) r.hinweise.push(w.name + ': DC/AC-Verhältnis ' + zahl(wx.v, 2) + ' – häufige Abregelung.');
+        if (wx.strings === 0) r.hinweise.push(w.name + ' hat keine Strings.');
+      });
+      let gesamt = 0, belegt = 0;
+      P.flaechen.forEach(function (f) { gesamt += f.spalten * f.reihen - f.aus.length; });
+      P.strings.forEach(function (s) { belegt += s.module.length; });
+      r.gesamt = gesamt; r.belegt = belegt; r.frei = gesamt - belegt;
+      if (r.frei > 0) r.hinweise.push(r.frei + ' Module sind noch keinem String zugeordnet.');
+      r.strings.forEach(function (x) { if (!x.leer && (!x.okU || !x.okMin || !x.okMax)) r.fehler.push(x.s.name + ': Spannung außerhalb der Grenzen des ' + x.w.name + '.'); });
+      r.mppt.forEach(function (m) { if (!m.okI || !m.okIsc) r.fehler.push(m.w.name + '/Tracker ' + String.fromCharCode(65 + m.i) + ': Strom zu hoch (' + m.sp + ' Strings parallel) – Strings auf freie Tracker verteilen oder weiteren Wechselrichter einplanen.'); });
+      const mm = { vocK: vocK, vmH: vmH, vmK: vmK, iscH: iscH };
+      r.mod = mm;
+      return r;
+    }
+    function zelle(ok, text) { return '<td class="' + (ok === true ? 'ok' : ok === false ? 'nok' : '') + '">' + text + '</td>'; }
+    function ergebnisZeigen() {
+      A = auswerten();
+      const mo = P.modul;
+      const mel = $('meldungen'); mel.innerHTML = '';
+      A.fehler.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis fehler'; d.textContent = t; mel.append(d); });
+      A.hinweise.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis'; d.textContent = t; mel.append(d); });
+      const u = $('urteil'), ok = !A.fehler.length && A.belegt > 0;
+      u.textContent = ok ? (A.frei ? 'Belegung passt, Module offen' : 'Belegung passt') : A.belegt ? 'Belegung passt nicht' : 'noch keine Strings';
+      u.className = 'urteil ' + (ok ? 'gut' : 'schlecht');
+      const pdc = A.belegt * mo.P / 1000, pac = P.wr.reduce(function (s, w) { return s + w.pac; }, 0);
+      $('kacheln').innerHTML = [
+        [zahl(A.gesamt * mo.P / 1000, 2) + ' kWp', A.gesamt + ' Module auf ' + P.flaechen.length + ' Fläche' + (P.flaechen.length > 1 ? 'n' : ''), '#1E3A5F'],
+        [String(P.strings.length), 'Strings (' + A.belegt + ' Module verschaltet)', '#E4572E'],
+        [zahl(pac, 1) + ' kW', P.wr.length + ' Wechselrichter AC', '#0E6B6A'],
+        [zahl(pdc / pac, 2), 'DC/AC-Verhältnis gesamt', '#6E6FA6'],
+        [zahl(A.mod.vocK, 2) + ' V', 'U_OC je Modul bei ' + P.temp.min + ' °C', '#2B7BB9']
+      ].map(function (k) { return '<div class="kachel" style="--farbe:' + k[2] + '"><div class="wert">' + k[0] + '</div><small>' + esc(k[1]) + '</small></div>'; }).join('');
+      $('tabStrings').innerHTML = '<thead><tr><th>String</th><th>Wechselrichter / Tracker</th><th class="zahl">Module</th><th class="zahl">kWp</th><th class="zahl">U_OC kalt</th><th class="zahl">U_MPP heiß</th><th class="zahl">U_MPP kalt</th><th>Flächen</th><th class="zahl">DC-Leitung</th><th class="zahl">Verlust</th></tr></thead><tbody>' +
+        A.strings.map(function (x) {
+          if (x.leer) return '<tr><td>' + esc(x.s.name) + '</td><td colspan="9">leer</td></tr>';
+          return '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + x.s.farbe + '"></span> ' + esc(x.s.name) + '</td><td>' + esc(x.w.name) + ' / ' + String.fromCharCode(65 + x.s.mppt) + '</td><td class="zahl">' + x.n + '</td><td class="zahl">' + zahl(x.pdc / 1000, 2) + '</td>' +
+            zelle(x.okU, zahl(x.uoc, 0) + ' V').replace('<td', '<td style="text-align:right"') + zelle(x.okMin, zahl(x.umH, 0) + ' V').replace('<td', '<td style="text-align:right"') + zelle(x.okMax, zahl(x.umK, 0) + ' V').replace('<td', '<td style="text-align:right"') +
+            '<td>' + esc(x.fls.map(function (id) { const f = P.flaechen.filter(function (q) { return q.id === id; })[0]; return f ? f.name : '?'; }).join(', ')) + '</td><td class="zahl">' + zahl(x.dc, 0) + ' m</td><td class="zahl">' + zahl(x.pv, 0) + ' W</td></tr>';
+        }).join('') + '</tbody>';
+      $('tabMppt').innerHTML = '<thead><tr><th>Tracker</th><th>Strings</th><th class="zahl">I_MPP</th><th class="zahl">1,25 · I_SC</th><th>gleiche Länge</th><th>Strangsicherung</th></tr></thead><tbody>' +
+        A.mppt.map(function (m) {
+          const mp = m.w.mppt[m.i];
+          return '<tr><td>' + esc(m.w.name) + ' / ' + String.fromCharCode(65 + m.i) + '</td><td>' + (m.ss.map(function (x) { return esc(x.s.name); }).join(' + ') || '–') + '</td>' +
+            zelle(m.sp ? m.okI : null, zahl(m.ip, 1) + ' / ' + zahl(mp.imax, 0) + ' A').replace('<td', '<td style="text-align:right"') + zelle(m.sp ? m.okIsc : null, zahl(m.isc, 1) + ' / ' + zahl(mp.iscmax, 0) + ' A').replace('<td', '<td style="text-align:right"') +
+            zelle(m.sp ? m.gleich : null, m.sp > 1 ? (m.gleich ? 'ja' : 'nein') : '–') + '<td>' + (m.sich ? 'gPV je String' : '–') + '</td></tr>';
+        }).join('') + '</tbody>';
+      $('tabWr').innerHTML = '<thead><tr><th>Wechselrichter</th><th class="zahl">Strings</th><th class="zahl">DC kWp</th><th class="zahl">AC kW</th><th class="zahl">DC/AC</th><th class="zahl">I_AC</th><th>Module je String erlaubt</th></tr></thead><tbody>' +
+        A.wr.map(function (x) { const g = grenzen(x.w); return '<tr><td>' + esc(x.w.name) + '</td><td class="zahl">' + x.strings + '</td><td class="zahl">' + zahl(x.pdc / 1000, 2) + '</td><td class="zahl">' + zahl(x.w.pac, 1) + '</td>' + zelle(x.v <= 1.35 && x.v >= 0.8 ? true : x.strings ? false : null, zahl(x.v, 2)).replace('<td', '<td style="text-align:right"') + '<td class="zahl">' + zahl(x.iac, 1) + ' A</td><td>' + (g.nMin <= g.nMax ? g.nMin + ' bis ' + g.nMax : 'keine (Grenzen prüfen)') + '</td></tr>'; }).join('') + '</tbody>';
+      wegZeigen();
+      planZeichnen(); listeZeigen();
+    }
+    function wegZeigen() {
+      const mo = P.modul, t = P.temp, m = A.mod;
+      const x = A.strings.filter(function (q) { return q.s.id === P.aktiv && !q.leer; })[0] || A.strings.filter(function (q) { return !q.leer; })[0];
+      const o = $('weg');
+      if (!x) { $('wegTitel').textContent = 'Rechenweg'; o.innerHTML = '<li>Noch kein String mit Modulen.</li>'; return; }
+      const mp = A.mppt.filter(function (q) { return q.w === x.w && q.i === x.s.mppt; })[0], mpd = x.w.mppt[x.s.mppt];
+      $('wegTitel').textContent = 'Rechenweg für ' + x.s.name;
+      const z = [
+        ['Leerlaufspannung je Modul bei ' + t.min + ' °C', 'U_OC = ' + zahl(mo.Voc, 2) + ' V · (1 + ' + zahl(mo.tkV, 3) + '/100 · (' + t.min + ' − 25)) = ' + zahl(m.vocK, 2) + ' V'],
+        ['String mit ' + x.n + ' Modulen', x.n + ' · ' + zahl(m.vocK, 2) + ' V = ' + zahl(x.uoc, 0) + ' V ' + (x.okU ? '≤ ' : '> ') + zahl(x.w.udc, 0) + ' V (U_DC,max)'],
+        ['MPP-Spannung bei ' + t.max + ' °C', x.n + ' · ' + zahl(mo.Vmpp, 2) + ' V · (1 + ' + zahl(mo.tkV, 3) + '/100 · (' + t.max + ' − 25)) = ' + zahl(x.umH, 0) + ' V ' + (x.okMin ? '≥ ' : '< ') + zahl(Math.max(x.w.umin, x.w.ustart), 0) + ' V'],
+        ['MPP-Spannung bei ' + t.min + ' °C', x.n + ' · ' + zahl(m.vmK, 2) + ' V = ' + zahl(x.umK, 0) + ' V ' + (x.okMax ? '≤ ' : '> ') + zahl(x.w.umax, 0) + ' V'],
+        ['Ströme am Tracker ' + String.fromCharCode(65 + x.s.mppt) + ' (' + mp.sp + ' String' + (mp.sp > 1 ? 's' : '') + ')', mp.sp + ' · ' + zahl(mo.Impp, 2) + ' A = ' + zahl(mp.ip, 1) + ' A (max. ' + zahl(mpd.imax, 0) + ' A); ' + mp.sp + ' · 1,25 · ' + zahl(m.iscH, 2) + ' A = ' + zahl(mp.isc, 1) + ' A (max. ' + zahl(mpd.iscmax, 0) + ' A)'],
+        ['DC-Verlust', '2 · ' + zahl(x.dc / 2, 0) + ' m · (' + zahl(mo.Impp, 2) + ' A)² / (47 · ' + String(P.netz.dcA).replace('.', ',') + ' mm²) = ' + zahl(x.pv, 0) + ' W = ' + zahl(x.pv / x.pdc * 100, 2) + ' %']
+      ];
+      o.innerHTML = z.map(function (q) { return '<li><div class="titel">' + esc(q[0]) + '</div><div class="rechnung">' + esc(q[1]) + '</div></li>'; }).join('');
+    }
+
+    // ---------- Stromlaufplan ----------
+    function planZeichnen() {
+      const z = $('plan'); z.innerHTML = '';
+      const mo = P.modul;
+      // Höhe: je Wechselrichter ein Block mit seinen Strings
+      const bloecke = P.wr.map(function (w) { return { w: w, ss: A.strings.filter(function (x) { return !x.leer && x.w === w; }) }; });
+      const zeileH = 46, top = 40;
+      let y = top; bloecke.forEach(function (b) { b.y = y; b.h = Math.max(150, b.ss.length * zeileH + 60, b.w.mppt.length * 26 + 110); y += b.h + 30; });
+      const H = Math.max(260, y + 24), W = 1240;
+      const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'plan-svg', role: 'img', 'aria-label': 'Stromlaufplan der PV-Anlage' });
+      const T = function (x, yy, t, opt) { opt = opt || {}; svg.append(el('text', { x: x, y: yy, 'font-size': opt.g || 13, 'font-weight': opt.b ? 700 : 400, 'text-anchor': opt.a || 'start', fill: opt.f || 'var(--text)', 'font-family': 'system-ui, sans-serif' }, t)); };
+      const L = function (pts, opt) { opt = opt || {}; svg.append(el('polyline', { points: pts.map(function (p) { return p.join(','); }).join(' '), fill: 'none', stroke: opt.f || 'var(--text)', 'stroke-width': opt.w || 2, 'stroke-dasharray': opt.d || '' })); };
+      const R = function (x, yy, w, h, opt) { opt = opt || {}; svg.append(el('rect', { x: x, y: yy, width: w, height: h, rx: opt.r || 4, fill: opt.fill || 'var(--flaeche)', stroke: opt.f || 'var(--text)', 'stroke-width': opt.w || 2, 'stroke-dasharray': opt.d || '' })); };
+      T(20, 22, 'DC-Seite', { b: true, f: 'var(--leise)' }); T(560, 22, 'Wechselrichter', { b: true, f: 'var(--leise)' }); T(740, 22, 'AC-Seite', { b: true, f: 'var(--leise)' });
+      const xZ = 1120;   // Zähler
+      bloecke.forEach(function (b, wi) {
+        const w = b.w, x0 = 20, xGAK = 380, xWR = 560, wWR = 150;
+        // Wechselrichter
+        R(xWR, b.y, wWR, b.h, { r: 8, w: 2.5 });
+        T(xWR + wWR / 2, b.y + 20, w.name, { b: true, a: 'middle' });
+        T(xWR + wWR / 2, b.y + 38, zahl(w.pac, 1) + ' kW · ' + (w.phasen === 3 ? '3~' : '1~'), { a: 'middle', g: 12 });
+        // Symbol DC/AC
+        L([[xWR + 40, b.y + b.h - 18], [xWR + wWR - 40, b.y + 48]], { w: 1.5 });
+        T(xWR + 22, b.y + 62, '=', { g: 20, b: true }); T(xWR + wWR - 30, b.y + b.h - 22, '~', { g: 20, b: true, a: 'end' });
+        // Strings
+        b.ss.forEach(function (x, i) {
+          const yy = b.y + 50 + i * zeileH;
+          // Modulreihe als Symbol
+          for (let k = 0; k < 4; k++) { R(x0 + k * 26, yy - 14, 22, 28, { fill: x.s.farbe, f: '#13233A', w: 1.5, r: 2 }); }
+          T(x0 + 108, yy - 2, x.s.name + ': ' + x.n + ' × ' + zahl(mo.P, 0) + ' Wp', { b: true, g: 12 });
+          T(x0 + 108, yy + 14, 'U_OC ' + zahl(x.uoc, 0) + ' V · I_SC ' + zahl(mo.Isc, 1) + ' A · ' + zahl(x.dc, 0) + ' m ' + P.netz.dcA + ' mm²', { g: 11, f: 'var(--leise)' });
+          const yE = b.y + 84 + x.s.mppt * 26;
+          L([[x0 + 104, yy], [x0 + 104, yy], [320, yy], [xGAK, yy], [xGAK + 60, yy], [xGAK + 100, yE], [xWR, yE]], { f: x.s.farbe, w: 2.5 });
+          // Plus/Minus Kennzeichen
+          T(330, yy - 5, '+ / −', { g: 10, f: x.s.farbe });
+        });
+        // DC-Trenner und SPD
+        if (b.ss.length) {
+          const y1 = b.y + 34, h1 = Math.max(40, b.ss.length * zeileH + 6);
+          R(xGAK, y1, 60, h1, { d: '5 4', fill: 'transparent' });
+          T(xGAK + 30, y1 - 6, 'DC-Trennung', { g: 10, a: 'middle' });
+          T(xGAK + 30, y1 + h1 + 14, 'SPD Typ 2', { g: 10, a: 'middle' });
+          // Erdung SPD
+          L([[xGAK + 60, y1 + h1 / 2], [xGAK + 78, y1 + h1 / 2], [xGAK + 78, y1 + h1 + 22]], { w: 1.5 });
+          L([[xGAK + 68, y1 + h1 + 22], [xGAK + 88, y1 + h1 + 22]], { w: 2 }); L([[xGAK + 71, y1 + h1 + 27], [xGAK + 85, y1 + h1 + 27]], { w: 2 }); L([[xGAK + 75, y1 + h1 + 32], [xGAK + 81, y1 + h1 + 32]], { w: 2 });
+        }
+        // Tracker-Eingänge
+        w.mppt.forEach(function (m, i) { const yE = b.y + 84 + i * 26; svg.append(el('circle', { cx: xWR, cy: yE, r: 4, fill: 'var(--text)' })); T(xWR + 8, yE + 4, 'MPPT ' + String.fromCharCode(65 + i), { g: 10 }); });
+        // AC-Seite: Leitung → LS → RCD → Sammelschiene
+        const yA = b.y + b.h / 2, x1 = xWR + wWR;
+        const wx = A.wr[wi];
+        L([[x1, yA], [850, yA]], { w: 2.5 });
+        T(x1 + 12, yA - 8, (w.phasen === 3 ? 'NYM-J 5' : 'NYM-J 3') + ' × ' + String(P.netz.acA).replace('.', ',') + ' mm²', { g: 11 });
+        T(x1 + 12, yA + 18, zahl(P.netz.acL, 0) + ' m · I_AC ' + zahl(wx.iac, 1) + ' A', { g: 11, f: 'var(--leise)' });
+        // LS-Schalter Symbol
+        R(850, yA - 16, 36, 32, {}); L([[858, yA + 8], [878, yA - 8]], { w: 2 }); T(868, yA + 34, 'LS ' + (wx.ls <= 63 ? 'B' : '') + wx.ls + ' A', { g: 11, a: 'middle' });
+        L([[886, yA], [920, yA]], { w: 2.5 });
+        if (P.netz.rcd !== 'kein') { R(920, yA - 16, 36, 32, {}); T(938, yA + 5, 'RCD', { g: 9, a: 'middle', b: true }); T(938, yA + 34, 'Typ ' + P.netz.rcd + ' 30 mA', { g: 11, a: 'middle' }); L([[956, yA], [1000, yA]], { w: 2.5 }); }
+        else L([[920, yA], [1000, yA]], { w: 2.5 });
+        L([[1000, yA], [1000, top + 30]], { w: 2.5 });
+      });
+      // Sammelschiene und Zähler
+      L([[1000, top + 30], [xZ - 40, top + 30]], { w: 3 });
+      R(xZ - 40, top + 8, 80, 46, { r: 6, w: 2.5 }); T(xZ, top + 28, 'kWh', { a: 'middle', b: true }); T(xZ, top + 46, 'Zweirichtung', { a: 'middle', g: 10 });
+      L([[xZ + 40, top + 30], [W - 20, top + 30]], { w: 3 }); T(W - 20, top + 20, 'Netz', { a: 'end', b: true });
+      T(xZ - 10, top + 72, P.netz.zp, { a: 'middle', g: 10, f: 'var(--leise)' });
+      T(xZ - 10, top + 88, 'NA-Schutz nach VDE-AR-N 4105', { a: 'middle', g: 10, f: 'var(--leise)' });
+      // Potentialausgleich
+      T(20, H - 12, 'Modulgestell und Wechselrichter: Schutz- bzw. Funktionspotentialausgleich mind. 6 mm² Cu (DIN VDE 0100-712), Blitzschutz und Trennungsabstand beachten.', { g: 11, f: 'var(--leise)' });
+      z.append(svg);
+    }
+    function listeZeigen() {
+      const mo = P.modul, dcGes = A.strings.reduce(function (s, x) { return s + (x.leer ? 0 : 2 * x.dc); }, 0);
+      const strings = A.strings.filter(function (x) { return !x.leer; }).length;
+      const zeilen = [
+        ['PV-Module ' + mo.name, String(A.gesamt), 'Stück'],
+        ['Wechselrichter', P.wr.map(function (w) { return w.name + ' ' + zahl(w.pac, 1) + ' kW'; }).join(', '), String(P.wr.length) + ' Stück'],
+        ['Solarleitung ' + P.netz.dcA + ' mm² (rot/schwarz)', zahl(dcGes, 0), 'm (Plus und Minus)'],
+        ['Steckverbinder-Paare (Plus/Minus) an Stringenden und Wechselrichter', String(strings * 2), 'Paar'],
+        ['DC-Lasttrennschalter bzw. im Wechselrichter integriert', String(A.mppt.filter(function (m) { return m.sp; }).length), 'Eingänge'],
+        ['Überspannungsschutz Typ 2 DC', String(P.wr.length), 'Stück (Bedarf nach Blitzschutzkonzept)'],
+        ['Strangsicherungen gPV', String(A.mppt.reduce(function (s, m) { return s + (m.sich ? m.sp * 2 : 0); }, 0)), 'Stück'],
+        ['AC-Leitung NYM-J ' + (P.wr[0].phasen === 3 ? '5' : '3') + ' × ' + String(P.netz.acA).replace('.', ',') + ' mm²', zahl(P.netz.acL * P.wr.length, 0), 'm'],
+        ['Leitungsschutzschalter', A.wr.map(function (x) { return 'B' + x.ls; }).join(', '), String(P.wr.length) + ' Stück'],
+        ['Fehlerstrom-Schutzeinrichtung', P.netz.rcd === 'kein' ? 'keine eigene' : 'Typ ' + P.netz.rcd + ' 30 mA', P.netz.rcd === 'kein' ? '' : String(P.wr.length) + ' Stück'],
+        ['Potentialausgleichsleitung 6 mm² Cu (grün-gelb)', zahl(P.flaechen.reduce(function (s, f) { return s + f.abstand; }, 0), 0), 'm']
+      ];
+      $('tabListe').innerHTML = '<thead><tr><th>Bauteil</th><th class="zahl">Menge</th><th>Einheit / Hinweis</th></tr></thead><tbody>' + zeilen.map(function (z) { return '<tr><td>' + esc(z[0]) + '</td><td class="zahl">' + esc(z[1]) + '</td><td>' + esc(z[2]) + '</td></tr>'; }).join('') + '</tbody>';
+    }
+
+    // ---------- Ablauf ----------
+    function aenderung(neuBauen) {
+      speichern();
+      stringsWahlAufbauen();
+      dachZeichnen();
+      ergebnisZeigen();
+    }
+    document.addEventListener('themawechsel', function () { dachZeichnen(); planZeichnen(); });
+    einstellungenAufbauen();
+    aenderung();
+  })();
+  </script>
+</body>
+</html>
