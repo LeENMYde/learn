@@ -511,7 +511,8 @@
     // ============================================================
 
     let erg = null;
-    function kachel(wert, text, farbe) { return '<div class="kachel" style="--farbe:' + farbe + '"><div class="wert">' + wert + '</div><small>' + text + '</small></div>'; }
+    function htmlText(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function kachel(wert, text, farbe) { return '<div class="kachel" style="--farbe:' + farbe + '"><div class="wert">' + htmlText(wert) + '</div><small>' + htmlText(text) + '</small></div>'; }
     function zelle(tr, t, kl) { const td = document.createElement('td'); if (kl) td.className = kl; td.textContent = t; tr.append(td); return td; }
 
     function auswerten() {
@@ -802,39 +803,76 @@
     // ============================================================
 
     let uhr = 0;
+    function speichernJetzt() { try { localStorage.setItem(SCHLUESSEL, JSON.stringify(anlage)); } catch (e) { /* ohne Speicher */ } }
+    window.addEventListener('pagehide', function () { clearTimeout(uhr); speichernJetzt(); });
     function neu(nurWerte) {
       const hAlt = H; groesse(); if (H !== hAlt) { /* neue Höhe */ }
       auswerten();
       clearTimeout(uhr);
-      uhr = setTimeout(function () { try { localStorage.setItem(SCHLUESSEL, JSON.stringify(anlage)); } catch (e) { /* ohne Speicher */ } }, 400);
+      uhr = setTimeout(speichernJetzt, 400);
       void nurWerte;
     }
-    function gueltig(a) {
-      return a && a.version === 1 && Array.isArray(a.strecken) && a.strecken.length > 0 && a.strecken.length <= 60 && GASE[a.gas] &&
-        a.strecken.every(function (s) { return typeof s.id === 'number' && ROHRE[s.mat] && isFinite(s.l) && isFinite(s.q); });
+    // Daten aus Speicher oder Link streng prüfen: Zahlen in Grenzen, Auswahlwerte aus den Tabellen, kurze Texte, „von“ nur auf vorhandene Teilstrecken
+    function bereinigen(a) {
+      if (!a || typeof a !== 'object' || a.version !== 1 || !Array.isArray(a.strecken) || !a.strecken.length || !GASE[a.gas]) return null;
+      const merkId = naechsteId, b = beispiel(), o = { version: 1, gas: a.gas };
+      naechsteId = merkId;
+      const zahlIn = function (v, d, min, max) { const x = Number(v); return isFinite(x) ? Math.max(min, Math.min(max, x)) : d; };
+      const textIn = function (v) { return typeof v === 'string' ? v.replace(/[<>"'`]/g, '').slice(0, 60) : ''; };
+      FELDER.forEach(function (g) { g.felder.forEach(function (f) {
+        if (f.k === 'gas') return;
+        if (f.k === 'auftrieb') { o.auftrieb = a.auftrieb !== false; return; }
+        if (f.wahl) { o[f.k] = f.wahl.some(function (w) { return w[0] === a[f.k]; }) ? a[f.k] : b[f.k]; return; }
+        o[f.k] = zahlIn(a[f.k], b[f.k], f.min, f.max);
+      }); });
+      o.nu = zahlIn(a.nu, GASE[a.gas].nu, 1e-7, 1e-3);
+      const ids = [];
+      o.strecken = a.strecken.slice(0, 60).filter(function (x) { return x && typeof x === 'object'; }).map(function (x) {
+        const id = Math.round(Number(x.id));
+        if (!(id >= 1 && id <= 9999) || ids.indexOf(id) >= 0) return null;
+        const mat = ROHRE[x.mat] ? x.mat : 'cu';
+        const t = { id: id, name: textIn(x.name), von: Number(x.von), mat: mat,
+          dn: x.dn === 'auto' ? 'auto' : Math.max(0, Math.min(ROHRE[mat].dim.length - 1, Math.round(Number(x.dn)) || 0)),
+          gs: x.gs === true, geraet: textIn(x.geraet) };
+        SPALTEN.forEach(function (sp) { if (sp[2] === 'zahl') t[sp[0]] = zahlIn(x[sp[0]], sp[0] === 'f' ? 1 : 0, sp[3], sp[4]); });
+        ids.push(id);
+        return t;
+      }).filter(Boolean);
+      o.strecken.forEach(function (t) { if (ids.indexOf(t.von) < 0 || t.von === t.id) t.von = 0; });
+      return o.strecken.length ? o : null;
     }
     function uebernehmen(a) {
       anlage = a;
       naechsteId = 1 + anlage.strecken.reduce(function (m, s) { return Math.max(m, s.id); }, 0);
-      anlage.strecken.forEach(function (s) { ['absperr', 'zeta', 'dh', 'bogen', 'winkel', 'tAbzw', 'tDurch'].forEach(function (k) { if (!isFinite(s[k])) s[k] = 0; }); if (!(s.f > 0)) s.f = 1; });
     }
+    function meldung(t) { const m = document.getElementById('meldung'); m.textContent = t; setTimeout(function () { if (m.textContent === t) m.textContent = ''; }, 5000); }
+    // Link nach dem gemeinsamen Muster (basis.js): #anlage=…, komprimiert, vorherige Anlage gesichert
     document.getElementById('teilen').addEventListener('click', function () {
-      const kurz = btoa(unescape(encodeURIComponent(JSON.stringify(anlage)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      const url = location.origin + location.pathname + '?anlage=' + kurz;
-      const m = document.getElementById('meldung');
-      const fertig = function () { m.textContent = 'Link kopiert.'; setTimeout(function () { m.textContent = ''; }, 4000); };
-      if (navigator.clipboard && navigator.clipboard.writeText && location.protocol !== 'file:') navigator.clipboard.writeText(url).then(fertig, function () { window.prompt('Link kopieren:', url); });
-      else window.prompt('Link kopieren:', url);
+      Teilen.url('anlage', anlage).then(function (url) { Teilen.kopieren(url, meldung); });
     });
+    function allesNeu() { sammlungAufbauen(); einstellungenAufbauen(); tabelleAufbauen(); groesse(); neu(); }
+    const vorherKnopf = Teilen.knopf(document.getElementById('teilen').parentNode, SCHLUESSEL, function (roh) {
+      let a = null; try { a = bereinigen(JSON.parse(roh)); } catch (e) { a = null; }
+      if (!a) { meldung('Keine gültige vorherige Anlage gefunden.'); return; }
+      uebernehmen(a); allesNeu(); meldung('Vorherige Anlage wiederhergestellt.');
+    }, 'Anlage');
+    document.getElementById('teilen').parentNode.insertBefore(document.querySelector('.vorher-knopf'), document.getElementById('meldung'));
     window.addEventListener('resize', function () { groesse(); zeichnen(); zeichneVerlauf(); });
     document.addEventListener('themawechsel', function () { zeichnen(); zeichneVerlauf(); });
 
     (function start() {
       let a = null;
-      const m = /[?&]anlage=([^&#]+)/.exec(location.search);
-      if (m) { try { a = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { a = null; } }
-      if (!gueltig(a)) { try { a = JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null'); } catch (e) { a = null; } }
-      if (gueltig(a)) uebernehmen(a);
+      try { a = bereinigen(JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null')); } catch (e) { a = null; }
+      if (a) uebernehmen(a);
+      Teilen.lesen('anlage').then(function (x) {
+        if (!x) return;
+        x = bereinigen(x);
+        if (!x) throw new Error('ungültig');
+        const roh = JSON.stringify(x), gesichert = Teilen.sichern(SCHLUESSEL, roh);
+        try { localStorage.setItem(SCHLUESSEL, roh); } catch (e) { /* ohne Speicher */ }
+        uebernehmen(x); allesNeu(); vorherKnopf.zeigen();
+        meldung('Anlage aus dem Link übernommen und gespeichert.' + (gesichert ? ' Deine vorherige Anlage ist gesichert.' : ''));
+      }).catch(function () { meldung('Der Link ist unvollständig oder beschädigt – es gilt die gespeicherte Anlage.'); });
       sammlungAufbauen();
       einstellungenAufbauen();
       tabelleAufbauen();

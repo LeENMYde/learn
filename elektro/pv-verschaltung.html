@@ -85,7 +85,6 @@
         <div class="werkzeug-leiste">
           <button type="button" class="knopf-leise" id="beispiel">Beispiel laden</button>
           <button type="button" class="knopf-leise" id="teilen">Link kopieren</button>
-          <button type="button" class="knopf-leise" id="zurueck" hidden>Vorherige Planung wiederherstellen</button>
           <span class="teilen-meldung" id="teilenMeldung" aria-live="polite"></span>
         </div>
       </section>
@@ -247,45 +246,17 @@
       return true;
     }
 
-    // ---------- Link: Planung steckt komprimiert hinter #plan= und geht nie an den Server ----------
-    function b64zuBytes(t) { const s = atob(t.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
-    function bytesZuB64(b) { let s = ''; for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-    function linkTeil() {
-      const m = /[#&]plan=([^&]+)/.exec(location.hash) || /[?&]plan=([^&#]+)/.exec(location.search);
-      if (!m) return null;
-      try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
-    }
-    function linkLesen(k) {
-      if (k.slice(0, 2) === 'z.') {
-        if (typeof DecompressionStream === 'undefined') return Promise.reject(new Error('Dieser Browser kann komprimierte Links nicht entpacken.'));
-        return new Response(new Blob([b64zuBytes(k.slice(2))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
-      }
-      return Promise.resolve(new TextDecoder().decode(b64zuBytes(k)));   // ältere, unkomprimierte Links
-    }
-    function linkBauen() {
-      const json = JSON.stringify(P), roh = bytesZuB64(new TextEncoder().encode(json));
-      if (typeof CompressionStream === 'undefined') return Promise.resolve(roh);
-      return new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()
-        .then(function (ab) { return 'z.' + bytesZuB64(new Uint8Array(ab)); }, function () { return roh; });
-    }
-    function adresseOhneLink() { try { history.replaceState(null, '', location.pathname); } catch (e) { /* file:// u. a. */ } }
+    // ---------- Link (gemeinsames Muster aus basis.js: #plan=…, komprimiert, Sicherung, Prüfung) ----------
     function linkLaden() {
-      const k = linkTeil(); if (!k) return;
-      linkLesen(k).then(function (roh) {
-        const p = JSON.parse(roh);
+      Teilen.lesen('plan').then(function (p) {
+        if (!p) return;
         if (!pruefeProjekt(p)) throw new Error('ungültig');
-        let vorher = null; try { vorher = localStorage.getItem(SPEICHER); } catch (e) { vorher = null; }
-        const neu = JSON.stringify(p);
-        if (vorher && vorher !== neu) { try { localStorage.setItem(SPEICHER + '-vorher', vorher); } catch (e) { /* ohne Speicher */ } $('zurueck').hidden = false; }
+        const neu = JSON.stringify(p), gesichert = Teilen.sichern(SPEICHER, neu);
         P = p; clearTimeout(uhr);
         try { localStorage.setItem(SPEICHER, neu); } catch (e) { /* ohne Speicher */ }
-        adresseOhneLink();
-        einstellungenAufbauen(); aenderung();
-        status('Planung aus dem Link geladen und gespeichert.' + ($('zurueck').hidden ? '' : ' Deine vorherige Planung ist gesichert.'));
-      }).catch(function (e) {
-        adresseOhneLink();
-        status('Der Link ist unvollständig oder beschädigt – es bleibt die gespeicherte Planung. ' + (e && /Browser/.test(e.message) ? e.message : ''));
-      });
+        einstellungenAufbauen(); aenderung(); vorherKnopf.zeigen();
+        status('Planung aus dem Link geladen und gespeichert.' + (gesichert ? ' Deine vorherige Planung ist gesichert.' : ''));
+      }).catch(function () { status('Der Link ist unvollständig oder beschädigt – es bleibt die gespeicherte Planung.'); });
     }
     let uhr = 0;
     window.addEventListener('pagehide', function () { clearTimeout(uhr); try { localStorage.setItem(SPEICHER, JSON.stringify(P)); } catch (e) { /* ohne Speicher */ } });
@@ -422,22 +393,16 @@
     $('neuerWR').addEventListener('click', function () { const v = kopie(P.wr[P.wr.length - 1]); v.id = neueId('w'); v.name = 'WR ' + (P.wr.length + 1); P.wr.push(v); einstellungenAufbauen(); aenderung(true); });
     $('beispiel').addEventListener('click', function () { if (!window.confirm('Beispiel laden? Die aktuelle Planung wird ersetzt.')) return; P = beispiel(); autoVerstringen(true); einstellungenAufbauen(); aenderung(true); });
     $('teilen').addEventListener('click', function () {
-      linkBauen().then(function (k) {
-        const url = location.href.split('#')[0].split('?')[0] + '#plan=' + k;
-        const ok = function () { $('teilenMeldung').textContent = 'Link kopiert (' + zahl(url.length, 0) + ' Zeichen).'; setTimeout(function () { $('teilenMeldung').textContent = ''; }, 4000); };
-        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(ok, function () { window.prompt('Link kopieren:', url); });
-        else window.prompt('Link kopieren:', url);
+      Teilen.url('plan', P).then(function (url) {
+        Teilen.kopieren(url, function (t) { $('teilenMeldung').textContent = t; setTimeout(function () { $('teilenMeldung').textContent = ''; }, 5000); });
       });
     });
-    $('zurueck').addEventListener('click', function () {
-      let roh = null; try { roh = localStorage.getItem(SPEICHER + '-vorher'); } catch (e) { roh = null; }
+    const vorherKnopf = Teilen.knopf($('teilen').parentNode, SPEICHER, function (roh) {
       let p = null; try { p = JSON.parse(roh); } catch (e) { p = null; }
-      if (!p || !pruefeProjekt(p)) { status('Keine vorherige Planung gefunden.'); $('zurueck').hidden = true; return; }
-      if (!window.confirm('Vorherige Planung wiederherstellen? Die Planung aus dem Link wird ersetzt.')) return;
-      P = p; $('zurueck').hidden = true;
-      try { localStorage.removeItem(SPEICHER + '-vorher'); } catch (e) { /* ohne Speicher */ }
-      einstellungenAufbauen(); aenderung(); status('Vorherige Planung wiederhergestellt.');
-    });
+      if (!p || !pruefeProjekt(p)) { status('Keine gültige vorherige Planung gefunden.'); return; }
+      P = p; einstellungenAufbauen(); aenderung(); status('Vorherige Planung wiederhergestellt.');
+    }, 'Planung');
+    $('teilen').parentNode.insertBefore($('teilen').parentNode.querySelector('.vorher-knopf'), $('teilenMeldung'));
 
     // ---------- Mikro-Wechselrichter ----------
     function istMikro(f) { return !!f && f.art === 'mikro'; }
@@ -1159,9 +1124,7 @@
     document.addEventListener('themawechsel', function () { dachZeichnen(); planZeichnen(); });
     einstellungenAufbauen();
     aenderung();
-    try { $('zurueck').hidden = !localStorage.getItem(SPEICHER + '-vorher'); } catch (e) { /* ohne Speicher */ }
     linkLaden();
-    window.addEventListener('hashchange', linkLaden);
   })();
   </script>
 </body>

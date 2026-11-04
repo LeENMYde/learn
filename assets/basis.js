@@ -14,6 +14,7 @@
  *   Formel.setze(element, 'U = R \\cdot I', true)
  *   Thema.farbe('--text')     → aktuelle Farbe aus stil.css (z. B. für Canvas)
  *   document.addEventListener('themawechsel', …)
+ *   Teilen.url('plan', objekt) / Teilen.lesen('plan') / Teilen.uebernehmen(…)   → Links zum Teilen (siehe unten)
  */
 (function () {
   'use strict';
@@ -160,6 +161,116 @@
       '</footer>';
   }
 
+  // ---------- Links zum Teilen: ein Muster für alle Seiten ----------
+  // Format: seite.html#werte=z.<deflate-raw, base64url>   (ohne „z.“ unkomprimiert, für alte Browser)
+  //  - steht hinter „#“ und geht nie an den Server; ein Anker der Seite bleibt erhalten: #reiter&werte=…
+  //  - wird beim Laden sofort aus der Adresse genommen (vor den Skripten der Seite), damit Neuladen den eigenen Stand zeigt
+  //  - vor dem Übernehmen wird der bisherige Stand gesichert („Vorherige Werte wiederherstellen“)
+  //  - Inhalte werden geprüft; strukturierte Daten laufen durch Teilen.entschaerfen
+  //  - alte Links mit ?werte=, ?plan=, ?anlage= funktionieren weiter
+  const LINK_NAMEN = ['werte', 'plan', 'anlage', 'dach'];
+  const linkRoh = {};
+  (function linkAbholen() {
+    let geaendert = false;
+    function teile(t) {
+      return (t ? t.split('&') : []).filter(function (x) {
+        const i = x.indexOf('='), n = i > 0 ? x.slice(0, i) : '';
+        if (LINK_NAMEN.indexOf(n) < 0) return true;
+        if (!linkRoh[n]) linkRoh[n] = x.slice(i + 1);
+        geaendert = true;
+        return false;
+      }).join('&');
+    }
+    const anker = teile(location.hash.slice(1)), suche = teile(location.search.slice(1));
+    if (geaendert) { try { history.replaceState(null, '', location.pathname + (suche ? '?' + suche : '') + (anker ? '#' + anker : '')); } catch (e) { /* file:// u. a. */ } }
+  })();
+  // neuer Link in demselben Tab (nur der Teil hinter # ändert sich): Seite neu laden, dann greift linkAbholen
+  window.addEventListener('hashchange', function () {
+    if (location.hash.slice(1).split('&').some(function (x) { return LINK_NAMEN.indexOf(x.split('=')[0]) >= 0; })) location.reload();
+  });
+  function b64zuBytes(t) { const z = atob(t.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(z.length); for (let i = 0; i < z.length; i++) b[i] = z.charCodeAt(i); return b; }
+  function bytesZuB64(b) { let z = ''; for (let i = 0; i < b.length; i += 8192) z += String.fromCharCode.apply(null, b.subarray(i, i + 8192)); return btoa(z).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function textZuB64(t) { return typeof TextEncoder !== 'undefined' ? bytesZuB64(new TextEncoder().encode(t)) : btoa(unescape(encodeURIComponent(t))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function b64ZuText(k) { return typeof TextDecoder !== 'undefined' ? new TextDecoder().decode(b64zuBytes(k)) : decodeURIComponent(escape(atob(k.replace(/-/g, '+').replace(/_/g, '/')))); }
+  function packen(text) {
+    if (typeof CompressionStream === 'undefined' || typeof Response === 'undefined') return Promise.resolve(textZuB64(text));
+    return new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()
+      .then(function (ab) { return 'z.' + bytesZuB64(new Uint8Array(ab)); }, function () { return textZuB64(text); });
+  }
+  function entpacken(k) {
+    try { k = decodeURIComponent(k); } catch (e) { /* schon roh */ }
+    try {
+      if (k.slice(0, 2) !== 'z.') return Promise.resolve(b64ZuText(k));
+      if (typeof DecompressionStream === 'undefined') return Promise.reject(new Error('Dieser Browser kann komprimierte Links nicht entpacken.'));
+      return new Response(new Blob([b64zuBytes(k.slice(2))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+    } catch (e) { return Promise.reject(e); }
+  }
+  // Strukturierte Daten entschärfen: Texte ohne < > " ' ` und begrenzt, Listen und Tiefe begrenzt, keine gefährlichen Schlüssel
+  function entschaerfen(w, tiefe) {
+    tiefe = tiefe || 0;
+    if (tiefe > 14) return null;
+    if (typeof w === 'string') return w.replace(/[<>"'`]/g, '').slice(0, 300);
+    if (typeof w === 'number') return isFinite(w) ? w : 0;
+    if (typeof w === 'boolean' || w === null) return w;
+    if (Array.isArray(w)) return w.slice(0, 5000).map(function (x) { return entschaerfen(x, tiefe + 1); });
+    if (typeof w === 'object') {
+      const o = {};
+      Object.keys(w).slice(0, 300).forEach(function (k) { if (k === '__proto__' || k === 'constructor' || k === 'prototype' || k.length > 60) return; o[k] = entschaerfen(w[k], tiefe + 1); });
+      return o;
+    }
+    return null;
+  }
+  function kopieren(url, melden) {
+    const ok = function () { melden('Link kopiert (' + url.length.toLocaleString('de-DE') + ' Zeichen) – öffnet diese Seite mit genau diesem Stand.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) navigator.clipboard.writeText(url).then(ok, function () { window.prompt('Link kopieren:', url); });
+    else window.prompt('Link kopieren:', url);
+  }
+  function lsLesen(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSchreiben(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* ohne Speicher */ } }
+  window.Teilen = {
+    namen: LINK_NAMEN,
+    hat: function (name) { return Object.prototype.hasOwnProperty.call(linkRoh, name); },
+    // Promise mit dem Objekt aus dem Link, null ohne Link; Fehler bei kaputtem Link
+    lesen: function (name) {
+      if (!this.hat(name)) return Promise.resolve(null);
+      const roh = linkRoh[name]; delete linkRoh[name];
+      return entpacken(roh).then(function (t) { if (t.length > 2000000) throw new Error('zu groß'); return JSON.parse(t); });
+    },
+    // Promise mit der fertigen Adresse; der aktuelle Anker der Seite bleibt erhalten
+    url: function (name, objekt) {
+      const anker = location.hash.slice(1);
+      return packen(JSON.stringify(objekt)).then(function (k) { return location.href.split('#')[0].split('?')[0] + '#' + (anker ? anker + '&' : '') + name + '=' + k; });
+    },
+    // nur der Teil hinter „#“ ohne Komprimierung (für viele Links auf einmal, z. B. Projektmappe)
+    urlSofort: function (pfad, name, text) { return pfad + '#' + name + '=' + textZuB64(text); },
+    kopieren: kopieren,
+    entschaerfen: function (w) { return entschaerfen(w, 0); },
+    // bisherigen Stand unter schluessel sichern, bevor ein Link ihn ersetzt; true, wenn gesichert
+    sichern: function (schluessel, neu) {
+      const alt = lsLesen(schluessel);
+      if (!alt || alt === neu) return false;
+      lsSchreiben(schluessel + ':vorher', alt);
+      return true;
+    },
+    vorher: function (schluessel) { return lsLesen(schluessel + ':vorher'); },
+    vorherWeg: function (schluessel) { lsSchreiben(schluessel + ':vorher', null); },
+    // Knopf „Vorherige … wiederherstellen“ (sichtbar, solange eine Sicherung da ist); wiederherstellen(text) übernimmt den Stand
+    knopf: function (ziel, schluessel, wiederherstellen, was) {
+      const k = document.createElement('button');
+      k.type = 'button'; k.className = 'knopf-leise vorher-knopf'; k.setAttribute('data-nicht-merken', '');
+      k.textContent = 'Vorherige ' + (was || 'Werte') + ' wiederherstellen';
+      const zeigen = function () { k.hidden = !lsLesen(schluessel + ':vorher'); };
+      k.addEventListener('click', function () {
+        const t = lsLesen(schluessel + ':vorher'); if (!t) { zeigen(); return; }
+        if (!window.confirm('Vorherige ' + (was || 'Werte') + ' wiederherstellen? Der Stand aus dem Link wird ersetzt.')) return;
+        lsSchreiben(schluessel + ':vorher', null);
+        wiederherstellen(t); zeigen();
+      });
+      ziel.append(k); zeigen();
+      return { zeigen: zeigen };
+    }
+  };
+
   // ---------- Eingaben merken und als Link teilen ----------
   // Auf Seiten mit <main data-merken>: eingetragene Werte, Einheiten und gewählte Modi
   // bleiben im Browser und lassen sich als Link weitergeben (?werte=…).
@@ -215,48 +326,71 @@
       });
     });
   }
-  function linkWerte() {
-    const m = /[?&]werte=([^&#]+)/.exec(location.search);
-    if (!m) return null;
-    try { return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]).replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { return null; }
+  // gemerkter Zustand: { modi: [Text, …], werte: { Schlüssel: Text | true/false } } – streng geprüft
+  function zustandPruefen(z) {
+    if (!z || typeof z !== 'object' || !z.werte || typeof z.werte !== 'object' || Array.isArray(z.werte)) return null;
+    const o = { modi: [], werte: {} };
+    (Array.isArray(z.modi) ? z.modi : []).slice(0, 60).forEach(function (t) { if (typeof t === 'string' && t.length < 80) o.modi.push(t); });
+    Object.keys(z.werte).slice(0, 3000).forEach(function (k) {
+      if (k.length > 120 || k === '__proto__') return;
+      const w = z.werte[k];
+      if (typeof w === 'boolean') o.werte[k] = w;
+      else if (typeof w === 'string' || typeof w === 'number') o.werte[k] = String(w).slice(0, 400000);
+    });
+    return o;
   }
   function merkenEinrichten() {
     const haupt = document.querySelector('main[data-merken]');
     if (!haupt) return;
-    let uhr = 0, bereit = false;
+    let uhr = 0, bereit = false, vorherKnopf = null;
+    const sofort = function () { try { localStorage.setItem(merkSchluessel, JSON.stringify(zustandLesen(haupt))); } catch (e) { /* ohne Speicher */ } };
     const sichern = function () {
       if (!bereit) return;
       clearTimeout(uhr);
-      uhr = setTimeout(function () { try { localStorage.setItem(merkSchluessel, JSON.stringify(zustandLesen(haupt))); } catch (e) { /* ohne Speicher */ } }, 400);
+      uhr = setTimeout(sofort, 400);
     };
     haupt.addEventListener('input', sichern, true);
     haupt.addEventListener('change', sichern, true);
     haupt.addEventListener('click', function (ev) { if (ev.target.closest('button')) sichern(); }, true);
-    // Wiederherstellen, nachdem die Seite sich selbst aufgebaut hat
+    window.addEventListener('pagehide', function () { if (bereit) { clearTimeout(uhr); sofort(); } });
+    const held = document.querySelector('.held');
+    let leiste = null;
+    const melden = function (t) { if (!leiste) return; const m = leiste.querySelector('.teilen-meldung'); m.textContent = t; setTimeout(function () { if (m.textContent === t) m.textContent = ''; }, 5000); };
+    const setzen = function (z) { try { zustandSetzen(haupt, z); } catch (e) { /* Seite hat sich geändert, dann eben Beispielwerte */ } };
+    // Wiederherstellen, nachdem die Seite sich selbst aufgebaut hat: zuerst Link, sonst Speicher
     setTimeout(function () {
-      const ausLink = linkWerte();
-      let z = ausLink;
-      if (!z) { try { z = JSON.parse(localStorage.getItem(merkSchluessel) || 'null'); } catch (e) { z = null; } }
-      try { zustandSetzen(haupt, z); } catch (e) { /* Seite hat sich geändert, dann eben Beispielwerte */ }
-      bereit = true;
-      if (ausLink) { sichern(); if (history.replaceState) history.replaceState(null, '', location.pathname + location.hash); }
+      Teilen.lesen('werte').then(function (z) {
+        z = zustandPruefen(z);
+        if (!z) {
+          let g = null; try { g = JSON.parse(localStorage.getItem(merkSchluessel) || 'null'); } catch (e) { g = null; }
+          setzen(zustandPruefen(g)); bereit = true; return;
+        }
+        const gesichert = Teilen.sichern(merkSchluessel, JSON.stringify(z));
+        setzen(z); bereit = true; sofort();
+        if (vorherKnopf) vorherKnopf.zeigen();
+        melden('Werte aus dem Link übernommen und gespeichert.' + (gesichert ? ' Deine vorherigen Werte sind gesichert.' : ''));
+      }).catch(function () {
+        let g = null; try { g = JSON.parse(localStorage.getItem(merkSchluessel) || 'null'); } catch (e) { g = null; }
+        setzen(zustandPruefen(g)); bereit = true;
+        melden('Der Link ist unvollständig oder beschädigt – es gelten die gespeicherten Werte.');
+      });
     }, 0);
     // Knopf zum Teilen
-    const held = document.querySelector('.held');
     if (held) {
-      const leiste = document.createElement('div');
+      leiste = document.createElement('div');
       leiste.className = 'teilen-leiste';
       leiste.innerHTML = '<button type="button" class="knopf teilen">Link mit diesen Werten kopieren</button><span class="teilen-meldung" aria-live="polite"></span>';
       held.append(leiste);
       leiste.querySelector('button').addEventListener('click', function () {
-        const json = JSON.stringify(zustandLesen(haupt));
-        const kurz = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        const url = location.origin + location.pathname + '?werte=' + kurz + location.hash;
-        const melden = function (t) { const m = leiste.querySelector('.teilen-meldung'); m.textContent = t; setTimeout(function () { m.textContent = ''; }, 4000); };
-        const ok = function () { melden('Link kopiert – öffnet diese Seite mit genau diesen Werten.'); };
-        if (navigator.clipboard && navigator.clipboard.writeText && location.protocol !== 'file:') navigator.clipboard.writeText(url).then(ok, function () { window.prompt('Link kopieren:', url); });
-        else window.prompt('Link kopieren:', url);
+        Teilen.url('werte', zustandLesen(haupt)).then(function (url) { Teilen.kopieren(url, melden); });
       });
+      vorherKnopf = Teilen.knopf(leiste, merkSchluessel, function (t) {
+        let z = null; try { z = zustandPruefen(JSON.parse(t)); } catch (e) { z = null; }
+        if (!z) return;
+        setzen(z); sofort(); melden('Vorherige Werte wiederhergestellt.');
+      });
+      // Knopf vor die Meldung
+      leiste.insertBefore(leiste.querySelector('.vorher-knopf'), leiste.querySelector('.teilen-meldung'));
     }
   }
 

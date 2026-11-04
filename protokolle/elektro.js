@@ -1,5 +1,6 @@
 /* Übernommen aus dem Projekt „Prüfprotokolle“ (MIT-Lizenz, LeENMYde), angepasst an die Sammlung. */
 'use strict';
+function htmlText(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 // Ersatz für fehlende Elemente (statt optionaler Verkettung, ES2015)
 const LEER = { value: '', checked: false, addEventListener: function () {}, appendChild: function () {}, click: function () {} };
 
@@ -443,9 +444,9 @@ function updateDevicesList() {
   let html = '<ol>';
   devices.forEach((d, i) => {
     html += `<li>
-      <strong>${d.fabrikat || ''} ${d.typ || ''}</strong>
-      ${d.sn ? ' | SN: ' + d.sn : ''}
-      ${d.kal ? ' | Kal: ' + d.kal : ''}
+      <strong>${htmlText(d.fabrikat)} ${htmlText(d.typ)}</strong>
+      ${d.sn ? ' | SN: ' + htmlText(d.sn) : ''}
+      ${d.kal ? ' | Kal: ' + htmlText(d.kal) : ''}
       <button onclick="deleteDevice(${i})" class="btn btn-small btn-weg" style="float: right;" aria-label="entfernen">✕</button>
     </li>`;
   });
@@ -778,7 +779,7 @@ function updateFooterLink() {
   if (removeLink && firma) {
     footerLink.textContent = firma;
   } else {
-    footerLink.innerHTML = firma;
+    footerLink.textContent = firma;   // nie als HTML: Inhalt kann aus einem geteilten Link stammen
   }
 }
 
