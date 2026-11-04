@@ -85,6 +85,7 @@
         <div class="werkzeug-leiste">
           <button type="button" class="knopf-leise" id="beispiel">Beispiel laden</button>
           <button type="button" class="knopf-leise" id="teilen">Link kopieren</button>
+          <button type="button" class="knopf-leise" id="zurueck" hidden>Vorherige Planung wiederherstellen</button>
           <span class="teilen-meldung" id="teilenMeldung" aria-live="polite"></span>
         </div>
       </section>
@@ -191,27 +192,100 @@
     let P = laden() || beispiel();
     if (!P.strings.length && !P.mikro.length) autoVerstringen(true);
     function laden() {
-      const m = /[?&]plan=([^&#]+)/.exec(location.search);
+      // gespeicherte Planung dieses Browsers; ein Link wird danach in linkLaden() übernommen
       let roh = null;
-      if (m) { try { roh = decodeURIComponent(escape(atob(decodeURIComponent(m[1]).replace(/-/g, '+').replace(/_/g, '/')))); } catch (e) { roh = null; } }
-      if (!roh) { try { roh = localStorage.getItem(SPEICHER); } catch (e) { roh = null; } }
+      try { roh = localStorage.getItem(SPEICHER); } catch (e) { roh = null; }
       if (!roh) return null;
       try { const p = JSON.parse(roh); return pruefeProjekt(p) ? p : null; } catch (e) { return null; }
     }
+    // Daten aus Speicher oder Link streng prüfen: nur Zahlen, Farben, Auswahlwerte und kurze Texte
+    function nz(v, d, min, max) { const x = Number(v); return isFinite(x) ? Math.max(min, Math.min(max, x)) : d; }
+    function gz(v, d, min, max) { return Math.round(nz(v, d, min, max)); }
+    function tx(v, d) { return typeof v === 'string' || typeof v === 'number' ? String(v).slice(0, 60) : d; }
+    function eins(v, liste, d) { return liste.indexOf(v) >= 0 ? v : d; }
+    function farbe(v, d) { return typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v) ? v : d; }
+    function idw(v) { return typeof v === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(v) ? v : null; }
+    function plaetze(a, groesse) {
+      return (Array.isArray(a) ? a : []).slice(0, 400).filter(function (q) { return Array.isArray(q) && Object.prototype.hasOwnProperty.call(groesse, q[0]) && Number(q[1]) >= 0 && Number(q[1]) < groesse[q[0]] && Number(q[1]) === Math.round(Number(q[1])); }).map(function (q) { return [q[0], Number(q[1])]; });
+    }
     function pruefeProjekt(p) {
-      if (!p || !p.modul || !Array.isArray(p.flaechen) || !Array.isArray(p.wr) || !Array.isArray(p.strings)) return false;
-      p.flaechen = p.flaechen.slice(0, 12).filter(function (f) { return f && f.id; });
-      p.flaechen.forEach(function (f) { f.spalten = Math.max(1, Math.min(40, Math.round(+f.spalten || 1))); f.reihen = Math.max(1, Math.min(20, Math.round(+f.reihen || 1))); if (!Array.isArray(f.aus)) f.aus = []; });
-      p.wr = p.wr.slice(0, 8).filter(function (w) { return w && w.id && Array.isArray(w.mppt) && w.mppt.length; });
-      p.strings = p.strings.slice(0, 60).filter(function (s) { return s && s.id && Array.isArray(s.module); });
-      if (!p.temp) p.temp = { min: -10, max: 70 };
-      if (!p.netz) p.netz = beispiel().netz;
-      p.flaechen.forEach(function (f) { if (f.art !== 'mikro') f.art = 'string'; });
-      if (!p.mtyp || typeof p.mtyp !== 'object') p.mtyp = beispiel().mtyp;
-      p.mikro = (Array.isArray(p.mikro) ? p.mikro : []).slice(0, 200).filter(function (m) { return m && m.id && Array.isArray(m.module); });
-      p.zul = (Array.isArray(p.zul) ? p.zul : []).slice(0, 60).filter(function (z) { return z && z.id; });
-      if (!p.fokus) p.fokus = 'string';
-      return p.wr.length > 0;
+      if (!p || typeof p !== 'object' || !p.modul || !Array.isArray(p.flaechen) || !Array.isArray(p.wr) || !Array.isArray(p.strings)) return false;
+      const B = beispiel(), m = p.modul, t = p.temp || {}, n = p.netz || {}, mt = p.mtyp || {};
+      p.modul = { name: tx(m.name, B.modul.name), P: nz(m.P, 430, 10, 1000), Voc: nz(m.Voc, 38.9, 5, 200), Vmpp: nz(m.Vmpp, 32.4, 5, 200), Isc: nz(m.Isc, 13.9, 0.5, 30), Impp: nz(m.Impp, 13.3, 0.5, 30), tkV: nz(m.tkV, -0.25, -1, 0), tkI: nz(m.tkI, 0.045, 0, 0.2), IR: nz(m.IR, 25, 1, 60), L: nz(m.L, 1.72, 0.3, 3), B: nz(m.B, 1.13, 0.3, 2) };
+      p.temp = { min: nz(t.min, -10, -40, 10), max: nz(t.max, 70, 40, 90) };
+      p.netz = { dcA: eins(Number(n.dcA), [4, 6, 10], 6), acA: eins(Number(n.acA), [2.5, 4, 6, 10, 16], 4), acL: nz(n.acL, 15, 1, 500), zp: tx(n.zp, B.netz.zp), rcd: eins(n.rcd, ['A', 'B', 'kein'], 'A') };
+      p.mtyp = { name: tx(mt.name, B.mtyp.name), eing: eins(Number(mt.eing), [1, 2, 4], 2), pac: nz(mt.pac, 800, 100, 3000), udc: nz(mt.udc, 60, 20, 150), umin: nz(mt.umin, 16, 5, 120), umax: nz(mt.umax, 60, 10, 150), imax: nz(mt.imax, 18, 1, 40), iscmax: nz(mt.iscmax, 25, 1, 60), jeZul: gz(mt.jeZul, 2, 1, 20), maxZul: gz(mt.maxZul, 5, 1, 40) };
+      const fids = [];
+      p.flaechen = p.flaechen.slice(0, 12).filter(function (f) { return f && idw(f.id) && fids.indexOf(f.id) < 0 && fids.push(f.id); }).map(function (f) {
+        const sp = gz(f.spalten, 6, 1, 40), re = gz(f.reihen, 2, 1, 20);
+        return { id: f.id, name: tx(f.name, 'Fläche'), art: f.art === 'mikro' ? 'mikro' : 'string', neigung: nz(f.neigung, 30, 0, 90), azimut: eins(Number(f.azimut), [-90, -45, 0, 45, 90, 180, 999], 0), spalten: sp, reihen: re, hoch: f.hoch !== false, abstand: nz(f.abstand, 15, 0, 500),
+          aus: (Array.isArray(f.aus) ? f.aus : []).map(Number).filter(function (x) { return x >= 0 && x < sp * re && x === Math.round(x); }) };
+      });
+      if (!p.flaechen.length) return false;
+      const groesse = {}; p.flaechen.forEach(function (f) { groesse[f.id] = f.spalten * f.reihen; });
+      p.wr = p.wr.slice(0, 8).filter(function (w) { return w && idw(w.id) && Array.isArray(w.mppt) && w.mppt.length; }).map(function (w) {
+        return { id: w.id, name: tx(w.name, 'WR'), pac: nz(w.pac, 10, 0.3, 300), udc: nz(w.udc, 1000, 50, 1500), umin: nz(w.umin, 160, 10, 1500), umax: nz(w.umax, 850, 20, 1500), ustart: nz(w.ustart, 180, 0, 1500), phasen: Number(w.phasen) === 1 ? 1 : 3, phase: eins(w.phase, ['L1', 'L2', 'L3'], 'L1'),
+          mppt: w.mppt.slice(0, 12).map(function (q) { q = q || {}; return { imax: nz(q.imax, 16, 1, 100), iscmax: nz(q.iscmax, 20, 1, 150) }; }) };
+      });
+      if (!p.wr.length) return false;
+      const wids = p.wr.map(function (w) { return w.id; });
+      p.strings = p.strings.slice(0, 60).filter(function (x) { return x && idw(x.id); }).map(function (x, i) {
+        const w = wids.indexOf(x.wr) >= 0 ? x.wr : wids[0], wr = p.wr[wids.indexOf(w)];
+        return { id: x.id, name: tx(x.name, 'S' + (i + 1)), farbe: farbe(x.farbe, FARBEN[i % FARBEN.length]), wr: w, mppt: gz(x.mppt, 0, 0, wr.mppt.length - 1), module: plaetze(x.module, groesse) };
+      });
+      p.zul = (Array.isArray(p.zul) ? p.zul : []).slice(0, 60).filter(function (z) { return z && idw(z.id); }).map(function (z, i) {
+        return { id: z.id, name: tx(z.name, 'Z' + (i + 1)), phase: eins(z.phase, ['L1', 'L2', 'L3'], 'L1'), laenge: nz(z.laenge, 15, 1, 300), A: eins(Number(z.A), [1.5, 2.5, 4, 6], 2.5), ls: eins(Number(z.ls), [10, 13, 16, 20, 25], 16), farbe: farbe(z.farbe, ZFARBEN[i % ZFARBEN.length]) };
+      });
+      const zids = p.zul.map(function (z) { return z.id; });
+      p.mikro = (Array.isArray(p.mikro) ? p.mikro : []).slice(0, 200).filter(function (x) { return x && idw(x.id); }).map(function (x, i) {
+        return { id: x.id, name: tx(x.name, 'MW ' + (i + 1)), zul: zids.indexOf(x.zul) >= 0 ? x.zul : null, module: plaetze(x.module, groesse).slice(0, 4) };
+      });
+      p.aktiv = p.strings.some(function (x) { return x.id === p.aktiv; }) ? p.aktiv : (p.strings[0] ? p.strings[0].id : null);
+      p.mAktiv = p.mikro.some(function (x) { return x.id === p.mAktiv; }) ? p.mAktiv : (p.mikro[0] ? p.mikro[0].id : null);
+      p.fokus = p.fokus === 'mikro' ? 'mikro' : 'string';
+      Object.keys(p).forEach(function (k) { if (['modul', 'temp', 'netz', 'mtyp', 'flaechen', 'wr', 'strings', 'zul', 'mikro', 'aktiv', 'mAktiv', 'fokus'].indexOf(k) < 0) delete p[k]; });
+      return true;
+    }
+
+    // ---------- Link: Planung steckt komprimiert hinter #plan= und geht nie an den Server ----------
+    function b64zuBytes(t) { const s = atob(t.replace(/-/g, '+').replace(/_/g, '/')); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+    function bytesZuB64(b) { let s = ''; for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+    function linkTeil() {
+      const m = /[#&]plan=([^&]+)/.exec(location.hash) || /[?&]plan=([^&#]+)/.exec(location.search);
+      if (!m) return null;
+      try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
+    }
+    function linkLesen(k) {
+      if (k.slice(0, 2) === 'z.') {
+        if (typeof DecompressionStream === 'undefined') return Promise.reject(new Error('Dieser Browser kann komprimierte Links nicht entpacken.'));
+        return new Response(new Blob([b64zuBytes(k.slice(2))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+      }
+      return Promise.resolve(new TextDecoder().decode(b64zuBytes(k)));   // ältere, unkomprimierte Links
+    }
+    function linkBauen() {
+      const json = JSON.stringify(P), roh = bytesZuB64(new TextEncoder().encode(json));
+      if (typeof CompressionStream === 'undefined') return Promise.resolve(roh);
+      return new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()
+        .then(function (ab) { return 'z.' + bytesZuB64(new Uint8Array(ab)); }, function () { return roh; });
+    }
+    function adresseOhneLink() { try { history.replaceState(null, '', location.pathname); } catch (e) { /* file:// u. a. */ } }
+    function linkLaden() {
+      const k = linkTeil(); if (!k) return;
+      linkLesen(k).then(function (roh) {
+        const p = JSON.parse(roh);
+        if (!pruefeProjekt(p)) throw new Error('ungültig');
+        let vorher = null; try { vorher = localStorage.getItem(SPEICHER); } catch (e) { vorher = null; }
+        const neu = JSON.stringify(p);
+        if (vorher && vorher !== neu) { try { localStorage.setItem(SPEICHER + '-vorher', vorher); } catch (e) { /* ohne Speicher */ } $('zurueck').hidden = false; }
+        P = p; clearTimeout(uhr);
+        try { localStorage.setItem(SPEICHER, neu); } catch (e) { /* ohne Speicher */ }
+        adresseOhneLink();
+        einstellungenAufbauen(); aenderung();
+        status('Planung aus dem Link geladen und gespeichert.' + ($('zurueck').hidden ? '' : ' Deine vorherige Planung ist gesichert.'));
+      }).catch(function (e) {
+        adresseOhneLink();
+        status('Der Link ist unvollständig oder beschädigt – es bleibt die gespeicherte Planung. ' + (e && /Browser/.test(e.message) ? e.message : ''));
+      });
     }
     let uhr = 0;
     window.addEventListener('pagehide', function () { clearTimeout(uhr); try { localStorage.setItem(SPEICHER, JSON.stringify(P)); } catch (e) { /* ohne Speicher */ } });
@@ -348,11 +422,21 @@
     $('neuerWR').addEventListener('click', function () { const v = kopie(P.wr[P.wr.length - 1]); v.id = neueId('w'); v.name = 'WR ' + (P.wr.length + 1); P.wr.push(v); einstellungenAufbauen(); aenderung(true); });
     $('beispiel').addEventListener('click', function () { if (!window.confirm('Beispiel laden? Die aktuelle Planung wird ersetzt.')) return; P = beispiel(); autoVerstringen(true); einstellungenAufbauen(); aenderung(true); });
     $('teilen').addEventListener('click', function () {
-      const k = btoa(unescape(encodeURIComponent(JSON.stringify(P)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      const url = location.origin + location.pathname + '?plan=' + k;
-      const ok = function () { $('teilenMeldung').textContent = 'Link kopiert.'; setTimeout(function () { $('teilenMeldung').textContent = ''; }, 3000); };
-      if (navigator.clipboard && location.protocol !== 'file:') navigator.clipboard.writeText(url).then(ok, function () { window.prompt('Link kopieren:', url); });
-      else window.prompt('Link kopieren:', url);
+      linkBauen().then(function (k) {
+        const url = location.href.split('#')[0].split('?')[0] + '#plan=' + k;
+        const ok = function () { $('teilenMeldung').textContent = 'Link kopiert (' + zahl(url.length, 0) + ' Zeichen).'; setTimeout(function () { $('teilenMeldung').textContent = ''; }, 4000); };
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(ok, function () { window.prompt('Link kopieren:', url); });
+        else window.prompt('Link kopieren:', url);
+      });
+    });
+    $('zurueck').addEventListener('click', function () {
+      let roh = null; try { roh = localStorage.getItem(SPEICHER + '-vorher'); } catch (e) { roh = null; }
+      let p = null; try { p = JSON.parse(roh); } catch (e) { p = null; }
+      if (!p || !pruefeProjekt(p)) { status('Keine vorherige Planung gefunden.'); $('zurueck').hidden = true; return; }
+      if (!window.confirm('Vorherige Planung wiederherstellen? Die Planung aus dem Link wird ersetzt.')) return;
+      P = p; $('zurueck').hidden = true;
+      try { localStorage.removeItem(SPEICHER + '-vorher'); } catch (e) { /* ohne Speicher */ }
+      einstellungenAufbauen(); aenderung(); status('Vorherige Planung wiederhergestellt.');
     });
 
     // ---------- Mikro-Wechselrichter ----------
@@ -1075,6 +1159,9 @@
     document.addEventListener('themawechsel', function () { dachZeichnen(); planZeichnen(); });
     einstellungenAufbauen();
     aenderung();
+    try { $('zurueck').hidden = !localStorage.getItem(SPEICHER + '-vorher'); } catch (e) { /* ohne Speicher */ }
+    linkLaden();
+    window.addEventListener('hashchange', linkLaden);
   })();
   </script>
 </body>
