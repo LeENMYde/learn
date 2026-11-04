@@ -110,6 +110,16 @@
   });
   window.addEventListener('afterprint', function () { document.querySelectorAll('.leer-zeile').forEach(function (tr) { tr.classList.remove('leer-zeile'); }); });
 
+  // nächste Prüfung: Prüfdatum + 12 Monate, solange das Feld leer ist oder noch den Vorschlag enthält
+  let vorschlag = '';
+  function naechste() {
+    const d = $('a-datum'), n = $('a-naechste'); if (!d || !n || !d.value) return;
+    const x = new Date(d.value + 'T12:00:00'); if (isNaN(x)) return;
+    x.setMonth(x.getMonth() + 12); const v = x.toISOString().slice(0, 10);
+    if (!n.value || n.value === vorschlag) { n.value = v; vorschlag = v; }
+  }
+  document.addEventListener('change', function (ev) { if (ev.target && ev.target.id === 'a-datum') naechste(); });
+  window.addEventListener('load', function () { setTimeout(naechste, 100); });
   window.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.tab-content').forEach(function (t) {
       if (t.id === 'tab-stammdaten' || t.querySelector('.briefkopf')) return;

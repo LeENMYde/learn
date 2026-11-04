@@ -94,6 +94,24 @@
 .protokoll table.it-uebersicht th, .protokoll table.it-uebersicht td { border: 1px solid var(--linie); padding: 2px 6px; text-align: center; }
 .protokoll table.it-uebersicht td:first-child, .protokoll table.it-uebersicht th:first-child { text-align: left; }
 
+/* Feldraster statt enger Kopftabellen (felder.js) */
+.protokoll .feldraster { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px 12px; margin-bottom: 10px; }
+.protokoll .paar { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.protokoll .paar.breit { grid-column: span 2; }
+.protokoll .paar.voll { grid-column: 1 / -1; }
+.protokoll .paar-name { font-size: .78rem; font-weight: 600; color: var(--leise); line-height: 1.25; }
+.protokoll .paar-feld { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.protokoll .paar-feld > input:not([type="radio"]):not([type="checkbox"]), .protokoll .paar-feld > select, .protokoll .paar-feld > textarea { flex: 1 1 160px; }
+.protokoll .paar.voll .paar-feld > input[type="text"] { flex-basis: 100%; }
+@media (max-width: 520px) { .protokoll .paar.breit { grid-column: 1 / -1; } }
+
+#portscan-tbody input, #findings-tbody input, #cve-tbody input { min-width: 72px; }
+#portscan-tbody select, #findings-tbody select, #cve-tbody select { min-width: 84px; }
+.protokoll table:has(#portscan-tbody), .protokoll table:has(#findings-tbody), .protokoll table:has(#cve-tbody) { min-width: 1100px; }
+.protokoll .check-grid input[type="text"] { min-width: 120px; }
+.protokoll .sig-box > div[style] { flex-wrap: wrap; }
+.protokoll .sig-box > div[style] > input { min-width: 140px; }
+
 /* Knöpfe */
 .protokoll .btn { padding: 8px 14px; border: 1px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); cursor: pointer; font: inherit; font-weight: 600; font-size: .88rem; }
 .protokoll .btn:hover { border-color: var(--leise); }
@@ -153,6 +171,13 @@ img.sig-bild { display: none; }
   .protokoll table { break-inside: avoid; }
   .protokoll .measurement-table, .protokoll .rollen table { break-inside: auto; }
   .protokoll tr { break-inside: avoid; }
+  .protokoll .feldraster { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 8px; margin-bottom: 4px; }
+  .protokoll .paar { gap: 0; break-inside: avoid; }
+  #portscan-tbody input, #findings-tbody input, #cve-tbody input, #portscan-tbody select, #findings-tbody select, #cve-tbody select, .protokoll .check-grid input[type="text"], .protokoll .sig-box > div[style] > input { min-width: 0 !important; }
+  .protokoll table:has(#portscan-tbody), .protokoll table:has(#findings-tbody), .protokoll table:has(#cve-tbody) { min-width: 0 !important; }
+  .protokoll .paar-name { font-size: 6.5pt; color: #444; }
+  .protokoll .paar-feld input:not([type="radio"]):not([type="checkbox"]), .protokoll .paar-feld select, .protokoll .paar-feld textarea { border-bottom: 1px solid #999 !important; border-radius: 0; min-height: 13px; }
+  .protokoll .paar-feld { gap: 0 8px; }
   .protokoll tr.leer-zeile { display: none; }
   .protokoll .rollen { overflow: visible; }
   @page quer { size: A4 landscape; margin: 10mm 8mm 13mm; }
