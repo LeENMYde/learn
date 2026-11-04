@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sport und Bewegung – Formeln &amp; Rechner</title>
+  <meta name="description" content="Calisthenics und Kampfkunst mit Physik: Drehmoment bei Front Lever, Back Lever und Planche je Stufe, Last auf den Händen bei Liegestütz, Klimmzug und Dip, Impuls und Kraft von Schlag und Tritt, Aufprallkraft beim Fallen und Abrollen.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/mechanik/sport-bewegung.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Sport und Bewegung">
+  <meta property="og:description" content="Calisthenics und Kampfkunst mit Physik: Drehmoment bei Front Lever, Back Lever und Planche je Stufe, Last auf den Händen bei Liegestütz, Klimmzug und Dip, Impuls und Kraft von Schlag und Tritt, Aufprallkraft beim Fallen und Abrollen.">
+  <meta property="og:url" content="https://tools.pr1m3.de/mechanik/sport-bewegung.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Sport und Bewegung","url":"https://tools.pr1m3.de/mechanik/sport-bewegung.html","inLanguage":"de","description":"Calisthenics und Kampfkunst mit Physik: Drehmoment bei Front Lever, Back Lever und Planche je Stufe, Last auf den Händen bei Liegestütz, Klimmzug und Dip, Impuls und Kraft von Schlag und Tritt, Aufprallkraft beim Fallen und Abrollen.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E, Z = R.Z;
+    const G = 9.81, GRAD = Math.PI / 180;
+
+    // Körpersegmente nach Winter (Biomechanics and Motor Control of Human Movement):
+    // Masseanteil und Lage als Anteil der Körpergröße h
+    const SEG = {
+      kopf: 0.081, rumpf: 0.497, arm: 0.05, oberschenkel: 0.10, unterschenkel: 0.0465, fuss: 0.0145,
+      // Längen ab Schulter entlang der Körperachse
+      lKopf: 0.112, lRumpfS: 0.144, lRumpf: 0.288, lOber: 0.245, lUnter: 0.246, lFuss: 0.03, sOber: 0.433, sUnter: 0.433,
+      lArm: 0.34, schulterbreite: 0.23
+    };
+    // Stufen der Halteübungen: Hüftbeugung, Kniebeugung je Bein (°), Grätschwinkel (°)
+    const STUFEN = {
+      tuck: { name: 'Hocke (Tuck)', b1: [140, 150], b2: [140, 150], g: 0 },
+      adv: { name: 'Hocke mit flachem Rücken (Advanced Tuck)', b1: [90, 135], b2: [90, 135], g: 0 },
+      einbein: { name: 'ein Bein gestreckt', b1: [0, 0], b2: [90, 135], g: 0 },
+      graetsche: { name: 'Grätsche (Straddle)', b1: [0, 0], b2: [0, 0], g: 90 },
+      voll: { name: 'gestreckt (Full)', b1: [0, 0], b2: [0, 0], g: 0 }
+    };
+    const UEBUNG = { front: 'Front Lever', back: 'Back Lever', planche: 'Planche' };
+    // Schlag und Tritt: wirksame Masse als Anteil der Körpermasse (Richtwerte aus Messungen am Kraftaufnehmer)
+    const TECHNIK = {
+      arm: ['Faustschlag nur aus dem Arm', 0.035, 7],
+      huefte: ['Faustschlag mit Hüftdrehung', 0.06, 9],
+      schritt: ['Faustschlag mit Schritt und Gewichtsverlagerung', 0.09, 9],
+      front: ['Vorwärtstritt (Ferse oder Ballen)', 0.10, 11],
+      kreis: ['Halbkreistritt mit Hüftdrehung', 0.14, 14]
+    };
+    const ZIEL = { pratze: ['Pratze, fest gehalten', 12, 0], sack: ['schwerer Sandsack', 18, 40], brett: ['Brett beim Bruchtest', 5, 0], frei: ['eigene Angaben', 12, 0] };
+    const FLAECHE = { faust: ['Faust, flach (zwei Knöchelreihen)', 25], knoechel: ['zwei Knöchel', 5], kante: ['Handkante', 10], ferse: ['Ferse', 20], ballen: ['Fußballen', 15] };
+    // Fallen: wirksamer Bremsweg (cm) und Aufprallfläche (cm²)
+    const FALL = {
+      hart: ['ohne Technik auf harten Boden ohne Matte (Ellbogen, Hüfte, Kopf)', 2, 60],
+      matte: ['ohne Technik auf die Matte', 1, 300],
+      abschlagen: ['Fallschule mit Abschlagen (Ukemi)', 15, 2500],
+      rollen: ['Abrollen über die Schulter', 50, 1500]
+    };
+
+    const BEISPIEL = {
+      thema: 'hebel', m: 75, h: 1.78,
+      uebung: 'front', stufe: 'adv', neigung: 0, huefte: 90, knie: 135, graetsche: 0,
+      art: 'liege', hoch: 0, griff: 0.6, zusatz: 0, weg: 0.4, zeit: 1.2,
+      technik: 'huefte', meff: 4.5, v: 9, ziel: 'pratze', dt: 12, M: 0, flaeche: 'faust',
+      fall: 'abschlagen', fh: 1.0, matte: 4
+    };
+
+    R.seite({
+      titel: 'Sport und Bewegung',
+      einleitung: 'Calisthenics und Kampfkunst mit Physik erklärt: Drehmoment bei Front Lever, Back Lever und Planche je nach Stufe, Last auf den Händen bei Liegestütz, Klimmzug und Dip, Impuls, Energie und Kraft von Schlag und Tritt, Aufprallkraft beim Fallen und warum Abrollen schützt.',
+      hilfe: 'Die Rechnungen zeigen die Mechanik mit einem Körpermodell nach Winter (Masseanteile und Längen der Körpersegmente). Sie sind keine Trainings- oder Gesundheitsempfehlung; echte Werte hängen von Körperbau und Technik ab.',
+      gruppen: [
+        { titel: 'Thema', farbe: '#6E6FA6', felder: [
+          { k: 'thema', name: 'Was soll berechnet werden?', wahl: [['hebel', 'Halteübungen: Front Lever, Back Lever, Planche'], ['stuetz', 'Liegestütz, Klimmzug und Dip'], ['schlag', 'Schlag und Tritt'], ['fall', 'Fallen und Abrollen']] }
+        ] },
+        { titel: 'Körper', farbe: '#1E3A5F', felder: [
+          { k: 'm', tex: 'm', name: 'Körpermasse', e: 'kg', min: 20, max: 200 },
+          { k: 'h', tex: 'h', name: 'Körpergröße', e: 'm', min: 1, max: 2.3, wenn: function (e) { return e.thema === 'hebel' || e.thema === 'stuetz'; } }
+        ] },
+        { titel: 'Halteübung', farbe: '#E4572E', wenn: function (e) { return e.thema === 'hebel'; }, felder: [
+          { k: 'uebung', name: 'Übung', wahl: [['front', 'Front Lever (hängend, Bauch nach oben)'], ['back', 'Back Lever (hängend, Bauch nach unten)'], ['planche', 'Planche (Stütz auf den Händen)']] },
+          { k: 'stufe', name: 'Stufe', wahl: Object.keys(STUFEN).map(function (k) { return [k, STUFEN[k].name]; }).concat([['eigen', 'eigene Winkel']]) },
+          { k: 'neigung', tex: '\\vartheta', name: 'Körper gegen die Waagerechte (Füße höher +)', e: '°', min: -60, max: 60, hilfe: '0° = waagerecht; schräg halten verkürzt den Hebel' },
+          { k: 'huefte', tex: '\\varphi_\\text{H}', name: 'Hüftbeugung', e: '°', min: 0, max: 150, wenn: function (e) { return e.stufe === 'eigen'; } },
+          { k: 'knie', tex: '\\varphi_\\text{K}', name: 'Kniebeugung', e: '°', min: 0, max: 160, wenn: function (e) { return e.stufe === 'eigen'; } },
+          { k: 'graetsche', tex: '\\sigma', name: 'Grätschwinkel zwischen den Beinen', e: '°', min: 0, max: 180, wenn: function (e) { return e.stufe === 'eigen'; } }
+        ] },
+        { titel: 'Übung', farbe: '#2B7BB9', wenn: function (e) { return e.thema === 'stuetz'; }, felder: [
+          { k: 'art', name: 'Übung', wahl: [['liege', 'Liegestütz'], ['knie', 'Liegestütz auf den Knien'], ['klimm', 'Klimmzug'], ['dip', 'Dip am Barren']] },
+          { k: 'hoch', tex: '\\Delta h', name: 'Hände höher als Füße (Füße höher: negativ)', e: 'm', min: -1, max: 1.2, wenn: function (e) { return e.art === 'liege' || e.art === 'knie'; } },
+          { k: 'griff', tex: 'b', name: 'Griffbreite (Abstand der Hände)', e: 'm', min: 0.1, max: 1.5, wenn: function (e) { return e.art === 'klimm'; } },
+          { k: 'zusatz', tex: 'm_\\text{Z}', name: 'Zusatzgewicht (Weste, Gürtel)', e: 'kg', min: 0, max: 150 },
+          { k: 'weg', tex: 's', name: 'Hubweg der Bewegung', e: 'm', min: 0.05, max: 1 },
+          { k: 'zeit', tex: 'T', name: 'Zeit für das Hochdrücken bzw. Hochziehen', e: 's', min: 0.2, max: 10 }
+        ] },
+        { titel: 'Schlag oder Tritt', farbe: '#C0392B', wenn: function (e) { return e.thema === 'schlag'; }, felder: [
+          { k: 'technik', name: 'Technik', wahl: Object.keys(TECHNIK).map(function (k) { return [k, TECHNIK[k][0]]; }).concat([['eigen', 'eigene wirksame Masse']]) },
+          { k: 'meff', tex: 'm_\\text{w}', name: 'wirksame Masse', e: 'kg', min: 0.5, max: 40, wenn: function (e) { return e.technik === 'eigen'; }, hilfe: 'der Teil der Körpermasse, der im Treffer „mitgeht“' },
+          { k: 'v', tex: 'v', name: 'Geschwindigkeit beim Treffer', e: 'm/s', min: 1, max: 30, hilfe: 'Faustschläge etwa 6 bis 12 m/s, Tritte etwa 9 bis 16 m/s' },
+          { k: 'ziel', name: 'Ziel', wahl: Object.keys(ZIEL).map(function (k) { return [k, ZIEL[k][0]]; }) },
+          { k: 'dt', tex: '\\Delta t', name: 'Kontaktzeit', e: 'ms', min: 1, max: 100, wenn: function (e) { return e.ziel === 'frei'; } },
+          { k: 'M', tex: 'M', name: 'Masse des Ziels (0 = fest)', e: 'kg', min: 0, max: 500, wenn: function (e) { return e.ziel === 'frei'; } },
+          { k: 'flaeche', name: 'Trefferfläche', wahl: Object.keys(FLAECHE).map(function (k) { return [k, FLAECHE[k][0] + ' (' + FLAECHE[k][1] + ' cm²)']; }) }
+        ] },
+        { titel: 'Fallen', farbe: '#0E6B6A', wenn: function (e) { return e.thema === 'fall'; }, felder: [
+          { k: 'fall', name: 'Technik', wahl: Object.keys(FALL).map(function (k) { return [k, FALL[k][0]]; }) },
+          { k: 'fh', tex: 'h_\\text{F}', name: 'Fallhöhe des Körperschwerpunkts', e: 'm', min: 0.1, max: 3, hilfe: 'Sturz aus dem Stand rückwärts etwa 0,9 bis 1,0 m, aus der Hocke etwa 0,4 m' },
+          { k: 'matte', tex: 'd', name: 'Dicke der Matte (gilt nicht für harten Boden)', e: 'cm', min: 0, max: 40 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Drehmoment um die Schulter', 'M = g \\sum_i m_i \\, x_i', 'x_i: waagerechter Abstand des Segmentschwerpunkts von der Schulter; Segmentmassen nach Winter (Kopf 8,1 %, Rumpf 49,7 %, je Arm 5 %, je Oberschenkel 10 %, je Unterschenkel 4,65 %, je Fuß 1,45 %)'],
+        ['Hebelarm des Körpers', 'x_\\text{S} = \\frac{\\sum_i m_i x_i}{\\sum_i m_i}', 'bei der Planche muss der Schwerpunkt über den Händen liegen: die Schultern lehnen um x_S vor'],
+        ['Grätsche', 'x = x_\\parallel \\cdot \\cos\\frac{\\sigma}{2}', 'gegrätschte Beine liegen näher an der Schulter'],
+        ['Last auf den Händen (Liegestütz)', 'F_\\text{H} = F_\\text{G} \\cdot \\frac{x_\\text{S}}{x_\\text{H}}', 'Momente um die Füße bzw. Knie; Arme etwa senkrecht zum Körper'],
+        ['Kraft je Arm am Klimmzug', 'F_\\text{Arm} = \\frac{F_\\text{G}}{2\\cos\\alpha},\\quad \\sin\\alpha = \\frac{(b - b_\\text{S})/2}{l_\\text{Arm}}', 'breiter Griff: schräge Arme, größere Armkraft und Querkraft'],
+        ['Spitzenkraft beim Hochziehen', 'F_{\\max} = m\\,(g + a_{\\max}),\\quad a_{\\max} = \\frac{\\pi^2}{2}\\cdot\\frac{s}{T^2}', 'Bewegung mit sanftem Anfahren und Abbremsen (Kosinusverlauf)'],
+        ['Impuls und Energie', 'p = m_\\text{w}\\, v,\\quad E = \\tfrac12\\, m_\\text{w}\\, v^2', 'wirksame Masse: Hüftdrehung und Gewichtsverlagerung bringen mehr Körpermasse in den Treffer'],
+        ['Stoß auf ein bewegliches Ziel', '\\Delta p = \\frac{m_\\text{w} M}{m_\\text{w} + M}\\, v', 'unelastisch; festes Ziel: M → ∞'],
+        ['Kraft im Treffer', '\\bar F = \\frac{\\Delta p}{\\Delta t},\\quad F_{\\max} \\approx \\frac{\\pi}{2}\\,\\bar F', 'Kraftverlauf etwa als Sinus-Halbwelle'],
+        ['Aufprall beim Fallen', 'v = \\sqrt{2 g h_\\text{F}},\\quad \\bar F = m g \\left(1 + \\frac{h_\\text{F}}{s}\\right),\\quad F_{\\max} \\approx 2 \\bar F', 's: Bremsweg; federndes Abbremsen verdoppelt etwa die mittlere Kraft'],
+        ['Druck auf die Haut', 'p = \\frac{F_{\\max}}{A}', 'Abschlagen und Abrollen verteilen die Kraft auf eine große Fläche']
+      ],
+      quellen: 'Körpermodell: D. A. Winter, Biomechanics and Motor Control of Human Movement (Segmentmassen und -längen). Liegestütz-Anteile vergleichbar mit Messungen von Ebben u. a. (2011): etwa 64 % des Körpergewichts, auf den Knien etwa 49 %. Wirksame Massen und Geschwindigkeiten von Schlägen und Tritten als Richtwerte aus Messungen am Kraftaufnehmer. Keine Trainings- oder Gesundheitsempfehlung; bei Beschwerden ärztlichen Rat einholen, Fallschule nur unter Anleitung üben.',
+      bild: { titel: 'Kräfte am Körper', label: 'Strichfigur mit Kräften und Hebeln zur gewählten Übung', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.round(Math.max(250, Math.min(340, B * 0.55))); }, zeichne: zeichne,
+        hinweis: function (r, e) {
+          if (e.thema === 'hebel') return 'Punkte: Schwerpunkte der Körperteile; der Pfeil zeigt den Hebelarm des ganzen Körpers um die Schulter.';
+          if (e.thema === 'stuetz') return e.art === 'klimm' ? 'Je breiter der Griff, desto schräger die Arme und desto größer die Kraft im Arm.' : 'Die Pfeile zeigen, wie sich das Gewicht auf Hände und Füße verteilt.';
+          if (e.thema === 'schlag') return 'Kraftverlauf im Treffer: je kürzer der Kontakt, desto höher die Spitze bei gleichem Impuls.';
+          return 'Kraftverlauf beim Aufprall: längerer Bremsweg verteilt dieselbe Energie über mehr Zeit.';
+        } }
+    });
+
+    // ---------- Halteübungen ----------
+    function stellung(e) {
+      const s = e.stufe === 'eigen' ? { b1: [e.huefte, e.knie], b2: [e.huefte, e.knie], g: e.graetsche } : STUFEN[e.stufe] || STUFEN.voll;
+      return s;
+    }
+    // Punkte entlang der Körperachse (Schulter = 0, x zu den Füßen, y zur Bauchseite), in Metern
+    function kette(e, st) {
+      const h = e.h, teile = [];
+      const P = function (x, y) { return [x * h, y * h]; };
+      teile.push({ n: 'Kopf', m: SEG.kopf, p: P(-SEG.lKopf, 0) });
+      teile.push({ n: 'Rumpf', m: SEG.rumpf, p: P(SEG.lRumpfS, 0) });
+      const huefte = P(SEG.lRumpf, 0);
+      const beine = [st.b1, st.b2].map(function (b, i) {
+        const ph = b[0] * GRAD, pk = (b[0] - b[1]) * GRAD;
+        const knie = [huefte[0] + SEG.lOber * h * Math.cos(ph), huefte[1] + SEG.lOber * h * Math.sin(ph)];
+        const fuss = [knie[0] + SEG.lUnter * h * Math.cos(pk), knie[1] + SEG.lUnter * h * Math.sin(pk)];
+        const ober = [huefte[0] + SEG.sOber * SEG.lOber * h * Math.cos(ph), huefte[1] + SEG.sOber * SEG.lOber * h * Math.sin(ph)];
+        const unter = [knie[0] + SEG.sUnter * SEG.lUnter * h * Math.cos(pk), knie[1] + SEG.sUnter * SEG.lUnter * h * Math.sin(pk)];
+        const spitze = [fuss[0] + SEG.lFuss * h * Math.cos(pk), fuss[1] + SEG.lFuss * h * Math.sin(pk)];
+        // Grätsche: Beine aus der Körperebene, Abstand entlang der Achse ab der Hüfte mal cos(σ/2)
+        const g = Math.cos(st.g / 2 * GRAD);
+        const f = function (q) { return [huefte[0] + (q[0] - huefte[0]) * g, q[1]]; };
+        teile.push({ n: 'Oberschenkel ' + (i + 1), m: SEG.oberschenkel, p: f(ober) });
+        teile.push({ n: 'Unterschenkel ' + (i + 1), m: SEG.unterschenkel, p: f(unter) });
+        teile.push({ n: 'Fuß ' + (i + 1), m: SEG.fuss, p: f(fuss) });
+        return { knie: f(knie), fuss: f(fuss), spitze: f(spitze) };
+      });
+      return { teile: teile, huefte: huefte, beine: beine };
+    }
+    // waagerechter Abstand: Füße höher (+θ) dreht beim Front Lever die Bauchseite (oben) zur Schulter, bei Back Lever und Planche (Bauch unten) weg
+    function waagerecht(p, th, bauchOben) { return p[0] * Math.cos(th) - (bauchOben ? 1 : -1) * p[1] * Math.sin(th); }
+    function hebelMoment(e, st) {
+      const k = kette(e, st), th = e.neigung * GRAD, oben = e.uebung === 'front';
+      let sm = 0, smx = 0;
+      k.teile.forEach(function (t) { const x = waagerecht(t.p, th, oben); t.x = x; sm += t.m; smx += t.m * x; });
+      return { k: k, mAnteil: sm, xS: smx / sm, M: G * e.m * smx, smx: smx };
+    }
+    function rechneHebel(e) {
+      const r = { st: stellung(e) };
+      const a = hebelMoment(e, r.st);
+      r.k = a.k; r.xS = a.xS; r.M = a.M; r.mK = a.mAnteil * e.m;
+      r.voll = hebelMoment(Object.assign({}, e, { neigung: 0 }), STUFEN.voll).M;
+      r.anteil = r.M / r.voll;
+      r.vergleich = Object.keys(STUFEN).map(function (k) { const x = hebelMoment(e, STUFEN[k]); return { k: k, M: x.M, xS: x.xS }; });
+      r.kg1m = r.M / G;                                    // Last am 1-m-Hebel
+      r.armLast = r.M / (SEG.lArm * e.h) / G;              // Last an der Hand des ausgestreckten Arms
+      if (e.uebung === 'planche') { r.lean = r.xS; r.alpha = Math.asin(Math.min(0.999, r.xS / (SEG.lArm * e.h))) / GRAD; }
+      return r;
+    }
+
+    // ---------- Liegestütz, Klimmzug, Dip ----------
+    const LIEGE = [['kopf', SEG.kopf, 0.93], ['rumpf', SEG.rumpf, 0.674], ['arme', 2 * SEG.arm, 0.818], ['ober', 2 * SEG.oberschenkel, 0.424], ['unter', 2 * SEG.unterschenkel, 0.178]];
+    function rechneStuetz(e) {
+      const r = { mGes: e.m + e.zusatz }, h = e.h;
+      r.FG = r.mGes * G;
+      r.aMax = Math.PI * Math.PI / 2 * e.weg / (e.zeit * e.zeit);
+      if (e.art === 'liege' || e.art === 'knie') {
+        const yp = e.art === 'knie' ? 0.285 : 0.039;
+        const L = (0.818 - yp) * h, a = 0.35 * h, gam = 0.2;   // Arme um etwa 11° aus der Senkrechten zum Körper Richtung Füße geneigt
+        let sm = 0, smx = 0;
+        LIEGE.forEach(function (s) { if (e.art === 'knie' && s[0] === 'unter') return; sm += s[1]; smx += s[1] * (s[2] - yp) * h; });
+        // Zusatzgewicht auf dem Rücken: Rumpfschwerpunkt
+        const mK = sm * e.m + e.zusatz, mx = smx * e.m + e.zusatz * (0.674 - yp) * h;
+        const f = function (t) { return L * Math.sin(t) + a * Math.sin(t - Math.PI / 2 - gam) - e.hoch; };
+        let lo = -1.3, hi = 1.5;
+        if (f(lo) > 0 || f(hi) < 0) { r.unmoeglich = true; lo = hi = 0; }
+        for (let i = 0; i < 70; i++) { const mi = (lo + hi) / 2; if (f(mi) > 0) hi = mi; else lo = mi; }
+        r.th = (lo + hi) / 2;
+        r.L = L; r.a = a; r.gam = gam; r.yp = yp;
+        r.xS = mx / mK * Math.cos(r.th);
+        r.xH = L * Math.cos(r.th) + a * Math.cos(r.th - Math.PI / 2 - gam);
+        r.FH = mK * G * r.xS / r.xH;
+        r.FF = mK * G - r.FH + (r.mGes - mK) * G;      // Füße bzw. Knie und Unterschenkel
+        r.anteil = r.FH / (e.m * G);
+        r.Fmax = r.FH * (1 + r.aMax / G);
+        r.arm = r.FH / 2;
+      } else if (e.art === 'klimm') {
+        const sb = SEG.schulterbreite * h, la = SEG.lArm * h;
+        const s = Math.max(0, (e.griff - sb) / 2);
+        r.alpha = Math.asin(Math.min(0.97, s / la)) / GRAD;
+        r.zuBreit = s / la > 0.97;
+        r.FH = r.FG; r.anteil = r.FH / (e.m * G);
+        r.arm = r.FG / (2 * Math.cos(r.alpha * GRAD));
+        r.quer = r.FG / 2 * Math.tan(r.alpha * GRAD);
+        r.Fmax = r.FG * (1 + r.aMax / G);
+        r.armMax = r.arm * (1 + r.aMax / G);
+        r.vergleich = [0.25, 0.4, 0.6, 0.8, 1.0].map(function (b) { const ss = Math.max(0, (b - sb) / 2), al = Math.asin(Math.min(0.97, ss / la)); return [b, al / GRAD, r.FG / (2 * Math.cos(al))]; });
+      } else {
+        r.FH = r.FG; r.anteil = r.FH / (e.m * G); r.arm = r.FG / 2;
+        r.Fmax = r.FG * (1 + r.aMax / G);
+      }
+      return r;
+    }
+
+    // ---------- Schlag und Tritt ----------
+    function rechneSchlag(e) {
+      const r = {};
+      r.mw = e.technik === 'eigen' ? e.meff : TECHNIK[e.technik][1] * e.m;
+      const zi = ZIEL[e.ziel] || ZIEL.pratze;
+      r.dt = (e.ziel === 'frei' ? e.dt : zi[1]) / 1000;
+      r.M = e.ziel === 'frei' ? e.M : zi[2];
+      r.p = r.mw * e.v; r.E = r.mw * e.v * e.v / 2;
+      r.mu = r.M > 0 ? r.mw * r.M / (r.mw + r.M) : r.mw;
+      r.dp = r.mu * e.v;
+      r.vZiel = r.M > 0 ? r.mw * e.v / (r.mw + r.M) : 0;
+      r.Eziel = r.M > 0 ? r.M * r.vZiel * r.vZiel / 2 : 0;
+      r.F = r.dp / r.dt; r.Fmax = Math.PI / 2 * r.F;
+      r.A = FLAECHE[e.flaeche] ? FLAECHE[e.flaeche][1] : 25;
+      r.druck = r.Fmax / r.A;                                // N/cm²
+      r.vergleich = Object.keys(TECHNIK).map(function (k) { const mw = TECHNIK[k][1] * e.m, v = TECHNIK[k][2]; const mu = r.M > 0 ? mw * r.M / (mw + r.M) : mw; return [TECHNIK[k][0], mw, v, mw * v, mw * v * v / 2, Math.PI / 2 * mu * v / r.dt]; });
+      return r;
+    }
+
+    // ---------- Fallen ----------
+    // wirksamer Bremsweg: Grundwert der Technik plus etwa 60 % der Mattendicke (harter Boden: ohne Matte)
+    function bremsweg(k, e) { return Math.max(0.005, (FALL[k][1] + (k === 'hart' ? 0 : e.matte * 0.6)) / 100); }
+    function rechneFall(e) {
+      const r = {}, k = FALL[e.fall] ? e.fall : 'hart';
+      r.s = bremsweg(k, e);
+      r.A = FALL[k][2];
+      r.v = Math.sqrt(2 * G * e.fh);
+      r.Ekin = e.m * G * e.fh;
+      r.F = e.m * G * (1 + e.fh / r.s);
+      r.Fmax = 2 * r.F;
+      r.dt = 2 * r.s / r.v;
+      r.druck = r.Fmax / r.A;
+      r.vergleich = Object.keys(FALL).map(function (q) {
+        const s = bremsweg(q, e), F = e.m * G * (1 + e.fh / s);
+        return [FALL[q][0], s, 2 * s / r.v, 2 * F, 2 * F / FALL[q][2]];
+      });
+      return r;
+    }
+
+    function rechne(e) {
+      if (e.thema === 'stuetz') return rechneStuetz(e);
+      if (e.thema === 'schlag') return rechneSchlag(e);
+      if (e.thema === 'fall') return rechneFall(e);
+      return rechneHebel(e);
+    }
+
+    // ---------- Ergebnis ----------
+    function kg(F) { return z(F / G, 0) + ' kg'; }
+    function ergebnis(r, e, H) {
+      if (e.thema === 'hebel') {
+        const vol = r.anteil;
+        H.urteil(null, z(r.M, 0) + ' N·m um die Schulter');
+        if (e.uebung === 'planche' && r.alpha > 45) H.meldung('Der Schwerpunkt liegt sehr weit vor den Schultern: Die Arme müssten mehr als 45° schräg stehen. In der Praxis wird der Körper dafür leicht schräg gehalten oder gegrätscht.');
+        if (e.neigung !== 0) H.meldung('Schräg gehalten: Der Hebel wird mit dem Kosinus der Neigung kürzer, ' + z(Math.abs(e.neigung), 0) + '° ergeben ' + z(Math.cos(e.neigung * GRAD) * 100, 0) + ' % des waagerechten Hebels der Beine und des Rumpfs.');
+        H.kacheln([
+          [z(r.M, 0) + ' N·m', 'Drehmoment um die Schulter', '#E4572E'],
+          [z(r.xS * 100, 0) + ' cm', 'Hebelarm des Körpers (ohne Arme)', '#2B7BB9'],
+          [z(vol * 100, 0) + ' %', 'im Vergleich zur gestreckten Haltung', '#6E6FA6'],
+          [z(r.armLast, 0) + ' kg', 'entspricht dieser Last an der Hand des waagerecht gestreckten Arms', '#0E6B6A'],
+          e.uebung === 'planche' ? [z(r.alpha, 0) + '°', 'Vorlage der Arme (Schultern ' + z(r.lean * 100, 0) + ' cm vor den Händen)', '#A0785A'] : [z(r.kg1m, 0) + ' kg', 'entspricht dieser Last am 1-m-Hebel', '#A0785A']
+        ]);
+        H.tabelle('Stufen im Vergleich (' + UEBUNG[e.uebung] + ', waagerecht gerechnet mit der eingestellten Neigung)', ['Stufe', 'Hebelarm', 'Drehmoment', 'Anteil'],
+          r.vergleich.map(function (v) { return [STUFEN[v.k].name, z(v.xS * 100, 0) + ' cm', z(v.M, 0) + ' N·m', z(v.M / r.voll * 100, 0) + ' %']; }),
+          { zahl: [1, 2, 3], klasse: function (i) { return r.vergleich[i].k === e.stufe ? 'gewaehlt' : ''; } });
+        H.tabelle('Beitrag der Körperteile', ['Körperteil', 'Masse', 'waagerechter Abstand', 'Moment'],
+          r.k.teile.map(function (t) { return [t.n, z(t.m * e.m, 1) + ' kg', z(t.x * 100, 0) + ' cm', z(G * t.m * e.m * t.x, 0) + ' N·m']; }), { zahl: [1, 2, 3] });
+        H.nachweise([
+          [null, 'Warum die Stufen so viel ausmachen', 'Das Moment ist Masse mal waagerechter Abstand. Die Beine haben zusammen ' + z((2 * SEG.oberschenkel + 2 * SEG.unterschenkel + 2 * SEG.fuss) * 100, 0) + ' % der Körpermasse und liegen gestreckt am weitesten weg; anhocken holt sie nah an die Schulter.'],
+          [null, 'Größere Menschen', 'Bei gleichen Proportionen wächst das Moment mit Masse mal Größe: Wer 10 % größer ist, braucht bei gleicher Masse 10 % mehr Moment.']
+        ]);
+      } else if (e.thema === 'stuetz') {
+        const n = { liege: 'Liegestütz', knie: 'Liegestütz auf den Knien', klimm: 'Klimmzug', dip: 'Dip' }[e.art];
+        if (r.unmoeglich) H.meldung('Mit dieser Erhöhung geht die Haltung nicht auf: Wert kleiner wählen.', true);
+        if (r.zuBreit) H.meldung('Der Griff ist breiter, als die Arme reichen: Wert verringern.', true);
+        H.urteil(null, n + ': ' + kg(r.FH) + ' auf den Händen');
+        const k = [
+          [kg(r.FH), 'Last auf den Händen (' + z(r.anteil * 100, 0) + ' % der Körpermasse)', '#2B7BB9'],
+          [z(r.arm, 0) + ' N', 'Kraft je Arm (statisch)', '#E4572E'],
+          [kg(r.Fmax), 'Spitze beim Hochdrücken bzw. Hochziehen in ' + z(e.zeit, 1) + ' s', '#C0392B'],
+          [z(r.aMax, 2) + ' m/s²', 'größte Beschleunigung', '#6E6FA6']
+        ];
+        if (e.art === 'liege' || e.art === 'knie') k.splice(2, 0, [kg(r.FF), e.art === 'knie' ? 'auf Knien und Unterschenkeln' : 'auf den Fußspitzen', '#0E6B6A']);
+        if (e.art === 'klimm') k.splice(2, 0, [z(r.alpha, 0) + '°', 'Arme gegen die Senkrechte, Querkraft je Arm ' + z(r.quer, 0) + ' N', '#0E6B6A']);
+        H.kacheln(k);
+        if (e.art === 'liege' || e.art === 'knie') {
+          const tab = [-0.6, -0.3, 0, 0.3, 0.6, 0.9].map(function (d) { const x = rechneStuetz(Object.assign({}, e, { hoch: d })); return [(d > 0 ? 'Hände ' + z(d * 100, 0) + ' cm höher' : d < 0 ? 'Füße ' + z(-d * 100, 0) + ' cm höher' : 'auf dem Boden'), x.unmoeglich ? '–' : z(x.th / GRAD, 0) + '°', x.unmoeglich ? '–' : kg(x.FH), x.unmoeglich ? '–' : z(x.anteil * 100, 0) + ' %']; });
+          H.tabelle('Erhöhung im Vergleich', ['Haltung', 'Körperneigung', 'auf den Händen', 'Anteil'], tab, { zahl: [1, 2, 3] });
+        }
+        if (e.art === 'klimm') H.tabelle('Griffbreite im Vergleich', ['Griffbreite', 'Armwinkel', 'Kraft je Arm'], r.vergleich.map(function (v) { return [z(v[0] * 100, 0) + ' cm', z(v[1], 0) + '°', z(v[2], 0) + ' N']; }), { zahl: [0, 1, 2] });
+        H.nachweise([
+          e.art === 'liege' ? [null, 'Warum erhöhte Füße schwerer sind', 'Der Körper kippt nach vorn, die Hände rücken näher unter den Schwerpunkt und tragen mehr.'] : null,
+          e.art === 'klimm' ? [null, 'Warum breiter Griff schwerer ist', 'Die Arme stehen schräg: Nur der senkrechte Anteil der Armkraft hebt den Körper, der Rest drückt die Arme zusammen.'] : null,
+          [null, 'Tempo', 'Schnelles Hochdrücken oder Hochziehen erhöht kurzzeitig die nötige Kraft; langsam und gleichmäßig bleibt sie nahe der statischen Last.']
+        ]);
+      } else if (e.thema === 'schlag') {
+        H.urteil(null, z(r.Fmax, 0) + ' N Spitzenkraft');
+        H.kacheln([
+          [z(r.mw, 1) + ' kg', 'wirksame Masse (' + z(r.mw / e.m * 100, 1) + ' % der Körpermasse)', '#1E3A5F'],
+          [z(r.p, 1) + ' N·s', 'Impuls', '#2B7BB9'],
+          [z(r.E, 0) + ' J', 'Bewegungsenergie', '#6E6FA6'],
+          [z(r.F, 0) + ' N', 'mittlere Kraft über ' + z(r.dt * 1000, 0) + ' ms', '#E4572E'],
+          [z(r.Fmax, 0) + ' N', 'Spitzenkraft (≈ ' + kg(r.Fmax) + ')', '#C0392B'],
+          [z(r.druck, 0) + ' N/cm²', 'Druck auf ' + z(r.A, 0) + ' cm² Trefferfläche', '#A0785A']
+        ]);
+        if (r.M > 0) H.meldung('Der Sandsack übernimmt ' + z(r.dp, 1) + ' N·s Impuls und schwingt mit ' + z(r.vZiel, 2) + ' m/s los; ein beweglicheres Ziel weicht aus und nimmt weniger Kraft auf.');
+        H.tabelle('Techniken im Vergleich (Richtwerte bei ' + z(e.m, 0) + ' kg, Kontaktzeit wie gewählt)', ['Technik', 'wirksame Masse', 'Geschwindigkeit', 'Impuls', 'Energie', 'Spitzenkraft'],
+          r.vergleich.map(function (v) { return [v[0], z(v[1], 1) + ' kg', z(v[2], 0) + ' m/s', z(v[3], 1) + ' N·s', z(v[4], 0) + ' J', z(v[5], 0) + ' N']; }), { zahl: [1, 2, 3, 4, 5] });
+        H.nachweise([
+          [null, 'Hüftdrehung und Schritt', 'Sie erhöhen vor allem die wirksame Masse: Bei gleicher Geschwindigkeit wächst der Impuls im selben Verhältnis.'],
+          [null, 'Geschwindigkeit', 'Die Energie wächst mit dem Quadrat der Geschwindigkeit: 20 % schneller ergibt 44 % mehr Energie.'],
+          [null, 'Kontaktzeit', 'Ein hartes Ziel bremst schneller: gleicher Impuls, aber höhere Spitzenkraft – deshalb schützen Polster Hand und Gegenüber.']
+        ]);
+      } else {
+        H.urteil(null, z(r.Fmax / (e.m * G), 1) + '-fache Gewichtskraft');
+        if (e.fall === 'hart') H.meldung('Ohne Technik trifft der Aufprall auf wenige Zentimeter und kleine Flächen wie Ellbogen, Handgelenk oder Hinterkopf.', true);
+        H.meldung('Abschätzung mit dem ganzen Körper und einem wirksamen Bremsweg; Muskeln, Gelenke und weiches Gewebe bremsen zusätzlich, gemessene Kräfte liegen meist darunter. Der Vergleich der Techniken zeigt das Verhältnis.');
+        H.kacheln([
+          [z(r.v, 1) + ' m/s', 'Geschwindigkeit beim Aufprall', '#2B7BB9'],
+          [z(r.Ekin, 0) + ' J', 'Energie, die abgebaut werden muss', '#6E6FA6'],
+          [z(r.s * 100, 1) + ' cm', 'wirksamer Bremsweg', '#0E6B6A'],
+          [z(r.dt * 1000, 0) + ' ms', 'Dauer des Abbremsens', '#1E3A5F'],
+          [kg(r.Fmax), 'Spitzenkraft (' + z(r.Fmax / (e.m * G), 1) + ' × Körpergewicht)', '#C0392B'],
+          [z(r.druck, 1) + ' N/cm²', 'Druck auf ' + z(r.A, 0) + ' cm²', '#A0785A']
+        ]);
+        H.tabelle('Techniken im Vergleich (Fallhöhe ' + z(e.fh, 2) + ' m, Matte ' + z(e.matte, 0) + ' cm)', ['Technik', 'Bremsweg', 'Dauer', 'Spitzenkraft', 'Druck'],
+          r.vergleich.map(function (v) { return [v[0], z(v[1] * 100, 1) + ' cm', z(v[2] * 1000, 0) + ' ms', kg(v[3]), z(v[4], 1) + ' N/cm²']; }),
+          { zahl: [1, 2, 3, 4], klasse: function (i) { return Object.keys(FALL)[i] === e.fall ? 'gewaehlt' : ''; } });
+        H.nachweise([
+          [null, 'Warum Abrollen schützt', 'Die Energie bleibt gleich, aber sie wird über einen viel längeren Weg abgebaut: Die mittlere Kraft sinkt im selben Verhältnis, wie der Bremsweg wächst.'],
+          [null, 'Abschlagen', 'Arme und Rücken treffen gleichzeitig auf: Die Kraft verteilt sich auf eine große Fläche, der Druck auf einzelne Stellen sinkt stark.'],
+          [null, 'Kopf schützen', 'Kinn zur Brust: Der Kopf berührt den Boden nicht. Fallschule nur unter Anleitung und auf Matten üben.']
+        ]);
+      }
+    }
+
+    // ---------- Rechenweg ----------
+    function weg(r, e) {
+      if (e.thema === 'hebel') {
+        const sum = r.k.teile.map(function (t) { return tz(t.m, 3) + ' \\cdot ' + tz(t.x, 2); });
+        return [
+          ['Masse ohne Arme', 'm_\\text{K} = ' + tz(e.m, 1) + '\\,\\text{kg} \\cdot ' + tz(1 - 2 * SEG.arm, 2) + ' = ' + E(tz(r.mK, 1) + '\\,\\text{kg}')],
+          ['Summe der Momente (Massenanteil · waagerechter Abstand in m)', '\\sum \\frac{m_i}{m} x_i = ' + sum.slice(0, 4).join(' + ') + ' + \\dots = ' + tz(r.M / G / e.m, 3) + '\\,\\text{m}'],
+          ['Drehmoment um die Schulter', 'M = ' + tz(G, 2) + ' \\cdot ' + tz(e.m, 1) + ' \\cdot ' + tz(r.M / G / e.m, 3) + ' = ' + E(tz(r.M, 0) + '\\,\\text{N·m}')],
+          ['Hebelarm des Körpers', 'x_\\text{S} = \\frac{' + tz(r.M / G / e.m, 3) + '}{' + tz(1 - 2 * SEG.arm, 2) + '} = ' + E(tz(r.xS * 100, 1) + '\\,\\text{cm}')],
+          ['Vergleich mit der gestreckten Haltung', '\\frac{' + tz(r.M, 0) + '}{' + tz(r.voll, 0) + '} = ' + E(tz(r.anteil * 100, 0) + '\\,\\%')]
+        ];
+      }
+      if (e.thema === 'stuetz') {
+        const w = [['Gewichtskraft', 'F_\\text{G} = (' + tz(e.m, 1) + ' + ' + tz(e.zusatz, 1) + ') \\cdot ' + tz(G, 2) + ' = ' + E(tz(r.FG, 0) + '\\,\\text{N}')]];
+        if (e.art === 'liege' || e.art === 'knie') {
+          w.push(['Körperneigung aus der Erhöhung', '\\vartheta = ' + E(tz(r.th / GRAD, 1) + '^\\circ')]);
+          w.push(['Hebelarme ab ' + (e.art === 'knie' ? 'den Knien' : 'den Füßen'), 'x_\\text{S} = ' + tz(r.xS, 3) + '\\,\\text{m},\\quad x_\\text{H} = ' + tz(r.xH, 3) + '\\,\\text{m}']);
+          w.push(['Last auf den Händen', 'F_\\text{H} = F_\\text{G,K} \\cdot \\frac{' + tz(r.xS, 3) + '}{' + tz(r.xH, 3) + '} = ' + E(tz(r.FH, 0) + '\\,\\text{N}')]);
+        } else if (e.art === 'klimm') {
+          w.push(['Armwinkel', '\\sin\\alpha = \\frac{(' + tz(e.griff, 2) + ' - ' + tz(SEG.schulterbreite * e.h, 2) + ')/2}{' + tz(SEG.lArm * e.h, 2) + '} \\Rightarrow \\alpha = ' + E(tz(r.alpha, 1) + '^\\circ')]);
+          w.push(['Kraft je Arm', 'F_\\text{Arm} = \\frac{' + tz(r.FG, 0) + '}{2 \\cos ' + tz(r.alpha, 1) + '^\\circ} = ' + E(tz(r.arm, 0) + '\\,\\text{N}')]);
+        }
+        w.push(['Größte Beschleunigung', 'a_{\\max} = \\frac{\\pi^2}{2} \\cdot \\frac{' + tz(e.weg, 2) + '}{' + tz(e.zeit, 2) + '^2} = ' + E(tz(r.aMax, 2) + '\\,\\tfrac{\\text{m}}{\\text{s}^2}')]);
+        w.push(['Spitzenkraft', 'F_{\\max} = ' + tz(r.FH, 0) + ' \\cdot \\left(1 + \\frac{' + tz(r.aMax, 2) + '}{' + tz(G, 2) + '}\\right) = ' + E(tz(r.Fmax, 0) + '\\,\\text{N}')]);
+        return w;
+      }
+      if (e.thema === 'schlag') {
+        const w = [
+          ['Wirksame Masse', 'm_\\text{w} = ' + E(tz(r.mw, 2) + '\\,\\text{kg}')],
+          ['Impuls', 'p = ' + tz(r.mw, 2) + ' \\cdot ' + tz(e.v, 1) + ' = ' + E(tz(r.p, 2) + '\\,\\text{N·s}')],
+          ['Bewegungsenergie', 'E = \\tfrac12 \\cdot ' + tz(r.mw, 2) + ' \\cdot ' + tz(e.v, 1) + '^2 = ' + E(tz(r.E, 0) + '\\,\\text{J}')]
+        ];
+        if (r.M > 0) w.push(['Übertragener Impuls (Sandsack ' + tz(r.M, 0) + '\\,kg)', '\\Delta p = \\frac{' + tz(r.mw, 2) + ' \\cdot ' + tz(r.M, 0) + '}{' + tz(r.mw, 2) + ' + ' + tz(r.M, 0) + '} \\cdot ' + tz(e.v, 1) + ' = ' + E(tz(r.dp, 2) + '\\,\\text{N·s}')]);
+        w.push(['Mittlere Kraft', '\\bar F = \\frac{' + tz(r.dp, 2) + '}{' + tz(r.dt, 3) + '} = ' + E(tz(r.F, 0) + '\\,\\text{N}')]);
+        w.push(['Spitzenkraft und Druck', 'F_{\\max} = \\frac{\\pi}{2} \\cdot ' + tz(r.F, 0) + ' = ' + E(tz(r.Fmax, 0) + '\\,\\text{N}') + ',\\quad p = \\frac{' + tz(r.Fmax, 0) + '}{' + tz(r.A, 0) + '} = ' + E(tz(r.druck, 0) + '\\,\\tfrac{\\text{N}}{\\text{cm}^2}')]);
+        return w;
+      }
+      return [
+        ['Geschwindigkeit beim Aufprall', 'v = \\sqrt{2 \\cdot ' + tz(G, 2) + ' \\cdot ' + tz(e.fh, 2) + '} = ' + E(tz(r.v, 2) + '\\,\\tfrac{\\text{m}}{\\text{s}}')],
+        ['Energie', 'E = ' + tz(e.m, 1) + ' \\cdot ' + tz(G, 2) + ' \\cdot ' + tz(e.fh, 2) + ' = ' + E(tz(r.Ekin, 0) + '\\,\\text{J}')],
+        ['Mittlere Kraft über ' + tz(r.s * 100, 1) + '\\,cm Bremsweg', '\\bar F = ' + tz(e.m, 1) + ' \\cdot ' + tz(G, 2) + ' \\cdot \\left(1 + \\frac{' + tz(e.fh, 2) + '}{' + tz(r.s, 3) + '}\\right) = ' + E(tz(r.F, 0) + '\\,\\text{N}')],
+        ['Spitzenkraft und Dauer', 'F_{\\max} \\approx 2 \\cdot ' + tz(r.F, 0) + ' = ' + E(tz(r.Fmax, 0) + '\\,\\text{N}') + ',\\quad \\Delta t = \\frac{2 \\cdot ' + tz(r.s, 3) + '}{' + tz(r.v, 2) + '} = ' + E(tz(r.dt * 1000, 0) + '\\,\\text{ms}')],
+        ['Druck', 'p = \\frac{' + tz(r.Fmax, 0) + '}{' + tz(r.A, 0) + '} = ' + E(tz(r.druck, 1) + '\\,\\tfrac{\\text{N}}{\\text{cm}^2}')]
+      ];
+    }
+
+    // ---------- Zeichnung ----------
+    function linie(cx, pts, farbe, breite) {
+      cx.strokeStyle = farbe; cx.lineWidth = breite; cx.lineCap = 'round'; cx.lineJoin = 'round';
+      cx.beginPath(); pts.forEach(function (p, i) { if (i) cx.lineTo(p[0], p[1]); else cx.moveTo(p[0], p[1]); }); cx.stroke();
+    }
+    function punkt(cx, p, r, f) { cx.fillStyle = f; cx.beginPath(); cx.arc(p[0], p[1], r, 0, 2 * Math.PI); cx.fill(); }
+    function zeichne(cx, B, H, t, r, e) {
+      const text = R.farbe('--text'), leise = R.farbe('--leise'), linieF = R.farbe('--linie');
+      const koerper = text, rot = '#E4572E', blau = '#2B7BB9', gruen = '#0E6B6A';
+      if (e.thema === 'hebel') {
+        const sk = Math.min((B - 100) / (e.h * 0.95), (H - 100) / (e.h * 0.75));
+        const th = e.neigung * GRAD + Math.sin(t / 700) * 0.6 * GRAD;
+        const planche = e.uebung === 'planche', oben = e.uebung === 'front';
+        const la = SEG.lArm * e.h * sk, lean = Math.max(0, r.xS) * sk, armV = Math.sqrt(Math.max(0, la * la - lean * lean));
+        const S = [Math.max(B * 0.26, 96), planche ? H - 44 - armV : Math.max(H * 0.42, la + 26)];
+        // Körperachse auf dem Bildschirm: x zu den Füßen, y zur Bauchseite
+        const ax = [Math.cos(th), -Math.sin(th)], no = oben ? [-Math.sin(th), -Math.cos(th)] : [Math.sin(th), Math.cos(th)];
+        const P = function (q) { return [S[0] + (q[0] * ax[0] + q[1] * no[0]) * sk, S[1] + (q[0] * ax[1] + q[1] * no[1]) * sk]; };
+        if (planche) {
+          const hand = [S[0] + lean, S[1] + armV];
+          linie(cx, [[20, hand[1] + 3], [B - 20, hand[1] + 3]], linieF, 3);
+          linie(cx, [S, hand], koerper, 5);
+          cx.strokeStyle = gruen; cx.fillStyle = gruen; cx.lineWidth = 2; Z.pfeil(cx, hand[0] + 30, hand[1] + 2, hand[0] + 30, hand[1] - 40, 8);
+          Z.text(cx, 'Stütz ' + z(e.m * G, 0) + ' N', hand[0] + 40, hand[1] - 52, 'left', 11, true, gruen);
+        } else {
+          const stange = [S[0], S[1] - la];
+          linie(cx, [[S[0] - 50, stange[1]], [S[0] + 50, stange[1]]], leise, 4);
+          linie(cx, [S, stange], koerper, 5);
+        }
+        // Körper
+        const k = r.k, hu = P(k.huefte);
+        linie(cx, [S, hu], koerper, 9);
+        punkt(cx, P([-0.085 * e.h, 0]), 0.06 * e.h * sk, koerper);
+        k.beine.forEach(function (b, i) { linie(cx, [hu, P(b.knie), P(b.fuss), P(b.spitze)], i ? koerper : 'rgba(127,127,127,.75)', 6); });
+        // Schwerpunkte der Teile
+        k.teile.forEach(function (tt) { const q = P(tt.p); punkt(cx, q, 3 + tt.m * 14, rot); });
+        // Gesamtschwerpunkt und Hebelarm
+        const sp = [S[0] + r.xS * sk, S[1]];
+        const ym = planche ? 40 : H - 26;
+        linie(cx, [[S[0], ym], [sp[0], ym]], blau, 2);
+        linie(cx, [[S[0], ym - 6], [S[0], ym + 6]], blau, 2); linie(cx, [[sp[0], ym - 6], [sp[0], ym + 6]], blau, 2);
+        Z.text(cx, 'Hebelarm ' + z(r.xS * 100, 0) + ' cm', (S[0] + sp[0]) / 2, ym + (planche ? -12 : 14), 'center', 12, true, blau);
+        cx.setLineDash([4, 4]); linie(cx, [[sp[0], ym], [sp[0], S[1]]], blau, 1); cx.setLineDash([]);
+        cx.strokeStyle = rot; cx.fillStyle = rot; cx.lineWidth = 2.5; Z.pfeil(cx, sp[0], S[1] - 6, sp[0], S[1] + 46, 8);
+        Z.text(cx, 'F = ' + z(r.mK * G, 0) + ' N', sp[0] + 8, S[1] + 64, 'left', 11, true, rot);
+        // Drehmoment-Bogen um die Schulter
+        cx.strokeStyle = rot; cx.lineWidth = 2; cx.beginPath(); cx.arc(S[0], S[1], 26, -0.6, 0.9); cx.stroke();
+        const mT = 'M = ' + z(r.M, 0) + ' N·m';
+        Z.text(cx, mT, Math.max(S[0] - 30, 10 + mT.length * 7), S[1] + 44, 'right', 12, true, rot);
+        Z.text(cx, UEBUNG[e.uebung] + ' · ' + (e.stufe === 'eigen' ? 'eigene Winkel' : B < 480 ? STUFEN[e.stufe].name.split(' (')[0] : STUFEN[e.stufe].name), 16, planche ? 14 : 18, 'left', 12, true, text);
+        return;
+      }
+      if (e.thema === 'stuetz') {
+        const haengen = e.art === 'klimm' || e.art === 'dip';
+        const sk = haengen ? Math.min((B - 60) / (e.h * 1.2), (H - 60) / (e.h * 1.08)) : Math.min((B - 60) / (e.h * 1.15), (H - 70) / (e.h * 0.75)), auf = (Math.sin(t / 650) + 1) / 2;
+        if (e.art === 'klimm' || e.art === 'dip') {
+          const cxm = B / 2, top = 28, la = SEG.lArm * e.h * sk, sb = SEG.schulterbreite * e.h * sk;
+          if (e.art === 'klimm') {
+            const gb = Math.min(e.griff, SEG.schulterbreite * e.h + 1.9 * SEG.lArm * e.h) * sk, hub = auf * 0.25 * la;
+            linie(cx, [[cxm - gb / 2 - 40, top], [cxm + gb / 2 + 40, top]], leise, 5);
+            const sy = top + Math.sqrt(Math.max(0, la * la - Math.pow((gb - sb) / 2, 2))) - hub * 1.4;
+            const sL = [cxm - sb / 2, sy], sR = [cxm + sb / 2, sy], hL = [cxm - gb / 2, top], hR = [cxm + gb / 2, top];
+            linie(cx, [hL, sL], koerper, 5); linie(cx, [hR, sR], koerper, 5);
+            linie(cx, [sL, sR], koerper, 7); punkt(cx, [cxm, sy - 0.07 * e.h * sk], 0.055 * e.h * sk, koerper);
+            const hu = [cxm, sy + 0.29 * e.h * sk]; linie(cx, [[cxm, sy], hu], koerper, 9);
+            linie(cx, [hu, [cxm - 10, hu[1] + 0.25 * e.h * sk], [cxm - 6, hu[1] + 0.48 * e.h * sk]], koerper, 6); linie(cx, [hu, [cxm + 10, hu[1] + 0.25 * e.h * sk], [cxm + 6, hu[1] + 0.48 * e.h * sk]], koerper, 6);
+            [[hL, sL], [hR, sR]].forEach(function (p) { const d = [p[0][0] - p[1][0], p[0][1] - p[1][1]], l = Math.hypot(d[0], d[1]); cx.strokeStyle = rot; cx.fillStyle = rot; cx.lineWidth = 2.5; Z.pfeil(cx, p[1][0] + d[0] * 0.2, p[1][1] + d[1] * 0.2, p[1][0] + d[0] * 0.2 + d[0] / l * 60, p[1][1] + d[1] * 0.2 + d[1] / l * 60, 8); });
+            Z.text(cx, z(r.arm, 0) + ' N je Arm', cxm + gb / 2 + 10, top + 30, 'left', 12, true, rot);
+            Z.text(cx, 'α = ' + z(r.alpha, 0) + '°', cxm - gb / 2 - 10, top + 30, 'right', 12, true, blau);
+          } else {
+            const hub = auf * 0.3 * la, sy = top + 30 + 40 - hub;
+            linie(cx, [[cxm - sb / 2 - 14, top + 30 + la], [cxm - sb / 2 - 14, H - 10]], leise, 5); linie(cx, [[cxm + sb / 2 + 14, top + 30 + la], [cxm + sb / 2 + 14, H - 10]], leise, 5);
+            const sL = [cxm - sb / 2, sy], sR = [cxm + sb / 2, sy];
+            linie(cx, [sL, [cxm - sb / 2 - 30, sy + la * 0.5], [cxm - sb / 2 - 14, top + 30 + la]], koerper, 5);
+            linie(cx, [sR, [cxm + sb / 2 + 30, sy + la * 0.5], [cxm + sb / 2 + 14, top + 30 + la]], koerper, 5);
+            linie(cx, [sL, sR], koerper, 7); punkt(cx, [cxm, sy - 0.07 * e.h * sk], 0.055 * e.h * sk, koerper);
+            const hu = [cxm, sy + 0.29 * e.h * sk]; linie(cx, [[cxm, sy], hu], koerper, 9);
+            linie(cx, [hu, [cxm + 14, hu[1] + 0.22 * e.h * sk], [cxm - 4, hu[1] + 0.4 * e.h * sk]], koerper, 6);
+            cx.strokeStyle = gruen; cx.fillStyle = gruen; cx.lineWidth = 2.5;
+            Z.pfeil(cx, cxm - sb / 2 - 14, top + 30 + la + 50, cxm - sb / 2 - 14, top + 34 + la, 8); Z.pfeil(cx, cxm + sb / 2 + 14, top + 30 + la + 50, cxm + sb / 2 + 14, top + 34 + la, 8);
+            Z.text(cx, z(r.arm, 0) + ' N je Hand', cxm + sb / 2 + 24, top + la + 66, 'left', 12, true, gruen);
+          }
+          return;
+        }
+        // Liegestütz: Füße bzw. Knie links, Hände rechts
+        const boden = H - 40, th = r.th * (1 - 0.25 * auf), L = r.L * sk, a = r.a * sk * (0.75 + 0.25 * (1 - auf));
+        const fuss = [40, boden - Math.max(0, -e.hoch) * sk];
+        const sch = [fuss[0] + L * Math.cos(th), fuss[1] - L * Math.sin(th)];
+        const hand = [sch[0] + r.a * sk * Math.cos(r.th - Math.PI / 2 - r.gam), fuss[1] - (r.L * Math.sin(r.th) + r.a * Math.sin(r.th - Math.PI / 2 - r.gam)) * sk];
+        linie(cx, [[20, boden], [B - 20, boden]], linieF, 2);
+        if (e.hoch > 0) { cx.fillStyle = 'rgba(160,120,90,.35)'; cx.fillRect(hand[0] - 30, hand[1], 60, boden - hand[1]); }
+        if (e.hoch < 0) { cx.fillStyle = 'rgba(160,120,90,.35)'; cx.fillRect(fuss[0] - 26, fuss[1], 52, boden - fuss[1]); }
+        const ell = [(sch[0] + hand[0]) / 2 + 18 * auf, (sch[1] + hand[1]) / 2 - 6 * auf];
+        linie(cx, [fuss, sch], koerper, 8);
+        if (e.art === 'knie') linie(cx, [fuss, [fuss[0] - 0.24 * e.h * sk, fuss[1] - 18]], koerper, 6);
+        linie(cx, [sch, ell, hand], koerper, 5);
+        punkt(cx, [sch[0] + 0.1 * e.h * sk * Math.cos(th), sch[1] - 0.1 * e.h * sk * Math.sin(th) - 4], 0.055 * e.h * sk, koerper);
+        void a;
+        cx.strokeStyle = gruen; cx.fillStyle = gruen; cx.lineWidth = 2.5;
+        const pl = Math.min(34, H - Math.max(hand[1], fuss[1]) - 4);
+        Z.pfeil(cx, hand[0], hand[1] + pl, hand[0], hand[1] + 4, 8); Z.pfeil(cx, fuss[0], fuss[1] + pl * Math.min(1, r.FF / r.FH), fuss[0], fuss[1] + 4, 8);
+        Z.text(cx, kg(r.FH) + ' auf den Händen', hand[0] - 10, hand[1] - 16, 'right', 12, true, gruen);
+        Z.text(cx, kg(r.FF), fuss[0] + 16, fuss[1] + 14, 'left', 12, true, gruen);
+        Z.text(cx, 'Neigung ' + z(r.th / GRAD, 0) + '°', 16, 18, 'left', 12, true, text);
+        return;
+      }
+      // runde Teilung der Achsen
+      const schritt = function (max) { const p = Math.pow(10, Math.floor(Math.log10(max / 4))), q = max / 4 / p; return (q <= 1 ? 1 : q <= 2 ? 2 : q <= 5 ? 5 : 10) * p; };
+      if (e.thema === 'fall') {
+        // Balken: Spitzenkraft je Technik, gewählte hervorgehoben
+        const liste = r.vergleich, keys = Object.keys(FALL), fM = Math.max.apply(null, liste.map(function (v) { return v[3]; }));
+        const x0 = Math.min(250, B * 0.42), b = B - x0 - 70, zeile = Math.min(56, (H - 60) / liste.length);
+        Z.text(cx, 'Spitzenkraft beim Aufprall aus ' + z(e.fh, 2) + ' m', 16, 16, 'left', 12, true, text);
+        liste.forEach(function (v, i) {
+          const y = 40 + i * zeile, gew = keys[i] === e.fall, w = Math.max(2, v[3] / fM * b);
+          const wachs = gew ? 0.85 + 0.15 * Math.abs(Math.sin(t / 500)) : 1;
+          Z.text(cx, v[0].replace(' ohne Matte (Ellbogen, Hüfte, Kopf)', ''), x0 - 10, y + zeile * 0.35, 'right', 11, gew, gew ? text : leise);
+          cx.fillStyle = gew ? gruen : linieF; cx.fillRect(x0, y + 4, w * wachs, zeile * 0.55);
+          Z.text(cx, z(v[3] / (e.m * G), 1) + ' × KG', x0 + w + 6, y + zeile * 0.35, 'left', 11, true, gew ? gruen : leise);
+        });
+        Z.text(cx, 'KG = Körpergewicht · Bremsweg ' + z(r.s * 100, 1) + ' cm · Dauer ' + z(r.dt * 1000, 0) + ' ms', 16, H - 12, 'left', 11, false, leise);
+        return;
+      }
+      const dauer = r.dt * 1000, tMax = Math.max(dauer * 1.6, 10);
+      const yMax = r.Fmax * 1.2, ys = schritt(yMax);
+      const x0 = 64, y0 = 34, b = B - x0 - 20, h = H - y0 - 46;
+      const A = Z.achsen(cx, x0, y0, b, h, 0, tMax, 0, Math.ceil(yMax / ys) * ys, { xName: 't in ms', yName: 'F in N', ySchritt: ys, xSchritt: schritt(tMax * 1.25), xStellen: tMax < 12 ? 1 : 0 });
+      cx.strokeStyle = rot; cx.lineWidth = 2.5; cx.beginPath();
+      for (let i = 0; i <= 100; i++) { const tt = i / 100 * tMax, F = tt < dauer ? r.Fmax * Math.sin(Math.PI * tt / dauer) : 0; if (i) cx.lineTo(A.X(tt), A.Y(F)); else cx.moveTo(A.X(tt), A.Y(F)); }
+      cx.stroke();
+      cx.fillStyle = 'rgba(228,87,46,.12)'; cx.beginPath(); cx.moveTo(A.X(0), A.Y(0));
+      for (let i = 0; i <= 60; i++) { const tt = i / 60 * dauer; cx.lineTo(A.X(tt), A.Y(r.Fmax * Math.sin(Math.PI * tt / dauer))); }
+      cx.closePath(); cx.fill();
+      const ph = (t / 1600) % 1, tt = ph * tMax, F = tt < dauer ? r.Fmax * Math.sin(Math.PI * tt / dauer) : 0;
+      punkt(cx, [A.X(tt), A.Y(F)], 5, rot);
+      Z.text(cx, 'F_max = ' + z(r.Fmax, 0) + ' N', A.X(dauer / 2), A.Y(r.Fmax) - 12, 'center', 12, true, rot);
+      Z.text(cx, 'Fläche = Impuls ' + z(r.dp, 1) + ' N·s', A.X(dauer / 2), A.Y(r.Fmax * 0.35), 'center', 11, true, rot);
+      Z.text(cx, TECHNIK[e.technik] ? TECHNIK[e.technik][0] : 'eigene wirksame Masse', B - 20, 14, 'right', 12, true, text);
+    }
+  })();
+  </script>
+</body>
+</html>
