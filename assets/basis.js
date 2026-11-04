@@ -459,7 +459,7 @@
       document.querySelectorAll('main details:not([open])').forEach(function (d) { d.open = true; geoeffnet.push(d); });
       titelAlt = document.title;
       const a = pdfAngaben();
-      document.title = titelAlt + (a.projekt ? ' – ' + a.projekt : '') + ' – ' + heute();
+      document.title = titelAlt.replace(/ – Formeln & Rechner$/, '') + (a.projekt ? ' – ' + a.projekt : '') + ' – ' + heute();   // Dateiname des PDFs
       document.dispatchEvent(new CustomEvent('vordruck'));
     });
     window.addEventListener('afterprint', function () {
