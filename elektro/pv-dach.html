@@ -231,8 +231,10 @@
         <button type="button" class="knopf" id="planLaden">Plan laden</button>
         <input type="file" id="planDatei" accept=".json,application/json" hidden>
         <button type="button" class="knopf" id="planNeu">Beispiel wiederherstellen</button>
+        <button type="button" class="knopf" id="planLink">Link mit diesem Plan kopieren</button>
+        <span class="teilen-meldung" id="planMeldung" aria-live="polite"></span>
       </div>
-      <p class="hilfe" style="margin-top:8px">Der Plan bleibt in diesem Browser gespeichert, auch nach dem Schließen.</p>
+      <p class="hilfe" style="margin-top:8px">Der Plan bleibt in diesem Browser gespeichert, auch nach dem Schließen. Der Link enthält den ganzen Plan und öffnet ihn auf jedem Gerät.</p>
     </section>
 
     <section class="tafel abstand" aria-labelledby="h-formeln">
@@ -2588,11 +2590,8 @@
       const r = new FileReader();
       r.onload = function () {
         try {
-          const p = JSON.parse(r.result);
-          if (!gueltig(p)) throw new Error('kein Plan');
-          merken(); projekt = p; idsPruefen(); aktiv = 0; auswahl = [];
-          Object.keys(ansichten).forEach(function (k) { delete ansichten[k]; });
-          allesNeu();
+          const p = planBereinigen(JSON.parse(r.result));
+          if (!p || !planUebernehmen(p)) throw new Error('kein Plan');
           tippZeigen('Plan „' + datei.name + '“ geladen.');
         } catch (e) { tippZeigen('Die Datei ist kein gültiger Dachplan.'); }
         ev.target.value = '';
@@ -2604,6 +2603,51 @@
       Object.keys(ansichten).forEach(function (k) { delete ansichten[k]; });
       allesNeu();
     });
+    // Plan aus Link, Datei oder Speicher: entschärfen, Typen an die Vorlage angleichen, dann Aufbau prüfen
+    function typAngleichen(w, v, fuellen) {
+      if (typeof v === 'number') { const x = Number(w); return isFinite(x) && w !== null && w !== '' && typeof w !== 'boolean' ? x : v; }
+      if (typeof v === 'string') return typeof w === 'string' ? w : typeof w === 'number' ? String(w) : v;
+      if (typeof v === 'boolean') return typeof w === 'boolean' ? w : v;
+      if (Array.isArray(v)) { if (!Array.isArray(w)) return v; if (!v.length) return w; return w.map(function (x, i) { return typAngleichen(x, v[Math.min(i, v.length - 1)], false); }); }
+      if (v && typeof v === 'object') {
+        if (!w || typeof w !== 'object' || Array.isArray(w)) return v;
+        const o = {};
+        Object.keys(w).forEach(function (k) { o[k] = Object.prototype.hasOwnProperty.call(v, k) ? typAngleichen(w[k], v[k], fuellen) : w[k]; });
+        if (fuellen) Object.keys(v).forEach(function (k) { if (!Object.prototype.hasOwnProperty.call(o, k)) o[k] = v[k]; });
+        return o;
+      }
+      return w;
+    }
+    function planBereinigen(roh) {
+      let p = Teilen.entschaerfen(roh);
+      if (!p || typeof p !== 'object' || p.version !== 2 || !Array.isArray(p.flaechen)) return null;
+      const altP = projekt, altId = naechsteId, vorlage = beispielProjekt();
+      projekt = altP; naechsteId = altId;
+      ['modul', 'standort', 'uk', 'wind'].forEach(function (k) { p[k] = typAngleichen(p[k], vorlage[k], true); });
+      p.flaechen = p.flaechen.slice(0, 30).map(function (f) { return typAngleichen(f, vorlage.flaechen[0], false); });
+      return gueltig(p) ? p : null;
+    }
+    function planUebernehmen(p) {
+      const alt = projekt;
+      try {
+        merken(); projekt = p; idsPruefen(); aktiv = 0; auswahl = [];
+        Object.keys(ansichten).forEach(function (k) { delete ansichten[k]; });
+        allesNeu();
+        return true;
+      } catch (e) { projekt = alt; idsPruefen(); allesNeu(); return false; }
+    }
+    function planMelden(t) { const m = document.getElementById('planMeldung'); m.textContent = t; tippZeigen(t); setTimeout(function () { if (m.textContent === t) m.textContent = ''; }, 5000); }
+    // Link nach dem gemeinsamen Muster (basis.js): #dach=…, komprimiert, vorheriger Plan gesichert
+    document.getElementById('planLink').addEventListener('click', function () {
+      Teilen.url('dach', projekt).then(function (url) { Teilen.kopieren(url, planMelden); });
+    });
+    const vorherKnopf = Teilen.knopf(document.getElementById('planLink').parentNode, SCHLUESSEL, function (roh) {
+      let p = null; try { p = planBereinigen(JSON.parse(roh)); } catch (e) { p = null; }
+      if (!p || !planUebernehmen(p)) { planMelden('Kein gültiger vorheriger Plan gefunden.'); return; }
+      planMelden('Vorheriger Plan wiederhergestellt.');
+    }, 'Planung');
+    document.getElementById('planLink').parentNode.insertBefore(document.querySelector('.vorher-knopf'), document.getElementById('planMeldung'));
+    window.addEventListener('pagehide', function () { clearTimeout(speicherUhr); try { localStorage.setItem(SCHLUESSEL, JSON.stringify(projekt)); } catch (e) { /* ohne Speicher */ } });
     function gueltig(p) {
       return p && p.version === 2 && p.modul && p.standort && p.uk && Array.isArray(p.flaechen) && p.flaechen.length > 0 &&
         p.flaechen.every(function (f) { return Array.isArray(f.punkte) && f.punkte.length >= 3 && Array.isArray(f.module) && Array.isArray(f.hindernisse) && Array.isArray(f.knicke) && f.form && f.rand && f.sparren && f.auf; });
@@ -2620,14 +2664,24 @@
     farbenLesen();
     let gespeichert = null;
     try { gespeichert = JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null'); } catch (e) { gespeichert = null; }
-    if (gueltig(gespeichert)) { projekt = gespeichert; idsPruefen(); }
-    else projekt = beispielProjekt();
+    projekt = beispielProjekt();
+    if (gespeichert) { const g = planBereinigen(gespeichert); if (g) { projekt = g; idsPruefen(); } }
     sammlungAufbauen();
     querSetzen(false);
     groesseAnpassen();
     auswerten();
     werkzeugSetzen('auswahl');
     allesNeu();
+    Teilen.lesen('dach').then(function (roh) {
+      if (!roh) return;
+      const p = planBereinigen(roh);
+      if (!p) throw new Error('ungültig');
+      const text = JSON.stringify(p), gesichert = Teilen.sichern(SCHLUESSEL, text);
+      if (!planUebernehmen(p)) throw new Error('ungültig');
+      clearTimeout(speicherUhr); try { localStorage.setItem(SCHLUESSEL, JSON.stringify(projekt)); } catch (e) { /* ohne Speicher */ }
+      vorherKnopf.zeigen();
+      planMelden('Plan aus dem Link geladen und gespeichert.' + (gesichert ? ' Dein vorheriger Plan ist gesichert.' : ''));
+    }).catch(function () { planMelden('Der Link ist unvollständig oder beschädigt – es gilt der gespeicherte Plan.'); });
     void bewegungAus;
   })();
   </script>

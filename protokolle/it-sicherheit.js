@@ -1,5 +1,6 @@
 /* Übernommen aus dem Projekt „Prüfprotokolle“ (MIT-Lizenz, LeENMYde), angepasst an die Sammlung. */
 'use strict';
+function htmlText(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 // Ersatz für fehlende Elemente (statt optionaler Verkettung, ES2015)
 const LEER = { value: '', checked: false, addEventListener: function () {}, appendChild: function () {}, click: function () {} };
 
@@ -269,7 +270,7 @@ function updateFooterLink() {
   if (removeLink && firma) {
     footerLink.textContent = firma;
   } else {
-    footerLink.innerHTML = firma;
+    footerLink.textContent = firma;   // nie als HTML: Inhalt kann aus einem geteilten Link stammen
   }
 }
 
@@ -330,14 +331,14 @@ function makePortRow(d) {
   const p = d || {};
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" value="${p.port||''}" placeholder="z.B. 443"></td>
-    <td><input type="text" class="proto-col" value="${p.proto||''}" placeholder="HTTPS"></td>
+    <td><input type="text" value="${htmlText(p.port)}" placeholder="z.B. 443"></td>
+    <td><input type="text" class="proto-col" value="${htmlText(p.proto)}" placeholder="HTTPS"></td>
     <td><select onchange="colorRow(this)">${buildTransportSelect(p.transport||'TCP')}</select></td>
     <td><select><option>open</option><option>closed</option><option>filtered</option><option>open|filtered</option><option>unfiltered</option></select></td>
-    <td><input type="text" value="${p.desc||''}" placeholder="Dienst / Beschreibung"></td>
-    <td><input type="text" value="${p.version||''}" placeholder="Version / Banner"></td>
+    <td><input type="text" value="${htmlText(p.desc)}" placeholder="Dienst / Beschreibung"></td>
+    <td><input type="text" value="${htmlText(p.version)}" placeholder="Version / Banner"></td>
     <td><select onchange="colorRow(this)">${buildSevSelect(p.sev||'')}</select></td>
-    <td><input type="text" value="${p.note||''}" placeholder="Empfehlung / Bemerkung"></td>
+    <td><input type="text" value="${htmlText(p.note)}" placeholder="Empfehlung / Bemerkung"></td>
     <td style="text-align:center"><button onclick="this.closest('tr').remove()" type="button" class="btn btn-small btn-weg" aria-label="Zeile entfernen">✕</button></td>
   `;
   const sevSel = tr.querySelectorAll('select')[2];
@@ -626,7 +627,7 @@ function updateToolsList() {
   const tools = getTools();
   if (!tools.length) { list.innerHTML='<em style="color:var(--leise);">Keine Werkzeuge gespeichert</em>'; return; }
   list.innerHTML = '<ol>' + tools.map((t,i) =>
-    `<li><strong>${t.name}</strong>${t.ver?' v'+t.ver:''} – ${t.use||''}${t.url?` <a href="${t.url}" target="_blank" style="color:#142e60">[Link]</a>`:''}
+    `<li><strong>${htmlText(t.name)}</strong>${t.ver?' v'+htmlText(t.ver):''} – ${htmlText(t.use)}${t.url && /^https?:\/\//i.test(t.url)?` <a href="${htmlText(t.url)}" target="_blank" rel="noopener" style="color:#142e60">[Link]</a>`:''}
      <button onclick="removeTool(${i})" style="margin-left:8px;font-size:10px;padding:1px 5px;border:none;background:#dc2626;color:white;border-radius:3px;cursor:pointer;">✕</button></li>`
   ).join('')+'</ol>';
 }
