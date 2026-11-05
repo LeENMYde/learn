@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abgasmessung Schritt für Schritt – Formeln &amp; Rechner</title>
+  <meta name="description" content="Messungen am Abgasweg Schritt für Schritt mit Simulation: Schornsteinzug (Förderdruck), Abgasverlust nach 1. BImSchV, CO-Messung nach KÜO, Ringspaltmessung und Rußzahl – mit Grenzwerten, Rechenweg und typischen Fehlern.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/heizung/abgasmessung.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Abgasmessung Schritt für Schritt">
+  <meta property="og:description" content="Messungen am Abgasweg Schritt für Schritt mit Simulation: Schornsteinzug (Förderdruck), Abgasverlust nach 1. BImSchV, CO-Messung nach KÜO, Ringspaltmessung und Rußzahl – mit Grenzwerten, Rechenweg und typischen Fehlern.">
+  <meta property="og:url" content="https://tools.pr1m3.de/heizung/abgasmessung.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Abgasmessung Schritt für Schritt","url":"https://tools.pr1m3.de/heizung/abgasmessung.html","inLanguage":"de","description":"Messungen am Abgasweg Schritt für Schritt mit Simulation: Schornsteinzug (Förderdruck), Abgasverlust nach 1. BImSchV, CO-Messung nach KÜO, Ringspaltmessung und Rußzahl – mit Grenzwerten, Rechenweg und typischen Fehlern.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .reiter-leiste { margin: 18px 0 4px; display: grid; gap: 10px; }
+    .reiter-gruppe { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .reiter-titel { flex-basis: 100%; font-family: var(--technik); font-weight: 700; font-size: .85rem; color: var(--leise); }
+    .reiter-leiste button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 7px 14px; font: inherit; font-size: .92rem; cursor: pointer; }
+    .reiter-leiste button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .bereich { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 14px; align-items: start; }
+    #anweisung { display: none; margin: 6px 0 0; }
+    @media (max-width: 960px) { .bereich { grid-template-columns: minmax(0, 1fr); } .bereich > .sim-tafel { order: -1; } #anweisung { display: block; } }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster input, .raster select { padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .92rem; min-width: 0; width: 100%; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .schritte { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; }
+    .schritte li { counter-increment: s; position: relative; padding: 9px 10px 9px 42px; border-radius: var(--rund); margin: 4px 0; cursor: pointer; border: 1px solid transparent; }
+    .schritte li::before { content: counter(s); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; background: var(--linie); color: var(--text); font-size: .8rem; font-weight: 700; display: grid; place-items: center; }
+    .schritte li.aktiv { background: var(--flaeche2); border-color: var(--linie); }
+    .schritte li.aktiv::before { background: var(--akzent, #E4572E); color: #FFFFFF; }
+    .schritte li.fertig::before { content: '✓'; background: #2E8B57; color: #FFFFFF; }
+    .schritte b { display: block; font-family: var(--technik); }
+    .schritte span { font-size: .9rem; color: var(--leise); }
+    .warn { border-left: 4px solid #C0392B; background: var(--fehler-flaeche); padding: 8px 12px; border-radius: 6px; font-size: .9rem; margin: 8px 0; }
+    #sim { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); }
+    .stepper { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .stepper .status { color: var(--leise); font-size: .9rem; }
+    @media print { .reiter-leiste, .stepper { display: none !important; } .bereich { display: block; } #sim { max-height: 110mm; width: auto; max-width: 100%; } }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Abgasmessung</span></h1>
+      <p>Messungen am Abgasweg Schritt für Schritt: warum der Schornstein zieht und wie man den Förderdruck misst, wie aus Temperatur und Sauerstoff der Abgasverlust wird, wann Kohlenmonoxid gefährlich ist, wie die Ringspaltmessung ein undichtes Luft-Abgas-System entlarvt und wie die Rußzahl bestimmt wird. Mit Fehlern zum Ausprobieren – Falschluft, verengter Schornstein, Sonde neben dem Kernstrom, undichte Messöffnung, Rückströmung an der Mündung.</p>
+      <div class="warn">Abgas enthält giftiges Kohlenmonoxid. Die Messungen nach 1. BImSchV und KÜO führt der Schornsteinfeger durch, Einstellarbeiten der Fachbetrieb – mit geeignetem, regelmäßig geprüftem Messgerät. Die Simulation ersetzt keine Ausbildung.</div>
+    </section>
+
+    <div class="reiter-leiste" id="reiter"></div>
+
+    <div class="bereich">
+      <section class="tafel" aria-labelledby="h-schritte">
+        <h2 id="h-schritte">Schritte</h2>
+        <p class="hilfe" id="kurz"></p>
+        <div class="raster" id="felder" data-nicht-merken></div>
+        <input type="hidden" id="mess-merken">
+        <ol class="schritte" id="schritte"></ol>
+      </section>
+      <section class="tafel sim-tafel" aria-labelledby="h-sim">
+        <h2 id="h-sim">Simulation</h2>
+        <canvas id="sim" role="img" aria-label="Simulation: Feuerstätte, Abgasweg und Schornstein mit Messgerät und Sonde"></canvas>
+        <div class="stepper" data-nicht-merken>
+          <button type="button" class="knopf-leise" id="zurueck">← Schritt zurück</button>
+          <button type="button" class="knopf" id="weiter">Nächster Schritt →</button>
+          <span class="status" id="stand"></span>
+        </div>
+        <p class="hilfe" id="anweisung" aria-hidden="true"></p>
+        <div class="kopf-zeile"><h3 class="zwischen">Ergebnis</h3><span class="urteil" id="urteil"></span></div>
+        <div class="meldungen" id="meldungen"></div>
+        <div class="kacheln" id="kacheln"></div>
+      </section>
+    </div>
+
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg</h2>
+      <ol class="weg" id="weg"></ol>
+      <p class="hilfe">Passend dazu: <a href="../dach/schornsteinverwahrung.html">Schornsteinverwahrung</a> und <a href="heizlast.html">Heizlast</a>.</p>
+    </section>
+
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung und Grenzwerte</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">1. BImSchV §&nbsp;10 und Anlage 2 (Abgasverlust, Rußzahl, Ölderivate), Kehr- und Überprüfungsordnung KÜO §&nbsp;1 (CO höchstens 1 000 ppm unverdünnt, Ringspaltmessung), DIN EN 13384-1 (Berechnung von Abgasanlagen), DIN 51402-1 (Rußzahl). Der Ringspalt-Faustwert von 0,2 Prozentpunkten ist eine Praxisregel; maßgeblich sind Herstellerangaben und das Urteil des Schornsteinfegers. Die Werte der Simulation sind berechnete Beispiele.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    const RHO = 0.0178, U0 = 230;
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; return (Math.round(w * Math.pow(10, n || 0)) / Math.pow(10, n || 0)).toFixed(n || 0).replace('.', ','); }
+    function lies(t) { const s = String(t).trim().replace(',', '.'); return s === '' ? NaN : Number(s); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+
+    // ---------- Messungen ----------
+    const G = 9.81;
+    // Brennstoffe: Siegert-Faktoren (1. BImSchV Anlage 2), CO2max, Wasserdampf-Taupunkt etwa bei λ = 1,2
+    const BS = {
+      gas: { name: 'Erdgas H', A2: 0.66, B: 0.009, co2: 11.9, tau: 55 },
+      fluessig: { name: 'Flüssiggas', A2: 0.63, B: 0.008, co2: 13.7, tau: 51 },
+      oel: { name: 'Heizöl EL', A2: 0.68, B: 0.007, co2: 15.4, tau: 47 }
+    };
+    const M = {
+      zug: {
+        name: 'Zug (Förderdruck)', kurz: 'Der Schornstein saugt, weil das heiße Abgas leichter ist als die Außenluft. Gemessen wird der Unterdruck im Verbindungsstück – er muss mindestens den Förderdruck erreichen, den die Feuerstätte braucht.',
+        felder: ['leistung', ['art', 'Feuerstätte', [['kessel', 'Heizkessel mit Gebläsebrenner'], ['b11', 'Gasgerät mit Strömungssicherung'], ['ofen', 'Kaminofen (Holz)']]], ['bedarf', 'Förderdruck laut Hersteller Pa', 1, 40, 10], ['h', 'wirksame Höhe m', 2, 40, 7], ['d', 'Innendurchmesser mm', 60, 400, 140], ['tg', 'Abgastemperatur °C', 40, 450, 160], ['ta', 'Außentemperatur °C', -20, 35, 5], ['bau', 'Schornstein', [['ged', 'gedämmt (dreischalig)'], ['ein', 'einschalig, ungedämmt']]], ['fehler', 'Fehler', [['ok', 'keiner'], ['eng', 'Querschnitt verengt (Ablagerung, Nest)'], ['nebenluft', 'Reinigungsöffnung undicht (Falschluft)']]]],
+        schritte: [
+          ['Beharrungszustand', 'Feuerstätte mit Nennlast betreiben, bis Abgastemperatur und Zug stabil sind – beim Kessel einige Minuten Brennerlaufzeit, beim Kaminofen voll durchgeheizt.'],
+          ['Nullabgleich', 'Drucksensor an der Raumluft auf null stellen, bevor die Sonde ins Abgas kommt – sonst misst man den Raumdruck mit.'],
+          ['Sonde einsetzen', 'Sonde in die Messöffnung im Verbindungsstück, etwa zwei Rohrdurchmesser hinter dem Abgasstutzen. Konus andrücken, damit keine Luft angesaugt wird.'],
+          ['Ablesen', 'Unterdruck einige Sekunden beobachten und den Mittelwert ablesen – Wind und Brennerstart lassen den Wert schwanken.'],
+          ['Bewerten', 'Förderdruck mindestens so groß wie der Bedarf der Feuerstätte. Viel zu hoher Zug kostet Wirkungsgrad: Zugbegrenzer oder Drosselklappe.']
+        ]
+      },
+      abgas: {
+        name: 'Abgasverlust', kurz: 'Emissionsmessung an Öl- und Gasfeuerungen nach der 1. BImSchV: Abgastemperatur, Verbrennungslufttemperatur und Sauerstoff ergeben den Abgasverlust – die Wärme, die ungenutzt durch den Schornstein geht.',
+        felder: ['brennstoff', 'leistung', ['o2', 'O₂ im Abgas %', 0.5, 20, 3.5], ['tA', 'Abgastemperatur °C', 30, 400, 165], ['tL', 'Verbrennungsluft °C', -10, 40, 20], ['fehler', 'Messung', [['ok', 'korrekt'], ['kern', 'Sonde nicht im Kernstrom'], ['undicht', 'Messöffnung nicht abgedichtet']]]],
+        schritte: [
+          ['Gerät auf Volllast', 'Feuerstätte auf Nennlast (Schornsteinfegerfunktion), Brenner mindestens einige Minuten in Betrieb, bis die Abgastemperatur nicht mehr steigt.'],
+          ['Nullphase an Frischluft', 'Messgerät an Frischluft einschalten: Die Sensoren werden auf 20,9 % O₂ und 0 ppm CO abgeglichen. Die Sonde darf dabei nicht im Abgas stecken.'],
+          ['Verbrennungsluft messen', 'Temperatur der Verbrennungsluft an der Ansaugöffnung der Feuerstätte messen, bei raumluftunabhängigen Geräten im Zuluftrohr.'],
+          ['Kernstrom suchen', 'Sonde in die Messöffnung, langsam durch den Querschnitt schieben und an der heißesten Stelle feststellen. Konus abdichten, Werte stabil werden lassen.'],
+          ['Ablesen und bewerten', 'O₂, CO₂, Abgastemperatur und Abgasverlust ablesen, ausdrucken. Abgasverlust auf ganze Prozent runden und mit dem Grenzwert vergleichen.']
+        ]
+      },
+      co: {
+        name: 'CO-Messung', kurz: 'Abgaswegüberprüfung nach der Kehr- und Überprüfungsordnung (KÜO) an Gasfeuerstätten: Kohlenmonoxid im Abgas, auf unverdünntes, trockenes Abgas umgerechnet, höchstens 1 000 ppm.',
+        felder: ['brennstoff', ['art', 'Feuerstätte', [['b11', 'Gastherme mit Strömungssicherung'], ['kessel', 'Kessel mit Gebläsebrenner'], ['c', 'raumluftunabhängig (konzentrisch)']]], ['co', 'CO gemessen ppm', 0, 9999, 60], ['o2', 'O₂ gemessen %', 0, 20.5, 9], ['luft', 'Verbrennungsluft', [['ok', 'Öffnungen frei'], ['zu', 'Zuluftöffnung zugestellt']]]],
+        schritte: [
+          ['Abgasweg ansehen', 'Verbindungsstück, Strömungssicherung und Verbrennungsluftöffnungen prüfen: dicht, frei, richtig bemessen?'],
+          ['Gerät auf Volllast', 'Feuerstätte mit größter Leistung betreiben, Warmwasser zapfen oder Schornsteinfegerfunktion wählen.'],
+          ['Sonde einsetzen', 'Mehrlochsonde quer in das Abgasrohr – sie nimmt über den ganzen Querschnitt Abgas auf. Hinter der Strömungssicherung ist das Abgas mit Raumluft verdünnt.'],
+          ['CO und O₂ ablesen', 'Das Messgerät rechnet den gemessenen CO-Wert über den Sauerstoff auf unverdünntes Abgas um: CO_unv = CO · 20,9 / (20,9 − O₂).'],
+          ['Bewerten', 'Bis 1 000 ppm unverdünnt in Ordnung. Darüber Ursache beseitigen; die Prüfung wird spätestens nach sechs Wochen wiederholt (KÜO).']
+        ]
+      },
+      ring: {
+        name: 'Ringspaltmessung', kurz: 'Bei raumluftunabhängigen Feuerstätten mit konzentrischem Luft-Abgas-System: Sauerstoff in der Zuluft im Ringspalt. Fällt er gegenüber der Raumluft ab, gelangt Abgas in die Verbrennungsluft.',
+        felder: [['o2raum', 'O₂ Raumluft %', 20, 21, 20.9], ['fehler', 'Zustand', [['ok', 'dicht'], ['undicht', 'Abgasrohr im Schacht undicht'], ['muendung', 'Rückströmung an der Mündung']]]],
+        schritte: [
+          ['Gerät in Betrieb', 'Feuerstätte auf Volllast. Luft-Abgas-System: innen strömt das Abgas nach oben, im Ringspalt außen die Verbrennungsluft nach unten.'],
+          ['Nullung an Raumluft', 'Messgerät an Raumluft abgleichen und den O₂-Gehalt der Raumluft notieren (normal 20,9 %).'],
+          ['Sonde in den Ringspalt', 'Sonde in den Messstutzen „Luft“ am Anschlussstück stecken – nicht in den Abgasstutzen.'],
+          ['O₂ ablesen', 'Sauerstoff im Ringspalt ablesen, zusätzlich die Lufttemperatur: Warme Zuluft deutet auf zurückströmendes Abgas.'],
+          ['Bewerten', 'Faustwert: Liegt der Sauerstoff mehr als 0,2 Prozentpunkte unter der Raumluft, ist das System undicht oder das Abgas strömt an der Mündung zurück.']
+        ]
+      },
+      russ: {
+        name: 'Rußzahl', kurz: 'Nur bei Ölfeuerungen: Rußzahl nach DIN 51402 mit Rußpumpe und Filterpapier, dazu der Test auf Ölderivate (unverbranntes Öl).',
+        felder: ['brennstoff', ['brenner', 'Ölbrenner', [['neu', 'Zerstäuber ab 10/1988: höchstens 1'], ['alt', 'älter oder Verdampfer: höchstens 2']]], ['fehler', 'Zustand', [['ok', 'gut eingestellt'], ['russ', 'Düse verschlissen'], ['oel', 'unverbranntes Öl']]]],
+        schritte: [
+          ['Brenner in Beharrung', 'Brenner mit Nennlast laufen lassen, bis die Verbrennung stabil ist.'],
+          ['Filterpapier einlegen', 'Frisches Filterpapier in die Rußpumpe, Sonde in die Messöffnung im Kernstrom.'],
+          ['Zehn Hübe', 'Mit zehn gleichmäßigen, vollen Hüben Abgas durch das Filterpapier saugen.'],
+          ['Dreimal vergleichen', 'Messung dreimal wiederholen, jeden Fleck mit der Rußskala 0 bis 9 vergleichen, Mittelwert auf eine ganze Zahl runden.'],
+          ['Ölderivate prüfen', 'Gelbliche Färbung des Filterpapiers zeigt unverbranntes Öl – nicht zulässig. Bei Zweifel Fließmitteltest.']
+        ]
+      }
+    };
+    // Gemeinsame Angaben, in allen Reitern gleich
+    const GEM = {
+      brennstoff: ['brennstoff', 'Brennstoff', [['gas', 'Erdgas H'], ['fluessig', 'Flüssiggas'], ['oel', 'Heizöl EL']]],
+      leistung: ['leistung', 'Nennwärmeleistung kW', 4, 400, 20]
+    };
+    function feld(f) { return typeof f === 'string' ? GEM[f] : f; }
+    const GRUPPEN = [['abgas', 'Messungen am Abgasweg']];
+    const REIHE = ['zug', 'abgas', 'co', 'ring', 'russ'];
+    let akt = 'zug', schritt = 0;
+    const werte = { geraet: {} };
+    function start(f) { return Array.isArray(f[2]) ? f[2][0][0] : f[4]; }
+    Object.keys(GEM).forEach(function (k) { werte.geraet[k] = start(GEM[k]); });
+    REIHE.forEach(function (k) { M[k].gruppe = 'abgas'; werte[k] = {}; M[k].felder.forEach(function (f) { if (typeof f !== 'string') werte[k][f[0]] = start(f); }); });
+    function ablage(f) { return typeof f === 'string' ? werte.geraet : werte[akt]; }
+    function wAkt() { return Object.assign({}, werte.geraet, werte[akt]); }
+
+    // ---------- Rechnen ----------
+    function grenzQa(kw) { return kw <= 25 ? 11 : kw <= 50 ? 10 : 9; }
+    function rundQa(q) { return Math.ceil(q - 0.5); }
+    function rho(t) { return 353 / (t + 273.15); }
+    function zugRechnen(w) {
+      const r = {};
+      const lam = { kessel: 1.3, b11: 2.2, ofen: 2.5 }[w.art];
+      const k = w.bau === 'ged' ? 0.85 : 0.65, kM = w.bau === 'ged' ? 0.7 : 0.4;
+      r.tm = w.ta + (w.tg - w.ta) * k * (w.fehler === 'nebenluft' ? 0.6 : 1);
+      r.tM = w.ta + (w.tg - w.ta) * kM * (w.fehler === 'nebenluft' ? 0.6 : 1);
+      r.rhoL = rho(w.ta); r.rhoG = rho(r.tm) * 1.03;
+      r.pH = w.h * G * (r.rhoL - r.rhoG);
+      r.m = w.leistung * (1.23 * lam + 0.07) / 3600;
+      const A = Math.PI * Math.pow(w.d / 1000, 2) / 4;
+      r.v = r.m / (r.rhoG * A);
+      r.zeta = 1.8 + (w.fehler === 'eng' ? 25 : 0);
+      r.pR = (0.03 * w.h / (w.d / 1000) + r.zeta) * r.rhoG * r.v * r.v / 2;
+      r.pZ = (w.fehler === 'nebenluft' ? 0.45 : 1) * r.pH - r.pR;
+      return r;
+    }
+    function rechne(k, w) {
+      const r = { ok: null, kach: [], weg: [], meld: [], zeilen: [] };
+      const gut = '#2E8B57', schlecht = '#C0392B', b = BS[w.brennstoff];
+      if (k === 'zug') {
+        Object.assign(r, zugRechnen(w));
+        r.ok = r.pZ >= w.bedarf;
+        r.funktion = 'Zug / Druck';
+        r.anzeige = schritt < 1 ? '– – –' : schritt === 1 ? '0,0 Pa' : schritt === 2 ? 'stabil …' : zahl(r.pZ, 1) + ' Pa';
+        r.kach = [[zahl(r.pZ, 1) + ' Pa', 'Förderdruck am Verbindungsstück', r.ok ? gut : schlecht], ['≥ ' + zahl(w.bedarf, 0) + ' Pa', 'Bedarf der Feuerstätte', '#2B7BB9'], [zahl(r.pH, 1) + ' Pa', 'Auftrieb (Ruhedruck)', '#E4572E'], [zahl(r.v, 2) + ' m/s', 'Strömungsgeschwindigkeit', '#6E6FA6'], [zahl(r.tM, 0) + ' °C', 'Abgas an der Mündung', r.tM < b.tau ? schlecht : '#6E6FA6']];
+        if (!r.ok) r.meld.push([r.pZ <= 0 ? 'Kein Zug: Das Abgas kann in den Aufstellraum austreten – Feuerstätte nicht betreiben!' : 'Zug zu gering: ' + (w.fehler === 'eng' ? 'Schornstein reinigen lassen, Querschnitt prüfen.' : w.fehler === 'nebenluft' ? 'Reinigungsöffnung dicht verschließen – die Falschluft kühlt das Abgas und schließt den Zug kurz.' : 'höherer oder gedämmter Schornstein, passender Querschnitt, Abgastemperatur prüfen.'), true]);
+        if (r.pZ > w.bedarf + 20) r.meld.push(['Sehr hoher Zug: Die Feuerstätte verliert Wärme über den Schornstein. Zugbegrenzer oder Drosselklappe einbauen.', false]);
+        if (r.tM < b.tau) r.meld.push(['Das Abgas kühlt bis zur Mündung unter den Taupunkt (etwa ' + b.tau + ' °C): Wasser kondensiert im Schornstein. Nur ein feuchteunempfindlicher Schornstein ist dafür geeignet, sonst droht Versottung.', false]);
+        r.weg = [
+          ['Luft außen', '\\rho_\\text{L} = \\frac{353}{' + tz(w.ta + 273.15, 1) + '\\,\\text{K}} = ' + tz(r.rhoL, 3) + '\\,\\tfrac{\\text{kg}}{\\text{m}^3}'],
+          ['Abgas im Mittel bei ' + zahl(r.tm, 0) + ' °C', '\\rho_\\text{G} \\approx 1{,}03 \\cdot \\frac{353}{' + tz(r.tm + 273.15, 1) + '\\,\\text{K}} = ' + tz(r.rhoG, 3) + '\\,\\tfrac{\\text{kg}}{\\text{m}^3}'],
+          ['Auftrieb', 'p_\\text{H} = H \\cdot g \\cdot (\\rho_\\text{L} - \\rho_\\text{G}) = ' + tz(w.h, 1) + ' \\cdot 9{,}81 \\cdot ' + tz(r.rhoL - r.rhoG, 3) + ' = ' + E(tz(r.pH, 1) + '\\,\\text{Pa}')],
+          ['Reibung und Umlenkung', 'p_\\text{R} = \\left(\\lambda \\frac{H}{d} + \\sum\\zeta\\right) \\frac{\\rho_\\text{G} v^2}{2} = ' + tz(r.pR, 2) + '\\,\\text{Pa}'],
+          ['Förderdruck', 'p_\\text{Z} = ' + (w.fehler === 'nebenluft' ? '0{,}45 \\cdot ' : '') + 'p_\\text{H} - p_\\text{R} = ' + E(tz(r.pZ, 1) + '\\,\\text{Pa}') + ' \\ ' + (r.ok ? '\\ge' : '<') + ' ' + tz(w.bedarf, 0) + '\\,\\text{Pa}']
+        ];
+        return r;
+      }
+      if (k === 'abgas') {
+        let o2 = w.o2, tA = w.tA;
+        if (w.fehler === 'kern') tA = w.tL + (w.tA - w.tL) * 0.78;
+        if (w.fehler === 'undicht') o2 = w.o2 + (20.9 - w.o2) * 0.3;
+        const q = function (t, o) { return (t - w.tL) * (b.A2 / (21 - o) + b.B); };
+        r.qA = q(tA, o2); r.qAecht = q(w.tA, w.o2); r.qR = rundQa(r.qA);
+        r.lam = 21 / (21 - o2); r.co2 = b.co2 * (21 - o2) / 21; r.eta = 100 - r.qA;
+        r.grenze = grenzQa(w.leistung);
+        r.ok = r.qR <= r.grenze && w.fehler === 'ok';
+        r.funktion = 'Abgasanalyse';
+        const nullph = schritt === 1, vor = schritt < 1;
+        r.zeilen = vor ? [['', 'aus']] : nullph ? [['O₂', '20,9 %'], ['CO', '0 ppm'], ['', 'Nullphase …']] : schritt === 2 ? [['tL', zahl(w.tL, 1) + ' °C'], ['', 'Verbr.-Luft']] : [['O₂', zahl(o2, 1) + ' %'], ['CO₂', zahl(r.co2, 1) + ' %'], ['tA', zahl(tA, 1) + ' °C'], ['λ', zahl(r.lam, 2)], ['qA', schritt === 4 ? zahl(r.qA, 1) + ' %' : '…']];
+        r.kach = [[r.qR + ' %', 'Abgasverlust (gerundet)', r.ok ? gut : schlecht], ['≤ ' + r.grenze + ' %', 'Grenzwert bei ' + zahl(w.leistung, 0) + ' kW', '#2B7BB9'], [zahl(r.lam, 2), 'Luftzahl λ', '#6E6FA6'], [zahl(r.co2, 1) + ' %', 'CO₂ (berechnet)', '#6E6FA6'], [zahl(r.eta, 1) + ' %', 'feuerungstechnischer Wirkungsgrad', '#E4572E']];
+        if (r.qR > r.grenze) r.meld.push(['Abgasverlust über dem Grenzwert: Brenner einstellen, Kessel reinigen, ggf. Abgastemperatur senken. Die Messung wird wiederholt.', true]);
+        if (w.fehler === 'kern') r.meld.push(['Sonde nicht im Kernstrom: Die gemessene Abgastemperatur ist zu niedrig, der Abgasverlust erscheint ' + zahl(r.qAecht - r.qA, 1) + ' Prozentpunkte zu klein. Messung ungültig.', true]);
+        if (w.fehler === 'undicht') r.meld.push(['Messöffnung undicht: Angesaugte Raumluft verdünnt das Abgas, O₂ steigt, der Abgasverlust erscheint ' + zahl(r.qA - r.qAecht, 1) + ' Prozentpunkte zu groß. Messung ungültig.', true]);
+        if (w.tA < b.tau + 5) r.meld.push(['Abgastemperatur nahe oder unter dem Taupunkt: Brennwertbetrieb, der Wasserdampf kondensiert. Der Abgasverlust ist entsprechend klein.', false]);
+        if (o2 > 9) r.meld.push(['Viel Luftüberschuss: Der Brenner bekommt zu viel Luft, das Abgas trägt viel Wärme ab.', false]);
+        r.weg = [
+          ['Luftzahl', '\\lambda = \\frac{21}{21 - O_2} = \\frac{21}{21 - ' + tz(o2, 1) + '} = ' + tz(r.lam, 2)],
+          ['CO₂ aus O₂', 'CO_2 = CO_{2,\\max} \\cdot \\frac{21 - O_2}{21} = ' + tz(b.co2, 1) + ' \\cdot \\frac{' + tz(21 - o2, 1) + '}{21} = ' + tz(r.co2, 1) + '\\,\\%'],
+          ['Abgasverlust (' + b.name + ')', 'q_\\text{A} = (t_\\text{A} - t_\\text{L}) \\left(\\frac{A_2}{21 - O_2} + B\\right) = ' + tz(tA - w.tL, 1) + ' \\cdot \\left(\\frac{' + tz(b.A2, 2) + '}{' + tz(21 - o2, 1) + '} + ' + tz(b.B, 3) + '\\right) = ' + E(tz(r.qA, 2) + '\\,\\%')],
+          ['Bewertung', 'q_\\text{A} \\approx ' + r.qR + '\\,\\% ' + (r.qR <= r.grenze ? '\\le' : '>') + ' ' + r.grenze + '\\,\\%']
+        ];
+        return r;
+      }
+      if (k === 'co') {
+        r.cou = w.o2 >= 20.9 ? Infinity : w.co * 20.9 / (20.9 - w.o2);
+        r.ok = r.cou <= 1000 && !(w.luft === 'zu' && w.art !== 'c');
+        r.funktion = 'CO unverdünnt';
+        r.zeilen = schritt < 3 ? (schritt === 2 ? [['O₂', '…'], ['CO', '…']] : [['', schritt < 1 ? 'aus' : 'bereit']]) : [['O₂', zahl(w.o2, 1) + ' %'], ['CO', zahl(w.co, 0) + ' ppm'], ['COunv', isFinite(r.cou) ? zahl(r.cou, 0) + ' ppm' : '–']];
+        r.kach = [[isFinite(r.cou) ? zahl(r.cou, 0) + ' ppm' : '–', 'CO unverdünnt', r.cou <= 1000 ? gut : schlecht], ['≤ 1 000 ppm', 'Grenzwert (KÜO)', '#2B7BB9'], [zahl(w.co, 0) + ' ppm', 'CO gemessen (verdünnt)', '#6E6FA6'], [zahl(20.9 / Math.max(0.1, 20.9 - w.o2), 1) + ' ×', 'Verdünnung', '#6E6FA6']];
+        if (!isFinite(r.cou)) r.meld.push(['20,9 % O₂: Die Sonde misst Raumluft, nicht Abgas. Sonde richtig einsetzen.', true]);
+        else if (r.cou > 1000) r.meld.push(['CO über 1 000 ppm: Feuerstätte warten (Brenner, Wärmetauscher, Verbrennungsluft). Wiederholungsprüfung spätestens nach sechs Wochen (KÜO).' + (r.cou > 5000 ? ' Bei so hohen Werten Gerät sofort außer Betrieb nehmen – Vergiftungsgefahr.' : ''), true]);
+        if (w.luft === 'zu' && w.art !== 'c') r.meld.push(['Verbrennungsluftöffnung zugestellt: Die Feuerstätte bekommt zu wenig Luft – Mangel, Öffnung freimachen.', true]);
+        if (w.art === 'c') r.meld.push(['Raumluftunabhängige Feuerstätte: zusätzlich die Ringspaltmessung durchführen.', false]);
+        r.weg = [['Umrechnung auf unverdünntes Abgas', 'CO_\\text{unv} = CO \\cdot \\frac{20{,}9}{20{,}9 - O_2} = ' + tz(w.co, 0) + ' \\cdot \\frac{20{,}9}{' + tz(20.9 - w.o2, 1) + '} = ' + E((isFinite(r.cou) ? tz(r.cou, 0) : '\\infty') + '\\,\\text{ppm}')], ['Bewertung', 'CO_\\text{unv} ' + (r.cou <= 1000 ? '\\le' : '>') + ' 1\\,000\\,\\text{ppm}']];
+        return r;
+      }
+      if (k === 'ring') {
+        r.o2ring = w.o2raum - { ok: 0.05, undicht: 1.1, muendung: 0.5 }[w.fehler];
+        r.tRing = { ok: 22, undicht: 48, muendung: 33 }[w.fehler];
+        r.d = w.o2raum - r.o2ring; r.ok = r.d <= 0.2;
+        r.funktion = 'Ringspalt';
+        r.zeilen = schritt < 1 ? [['', 'aus']] : schritt === 1 ? [['O₂', zahl(w.o2raum, 1) + ' %'], ['', 'Raumluft']] : schritt === 2 ? [['', 'Stutzen Luft']] : [['O₂', zahl(r.o2ring, 1) + ' %'], ['ΔO₂', zahl(r.d, 2) + ' %'], ['tL', zahl(r.tRing, 0) + ' °C']];
+        r.kach = [[zahl(r.d, 2) + ' %', 'O₂-Abfall im Ringspalt', r.ok ? gut : schlecht], ['≤ 0,2 %', 'Faustwert dicht', '#2B7BB9'], [zahl(r.o2ring, 1) + ' %', 'O₂ im Ringspalt', '#6E6FA6'], [zahl(r.tRing, 0) + ' °C', 'Zulufttemperatur', r.tRing > 35 ? schlecht : '#6E6FA6']];
+        if (!r.ok) r.meld.push([w.fehler === 'undicht' ? 'Abgas tritt im Schacht in den Ringspalt: Abgasleitung auf Dichtheit prüfen (Druckprüfung) und instand setzen.' : 'Abgas wird an der Mündung wieder angesaugt: Mündung, Abstände und Windeinfluss prüfen.', true]);
+        r.weg = [['O₂-Differenz', '\\Delta O_2 = ' + tz(w.o2raum, 1) + ' - ' + tz(r.o2ring, 2) + ' = ' + E(tz(r.d, 2) + '\\,\\%')], ['Bewertung', '\\Delta O_2 ' + (r.ok ? '\\le' : '>') + ' 0{,}2\\,\\%']];
+        return r;
+      }
+      // Rußzahl
+      r.funktion = 'Rußpumpe';
+      if (w.brennstoff !== 'oel') { r.entf = true; r.ok = true; r.zeilen = [['', 'nur Öl']]; r.kach = [['entfällt', 'Rußzahl nur bei Ölfeuerungen', '#6E6FA6']]; r.meld.push(['Gas verbrennt rußfrei – die Rußzahl wird nur bei Heizöl bestimmt.', false]); r.weg = [['Grenzwert', 'RZ \\le 1\\ (\\text{ab 1988})\\quad RZ \\le 2\\ (\\text{älter})']]; return r; }
+      r.flecken = { ok: [0, 1, 0], russ: [3, 4, 3], oel: [1, 1, 1] }[w.fehler];
+      r.mittel = (r.flecken[0] + r.flecken[1] + r.flecken[2]) / 3; r.rz = Math.round(r.mittel);
+      r.grenze = w.brenner === 'neu' ? 1 : 2; r.derivate = w.fehler === 'oel';
+      r.ok = r.rz <= r.grenze && !r.derivate;
+      r.zeilen = [];
+      r.kach = [['RZ ' + r.rz, 'Rußzahl (Mittel aus 3)', r.rz <= r.grenze ? gut : schlecht], ['≤ ' + r.grenze, 'Grenzwert', '#2B7BB9'], [r.derivate ? 'ja' : 'nein', 'Ölderivate', r.derivate ? schlecht : gut]];
+      if (r.rz > r.grenze) r.meld.push(['Rußzahl zu hoch: Düse tauschen, Brenner einstellen, Luftzufuhr prüfen.', true]);
+      if (r.derivate) r.meld.push(['Ölderivate auf dem Filterpapier: Öl verbrennt nicht vollständig – Brenner einstellen, Düse und Zündung prüfen.', true]);
+      r.weg = [['Mittelwert', 'RZ = \\frac{' + r.flecken.join(' + ') + '}{3} = ' + tz(r.mittel, 2) + ' \\approx ' + E(String(r.rz))], ['Bewertung', 'RZ ' + (r.rz <= r.grenze ? '\\le' : '>') + ' ' + r.grenze]];
+      return r;
+    }
+
+    // ---------- Oberfläche ----------
+    let R = null;
+    function reiterBauen() {
+      const z = $('reiter'); z.innerHTML = '';
+      GRUPPEN.forEach(function (g) {
+        const zeile = document.createElement('div'); zeile.className = 'reiter-gruppe'; zeile.setAttribute('role', 'group'); zeile.setAttribute('aria-label', g[1]);
+        const t = document.createElement('span'); t.className = 'reiter-titel'; t.textContent = g[1]; zeile.append(t);
+        REIHE.filter(function (k) { return M[k].gruppe === g[0]; }).forEach(function (k, i) {
+          const b = document.createElement('button'); b.type = 'button'; b.textContent = (i + 1) + ' ' + M[k].name; b.setAttribute('aria-pressed', String(k === akt));
+          b.addEventListener('click', function () { akt = k; schritt = 0; reiterBauen(); felderBauen(); neu(); });
+          zeile.append(b);
+        });
+        z.append(zeile);
+      });
+    }
+    function felderBauen() {
+      const z = $('felder'); z.innerHTML = '';
+      $('kurz').textContent = M[akt].kurz;
+      M[akt].felder.forEach(function (f0) {
+        const f = feld(f0), ziel = ablage(f0);
+        const l = document.createElement('label'); l.textContent = f[1];
+        let e;
+        if (Array.isArray(f[2])) {
+          e = document.createElement('select'); f[2].forEach(function (o) { const op = document.createElement('option'); op.value = String(o[0]); op.textContent = o[1]; e.append(op); });
+          e.value = String(ziel[f[0]]);
+          e.addEventListener('change', function () { ziel[f[0]] = typeof f[2][0][0] === 'number' ? +e.value : e.value; neu(); });
+        } else {
+          e = document.createElement('input'); e.type = 'text'; e.inputMode = 'decimal'; e.value = String(ziel[f[0]]).replace('.', ',');
+          e.addEventListener('input', function () { const v = lies(e.value), ok = isFinite(v) && v >= f[2] && v <= f[3]; e.classList.toggle('falsch', !ok); if (ok) { ziel[f[0]] = v; neu(); } });
+          e.addEventListener('blur', function () { e.classList.remove('falsch'); e.value = String(ziel[f[0]]).replace('.', ','); });
+        }
+        e.id = 'f-' + akt + '-' + f[0];
+        l.append(e); z.append(l);
+      });
+    }
+    function schritteBauen() {
+      const z = $('schritte'); z.innerHTML = '';
+      M[akt].schritte.forEach(function (s, i) {
+        const li = document.createElement('li'); li.className = i === schritt ? 'aktiv' : i < schritt ? 'fertig' : '';
+        const b = document.createElement('b'); b.textContent = s[0]; const t = document.createElement('span'); t.textContent = s[1];
+        li.append(b, t); li.tabIndex = 0; li.setAttribute('role', 'button');
+        li.addEventListener('click', function () { schritt = i; neu(); });
+        li.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); schritt = i; neu(); } });
+        z.append(li);
+      });
+      $('anweisung').textContent = M[akt].schritte[schritt][1];
+      $('stand').textContent = 'Schritt ' + (schritt + 1) + ' von ' + M[akt].schritte.length + ': ' + M[akt].schritte[schritt][0];
+      $('zurueck').disabled = schritt === 0; $('weiter').textContent = schritt === M[akt].schritte.length - 1 ? 'Von vorn ↺' : 'Nächster Schritt →';
+    }
+    $('weiter').addEventListener('click', function () { schritt = schritt >= M[akt].schritte.length - 1 ? 0 : schritt + 1; neu(); });
+    $('zurueck').addEventListener('click', function () { if (schritt > 0) schritt--; neu(); });
+    // Alle Messungen, gewählte Messung und Schritt für Merken und Teilen-Link (basis.js liest das versteckte Feld)
+    $('mess-merken').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      function pruefen(f, q, z) {
+        const v = q[f[0]];
+        if (Array.isArray(f[2])) { const o = f[2].filter(function (o) { return String(o[0]) === String(v); })[0]; if (o) z[f[0]] = o[0]; }
+        else if (typeof v === 'number' && isFinite(v) && v >= f[2] && v <= f[3]) z[f[0]] = v;
+      }
+      if (a.werte && a.werte.geraet && typeof a.werte.geraet === 'object') Object.keys(GEM).forEach(function (k) { pruefen(GEM[k], a.werte.geraet, werte.geraet); });
+      if (a.werte && typeof a.werte === 'object') REIHE.forEach(function (k) {
+        const q = a.werte[k]; if (!q || typeof q !== 'object') return;
+        M[k].felder.forEach(function (f) {
+          if (typeof f === 'string') return;
+          const v = q[f[0]];
+          if (Array.isArray(f[2])) { const o = f[2].filter(function (o) { return String(o[0]) === String(v); })[0]; if (o) werte[k][f[0]] = o[0]; }
+          else if (typeof v === 'number' && isFinite(v) && v >= f[2] && v <= f[3]) werte[k][f[0]] = v;
+        });
+      });
+      if (REIHE.indexOf(a.akt) >= 0) akt = a.akt;
+      schritt = typeof a.schritt === 'number' && a.schritt >= 0 && a.schritt < M[akt].schritte.length ? Math.floor(a.schritt) : 0;
+      reiterBauen(); felderBauen(); neu();
+    });
+    function neu() {
+      $('mess-merken').value = JSON.stringify({ akt: akt, schritt: schritt, werte: werte });
+      R = rechne(akt, wAkt());
+      schritteBauen();
+      const fertig = schritt === M[akt].schritte.length - 1;
+      const u = $('urteil'); u.textContent = R.entf ? 'entfällt' : !fertig ? ('Messung läuft') : R.ok ? 'in Ordnung' : 'nicht in Ordnung'; u.className = 'urteil' + (R.entf || !fertig ? '' : R.ok ? ' gut' : ' schlecht');
+      const mel = $('meldungen'); mel.innerHTML = '';
+      R.meld.forEach(function (m) { const d = document.createElement('div'); d.className = 'hinweis' + (m[1] ? ' fehler' : ''); d.textContent = m[0]; mel.append(d); });
+      const k = $('kacheln'); k.innerHTML = '';
+      R.kach.forEach(function (q) { const d = document.createElement('div'); d.className = 'kachel'; d.style.setProperty('--farbe', q[2]); const w = document.createElement('div'); w.className = 'wert'; w.textContent = q[0]; const s = document.createElement('small'); s.textContent = q[1]; d.append(w, s); k.append(d); });
+      const o = $('weg'); o.innerHTML = '';
+      R.weg.forEach(function (q) { const li = document.createElement('li'), t = document.createElement('div'), r = document.createElement('div'); t.className = 'titel'; t.textContent = q[0]; r.className = 'rechnung'; Formel.setze(r, q[1], true); li.append(t, r); o.append(li); });
+      groesse();
+    }
+
+    // ---------- Simulation ----------
+    const cv = $('sim'), cx = cv.getContext('2d');
+    let B = 600, H = 400, K = 1;
+    function groesse() {
+      const d = window.devicePixelRatio || 1;
+      B = Math.max(280, cv.parentNode.clientWidth); H = Math.round(Math.max(340, Math.min(480, B * 0.68)));
+      K = Math.max(0.55, Math.min(1.15, Math.min(B / 680, H / 450)));
+      cv.style.height = H + 'px'; cv.width = Math.round(B * d); cv.height = Math.round(H * d); cx.setTransform(d, 0, 0, d, 0, 0);
+    }
+    function f(n) { return Thema.farbe(n); }
+    function X(x) { return x * B; }
+    function Y(y) { return y * H; }
+    function P(p) { return [p[0] * B, p[1] * H]; }
+    const ADER = { L: '#8B5A2B', L1: '#8B5A2B', L2: '#1C1C1C', L3: '#7D8790', N: '#2B7BB9', PE: '#3E9B3A' };
+    const ROT = '#D23B2E', GRUEN = '#2E8B57', GELB = '#F2B134';
+    function weg(pts) { cx.beginPath(); pts.forEach(function (q, i) { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); }
+    function strich(pts, farbe, w, dash) { cx.strokeStyle = farbe; cx.lineWidth = w; cx.lineJoin = 'round'; cx.lineCap = 'round'; cx.setLineDash(dash || []); weg(pts); cx.stroke(); cx.setLineDash([]); }
+    // Ader mit Mantelrand (saubere Kreuzungen) und grün-gelbem Schutzleiter
+    function ader(pts, art, w) {
+      w = (w || 4) * K;
+      strich(pts, f('--flaeche2'), w + 4 * K);
+      if (art === 'L2') strich(pts, '#9AA3AD', w + 1.6 * K);
+      strich(pts, ADER[art], w);
+      if (art === 'PE') { cx.lineCap = 'butt'; strich(pts, '#F4D03F', w * 0.62, [7 * K, 7 * K]); }
+    }
+    function rund(x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function kasten(x, y, w, h, r, fuell, rand, lw, schatten) {
+      if (schatten) { cx.save(); cx.shadowColor = 'rgba(0,0,0,0.22)'; cx.shadowBlur = 12 * K; cx.shadowOffsetY = 3 * K; }
+      rund(x, y, w, h, r); if (fuell) { cx.fillStyle = fuell; cx.fill(); }
+      if (schatten) cx.restore();
+      if (rand) { rund(x, y, w, h, r); cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); }
+    }
+    function kreis(x, y, r, fuell, rand, lw) { cx.beginPath(); cx.arc(x, y, r, 0, 2 * Math.PI); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); } }
+    function txt(t, x, y, o) { o = o || {}; cx.fillStyle = o.f || f('--text'); cx.font = (o.b ? '700 ' : '600 ') + Math.round((o.g || 12) * (o.fest ? 1 : Math.max(0.8, K))) + 'px ' + (o.mono ? 'ui-monospace, Menlo, Consolas, monospace' : (f('--technik') || 'sans-serif')); cx.textAlign = o.a || 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y); }
+    function etikett(t, x, y, o) {
+      o = o || {}; cx.font = '600 ' + Math.round((o.g || 9) * Math.max(0.8, K)) + 'px ' + (f('--technik') || 'sans-serif');
+      const w = cx.measureText(t).width + 8 * K, h = (o.g || 9) * Math.max(0.8, K) + 6 * K;
+      kasten(x - w / 2, y - h / 2, w, h, 3 * K, f('--flaeche')); txt(t, x, y, o);
+    }
+    function kurve(a, c1, c2, b, n) { const o = []; n = n || 28; for (let i = 0; i <= n; i++) { const u = i / n, v = 1 - u; o.push([v * v * v * a[0] + 3 * v * v * u * c1[0] + 3 * v * u * u * c2[0] + u * u * u * b[0], v * v * v * a[1] + 3 * v * v * u * c1[1] + 3 * v * u * u * c2[1] + u * u * u * b[1]]); } return o; }
+    function rueck(a) { return a.slice().reverse(); }
+    // Strom als leuchtende, wandernde Punkte
+    function strom(pts, t, farbe, tempo) {
+      let lang = 0; const seg = [];
+      for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(l); lang += l; }
+      const ab = 18 * K;
+      cx.save(); cx.fillStyle = farbe; cx.shadowColor = farbe; cx.shadowBlur = 8 * K;
+      for (let d = (t * 0.07 * (tempo || 1)) % ab; d < lang; d += ab) {
+        let rest = d, i = 0; while (i < seg.length && rest > seg[i]) { rest -= seg[i]; i++; }
+        if (i >= seg.length || !seg[i]) continue;
+        const a = pts[i], b = pts[i + 1], u = rest / seg[i];
+        cx.beginPath(); cx.arc(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, 3.2 * K, 0, 2 * Math.PI); cx.fill();
+      }
+      cx.restore();
+    }
+    function leuchten(pts, farbe, t) { cx.save(); cx.globalAlpha = 0.25 + 0.3 * (Math.sin(t / 260) + 1) / 2; strich(pts, farbe, 12 * K); cx.restore(); }
+    function pille(t, farbe, x, y) {
+      cx.font = '700 ' + Math.round(11 * Math.max(0.85, K)) + 'px ' + (f('--technik') || 'sans-serif');
+      const w = cx.measureText(t).width + 18 * K, h = 20 * Math.max(0.85, K);
+      kasten(x, y, w, h, h / 2, farbe); txt(t, x + w / 2, y + h / 2 + 0.5, { g: 11, b: true, f: '#FFFFFF' });
+    }
+    function schloss(x, y, s) { cx.strokeStyle = '#F2A541'; cx.lineWidth = 2.2 * s; cx.beginPath(); cx.arc(x, y - 3 * s, 4 * s, Math.PI, 0); cx.stroke(); kasten(x - 6 * s, y - 3 * s, 12 * s, 9 * s, 2 * s, '#F2A541'); kreis(x, y + 1 * s, 1.4 * s, '#5A3B00'); }
+    function blitz(x, y, s, farbe) { cx.fillStyle = farbe; cx.beginPath(); cx.moveTo(x + 2 * s, y - 8 * s); cx.lineTo(x - 4 * s, y + 1 * s); cx.lineTo(x, y + 1 * s); cx.lineTo(x - 2 * s, y + 8 * s); cx.lineTo(x + 4 * s, y - 1 * s); cx.lineTo(x, y - 1 * s); cx.closePath(); cx.fill(); }
+    function tropfen(x, y, s) { cx.fillStyle = '#4DA3E0'; cx.beginPath(); cx.moveTo(x, y - 5 * s); cx.quadraticCurveTo(x + 4 * s, y + 1 * s, x, y + 3.5 * s); cx.quadraticCurveTo(x - 4 * s, y + 1 * s, x, y - 5 * s); cx.fill(); }
+    function hintergrund() {
+      cx.clearRect(0, 0, B, H);
+      cx.fillStyle = f('--linie'); cx.globalAlpha = 0.55;
+      const g = 18 * K;
+      for (let x = g / 2; x < B; x += g) for (let y = g / 2; y < H; y += g) cx.fillRect(x, y, 1.2, 1.2);
+      cx.globalAlpha = 1;
+    }
+    // ---------- Abgasweg: Haus im Schnitt, Feuerstätte, Verbindungsstück, Schornstein ----------
+    function zufall(i) { const s = Math.sin(i * 12.9898) * 43758.5453; return s - Math.floor(s); }
+    function laenge(pts) { let l = 0; for (let i = 1; i < pts.length; i++) l += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return l; }
+    function punktAuf(pts, d) {
+      for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= l || i === pts.length - 1) { const u = l ? Math.min(1, d / l) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u]; } d -= l; }
+      return pts[pts.length - 1];
+    }
+    // Abgas als Rauchteilchen: heiß und orange am Anfang, grau und größer zum Ende hin
+    function rauch(pts, t, tempo, n, farbe, streu) {
+      const L = laenge(pts); if (!L) return;
+      for (let i = 0; i < n; i++) {
+        const u = ((t * 0.00012 * tempo + i / n) % 1), p = punktAuf(pts, u * L);
+        const j = (zufall(i) - 0.5) * (streu || 8) * K, r = (2.2 + 3.2 * u) * K;
+        cx.globalAlpha = 0.85 - 0.45 * u;
+        kreis(p[0] + j, p[1] + (zufall(i + 7) - 0.5) * 4 * K, r, farbe ? farbe : u < 0.35 ? '#FF9F1C' : u < 0.7 ? '#D9894A' : '#9AA3AD');
+      }
+      cx.globalAlpha = 1;
+    }
+    function rohr(pts, d, heiss) {
+      strich(pts, '#6B7785', d + 3 * K); strich(pts, '#AEB6BD', d);
+      if (heiss) { cx.save(); cx.globalAlpha = 0.55; strich(pts, '#C96A2B', d * 0.75); strich(pts, '#FF9F1C', d * 0.35); cx.restore(); }
+    }
+    function thermometer(x, y, h, wert, text, oben) {
+      kasten(x - 4 * K, y, 8 * K, h, 4 * K, '#FFFFFF', '#6B7785', 1.2);
+      const anteil = Math.max(0.05, Math.min(1, (wert + 20) / 60));
+      kasten(x - 2 * K, y + h - h * anteil, 4 * K, h * anteil, 2 * K, wert < 0 ? '#4DA3E0' : '#D23B2E');
+      kreis(x, y + h + 3 * K, 6 * K, wert < 0 ? '#4DA3E0' : '#D23B2E', '#6B7785', 1.2);
+      if (oben) txt(text, x, y - 10 * K, { g: 9, b: true }); else txt(text, x + 12 * K, y + h / 2, { g: 10, b: true, a: 'left' });
+    }
+    // Abgasmessgerät: Stoßschutz, mehrzeiliges LCD, Schlauchanschluss oben
+    function analysator(x, y, w, h, zeilen, titel) {
+      kasten(x, y, w, h, 14 * K, '#E8743B', '#9C4719', 1.5, true);
+      kasten(x + 7 * K, y + 7 * K, w - 14 * K, h - 14 * K, 10 * K, '#2B3038');
+      const lx = x + 14 * K, ly = y + 14 * K, lw = w - 28 * K, lh = h * 0.62;
+      const g = cx.createLinearGradient(0, ly, 0, ly + lh); g.addColorStop(0, '#CFE2B6'); g.addColorStop(1, '#AFC896');
+      kasten(lx, ly, lw, lh, 5 * K, g, '#1B2616', 1);
+      cx.save(); rund(lx, ly, lw, lh, 5 * K); cx.clip();
+      const n = Math.max(1, zeilen.length), zh = Math.min(lh / n, 26 * K), fg = Math.min(zh * 0.62, 17 * K);
+      zeilen.forEach(function (z, i) {
+        const yy = ly + (lh - zh * n) / 2 + zh * (i + 0.5);
+        cx.font = '700 ' + Math.round(fg * 0.78) + 'px ui-monospace, Menlo, Consolas, monospace'; cx.fillStyle = '#3C4D2E'; cx.textAlign = 'left'; cx.textBaseline = 'middle'; cx.fillText(z[0], lx + 6 * K, yy);
+        cx.font = '700 ' + Math.round(fg) + 'px ui-monospace, Menlo, Consolas, monospace'; cx.fillStyle = '#16210F'; cx.textAlign = z[0] ? 'right' : 'center'; cx.fillText(z[1], z[0] ? lx + lw - 6 * K : lx + lw / 2, yy);
+      });
+      cx.restore();
+      txt(titel, x + w / 2, y + h - 17 * K, { g: 9, b: true, f: '#E6E9EC' });
+      const port = [x + w * 0.18, y + 2 * K];
+      kasten(port[0] - 6 * K, port[1] - 6 * K, 12 * K, 9 * K, 2 * K, '#1C2026');
+      return port;
+    }
+    // Abgassonde von unten durch die Messöffnung: Metallrohr, Konus an der Rohrwand, Griff
+    function sonde(spitze, wandY, opt) {
+      opt = opt || {};
+      const unten = wandY + 30 * K;
+      strich([spitze, [spitze[0], unten]], '#C9CED3', 4 * K);
+      if (opt.loecher) for (let y = spitze[1] + 3 * K; y < wandY - 2 * K; y += 6 * K) kreis(spitze[0], y, 1.2 * K, '#2A2D31');
+      cx.fillStyle = '#2A2D31'; cx.beginPath(); cx.moveTo(spitze[0] - 7 * K, wandY + 2 * K); cx.lineTo(spitze[0] + 7 * K, wandY + 2 * K); cx.lineTo(spitze[0] + 3 * K, wandY + 9 * K); cx.lineTo(spitze[0] - 3 * K, wandY + 9 * K); cx.closePath(); cx.fill();
+      kasten(spitze[0] - 6 * K, unten, 12 * K, 24 * K, 3 * K, '#2A2D31');
+      return [spitze[0], unten + 24 * K];
+    }
+    function schlauch(a, b) {
+      const k = kurve(a, [a[0], a[1] + 50 * K], [b[0], b[1] - 50 * K], b);
+      strich(k, f('--flaeche2'), 8 * K); strich(k, '#2A2D31', 5 * K); strich(k, '#5E6670', 1.2 * K);
+    }
+    function flamme(x, y, s, t) {
+      for (let i = 0; i < 3; i++) {
+        const fl = 1 + 0.15 * Math.sin(t / 90 + i * 2);
+        cx.fillStyle = ['#FF6B2B', '#FF9F1C', '#FFE08A'][i]; cx.beginPath();
+        const b = s * (1 - i * 0.28), h = s * 1.7 * fl * (1 - i * 0.22);
+        cx.moveTo(x - b, y); cx.quadraticCurveTo(x - b * 0.8, y - h * 0.6, x, y - h); cx.quadraticCurveTo(x + b * 0.8, y - h * 0.6, x + b, y); cx.closePath(); cx.fill();
+      }
+    }
+    // Feuerstätte zeichnen; liefert den Abgasstutzen
+    function feuerstaette(art, t, oel) {
+      const leise = f('--leise');
+      if (art === 'b11') {
+        const x = X(0.07), y = Y(0.53), w = X(0.16), h = Y(0.28);
+        kasten(x, y, w, h, 6 * K, '#F3F4F2', '#8A8F96', 1.5, true);
+        kasten(x + w * 0.2, y + h * 0.55, w * 0.6, h * 0.25, 4 * K, '#2B3038'); flamme(x + w / 2, y + h * 0.78, 7 * K, t);
+        // Strömungssicherung
+        cx.fillStyle = '#C9CED3'; cx.beginPath(); cx.moveTo(x + w * 0.1, y); cx.lineTo(x + w * 0.3, y - 22 * K); cx.lineTo(x + w * 0.7, y - 22 * K); cx.lineTo(x + w * 0.9, y); cx.closePath(); cx.fill(); cx.strokeStyle = '#6B7785'; cx.lineWidth = 1.2; cx.stroke();
+        for (let i = 0; i < 3; i++) strich([[x + w * (0.05 + i * 0.03), y + 10 * K], [x + w * (0.13 + i * 0.03), y + 2 * K]], '#4DA3E0', 2 * K);
+        txt('mit Strömungssicherung', x + w / 2, y + h + 10 * K, { g: 8, f: leise });
+        txt('Gastherme', x + w / 2, y + h * 0.25, { g: 9, b: true, f: '#2A2D31' });
+        return [x + w / 2, y - 22 * K];
+      }
+      if (art === 'ofen') {
+        const x = X(0.07), y = Y(0.6), w = X(0.16), h = Y(0.3);
+        kasten(x, y, w, h, 6 * K, '#3A3F45', '#1C2026', 1.5, true);
+        kasten(x + w * 0.15, y + h * 0.18, w * 0.7, h * 0.48, 4 * K, '#1C1C1C', '#9AA3AD', 1.5);
+        flamme(x + w * 0.4, y + h * 0.62, 9 * K, t); flamme(x + w * 0.6, y + h * 0.62, 7 * K, t + 300);
+        strich([[x + w * 0.15, Y(0.94)], [x + w * 0.15, y + h]], '#1C2026', 3 * K); strich([[x + w * 0.85, Y(0.94)], [x + w * 0.85, y + h]], '#1C2026', 3 * K);
+        txt('Kaminofen', x + w / 2, y + h * 0.84, { g: 9, b: true, f: '#E6E9EC' });
+        return [x + w / 2, y];
+      }
+      const x = X(0.05), y = Y(0.6), w = X(0.18), h = Y(0.34);
+      kasten(x, y, w, h, 6 * K, '#EEF0EE', '#8A8F96', 1.5, true);
+      kasten(x + w * 0.62, y + h * 0.3, w * 0.36, h * 0.3, 4 * K, oel ? '#C0392B' : '#2B7BB9', '#1C2026', 1);
+      txt(oel ? 'Öl' : 'Gas', x + w * 0.8, y + h * 0.45, { g: 8, b: true, f: '#FFFFFF' });
+      kasten(x + w * 0.12, y + h * 0.3, w * 0.42, h * 0.34, 4 * K, '#1C1C1C', '#9AA3AD', 1);
+      flamme(x + w * 0.33, y + h * 0.58, 8 * K, t);
+      txt('Heizkessel', x + w * 0.4, y + h * 0.82, { g: 9, b: true, f: '#2A2D31' });
+      return [x + w * 0.35, y];
+    }
+    function zeichnenAbgas(t) {
+      const w = wAkt(), tx = f('--text'), leise = f('--leise');
+      if (akt === 'ring' || (akt === 'co' && w.art === 'c')) { zeichnenRing(t, w); return; }
+      hintergrund();
+      // Haus im Schnitt
+      cx.fillStyle = f('--flaeche'); cx.fillRect(X(0.02), Y(0.32), X(0.68), Y(0.62));
+      cx.strokeStyle = f('--linie'); cx.lineWidth = 2; cx.strokeRect(X(0.02), Y(0.32), X(0.68), Y(0.62));
+      kasten(X(0.0), Y(0.94), X(1), 6 * K, 0, '#8A7F72');
+      cx.fillStyle = '#B8695A'; cx.beginPath(); cx.moveTo(X(0.0), Y(0.33)); cx.lineTo(X(0.36), Y(0.1)); cx.lineTo(X(0.74), Y(0.33)); cx.lineTo(X(0.7), Y(0.33)); cx.lineTo(X(0.36), Y(0.135)); cx.lineTo(X(0.04), Y(0.33)); cx.closePath(); cx.fill();
+      // Schornstein
+      const art = akt === 'zug' ? w.art : akt === 'co' ? w.art : 'kessel';
+      const zr = akt === 'zug' ? R : zugRechnen({ art: 'kessel', leistung: w.leistung || 20, h: 9, d: 140, tg: 160, ta: 5, bau: 'ged', fehler: 'ok' });
+      const sx0 = X(0.55), sx1 = X(0.65), top = Y(0.04), unten = Y(0.94), ix0 = X(0.572), ix1 = X(0.628);
+      const ged = akt !== 'zug' || w.bau === 'ged';
+      kasten(sx0, top, sx1 - sx0, unten - top, 2 * K, ged ? '#9AA3AD' : '#B5603C', '#5E4636', 1.2);
+      if (!ged) { cx.save(); rund(sx0, top, sx1 - sx0, unten - top, 2 * K); cx.clip(); cx.strokeStyle = '#8E4A2E'; cx.lineWidth = 1; for (let y = top; y < unten; y += 9 * K) { cx.beginPath(); cx.moveTo(sx0, y); cx.lineTo(sx1, y); cx.stroke(); } cx.restore(); }
+      else { cx.fillStyle = '#F4D03F'; cx.fillRect(ix0 - 5 * K, top + 4 * K, ix1 - ix0 + 10 * K, unten - top - 8 * K); }
+      kasten(ix0, top + 4 * K, ix1 - ix0, unten - top - 8 * K, 2 * K, '#E4E0D8');
+      kasten(sx0 - 4 * K, top - 4 * K, sx1 - sx0 + 8 * K, 8 * K, 2 * K, '#6B7785');
+      // Reinigungsöffnung
+      const offen = akt === 'zug' && w.fehler === 'nebenluft';
+      kasten(sx0 - 3 * K, Y(0.84), 9 * K, Y(0.06), 1.5 * K, offen ? '#1C2026' : '#5E6670');
+      if (offen) { strich([[sx0 - 3 * K, Y(0.84)], [sx0 - 18 * K, Y(0.82)]], '#5E6670', 3 * K); strom([[X(0.46), Y(0.87)], [sx0, Y(0.87)], [(ix0 + ix1) / 2, Y(0.87)], [(ix0 + ix1) / 2, Y(0.75)]], t, '#4DA3E0', 1); txt('Falschluft', X(0.47), Y(0.84), { g: 9, b: true, f: '#2B7BB9' }); }
+      if (akt === 'zug' && w.fehler === 'eng') { cx.fillStyle = '#3A3F45'; cx.beginPath(); cx.ellipse((ix0 + ix1) / 2, Y(0.2), (ix1 - ix0) * 0.4, 9 * K, 0, 0, 2 * Math.PI); cx.fill(); txt('Ablagerung', sx1 + 6 * K, Y(0.2), { g: 9, b: true, f: ROT, a: 'left' }); }
+      // Feuerstätte und Verbindungsstück
+      const stutzen = feuerstaette(art, t, w.brennstoff === 'oel');
+      const ry = Y(0.42), dp = 16 * K, ex = (ix0 + ix1) / 2;
+      const vb = [stutzen, [stutzen[0], ry], [sx0, ry]];
+      rohr(vb, dp, true);
+      // Abgas: durch Verbindungsstück und Schornstein bis über die Mündung
+      const tempo = akt === 'zug' ? Math.max(0.15, Math.min(4, zr.v * 1.4)) * (R.pZ > 0 || akt !== 'zug' ? 1 : 0.15) : 1.3;
+      const weg = [stutzen, [stutzen[0], ry], [ex, ry], [ex, top], [ex + 8 * K, top - 30 * K]];
+      if (akt === 'zug' && R.pZ <= 0) { rauch([stutzen, [stutzen[0] + 4 * K, stutzen[1] - 30 * K], [stutzen[0] - 10 * K, stutzen[1] - 60 * K]], t, 0.6, 10, '#7D8790', 14); pille('⚠ Abgas tritt aus', ROT, X(0.05), Y(0.36)); }
+      else rauch(weg, t, tempo, 46, null, 6);
+      // Messöffnung, Sonde, Messgerät
+      const mx = X(0.4);
+      kreis(mx, ry + dp / 2, 3 * K, '#1C2026');
+      txt('Messöffnung', mx, ry - dp / 2 - 9 * K, { g: 8, f: leise });
+      let spitzeY = ry;
+      if (akt === 'abgas' && schritt === 3) spitzeY = ry + Math.sin(t / 700) * dp * 0.35;
+      if (akt === 'abgas' && w.fehler === 'kern' && schritt >= 3) spitzeY = ry + dp * 0.4;
+      const steckt = (akt === 'zug' && schritt >= 2) || (akt === 'abgas' && schritt >= 3) || (akt === 'co' && schritt >= 2) || (akt === 'russ' && schritt >= 1);
+      const gx = X(0.3), gy = Y(0.66), gw = X(0.22), gh = Y(0.26);
+      let griff = null;
+      if (steckt) griff = sonde([mx, spitzeY], ry + dp / 2, { loecher: akt === 'co' });
+      else if (akt !== 'russ') griff = sonde([X(0.555) - 14 * K, gy - 40 * K], gy - 40 * K + dp / 2);
+      if (akt === 'abgas' && w.fehler === 'undicht' && steckt) { strom([[mx - 22 * K, ry + dp], [mx - 4 * K, ry + dp / 2], [mx, ry]], t, '#4DA3E0', 0.7); txt('Raumluft', mx - 26 * K, ry + dp + 8 * K, { g: 8, b: true, f: '#2B7BB9', a: 'right' }); }
+      if (akt === 'russ') zeichneRusspumpe(t, w, mx, ry, dp, griff);
+      else {
+        let zeilen = R.zeilen;
+        if (akt === 'zug') zeilen = [['Zug', R.anzeige]];
+        if (akt === 'abgas' && schritt === 3) zeilen = zeilen.map(function (z) { return z[0] === 'tA' ? ['tA', zahl(w.tL + (w.tA - w.tL) * (w.fehler === 'kern' ? 0.78 : 1 - 0.18 * Math.abs(Math.sin(t / 700))), 1) + ' °C'] : z; });
+        const port = analysator(gx, gy, gw, gh, zeilen, akt === 'zug' ? 'Zugmessgerät' : 'Abgasmessgerät');
+        if (griff) schlauch(griff, port);
+      }
+      // Verbrennungsluft-Thermometer
+      if (akt === 'abgas' && schritt >= 2) { thermometer(X(0.265), Y(0.74), 36 * K, w.tL, 'tL ' + zahl(w.tL, 0) + ' °C', true); }
+      if (akt === 'co' && w.luft === 'zu' && w.art !== 'c') { kasten(X(0.03), Y(0.5), 10 * K, 34 * K, 2 * K, '#8E7A63'); txt('Zuluft zu', X(0.03) + 14 * K, Y(0.5) + 17 * K, { g: 9, b: true, f: ROT, a: 'left' }); }
+      else if (art !== 'c') { kasten(X(0.02) - 2 * K, Y(0.5), 6 * K, 34 * K, 1 * K, '#4DA3E0'); strom([[X(0.0), Y(0.55)], [X(0.05), Y(0.55)]], t, '#4DA3E0', 0.7); }
+      // Außen: Temperatur, Höhe, Kennwerte
+      const ta = akt === 'zug' ? w.ta : 5;
+      thermometer(X(0.8), Y(0.06), 54 * K, ta, 'außen ' + zahl(ta, 0) + ' °C');
+      if (akt === 'zug') {
+        const hx = sx1 + 34 * K;
+        strich([[hx, ry], [hx, top]], tx, 1.2); strich([[hx - 4 * K, ry], [hx + 4 * K, ry]], tx, 1.2); strich([[hx - 4 * K, top], [hx + 4 * K, top]], tx, 1.2);
+        etikett('H = ' + zahl(w.h, 1) + ' m', hx, (ry + top) / 2, { g: 9, b: true });
+        const ix = X(0.76), iy = Y(0.36), zh = 15 * Math.max(0.85, K);
+        [['Auftrieb p_H', zahl(R.pH, 1) + ' Pa', '#E4572E'], ['Reibung p_R', zahl(R.pR, 2) + ' Pa', '#6E6FA6'], ['Förderdruck', zahl(R.pZ, 1) + ' Pa', R.ok ? GRUEN : ROT], ['Bedarf', zahl(w.bedarf, 0) + ' Pa', '#2B7BB9'], ['ρ Luft', zahl(R.rhoL, 3), tx], ['ρ Abgas', zahl(R.rhoG, 3), tx]].forEach(function (z, i) {
+          txt(z[0], ix, iy + i * zh, { g: 9, f: leise, a: 'left' }); txt(z[1], X(0.985), iy + i * zh, { g: 10, b: true, f: z[2], a: 'right' });
+        });
+        txt(zahl(w.tg, 0) + ' °C', stutzen[0] + 10 * K, ry - dp / 2 - 9 * K, { g: 9, b: true, f: '#E4572E', a: 'left' });
+        txt('Mündung ' + zahl(R.tM, 0) + ' °C', sx0 - 8 * K, top + 10 * K, { g: 9, b: true, f: R.tM < BS[w.brennstoff].tau ? ROT : leise, a: 'right' });
+        // Druckpfeile im Schornstein
+        if (R.pZ > 0 && schritt >= 3) { const lp = Math.min(60, 8 + R.pZ * 1.6) * K; strich([[ex, ry - 8 * K], [ex, ry - 8 * K - lp]], GRUEN, 3 * K); cx.fillStyle = GRUEN; cx.beginPath(); cx.moveTo(ex - 6 * K, ry - 8 * K - lp); cx.lineTo(ex + 6 * K, ry - 8 * K - lp); cx.lineTo(ex, ry - 18 * K - lp); cx.closePath(); cx.fill(); }
+      }
+      pille(akt === 'zug' && R.pZ <= 0 ? '⚠ kein Zug' : '🔥 Feuerstätte in Betrieb', akt === 'zug' && R.pZ <= 0 ? ROT : '#E4572E', X(0.02), Y(0.012));
+    }
+    function zeichneRusspumpe(t, w, mx, ry, dp, griff) {
+      const leise = f('--leise');
+      const px = X(0.28), py = Y(0.76), pw = X(0.2), ph = 22 * K;
+      // Rußpumpe: Zylinder mit Kolbenstange und Griff
+      const hub = schritt === 2 ? (Math.sin(t / 190) + 1) / 2 : 0;
+      kasten(px, py, pw, ph, ph / 2, '#C9CED3', '#6B7785', 1.5, true);
+      strich([[px + pw, py + ph / 2], [px + pw + (20 + 40 * hub) * K, py + ph / 2]], '#6B7785', 4 * K);
+      kasten(px + pw + (20 + 40 * hub) * K, py - 6 * K, 10 * K, ph + 12 * K, 3 * K, '#2A2D31');
+      kasten(px - 14 * K, py + 2 * K, 14 * K, ph - 4 * K, 3 * K, '#2A2D31');
+      txt('Rußpumpe', px + pw / 2, py + ph + 12 * K, { g: 9, b: true, f: leise });
+      if (schritt === 2) txt('Hub ' + (1 + Math.floor(t / (2 * Math.PI * 190)) % 10) + ' von 10', px + pw / 2, py - 14 * K, { g: 10, b: true, f: '#E4572E' });
+      if (griff) schlauch(griff, [px - 14 * K, py + ph / 2]);
+      // Filterpapiere und Rußskala
+      const fx = X(0.76), fy = Y(0.42), r = 12 * K;
+      if (R.entf) etikett('Rußzahl nur bei Heizöl', X(0.4), Y(0.36), { g: 9, b: true, f: ROT });
+      txt('Filterpapier', fx, fy - 22 * K, { g: 9, b: true, f: leise, a: 'left' });
+      const zeig = R.entf ? 0 : schritt >= 3 ? 3 : schritt === 2 ? 1 : 0;
+      for (let i = 0; i < 3; i++) {
+        const x = fx + r + i * (2.6 * r);
+        kasten(x - r * 1.1, fy - r * 1.1, r * 2.2, r * 2.2, 2 * K, '#FFFFFF', '#9AA3AD', 1);
+        if (i < zeig) { const g = Math.round(235 - R.flecken[i] * 24); kreis(x, fy, r * 0.75, 'rgb(' + g + ',' + g + ',' + g + ')'); if (R.derivate) kreis(x, fy, r * 0.75, null, '#E6C229', 3 * K); txt(String(R.flecken[i]), x, fy + r * 1.6, { g: 9, b: true }); }
+      }
+      if (R.derivate && zeig) txt('gelblich: Ölderivate', fx, fy + r * 2.6, { g: 9, b: true, f: '#B8860B', a: 'left' });
+      const sy = fy + 52 * K;
+      txt('Rußskala DIN 51402', fx, sy - 12 * K, { g: 8, f: leise, a: 'left' });
+      for (let i = 0; i < 10; i++) { const g = Math.round(235 - i * 24); kasten(fx + i * 13 * K, sy, 12 * K, 12 * K, 2 * K, 'rgb(' + g + ',' + g + ',' + g + ')', '#9AA3AD', 0.8); txt(String(i), fx + i * 13 * K + 6 * K, sy + 20 * K, { g: 7, f: leise, fest: true }); }
+      if (!R.entf && schritt >= 3) { const x = fx + R.rz * 13 * K + 6 * K; strich([[x, sy - 4 * K], [x, sy - 1 * K]], ROT, 3 * K); kasten(fx + R.rz * 13 * K - 1 * K, sy - 1 * K, 14 * K, 14 * K, 2 * K, null, ROT, 2); }
+    }
+    // Raumluftunabhängige Feuerstätte mit konzentrischem Luft-Abgas-System im Schacht
+    function zeichnenRing(t, w) {
+      const leise = f('--leise');
+      hintergrund();
+      cx.fillStyle = f('--flaeche'); cx.fillRect(X(0.02), Y(0.32), X(0.68), Y(0.62));
+      cx.strokeStyle = f('--linie'); cx.lineWidth = 2; cx.strokeRect(X(0.02), Y(0.32), X(0.68), Y(0.62));
+      kasten(X(0.0), Y(0.94), X(1), 6 * K, 0, '#8A7F72');
+      cx.fillStyle = '#B8695A'; cx.beginPath(); cx.moveTo(X(0.0), Y(0.33)); cx.lineTo(X(0.36), Y(0.1)); cx.lineTo(X(0.74), Y(0.33)); cx.lineTo(X(0.7), Y(0.33)); cx.lineTo(X(0.36), Y(0.135)); cx.lineTo(X(0.04), Y(0.33)); cx.closePath(); cx.fill();
+      // Schacht mit Abgasleitung innen; die Luft strömt im Schacht nach unten
+      const sx0 = X(0.55), sx1 = X(0.65), top = Y(0.06), unten = Y(0.94), ex = (sx0 + sx1) / 2;
+      kasten(sx0, top, sx1 - sx0, unten - top, 2 * K, '#9AA3AD', '#5E6670', 1.2);
+      kasten(sx0 + 5 * K, top + 4 * K, sx1 - sx0 - 10 * K, unten - top - 8 * K, 2 * K, '#E6EEF5');
+      // Therme
+      const x = X(0.07), y = Y(0.46), tw = X(0.16), th = Y(0.28);
+      kasten(x, y, tw, th, 6 * K, '#F3F4F2', '#8A8F96', 1.5, true);
+      kasten(x + tw * 0.2, y + th * 0.5, tw * 0.6, th * 0.3, 4 * K, '#2B3038'); flamme(x + tw / 2, y + th * 0.76, 7 * K, t);
+      txt('Gastherme (C)', x + tw / 2, y + th * 0.25, { g: 9, b: true, f: '#2A2D31' });
+      // Anschlussstück konzentrisch: außen Luft, innen Abgas
+      const ry = Y(0.4), da = 26 * K, di = 11 * K, st = [x + tw / 2, y];
+      const aus = [st, [st[0], ry], [ex, ry], [ex, top - 6 * K]];
+      strich(aus.slice(0, 3), '#6B7785', da + 3 * K); strich(aus.slice(0, 3), '#DCE8F2', da);
+      strich(aus, '#6B7785', di + 3 * K); strich(aus, '#C9CED3', di);
+      kasten(ex - 14 * K, top - 16 * K, 28 * K, 12 * K, 3 * K, '#6B7785');
+      // Verbrennungsluft: von oben im Schacht nach unten, dann im Ringspalt zur Therme
+      const luft = [[ex + 22 * K, top - 4 * K], [sx1 - 12 * K, top + 20 * K], [sx1 - 12 * K, ry + 16 * K], [sx0 + 2 * K, ry + 8 * K], [st[0] + 8 * K, ry + 8 * K], [st[0] + 8 * K, y]];
+      const luft2 = [[ex - 22 * K, top - 4 * K], [sx0 + 12 * K, top + 20 * K], [sx0 + 12 * K, ry - 16 * K], [sx0 + 2 * K, ry - 8 * K], [st[0] - 8 * K, ry - 8 * K], [st[0] - 8 * K, y]];
+      strom(luft, t, '#4DA3E0', 0.9); strom(luft2, t + 400, '#4DA3E0', 0.9);
+      rauch(aus.concat([[ex, top - 40 * K]]), t, 1.4, 40, null, 2);
+      // Fehler
+      if (w.fehler === 'undicht' && akt === 'ring') { const ly = Y(0.62); blitz(ex + 10 * K, ly, K, ROT); rauch([[ex, ly], [sx1 - 12 * K, ly + 20 * K], [sx1 - 12 * K, ry + 16 * K], [sx0 + 2 * K, ry + 8 * K], [st[0] + 8 * K, ry + 8 * K]], t, 1, 14, '#FF9F1C', 3); txt('undicht', sx1 + 6 * K, ly, { g: 9, b: true, f: ROT, a: 'left' }); }
+      if (w.fehler === 'muendung' && akt === 'ring') { rauch([[ex, top - 30 * K], [ex + 26 * K, top - 30 * K], [ex + 22 * K, top - 4 * K], [sx1 - 12 * K, top + 20 * K], [sx1 - 12 * K, ry + 16 * K]], t, 1, 14, '#FF9F1C', 3); txt('Rückströmung', sx1 + 6 * K, top + 4 * K, { g: 9, b: true, f: ROT, a: 'left' }); }
+      // Messstutzen
+      const mL = [X(0.38), ry - da / 2], mA = [X(0.32), ry - da / 2];
+      kasten(mL[0] - 5 * K, mL[1] - 10 * K, 10 * K, 10 * K, 2 * K, '#2B7BB9'); txt('Luft', mL[0], mL[1] - 18 * K, { g: 8, b: true, f: '#2B7BB9' });
+      kasten(mA[0] - 5 * K, mA[1] - 10 * K, 10 * K, 10 * K, 2 * K, '#E4572E'); txt('Abgas', mA[0], mA[1] - 18 * K, { g: 8, b: true, f: '#E4572E' });
+      // Sonde von unten in den Ringspalt (Luft) bzw. ins Abgas (CO-Messung)
+      const gx = X(0.3), gy = Y(0.66), gw = X(0.22), gh = Y(0.26);
+      const inRing = akt === 'ring' && schritt >= 2, inAbgas = akt === 'co' && schritt >= 2;
+      let griff;
+      if (inRing) griff = sonde([X(0.38), ry + di / 2 + 5 * K], ry + da / 2);
+      else if (inAbgas) griff = sonde([X(0.32), ry], ry + da / 2, { loecher: true });
+      else griff = sonde([X(0.35), gy - 52 * K], gy - 52 * K + 8 * K);
+      const port = analysator(gx, gy, gw, gh, R.zeilen, akt === 'co' ? 'Abgasmessgerät' : 'O₂-Messung');
+      schlauch(griff, port);
+      txt('Luft-Abgas-System', X(0.82), Y(0.42), { g: 10, b: true, f: leise });
+      txt('innen Abgas ↑', X(0.82), Y(0.47), { g: 9, f: '#E4572E' });
+      txt('außen Luft ↓', X(0.82), Y(0.52), { g: 9, f: '#2B7BB9' });
+      pille('🔥 Feuerstätte in Betrieb', '#E4572E', X(0.02), Y(0.012));
+    }
+    function zeichnen(t) { if (!R) return; cx.lineCap = 'round'; zeichnenAbgas(t); }
+    function schleife(t) { zeichnen(t); requestAnimationFrame(schleife); }
+    window.addEventListener('resize', function () { groesse(); });
+    // Formelsammlung
+    (function () {
+      const z = $('sammlung');
+      [
+        ['Naturzug', 'p_\\text{H} = H \\cdot g \\cdot (\\rho_\\text{L} - \\rho_\\text{G}),\\quad \\rho \\approx \\frac{353}{T}\\,\\tfrac{\\text{kg}}{\\text{m}^3}', 'T in Kelvin; je höher der Schornstein und je wärmer das Abgas gegenüber der Außenluft, desto stärker der Zug'],
+        ['Förderdruck', 'p_\\text{Z} = p_\\text{H} - p_\\text{R} \\ge p_\\text{Bedarf}', 'p_R: Reibung und Umlenkungen; den Bedarf nennt der Hersteller der Feuerstätte (DIN EN 13384-1)'],
+        ['Abgasverlust', 'q_\\text{A} = (t_\\text{A} - t_\\text{L}) \\cdot \\left(\\frac{A_2}{21 - O_2} + B\\right)', 'Erdgas A2 = 0,66, B = 0,009 · Flüssiggas 0,63 / 0,008 · Heizöl EL 0,68 / 0,007 (1. BImSchV Anlage 2)'],
+        ['Grenzwerte Abgasverlust', 'q_\\text{A} \\le 11\\,\\%\\ (4\\text{–}25\\,\\text{kW}),\\quad 10\\,\\%\\ (25\\text{–}50\\,\\text{kW}),\\quad 9\\,\\%\\ (> 50\\,\\text{kW})', 'auf ganze Prozent gerundet, bis ,50 abrunden (1. BImSchV § 10)'],
+        ['Luftzahl und CO₂', '\\lambda = \\frac{21}{21 - O_2},\\quad CO_2 = CO_{2,\\max} \\cdot \\frac{21 - O_2}{21}', 'CO₂max: Erdgas H etwa 11,9 %, Flüssiggas 13,7 %, Heizöl EL 15,4 %'],
+        ['Kohlenmonoxid', 'CO_\\text{unv} = CO \\cdot \\frac{20{,}9}{20{,}9 - O_2} \\le 1\\,000\\,\\text{ppm}', 'unverdünntes, trockenes Abgas (KÜO § 1); bei Überschreitung Wiederholung spätestens nach sechs Wochen'],
+        ['Ringspalt', '\\Delta O_2 = O_{2,\\text{Raum}} - O_{2,\\text{Ringspalt}} \\le 0{,}2\\,\\%', 'Faustwert aus der Praxis: größerer Abfall heißt Abgas in der Verbrennungsluft'],
+        ['Rußzahl', 'RZ \\le 1\\ (\\text{Zerstäuber ab 10/1988}),\\quad RZ \\le 2\\ (\\text{älter, Verdampfer})', 'drei Messungen, Mittelwert gerundet; keine Ölderivate (1. BImSchV)']
+      ].forEach(function (q) { const s = document.createElement('section'), h = document.createElement('h3'), fo = document.createElement('div'), p = document.createElement('p'); h.textContent = q[0]; Formel.setze(fo, q[1], true); p.textContent = q[2]; s.append(h, fo, p); z.append(s); });
+    })();
+    reiterBauen(); felderBauen(); neu(); requestAnimationFrame(schleife);
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>
