@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Brandmeldeanlage planen und simulieren – Formeln &amp; Rechner</title>
-  <meta name="description" content="Brandmeldeanlage planen und simulieren: Melder je Raum nach DIN VDE 0833-2 setzen, Ringleitung mit Trennern, Notstrom-Akku und Spannungsfall berechnen, dann einen Brand legen und sehen, wann welche Melder auslösen, was die Zentrale tut und wann die Feuerwehr kommt.">
+  <meta name="description" content="Brandmeldeanlage planen und simulieren: Melder je Raum nach DIN VDE 0833-2, frei einstellbare Steuerungen (Hausalarm, Wählgerät zur Feuerwehr, Rauchabzug, Türen, Klima, Aufzug, Löschanlage), Ringleitung, Notstrom, dann einen Brand legen und den Ablauf von Melder über Zentrale bis Feuerwehr verfolgen.">
   <!-- seo -->
   <link rel="canonical" href="https://tools.pr1m3.de/brandschutz/brandmeldeanlage.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Formeln &amp; Rechner">
   <meta property="og:locale" content="de_DE">
   <meta property="og:title" content="Brandmeldeanlage planen und simulieren">
-  <meta property="og:description" content="Brandmeldeanlage planen und simulieren: Melder je Raum nach DIN VDE 0833-2 setzen, Ringleitung mit Trennern, Notstrom-Akku und Spannungsfall berechnen, dann einen Brand legen und sehen, wann welche Melder auslösen, was die Zentrale tut und wann die Feuerwehr kommt.">
+  <meta property="og:description" content="Brandmeldeanlage planen und simulieren: Melder je Raum nach DIN VDE 0833-2, frei einstellbare Steuerungen (Hausalarm, Wählgerät zur Feuerwehr, Rauchabzug, Türen, Klima, Aufzug, Löschanlage), Ringleitung, Notstrom, dann einen Brand legen und den Ablauf von Melder über Zentrale bis Feuerwehr verfolgen.">
   <meta property="og:url" content="https://tools.pr1m3.de/brandschutz/brandmeldeanlage.html">
   <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
   <meta name="twitter:card" content="summary">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Brandmeldeanlage planen und simulieren","url":"https://tools.pr1m3.de/brandschutz/brandmeldeanlage.html","inLanguage":"de","description":"Brandmeldeanlage planen und simulieren: Melder je Raum nach DIN VDE 0833-2 setzen, Ringleitung mit Trennern, Notstrom-Akku und Spannungsfall berechnen, dann einen Brand legen und sehen, wann welche Melder auslösen, was die Zentrale tut und wann die Feuerwehr kommt.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Brandmeldeanlage planen und simulieren","url":"https://tools.pr1m3.de/brandschutz/brandmeldeanlage.html","inLanguage":"de","description":"Brandmeldeanlage planen und simulieren: Melder je Raum nach DIN VDE 0833-2, frei einstellbare Steuerungen (Hausalarm, Wählgerät zur Feuerwehr, Rauchabzug, Türen, Klima, Aufzug, Löschanlage), Ringleitung, Notstrom, dann einen Brand legen und den Ablauf von Melder über Zentrale bis Feuerwehr verfolgen.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
   <!-- /seo -->
   <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
@@ -67,6 +67,11 @@
     .tabelle td.ok { color: var(--ergebnis); font-weight: 600; }
     .tabelle td.nok { color: var(--fehler); font-weight: 600; }
     input[type=range] { width: 100%; }
+    .fluss svg { display: block; width: 100%; height: auto; }
+    .raeume-wahl { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: .8rem; margin: 4px 0; }
+    .raeume-wahl label { display: inline-flex; gap: 4px; align-items: center; color: var(--text); }
+    .karte-klein.aus { opacity: .6; }
+    .unterkopf { margin: 8px 0 2px; font-size: .85rem; font-weight: 600; font-family: var(--technik); }
     [hidden] { display: none !important; }
     @media print {
       .planer { display: block; }
@@ -83,7 +88,7 @@
   <main class="seite">
     <section class="held">
       <h1><span class="unterstrichen">Brandmeldeanlage</span></h1>
-      <p>Räume anlegen, Rauch-, Wärme- und Handfeuermelder nach DIN VDE 0833-2 setzen lassen oder selbst platzieren, Ringleitung mit Kurzschlusstrennern, Notstrom-Akku und Spannungsfall berechnen. Dann einen Brand legen: Die Simulation zeigt, wann welche Melder auslösen, was die Zentrale meldet und steuert und wie groß der Brand ist, wenn die Feuerwehr eintrifft.</p>
+      <p>Räume anlegen, Rauch-, Wärme- und Handfeuermelder nach DIN VDE 0833-2 setzen lassen oder selbst platzieren, in Meldebereiche, Meldergruppen und Meldelinien (Ring oder Stich) einteilen, Steuerungen frei festlegen, Energieversorgung aus Netz, Akku und Netzersatzanlage berechnen. Dann einen Brand legen: Die Simulation zeigt, wann welche Melder auslösen, was die Zentrale meldet und steuert und wie groß der Brand ist, wenn die Feuerwehr eintrifft.</p>
     </section>
 
     <div class="planer">
@@ -91,8 +96,22 @@
         <h2 id="h-ein">Anlage</h2>
         <p class="hilfe">Alles wird in diesem Browser gespeichert. Maße in Metern.</p>
         <details open><summary>Räume</summary><div id="raeume"></div><button type="button" class="knopf" id="neuerRaum">+ Raum</button></details>
-        <details><summary>Ring und Zentrale</summary><div class="raster" id="ring"></div></details>
-        <details><summary>Notstrom</summary><div class="raster" id="strom"></div></details>
+        <details open><summary>Steuerungen der Zentrale</summary>
+          <p class="hilfe">Was die Zentrale im Brandfall schaltet. Jede Steuerung lässt sich ein- und ausschalten, auf einzelne Räume begrenzen, verzögern und mit Strom für den Notstrom versehen.</p>
+          <div id="ausgaenge"></div>
+          <div class="werkzeug-leiste"><select id="neuTyp" aria-label="Art der neuen Steuerung"></select><button type="button" class="knopf" id="neuerAusgang">+ Steuerung</button></div>
+        </details>
+        <details><summary>Meldebereiche, Meldergruppen, Meldelinien</summary>
+          <p class="hilfe">Meldebereich: zusammenhängender Bereich für die Feuerwehr (höchstens 1 600 m²). Meldergruppe: gemeinsam angezeigte Melder (höchstens 32 automatische oder 10 Handfeuermelder, nie gemischt). Meldelinie: Ring- oder Stichleitung an der Zentrale. Die Zuordnung der Räume steht bei den Räumen.</p>
+          <h4 class="unterkopf">Meldebereiche</h4><div id="bereiche"></div><button type="button" class="knopf-leise" id="neuerBereich">+ Meldebereich</button>
+          <h4 class="unterkopf">Meldergruppen</h4><div id="gruppen"></div><button type="button" class="knopf-leise" id="neueGruppe">+ Meldergruppe</button>
+          <h4 class="unterkopf">Meldelinien</h4><div id="linien"></div><button type="button" class="knopf-leise" id="neueLinie">+ Meldelinie</button>
+          <h4 class="unterkopf">Leitungen allgemein</h4><div class="raster" id="ring"></div>
+        </details>
+        <details><summary>Energieversorgung</summary>
+          <p class="hilfe">Zwei voneinander unabhängige Energiequellen (DIN EN 54-4, DIN VDE 0833-1): das Netz über einen eigenen, gekennzeichneten Stromkreis und als Ersatz der Akku in der Zentrale, auf Wunsch zusätzlich eine Netzersatzanlage (Notstromaggregat).</p>
+          <div class="raster" id="energie"></div><div class="raster" id="strom"></div>
+        </details>
         <details open><summary>Betrieb und Simulation</summary><div class="raster" id="betrieb"></div></details>
         <div class="werkzeug-leiste">
           <button type="button" class="knopf-leise" id="beispiel">Beispiel laden</button>
@@ -120,6 +139,8 @@
           <input type="range" id="zeit" min="0" max="1200" step="1" value="0" aria-label="Zeit in der Simulation" style="flex:1 1 160px">
         </div>
         <div class="status" id="status" aria-live="polite"></div>
+        <h3 class="zwischen">Signalfluss</h3>
+        <div id="fluss" class="fluss" aria-label="Signalfluss von den Meldern über die Zentrale zu den Steuerungen"></div>
         <div class="bmz">
           <div class="anzeige" id="anzeige" aria-live="polite"></div>
           <ol class="protokoll-liste" id="ereignisse" aria-label="Ereignisse der Simulation"></ol>
@@ -133,8 +154,14 @@
       <div class="kacheln" id="kacheln"></div>
       <h3 class="zwischen">Räume und Melder</h3>
       <div class="rahmen"><table class="tabelle" id="tabRaeume"></table></div>
-      <h3 class="zwischen">Ringleitung und Energie</h3>
+      <h3 class="zwischen">Meldebereiche und Meldergruppen</h3>
+      <div class="rahmen"><table class="tabelle" id="tabGruppen"></table></div>
+      <h3 class="zwischen">Meldelinien</h3>
+      <div class="rahmen"><table class="tabelle" id="tabLinien"></table></div>
+      <h3 class="zwischen">Energieversorgung</h3>
       <div class="rahmen"><table class="tabelle" id="tabRing"></table></div>
+      <h3 class="zwischen">Steuermatrix</h3>
+      <div class="rahmen"><table class="tabelle" id="tabMatrix"></table></div>
       <h3 class="zwischen">Simulation: Melder im Brandraum</h3>
       <div class="rahmen"><table class="tabelle" id="tabSim"></table></div>
       <h3 class="zwischen" id="wegTitel">Rechenweg</h3>
@@ -164,8 +191,10 @@
     function tz(w, n) { return Formel.zahl(zahl(w, n)); }
     function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
     function zeitText(s) { if (!isFinite(s)) return '–'; s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+    function stunden(h) { return !isFinite(h) ? '–' : h >= 1 ? zahl(h, 1) + ' h' : zahl(h * 60, 0) + ' min'; }
     let nr = 1;
     function neueId(p) { return p + (nr++) + Math.random().toString(36).slice(2, 5); }
+    function finde(liste, id) { for (let i = 0; i < liste.length; i++) if (liste[i].id === id) return liste[i]; return null; }
 
     // ---------- Fachliche Tabellen ----------
     // Überwachungsfläche A_max und waagerechter Abstand D_H nach DIN VDE 0833-2 (Decke bis 15° Neigung)
@@ -174,7 +203,6 @@
       if (A <= 80) return { A: 80, D: 6.7, hMax: 12 };
       return h <= 6 ? { A: 60, D: 5.8, hMax: 12 } : { A: 80, D: 6.7, hMax: 12 };
     }
-    // Brandwachstum Q = α t² (kW, s); Schwelbrand: sehr langsam, viel Rauch
     const BRAND = {
       schwel: { name: 'Schwelbrand (viel Rauch, wenig Wärme)', a: 0.0008, qMax: 40 },
       langsam: { name: 'langsam (z. B. Akten, Möbel aus Holz)', a: 0.00293, qMax: 5000 },
@@ -182,20 +210,50 @@
       schnell: { name: 'schnell (z. B. Kunststoff, Lager)', a: 0.0469, qMax: 8000 },
       sehr: { name: 'sehr schnell (z. B. Lösemittel, Schaumstoff)', a: 0.1876, qMax: 10000 }
     };
-    // Ansprechen: Wärmemelder Klasse A1 bei 58 °C (RTI 50), Rauchmelder als Ersatzmodell bei ΔT = 10 K (RTI 5), Mehrkriterienmelder ΔT = 8 K
     const ANSPRECH = { waerme: { dT: 38, rti: 50 }, rauch: { dT: 10, rti: 5 }, multi: { dT: 8, rti: 5 } };
     const ART = { rauch: 'Rauchmelder', waerme: 'Wärmemelder', multi: 'Mehrkriterienmelder', hfm: 'Handfeuermelder' };
+    const LFARBEN = ['#2B7BB9', '#0E6B6A', '#6E6FA6', '#B5533C', '#C2185B', '#8B5A2B'];
+    const TYP = {
+      akustisch: { name: 'Akustischer Hausalarm (Sirenen)', kurz: 'AKU', anzahl: 6, iA: 25, iR: 0 },
+      optisch: { name: 'Optischer Hausalarm (Blitzleuchten)', kurz: 'OPT', anzahl: 6, iA: 30, iR: 0 },
+      waehl: { name: 'Wählgerät und Telefon (Übertragungseinrichtung)', kurz: 'ÜE', anzahl: 1, iA: 60, iR: 20 },
+      rwa: { name: 'Rauchabzugsklappen öffnen', kurz: 'RWA', anzahl: 2, iA: 0, iR: 0 },
+      tuer: { name: 'Feuerschutztüren schließen', kurz: 'TÜR', anzahl: 4, iA: 0, iR: 0 },
+      klima: { name: 'Klimaanlage abschalten', kurz: 'KLI', anzahl: 1, iA: 0, iR: 0 },
+      aufzug: { name: 'Aufzug sperren (Brandfallsteuerung)', kurz: 'AUF', anzahl: 1, iA: 0, iR: 0 },
+      loesch: { name: 'Löscheinrichtung auslösen', kurz: 'LÖ', anzahl: 1, iA: 120, iR: 5 },
+      eigen: { name: 'eigene Steuerung', kurz: 'ST', anzahl: 1, iA: 0, iR: 0 }
+    };
+    const AUSLOESER = [['alle', 'jede Feuermeldung (Melder oder Handfeuermelder)'], ['auto', 'nur automatische Melder'], ['hfm', 'nur Handfeuermelder'], ['zwei', 'zwei Melder derselben Meldergruppe'], ['ue', 'Weiterleitung an die Feuerwehr (nach Verzögerung)']];
 
     // ---------- Projekt ----------
+    function standardAusgaenge() {
+      const a = function (typ, o) { const t = TYP[typ], x = { id: neueId('a'), typ: typ, name: t.name, an: true, anzahl: t.anzahl, iA: t.iA, iR: t.iR, ausloeser: 'alle', raeume: [], verz: 0 }; Object.keys(o || {}).forEach(function (k) { x[k] = o[k]; }); return x; };
+      return [
+        a('akustisch', { raeumung: 4 }), a('optisch'),
+        a('waehl', { ausloeser: 'ue', ziele: [{ id: neueId('z'), name: 'Einsatzzentrale Feuerwehr', art: 'leitstelle', verz: 0 }, { id: neueId('z'), name: 'Haustechnik', art: 'telefon', verz: 30 }, { id: neueId('z'), name: 'Betreiber', art: 'telefon', verz: 60 }] }),
+        a('rwa', { raeume: ['r6'] }), a('tuer'), a('klima'), a('aufzug'),
+        a('loesch', { ausloeser: 'zwei', raeume: ['r7'], vorwarn: 30, wirkung: 'loeschen' })
+      ];
+    }
     function beispiel() {
       const r = [
-        ['Flur', 24, 2.5, 2.7, 'rauch', 2], ['Büro 1', 6, 5, 2.7, 'rauch', 0], ['Büro 2', 6, 5, 2.7, 'rauch', 0], ['Besprechung', 6, 5, 2.7, 'rauch', 0],
-        ['Küche', 4, 5, 2.7, 'waerme', 0], ['Lager', 10, 9, 4.5, 'rauch', 1], ['Technik', 4, 4, 3, 'multi', 0]
-      ].map(function (q, i) { return { id: 'r' + (i + 1), name: q[0], b: q[1], l: q[2], h: q[3], typ: q[4], hfm: q[5] }; });
+        ['Flur', 24, 2.5, 2.7, 'rauch', 2, 1, 'b1', 'g2', 'g5'], ['Büro 1', 6, 5, 2.7, 'rauch', 0, 1, 'b1', 'g1', ''], ['Büro 2', 6, 5, 2.7, 'rauch', 0, 1, 'b1', 'g1', ''], ['Besprechung', 6, 5, 2.7, 'rauch', 0, 1, 'b1', 'g1', ''],
+        ['Küche', 4, 5, 2.7, 'waerme', 0, 1, 'b1', 'g1', ''], ['Lager', 10, 9, 4.5, 'rauch', 1, 1, 'b2', 'g3', 'g6'], ['Technik', 4, 4, 3, 'multi', 0, 2, 'b2', 'g4', '']
+      ].map(function (q, i) { return { id: 'r' + (i + 1), name: q[0], b: q[1], l: q[2], h: q[3], typ: q[4], hfm: q[5], nMin: q[6], mb: q[7], mgA: q[8], mgH: q[9] }; });
       return {
         raeume: r, breite: 24, melder: [],
-        ring: { trenner: 'jeder', abschnitt: 32, max: 128, querschnitt: 0.8, zuschlag: 15, uMin: 16 },
-        strom: { iBmz: 150, iBmzAlarm: 400, iMelder: 0.3, signal: 6, iSignal: 25, iUe: 60, tR: 30, tA: 0.5 },
+        bereiche: [{ id: 'b1', name: 'Büro Erdgeschoss' }, { id: 'b2', name: 'Lager und Technik' }],
+        gruppen: [
+          { id: 'g1', nr: 1, name: 'Büros und Küche', art: 'auto', linie: 'l1' }, { id: 'g2', nr: 2, name: 'Flur', art: 'auto', linie: 'l1' },
+          { id: 'g3', nr: 3, name: 'Lager', art: 'auto', linie: 'l2' }, { id: 'g4', nr: 4, name: 'Technik', art: 'auto', linie: 'l2' },
+          { id: 'g5', nr: 5, name: 'Handfeuermelder Büro', art: 'hfm', linie: 'l1' }, { id: 'g6', nr: 6, name: 'Handfeuermelder Lager', art: 'hfm', linie: 'l2' }
+        ],
+        linien: [{ id: 'l1', name: 'Ring 1', art: 'ring', trenner: 'jeder', abschnitt: 32, max: 128, querschnitt: 0.8 }, { id: 'l2', name: 'Ring 2', art: 'ring', trenner: 'abschnitt', abschnitt: 8, max: 128, querschnitt: 0.8 }],
+        ring: { zuschlag: 15, uMin: 16 },
+        strom: { iBmz: 150, iBmzAlarm: 400, iMelder: 0.3, tA: 0.5 },
+        energie: { netzEigen: 'ja', ersatz: 'akku', service: '24', akkuAh: 0, neaStart: 15, neaTank: 72, ausfallVor: 0, ausfallBrand: 'nein' },
+        ausgaenge: standardAusgaenge(),
         betrieb: { abh: 'ein', tm: 'aus', personal: 'nein', hfmNach: 0, brand: 'mittel', anfahrt: 9 },
         brand: null, stoerung: null
       };
@@ -210,28 +268,50 @@
     // streng prüfen: Zahlen in Grenzen, Auswahlwerte aus Listen, IDs nur auf Vorhandenes, kurze Texte
     function nz(v, d, min, max) { const x = Number(v); return v !== null && v !== '' && typeof v !== 'boolean' && isFinite(x) ? Math.max(min, Math.min(max, x)) : d; }
     function eins(v, liste, d) { return liste.indexOf(v) >= 0 ? v : d; }
-    function tx(v, d) { return typeof v === 'string' ? v.replace(/[<>"'`]/g, '').slice(0, 40) : d; }
+    function tx(v, d) { return typeof v === 'string' ? v.replace(/[<>"'`]/g, '').slice(0, 60) : d; }
     function idw(v) { return typeof v === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(v) ? v : null; }
+    function liste(a, max, fn) { const ids = []; return (Array.isArray(a) ? a : []).slice(0, max).filter(function (x) { return x && idw(x.id) && ids.indexOf(x.id) < 0 && ids.push(x.id); }).map(fn); }
     function pruefen(p) {
       if (!p || typeof p !== 'object' || !Array.isArray(p.raeume) || !Array.isArray(p.melder)) return false;
-      const B = beispiel(), ids = [];
-      p.raeume = p.raeume.slice(0, 40).filter(function (r) { return r && idw(r.id) && ids.indexOf(r.id) < 0 && ids.push(r.id); }).map(function (r) {
-        return { id: r.id, name: tx(r.name, 'Raum'), b: nz(r.b, 5, 1, 80), l: nz(r.l, 5, 1, 80), h: nz(r.h, 3, 2, 20), typ: eins(r.typ, ['rauch', 'waerme', 'multi'], 'rauch'), hfm: Math.round(nz(r.hfm, 0, 0, 6)) };
+      const B = beispiel();
+      p.linien = liste(Array.isArray(p.linien) && p.linien.length ? p.linien : [{ id: 'l1', name: 'Ring 1', art: 'ring', trenner: (p.ring || {}).trenner, abschnitt: (p.ring || {}).abschnitt, max: (p.ring || {}).max, querschnitt: (p.ring || {}).querschnitt }], 8, function (l, i) {
+        return { id: l.id, name: tx(l.name, 'Linie ' + (i + 1)), art: eins(l.art, ['ring', 'stich'], 'ring'), trenner: eins(l.trenner, ['jeder', 'abschnitt', 'keine'], 'jeder'), abschnitt: Math.round(nz(l.abschnitt, 32, 1, 128)), max: Math.round(nz(l.max, 128, 8, 512)), querschnitt: eins(Number(l.querschnitt), [0.6, 0.8, 1], 0.8) };
+      });
+      if (!p.linien.length) return false;
+      const lid = p.linien.map(function (l) { return l.id; });
+      p.bereiche = liste(Array.isArray(p.bereiche) && p.bereiche.length ? p.bereiche : [{ id: 'b1', name: 'Meldebereich 1' }], 30, function (b, i) { return { id: b.id, name: tx(b.name, 'Meldebereich ' + (i + 1)) }; });
+      const bid = p.bereiche.map(function (b) { return b.id; });
+      p.gruppen = liste(Array.isArray(p.gruppen) && p.gruppen.length ? p.gruppen : [{ id: 'g1', nr: 1, name: 'Automatische Melder', art: 'auto', linie: lid[0] }, { id: 'g2', nr: 2, name: 'Handfeuermelder', art: 'hfm', linie: lid[0] }], 99, function (g, i) {
+        return { id: g.id, nr: Math.round(nz(g.nr, i + 1, 1, 999)), name: tx(g.name, 'Meldergruppe ' + (i + 1)), art: eins(g.art, ['auto', 'hfm'], 'auto'), linie: lid.indexOf(g.linie) >= 0 ? g.linie : lid[0] };
+      });
+      const gA = p.gruppen.filter(function (g) { return g.art === 'auto'; }).map(function (g) { return g.id; }), gH = p.gruppen.filter(function (g) { return g.art === 'hfm'; }).map(function (g) { return g.id; });
+      p.raeume = liste(p.raeume, 40, function (r) {
+        return { id: r.id, name: tx(r.name, 'Raum'), b: nz(r.b, 5, 1, 80), l: nz(r.l, 5, 1, 80), h: nz(r.h, 3, 2, 20), typ: eins(r.typ, ['rauch', 'waerme', 'multi'], 'rauch'), hfm: Math.round(nz(r.hfm, 0, 0, 6)), nMin: Math.round(nz(r.nMin, 1, 1, 20)),
+          mb: bid.indexOf(r.mb) >= 0 ? r.mb : bid[0], mgA: gA.indexOf(r.mgA) >= 0 ? r.mgA : (gA[0] || ''), mgH: gH.indexOf(r.mgH) >= 0 ? r.mgH : '' };
       });
       if (!p.raeume.length) return false;
       const raum = {}; p.raeume.forEach(function (r) { raum[r.id] = r; });
-      const mids = [];
-      p.melder = p.melder.slice(0, 400).filter(function (m) { return m && idw(m.id) && raum[m.raum] && mids.indexOf(m.id) < 0 && mids.push(m.id); }).map(function (m) {
+      p.melder = liste(p.melder, 400, function (m) { return m; }).filter(function (m) { return raum[m.raum]; }).map(function (m) {
         const r = raum[m.raum];
         return { id: m.id, raum: m.raum, art: eins(m.art, ['rauch', 'waerme', 'multi', 'hfm'], 'rauch'), x: nz(m.x, r.b / 2, 0, r.b), y: nz(m.y, r.l / 2, 0, r.l) };
       });
-      const q = p.ring || {}, s = p.strom || {}, b = p.betrieb || {};
+      const q = p.ring || {}, s = p.strom || {}, b = p.betrieb || {}, en = p.energie || {};
       p.breite = nz(p.breite, 24, 6, 120);
-      p.ring = { trenner: eins(q.trenner, ['jeder', 'abschnitt', 'keine'], 'jeder'), abschnitt: Math.round(nz(q.abschnitt, 32, 1, 128)), max: Math.round(nz(q.max, 128, 8, 512)), querschnitt: eins(Number(q.querschnitt), [0.6, 0.8, 1.0], 0.8), zuschlag: nz(q.zuschlag, 15, 0, 100), uMin: nz(q.uMin, 16, 5, 30) };
-      p.strom = { iBmz: nz(s.iBmz, 150, 1, 5000), iBmzAlarm: nz(s.iBmzAlarm, 400, 1, 10000), iMelder: nz(s.iMelder, 0.3, 0, 20), signal: Math.round(nz(s.signal, 6, 0, 200)), iSignal: nz(s.iSignal, 25, 0, 2000), iUe: nz(s.iUe, 60, 0, 2000), tR: eins(Number(s.tR), [4, 30, 72], 30), tA: nz(s.tA, 0.5, 0.25, 3) };
+      p.ring = { zuschlag: nz(q.zuschlag, 15, 0, 100), uMin: nz(q.uMin, 16, 5, 30) };
+      p.strom = { iBmz: nz(s.iBmz, 150, 1, 5000), iBmzAlarm: nz(s.iBmzAlarm, 400, 1, 10000), iMelder: nz(s.iMelder, 0.3, 0, 20), tA: nz(s.tA, 0.5, 0.25, 3) };
+      p.energie = { netzEigen: eins(en.netzEigen, ['ja', 'nein'], 'ja'), ersatz: eins(en.ersatz, ['akku', 'nea'], 'akku'), service: eins(en.service, ['24', 'nein'], '24'), akkuAh: nz(en.akkuAh, 0, 0, 200), neaStart: nz(en.neaStart, 15, 1, 600), neaTank: nz(en.neaTank, 72, 1, 500), ausfallVor: nz(en.ausfallVor, 0, 0, 200), ausfallBrand: eins(en.ausfallBrand, ['nein', 'ja'], 'nein') };
+      p.ausgaenge = liste(Array.isArray(p.ausgaenge) ? p.ausgaenge : standardAusgaenge(), 40, function (a) { return a; }).filter(function (a) { return TYP[a.typ]; }).map(function (a) {
+        const t = TYP[a.typ];
+        const o = { id: a.id, typ: a.typ, name: tx(a.name, t.name), an: a.an !== false, anzahl: Math.round(nz(a.anzahl, t.anzahl, 0, 500)), iA: nz(a.iA, t.iA, 0, 5000), iR: nz(a.iR, t.iR, 0, 2000),
+          ausloeser: eins(a.ausloeser, AUSLOESER.map(function (x) { return x[0]; }), 'alle'), raeume: (Array.isArray(a.raeume) ? a.raeume : []).filter(function (id) { return raum[id]; }).slice(0, 40), verz: nz(a.verz, 0, 0, 3600) };
+        if (a.typ === 'akustisch') o.raeumung = nz(a.raeumung, 4, 0.5, 60);
+        if (a.typ === 'loesch') { o.vorwarn = nz(a.vorwarn, 30, 0, 600); o.wirkung = eins(a.wirkung, ['loeschen', 'kontrolle'], 'loeschen'); }
+        if (a.typ === 'waehl') o.ziele = liste(a.ziele, 12, function (z) { return { id: z.id, name: tx(z.name, 'Rufziel'), art: eins(z.art, ['leitstelle', 'telefon'], 'telefon'), verz: nz(z.verz, 0, 0, 3600) }; });
+        return o;
+      });
       p.betrieb = { abh: eins(b.abh, ['ein', 'zwei'], 'ein'), tm: eins(b.tm, ['aus', 'an'], 'aus'), personal: eins(b.personal, ['nein', 'ja'], 'nein'), hfmNach: nz(b.hfmNach, 0, 0, 1800), brand: eins(b.brand, Object.keys(BRAND), 'mittel'), anfahrt: nz(b.anfahrt, 9, 1, 60) };
       p.brand = p.brand && raum[p.brand.raum] ? { raum: p.brand.raum, x: nz(p.brand.x, 0, 0, raum[p.brand.raum].b), y: nz(p.brand.y, 0, 0, raum[p.brand.raum].l) } : null;
-      p.stoerung = p.stoerung && (p.stoerung.art === 'bruch' || p.stoerung.art === 'kurz') ? { art: p.stoerung.art, seg: Math.round(nz(p.stoerung.seg, 0, 0, 500)) } : null;
+      p.stoerung = p.stoerung && (p.stoerung.art === 'bruch' || p.stoerung.art === 'kurz') ? { art: p.stoerung.art, linie: lid.indexOf(p.stoerung.linie) >= 0 ? p.stoerung.linie : lid[0], seg: Math.round(nz(p.stoerung.seg, 0, 0, 500)) } : null;
       void B;
       return true;
     }
@@ -242,11 +322,10 @@
 
     // ---------- Melder automatisch verteilen ----------
     function raster(r) {
-      const g = grenze(r.typ, r.b * r.l, r.h), nMin = Math.max(1, Math.ceil(r.b * r.l / g.A - 1e-9));
+      const g = grenze(r.typ, r.b * r.l, r.h), nMin = Math.max(r.nMin || 1, Math.ceil(r.b * r.l / g.A - 1e-9));
       let best = null;
       for (let nx = 1; nx <= 30; nx++) for (let ny = 1; ny <= 30; ny++) {
-        if (nx * ny < nMin) continue;
-        if (Math.hypot(r.b / nx, r.l / ny) / 2 > g.D + 1e-9) continue;
+        if (nx * ny < nMin || Math.hypot(r.b / nx, r.l / ny) / 2 > g.D + 1e-9) continue;
         if (!best || nx * ny < best.n || (nx * ny === best.n && Math.abs(r.b / nx - r.l / ny) < Math.abs(r.b / best.nx - r.l / best.ny))) best = { nx: nx, ny: ny, n: nx * ny };
       }
       return best || { nx: 1, ny: 1, n: 1 };
@@ -254,177 +333,289 @@
     function verteilenRaum(p, r) {
       p.melder = p.melder.filter(function (m) { return m.raum !== r.id; });
       const g = raster(r);
-      for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) {
-        const ii = j % 2 ? g.nx - 1 - i : i;
-        p.melder.push({ id: neueId('m'), raum: r.id, art: r.typ, x: (ii + 0.5) * r.b / g.nx, y: (j + 0.5) * r.l / g.ny });
-      }
+      for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) { const ii = j % 2 ? g.nx - 1 - i : i; p.melder.push({ id: neueId('m'), raum: r.id, art: r.typ, x: (ii + 0.5) * r.b / g.nx, y: (j + 0.5) * r.l / g.ny }); }
       for (let k = 0; k < r.hfm; k++) p.melder.push({ id: neueId('h'), raum: r.id, art: 'hfm', x: k % 2 ? r.b - 0.3 : 0.3, y: Math.max(0.3, r.l - 0.3 - Math.floor(k / 2) * 2) });
     }
     function verteilen(p) { p.melder = []; p.raeume.forEach(function (r) { verteilenRaum(p, r); }); }
-
-    // ---------- Grundriss: Räume in Reihen anordnen ----------
     function anordnen() {
       const lage = {}; let x = 0, y = 0, zeile = 0, breit = 0;
-      P.raeume.forEach(function (r) {
-        if (x > 0 && x + r.b > P.breite) { x = 0; y += zeile; zeile = 0; }
-        lage[r.id] = { x: x, y: y }; x += r.b; zeile = Math.max(zeile, r.l); breit = Math.max(breit, x);
-      });
+      P.raeume.forEach(function (r) { if (x > 0 && x + r.b > P.breite) { x = 0; y += zeile; zeile = 0; } lage[r.id] = { x: x, y: y }; x += r.b; zeile = Math.max(zeile, r.l); breit = Math.max(breit, x); });
       return { lage: lage, b: breit, l: y + zeile };
     }
+    // Meldergruppe eines Melders
+    function gruppeVon(m) { const r = finde(P.raeume, m.raum); return r ? finde(P.gruppen, m.art === 'hfm' ? r.mgH : r.mgA) : null; }
 
-    // ---------- Ringleitung ----------
-    function ringAufbauen(L) {
-      // Reihenfolge: Raum für Raum, im Raum zeilenweise in Schlangenlinie
-      const folge = [];
-      P.raeume.forEach(function (r) {
-        const ms = P.melder.filter(function (m) { return m.raum === r.id; }).slice().sort(function (a, b) { return Math.round(a.y * 2) - Math.round(b.y * 2) || a.x - b.x; });
-        const zeilen = {}; ms.forEach(function (m) { const k = Math.round(m.y * 2); (zeilen[k] = zeilen[k] || []).push(m); });
-        Object.keys(zeilen).map(Number).sort(function (a, b) { return a - b; }).forEach(function (k, i) { const z = zeilen[k].sort(function (a, b) { return a.x - b.x; }); (i % 2 ? z.reverse() : z).forEach(function (m) { folge.push(m); }); });
+    // ---------- Meldelinien ----------
+    function linienAufbauen(L) {
+      return P.linien.map(function (li, k) {
+        const folge = [];
+        P.gruppen.filter(function (g) { return g.linie === li.id; }).forEach(function (g) {
+          P.raeume.forEach(function (r) {
+            const ms = P.melder.filter(function (m) { const gg = gruppeVon(m); return m.raum === r.id && gg === g; });
+            const zeilen = {}; ms.forEach(function (m) { const q = Math.round(m.y * 2); (zeilen[q] = zeilen[q] || []).push(m); });
+            Object.keys(zeilen).map(Number).sort(function (a, b) { return a - b; }).forEach(function (q, i) { const z = zeilen[q].sort(function (a, b) { return a.x - b.x; }); (i % 2 ? z.reverse() : z).forEach(function (m) { folge.push(m); }); });
+          });
+        });
+        const pos = function (m) { const l = L.lage[m.raum]; return [l.x + m.x, l.y + m.y]; };
+        const bmz = [-1.5 + k * 0.25, 0.6 + k * 0.3];
+        const punkte = [bmz].concat(folge.map(pos));
+        if (li.art === 'ring') punkte.push([bmz[0], bmz[1] + 0.9]);
+        let laenge = 0;
+        for (let i = 1; i < punkte.length; i++) laenge += Math.abs(punkte[i][0] - punkte[i - 1][0]) + Math.abs(punkte[i][1] - punkte[i - 1][1]);
+        laenge = laenge * (1 + P.ring.zuschlag / 100) + folge.length * 0.5;
+        const trenner = [];
+        if (li.trenner === 'jeder') for (let i = 0; i <= folge.length; i++) trenner.push(i);
+        else if (li.trenner === 'abschnitt') { trenner.push(0); for (let i = li.abschnitt; i < folge.length; i += li.abschnitt) trenner.push(i); trenner.push(folge.length); }
+        return { li: li, folge: folge, punkte: punkte, laenge: laenge, trenner: trenner, farbe: LFARBEN[k % LFARBEN.length], nr: k + 1 };
       });
-      const pos = function (m) { const l = L.lage[m.raum]; return [l.x + m.x, l.y + m.y]; };
-      const bmz = [-1.5, 0.8];
-      const punkte = [bmz].concat(folge.map(pos)).concat([[bmz[0], bmz[1] + 0.8]]);
-      let laenge = 0;
-      for (let i = 1; i < punkte.length; i++) laenge += Math.abs(punkte[i][0] - punkte[i - 1][0]) + Math.abs(punkte[i][1] - punkte[i - 1][1]);
-      // Fall- und Steigleitungen zu den Meldern an der Decke, Bögen: Zuschlag
-      laenge = laenge * (1 + P.ring.zuschlag / 100) + folge.length * 0.5;
-      // Trenner: nach Teilnehmer-Index k sitzt ein Trenner (Segment k|k+1 ist trennbar)
-      const trenner = [];
-      if (P.ring.trenner === 'jeder') for (let i = 0; i <= folge.length; i++) trenner.push(i);
-      else if (P.ring.trenner === 'abschnitt') { trenner.push(0); for (let i = P.ring.abschnitt; i < folge.length; i += P.ring.abschnitt) trenner.push(i); trenner.push(folge.length); }
-      return { folge: folge, punkte: punkte, laenge: laenge, trenner: trenner, bmz: bmz };
     }
-    // Welche Teilnehmer fallen bei der Störung aus?  Segment s liegt zwischen Teilnehmer s-1 und s (0 = Zentrale–erster)
-    function ausfall(R) {
+    // ausgefallene Teilnehmer bei der Störung; Segment s liegt vor Teilnehmer s (0 = Zentrale–erster)
+    function ausfall(LN) {
       const aus = {};
-      if (!P.stoerung || P.stoerung.art !== 'kurz') return aus;
-      const s = Math.min(P.stoerung.seg, R.folge.length);
-      if (P.ring.trenner === 'keine') { R.folge.forEach(function (m) { aus[m.id] = true; }); return aus; }
-      // Trenner links und rechts der Fehlerstelle öffnen; dazwischen ist alles ohne Spannung
-      let li = -1, re = R.folge.length + 1;
-      R.trenner.forEach(function (t) { if (t < s && t > li) li = t; if (t >= s && t < re) re = t; });
-      if (P.ring.trenner === 'jeder') return aus;   // Trenner in jedem Teilnehmer: nur das Leitungsstück fällt aus
-      for (let i = Math.max(0, li); i < Math.min(R.folge.length, re); i++) aus[R.folge[i].id] = true;
+      if (!P.stoerung) return aus;
+      const R = LN.filter(function (x) { return x.li.id === P.stoerung.linie; })[0];
+      if (!R) return aus;
+      const s = Math.min(P.stoerung.seg, R.folge.length), alle = function (von) { for (let i = von; i < R.folge.length; i++) aus[R.folge[i].id] = true; };
+      if (R.li.art === 'stich') { if (P.stoerung.art === 'bruch' || R.li.trenner !== 'keine') alle(s); else alle(0); return aus; }
+      if (P.stoerung.art !== 'kurz') return aus;
+      if (R.li.trenner === 'keine') { alle(0); return aus; }
+      if (R.li.trenner === 'jeder') return aus;
+      let lo = -1, hi = R.folge.length + 1;
+      R.trenner.forEach(function (t) { if (t < s && t > lo) lo = t; if (t >= s && t < hi) hi = t; });
+      for (let i = Math.max(0, lo); i < Math.min(R.folge.length, hi); i++) aus[R.folge[i].id] = true;
       return aus;
+    }
+
+    // ---------- Energieversorgung ----------
+    function energie(iR, iA) {
+      const e = P.energie, s = P.strom, x = {};
+      x.tBasis = e.service === '24' ? 30 : 72;                       // Überbrückung ohne Netzersatzanlage
+      x.tR = e.ersatz === 'nea' ? 4 : x.tBasis;                      // mit Netzersatzanlage genügen 4 h Akku
+      x.Creq = 1.25 * (iR * x.tR + iA * s.tA);
+      x.wahl = [7.2, 12, 17, 24, 26, 38, 45, 65, 100, 200].filter(function (c) { return c >= x.Creq - 1e-9; })[0] || null;
+      x.C = e.akkuAh > 0 ? e.akkuAh : x.wahl;
+      x.Ceff = (x.C || 0) / 1.25;                                    // ohne Alterungszuschlag nutzbar
+      x.iLade = 0.8 * (x.C || 0) / 24;
+      x.ruheH = iR > 0 ? x.Ceff / iR : Infinity;
+      // Szenario: Netzausfall vor dem Brand bzw. im Brandfall
+      const vor = e.ausfallVor, netzWeg = vor > 0 || e.ausfallBrand === 'ja';
+      let akkuH = vor, neaRest = 0;
+      if (e.ersatz === 'nea' && vor > 0) { akkuH = Math.max(0, vor - e.neaTank) + e.neaStart / 3600; neaRest = Math.max(0, e.neaTank - vor); }
+      if (e.ersatz === 'nea' && vor === 0) neaRest = e.neaTank;
+      x.netzWeg = netzWeg; x.neaRest = netzWeg && e.ersatz === 'nea' ? neaRest : 0;
+      x.rest = x.Ceff - iR * akkuH;                                  // Ah im Akku zu Brandbeginn
+      x.tot = netzWeg && x.rest <= 0 && x.neaRest <= 0;
+      // Laufzeit im Alarm aus dem Akku, wenn weder Netz noch Netzersatzanlage speisen
+      x.alarmH = !netzWeg || x.neaRest > 0 ? Infinity : Math.max(0, x.rest) / iA;
+      x.quelle = !netzWeg ? 'Netz' : x.neaRest > 0 ? 'Netzersatzanlage' : x.rest > 0 ? 'Akku' : 'keine';
+      return x;
     }
 
     // ---------- Auswertung der Planung ----------
     let A = null;
     function auswerten() {
-      const L = anordnen(), R = ringAufbauen(L), r = { L: L, R: R, raeume: [], fehler: [], hinweise: [], einzeln: [] };
+      const L = anordnen(), LN = linienAufbauen(L), r = { L: L, LN: LN, raeume: [], fehler: [], hinweise: [] };
       P.raeume.forEach(function (raum) {
         const fl = raum.b * raum.l, g = grenze(raum.typ, fl, raum.h), ms = P.melder.filter(function (m) { return m.raum === raum.id && m.art !== 'hfm'; });
-        const nMin = Math.max(1, Math.ceil(fl / g.A - 1e-9));
-        // größter Abstand eines Deckenpunkts zum nächsten Melder (Raster 0,25 m)
-        let dMax = 0; const lucken = [];
-        const st = Math.max(0.25, Math.max(raum.b, raum.l) / 60);
+        const nMin = Math.max(raum.nMin || 1, Math.ceil(fl / g.A - 1e-9));
+        let dMax = 0; const lucken = [], st = Math.max(0.25, Math.max(raum.b, raum.l) / 60);
         for (let y = st / 2; y < raum.l; y += st) for (let x = st / 2; x < raum.b; x += st) {
           let d = Infinity; ms.forEach(function (m) { d = Math.min(d, Math.hypot(m.x - x, m.y - y)); });
-          if (d > dMax) dMax = d;
-          if (d > g.D) lucken.push([x, y]);
+          if (d > dMax) dMax = d; if (d > g.D) lucken.push([x, y]);
         }
         const x = { raum: raum, fl: fl, g: g, n: ms.length, nMin: nMin, dMax: dMax, lucken: lucken, st: st, hfm: P.melder.filter(function (m) { return m.raum === raum.id && m.art === 'hfm'; }).length };
         x.okN = x.n >= nMin; x.okD = dMax <= g.D + 1e-9; x.okH = raum.h <= g.hMax;
         if (!x.okN) r.fehler.push(raum.name + ': ' + x.n + ' Melder, nötig sind mindestens ' + nMin + ' (A_max ' + g.A + ' m²).');
         if (x.okN && !x.okD) r.fehler.push(raum.name + ': Teile der Decke liegen weiter als D_H = ' + zahl(g.D, 1) + ' m vom nächsten Melder (bis ' + zahl(dMax, 1) + ' m).');
         if (!x.okH) r.fehler.push(raum.name + ': Raumhöhe ' + zahl(raum.h, 1) + ' m über der Grenze für ' + ART[raum.typ] + ' (' + zahl(g.hMax, 1) + ' m).');
-        if (fl > 1600) r.fehler.push(raum.name + ': ' + zahl(fl, 0) + ' m² – ein Meldebereich darf höchstens 1 600 m² groß sein.');
-        if (P.betrieb.abh === 'zwei' && x.n < 2) r.einzeln.push(raum.name);
+        if (x.n && !finde(P.gruppen, raum.mgA)) r.fehler.push(raum.name + ': keiner Meldergruppe für automatische Melder zugeordnet.');
+        if (x.hfm && !finde(P.gruppen, raum.mgH)) r.fehler.push(raum.name + ': Handfeuermelder ohne Meldergruppe für Handfeuermelder.');
         if (raum.typ === 'waerme' && /büro|flur|schlaf|wohn|lager/i.test(raum.name)) r.hinweise.push(raum.name + ': Wärmemelder erkennen Schwelbrände nicht; wo es geht, Rauch- oder Mehrkriterienmelder.');
         r.raeume.push(x);
       });
-      if (r.einzeln.length) r.fehler.push('Zweimelderabhängigkeit braucht mindestens zwei Melder je Raum, sonst gibt es nie einen Feueralarm: ' + r.einzeln.join(', ') + '.');
+      // Meldebereiche
+      r.bereiche = P.bereiche.map(function (b) {
+        const rs = P.raeume.filter(function (q) { return q.mb === b.id; }), fl = rs.reduce(function (a, q) { return a + q.b * q.l; }, 0);
+        if (fl > 1600) r.fehler.push('Meldebereich „' + b.name + '“: ' + zahl(fl, 0) + ' m² – höchstens 1 600 m².');
+        if (!rs.length) r.hinweise.push('Meldebereich „' + b.name + '“ ist leer.');
+        return { b: b, rs: rs, fl: fl };
+      });
+      // Meldergruppen
+      r.gruppen = P.gruppen.map(function (g) {
+        const ms = P.melder.filter(function (m) { return gruppeVon(m) === g; }), rs = P.raeume.filter(function (q) { return (g.art === 'hfm' ? q.mgH : q.mgA) === g.id && ms.some(function (m) { return m.raum === q.id; }); });
+        const fl = rs.reduce(function (a, q) { return a + q.b * q.l; }, 0), mbs = []; rs.forEach(function (q) { if (mbs.indexOf(q.mb) < 0) mbs.push(q.mb); });
+        const x = { g: g, n: ms.length, rs: rs, fl: fl, mbs: mbs };
+        if (g.art === 'auto') {
+          if (x.n > 32) r.fehler.push('Meldergruppe ' + g.nr + ' (' + g.name + '): ' + x.n + ' automatische Melder – höchstens 32.');
+          if (rs.length > 10) r.fehler.push('Meldergruppe ' + g.nr + ': ' + rs.length + ' Räume – höchstens 10.');
+          else if (rs.length > 5) r.hinweise.push('Meldergruppe ' + g.nr + ': ' + rs.length + ' Räume – mehr als 5 nur bei benachbarten Räumen bis zusammen 1 000 m² mit Einzel- oder Parallelanzeige vor den Räumen' + (fl > 1000 ? '; hier ' + zahl(fl, 0) + ' m², also nicht zulässig' : '') + '.');
+          if (fl > 1600) r.fehler.push('Meldergruppe ' + g.nr + ': ' + zahl(fl, 0) + ' m² – höchstens 1 600 m².');
+        } else if (x.n > 10) r.fehler.push('Meldergruppe ' + g.nr + ' (' + g.name + '): ' + x.n + ' Handfeuermelder – höchstens 10.');
+        if (mbs.length > 1) r.fehler.push('Meldergruppe ' + g.nr + ' reicht über mehrere Meldebereiche – eine Meldergruppe gehört zu genau einem Meldebereich.');
+        if (!x.n) r.hinweise.push('Meldergruppe ' + g.nr + ' (' + g.name + ') hat keine Melder.');
+        return x;
+      });
+      const nrn = P.gruppen.map(function (g) { return g.nr; });
+      if (nrn.some(function (n, i) { return nrn.indexOf(n) !== i; })) r.fehler.push('Gruppennummern doppelt vergeben – jede Meldergruppe braucht eine eigene Nummer.');
       const nAuto = P.melder.filter(function (m) { return m.art !== 'hfm'; }).length, nHfm = P.melder.length - nAuto;
       r.nAuto = nAuto; r.nHfm = nHfm; r.n = P.melder.length;
       if (!nHfm) r.hinweise.push('Keine Handfeuermelder: An Ausgängen und Treppen vorsehen, Laufweg zum nächsten Handfeuermelder höchstens 30 m, Höhe 1,4 m ± 0,2 m.');
-      if (r.n > P.ring.max) r.fehler.push(r.n + ' Teilnehmer auf dem Ring – die Zentrale erlaubt ' + P.ring.max + '. Zweiten Ring vorsehen.');
-      // größte Zahl Melder, die bei einem Kurzschluss ausfallen kann
-      let maxAus = 0;
-      if (P.ring.trenner === 'keine') maxAus = nAuto;
-      else if (P.ring.trenner === 'abschnitt') { for (let i = 0; i + 1 < R.trenner.length; i++) { let k = 0; for (let j = R.trenner[i]; j < R.trenner[i + 1]; j++) if (R.folge[j] && R.folge[j].art !== 'hfm') k++; maxAus = Math.max(maxAus, k); } }
-      r.maxAus = maxAus;
-      if (maxAus > 32) r.fehler.push('Bei einem Kurzschluss könnten ' + maxAus + ' automatische Melder ausfallen – höchstens 32 sind zulässig. Mehr Kurzschlusstrenner setzen.');
-      // Ringleitung: Spannungsfall im Alarm, schlimmster Fall Einspeisung nur von einer Seite
-      const qA = Math.PI * Math.pow(P.ring.querschnitt, 2) / 4;
-      r.qA = qA;
-      r.iRing = (r.n * P.strom.iMelder + 2 * 5) / 1000;            // Ruhestrom aller Teilnehmer + zwei Melder im Alarm (je 5 mA)
-      r.dU = 2 * r.R.laenge * r.iRing / (56 * qA);
-      r.uEnde = 21 - r.dU;                                          // Akku am Ende der Überbrückung etwa 21 V
-      if (r.uEnde < P.ring.uMin) r.fehler.push('Spannung am Ringende ' + zahl(r.uEnde, 1) + ' V unter ' + zahl(P.ring.uMin, 0) + ' V: größerer Aderdurchmesser oder kürzerer Ring.');
-      // Notstrom nach DIN EN 54-4 / DIN VDE 0833-1
+      // Meldelinien
       const s = P.strom;
-      r.iR = (s.iBmz + r.n * s.iMelder) / 1000;
-      r.iA = (s.iBmzAlarm + r.n * s.iMelder + s.signal * s.iSignal + s.iUe) / 1000;
-      r.C = 1.25 * (r.iR * s.tR + r.iA * s.tA);
-      r.akku = [7.2, 12, 17, 24, 26, 38, 45, 65, 100].filter(function (c) { return c >= r.C - 1e-9; })[0] || null;
-      r.iLade = 0.8 * (r.akku || r.C) / 24;
-      if (!r.akku) r.fehler.push('Akkukapazität über 100 Ah: Energieversorgung aufteilen oder Ersatzstromanlage.');
-      if (s.tR === 4) r.hinweise.push('4 h Überbrückung nur mit Ersatzstromanlage (Netzersatz) zulässig.');
+      r.linien = LN.map(function (R) {
+        const li = R.li, na = R.folge.filter(function (m) { return m.art !== 'hfm'; }).length, qA = Math.PI * li.querschnitt * li.querschnitt / 4;
+        let maxAus = 0;
+        if (li.art === 'stich' || li.trenner === 'keine') maxAus = na;
+        else if (li.trenner === 'abschnitt') for (let i = 0; i + 1 < R.trenner.length; i++) { let k = 0; for (let j = R.trenner[i]; j < R.trenner[i + 1]; j++) if (R.folge[j] && R.folge[j].art !== 'hfm') k++; maxAus = Math.max(maxAus, k); }
+        const iL = (R.folge.length * s.iMelder + 2 * 5) / 1000, dU = 2 * R.laenge * iL / (56 * qA), uEnde = 21 - dU;
+        const x = { R: R, na: na, maxAus: maxAus, qA: qA, iL: iL, dU: dU, uEnde: uEnde };
+        if (R.folge.length > li.max) r.fehler.push(li.name + ': ' + R.folge.length + ' Teilnehmer – die Zentrale erlaubt ' + li.max + ' je Linie.');
+        if (maxAus > 32) r.fehler.push(li.name + ': Eine Störung könnte ' + maxAus + ' automatische Melder ausfallen lassen – höchstens 32' + (li.art === 'stich' ? ' (Stichleitung: Melder aufteilen oder als Ring ausführen).' : '. Mehr Kurzschlusstrenner setzen.'));
+        if (uEnde < P.ring.uMin) r.fehler.push(li.name + ': Spannung am Leitungsende ' + zahl(uEnde, 1) + ' V unter ' + zahl(P.ring.uMin, 0) + ' V.');
+        if (!R.folge.length) r.hinweise.push(li.name + ' hat keine Teilnehmer.');
+        return x;
+      });
+      // Steuerungen und Ströme
+      const aktiv = P.ausgaenge.filter(function (a) { return a.an; });
+      r.iRaus = aktiv.reduce(function (x, a) { return x + a.anzahl * a.iR; }, 0);
+      r.iAaus = aktiv.reduce(function (x, a) { return x + a.anzahl * a.iA; }, 0);
+      r.iR = (s.iBmz + r.n * s.iMelder + r.iRaus) / 1000;
+      r.iA = (s.iBmzAlarm + r.n * s.iMelder + r.iAaus) / 1000;
+      aktiv.forEach(function (a) {
+        const rn = a.raeume.map(function (id) { return finde(P.raeume, id); }).filter(Boolean);
+        if (a.ausloeser === 'zwei') {
+          const wenig = (rn.length ? rn : P.raeume).filter(function (q) { const g = finde(r.gruppen.map(function (x) { return x.g; }), q.mgA); const gx = r.gruppen.filter(function (x) { return x.g === g; })[0]; return P.melder.some(function (m) { return m.raum === q.id && m.art !== 'hfm'; }) && (!gx || gx.n < 2); });
+          if (wenig.length) r.fehler.push(a.name + ': Auslösung über zwei Melder derselben Meldergruppe, aber in der Gruppe von ' + wenig.map(function (q) { return q.name; }).join(', ') + ' gibt es nur einen Melder.');
+        }
+        if (a.ausloeser === 'hfm' && !P.melder.some(function (m) { return m.art === 'hfm' && (!rn.length || a.raeume.indexOf(m.raum) >= 0); })) r.fehler.push(a.name + ': nur über Handfeuermelder, aber im gewählten Bereich gibt es keinen.');
+        if (a.typ === 'loesch' && a.ausloeser !== 'zwei' && a.ausloeser !== 'hfm') r.hinweise.push(a.name + ': Löschanlagen werden üblicherweise erst bei zwei Meldern ausgelöst, um Fehlflutungen zu vermeiden.');
+        if (a.typ === 'loesch' && (a.vorwarn || 0) < 10) r.hinweise.push(a.name + ': Bei Gaslöschanlagen ist eine Vorwarnzeit (meist mindestens 10 s) nötig, damit Personen den Raum verlassen können.');
+        if (a.typ === 'waehl' && !(a.ziele || []).some(function (z) { return z.art === 'leitstelle'; })) r.hinweise.push(a.name + ': kein Rufziel „Einsatzzentrale Feuerwehr“ – die Feuerwehr erfährt nur durch einen Anruf vom Brand.');
+      });
+      if (P.betrieb.abh === 'zwei') { const ein = r.gruppen.filter(function (x) { return x.g.art === 'auto' && x.n === 1; }); if (ein.length) r.fehler.push('Zweimelderabhängigkeit: Die Meldergruppen ' + ein.map(function (x) { return x.g.nr; }).join(', ') + ' haben nur einen Melder – dort gibt es nie einen Feueralarm.'); }
+      if (!aktiv.some(function (a) { return a.typ === 'akustisch' || a.typ === 'optisch'; })) r.fehler.push('Kein Hausalarm eingeschaltet: Personen im Gebäude werden nicht gewarnt.');
+      if (!aktiv.some(function (a) { return a.typ === 'waehl'; })) r.hinweise.push('Keine Übertragungseinrichtung: Die Feuerwehr wird nicht automatisch alarmiert.');
+      // Energie
+      const en = P.energie, ex = energie(r.iR, r.iA);
+      r.E = ex;
+      if (en.netzEigen !== 'ja') r.fehler.push('Netzversorgung: Die Zentrale braucht einen eigenen, gekennzeichneten Stromkreis mit eigener Sicherung – sonst ist das Netz keine sichere erste Energiequelle.');
+      if (!ex.C) r.fehler.push('Akkukapazität über 200 Ah: Energieversorgung aufteilen.');
+      else if (ex.C < ex.Creq - 1e-9) r.fehler.push('Akku ' + zahl(ex.C, 1) + ' Ah zu klein – nötig sind ' + zahl(ex.Creq, 1) + ' Ah.');
+      if (en.ersatz === 'nea') {
+        if (en.neaTank < ex.tBasis) r.fehler.push('Netzersatzanlage: Kraftstoff für ' + zahl(en.neaTank, 0) + ' h – nötig sind ' + ex.tBasis + ' h.');
+        if (en.neaStart > 15) r.hinweise.push('Netzersatzanlage: Startzeit über 15 s; der Akku überbrückt, die Anlage sollte aber schnell und selbsttätig übernehmen.');
+      }
+      if (ex.tot) r.fehler.push('Im eingestellten Netzausfall ist der Akku vor dem Brand leer – die Zentrale meldet nichts.');
+      else if (ex.alarmH < s.tA) r.fehler.push('Im eingestellten Netzausfall reicht der Akku im Alarm nur ' + stunden(ex.alarmH) + ' statt ' + stunden(s.tA) + '.');
       return r;
     }
 
-    // ---------- Simulation: Deckenstrahl nach Alpert, Melder als träge Fühler ----------
+    // ---------- Simulation ----------
     let S = null;
-    function simulieren() {
-      if (!P.brand) { S = null; return; }
-      const raum = P.raeume.filter(function (q) { return q.id === P.brand.raum; })[0];
-      if (!raum) { S = null; return; }
-      const b = BRAND[P.betrieb.brand], H = raum.h, aus = ausfall(A.R), dt = 0.5, tEnde = 1800;
-      const ms = P.melder.filter(function (m) { return m.raum === raum.id && m.art !== 'hfm'; });
-      const st = ms.map(function (m) { const rr = Math.max(0.2, Math.hypot(m.x - P.brand.x, m.y - P.brand.y)); return { m: m, r: rr, T: 0, t: Infinity, aus: !!aus[m.id] }; });
-      const verlauf = [];
+    function melderLauf(raum, Qf, aus, tot) {
+      const H = raum.h, dt = 0.5, tEnde = 1800, schwel = P.betrieb.brand === 'schwel';
+      const st = P.melder.filter(function (m) { return m.raum === raum.id && m.art !== 'hfm'; }).map(function (m) { return { m: m, g: gruppeVon(m), r: Math.max(0.2, Math.hypot(m.x - P.brand.x, m.y - P.brand.y)), T: 0, t: Infinity, aus: !!aus[m.id] || tot }; });
       for (let t = 0; t <= tEnde; t += dt) {
-        const Q = Math.min(b.qMax, b.a * t * t);
+        const Q = Qf(t);
         st.forEach(function (d) {
           const rH = d.r / H;
           const dTg = rH <= 0.18 ? 16.9 * Math.pow(Q, 2 / 3) / Math.pow(H, 5 / 3) : 5.38 * Math.pow(Q / d.r, 2 / 3) / H;
           const u = Math.max(0.05, rH <= 0.15 ? 0.96 * Math.pow(Q / H, 1 / 3) : 0.195 * Math.pow(Q, 1 / 3) * Math.sqrt(H) / Math.pow(d.r, 5 / 6));
           const a = ANSPRECH[d.m.art];
-          // Schwelbrand: sehr viel Rauch je Wärmeeinheit – Rauchmelder sprechen schon bei kleiner Erwärmung des Brandgases an
-          const schwelle = P.betrieb.brand === 'schwel' && d.m.art !== 'waerme' ? 0.6 : a.dT;
           d.T += Math.sqrt(u) / a.rti * (dTg - d.T) * dt;
-          if (P.betrieb.brand === 'schwel') {
-            // Schwelbrand: kaum Auftrieb, der Rauch breitet sich langsam aus (etwa 3 cm/s nach einer Anlaufzeit von 3 min)
-            if (d.t === Infinity && d.m.art !== 'waerme' && !d.aus && t >= 180 + d.r / 0.03) d.t = t;
-          } else if (d.t === Infinity && d.T >= schwelle && !d.aus) d.t = t;
+          if (d.t !== Infinity || d.aus) return;
+          if (schwel) { if (d.m.art !== 'waerme' && t >= 180 + d.r / 0.03) d.t = t; }
+          else if (d.T >= a.dT) d.t = t;
         });
-        if (t % 5 === 0) verlauf.push([t, Q]);
       }
-      // Zentrale: Alarmlogik
-      const ev = [];
-      const auto = st.filter(function (d) { return isFinite(d.t); }).sort(function (a, b) { return a.t - b.t; });
-      let tErk = Infinity, tAlarm = Infinity, art = '';
-      if (auto.length) {
-        tErk = auto[0].t;
-        if (P.betrieb.abh === 'ein') { tAlarm = auto[0].t; art = 'Melder ' + nummer(auto[0].m); }
-        else if (auto.length > 1) { tAlarm = auto[1].t; art = 'zweiter Melder ' + nummer(auto[1].m); }
-      }
-      const hfm = P.melder.filter(function (m) { return m.art === 'hfm' && !aus[m.id]; });
-      const tHfm = P.betrieb.hfmNach > 0 && hfm.length ? P.betrieb.hfmNach : Infinity;
-      auto.forEach(function (d, i) { ev.push([d.t, (i === 0 && P.betrieb.abh === 'zwei' && auto.length >= 1 ? 'Vorstufe: ' : '') + ART[d.m.art] + ' ' + nummer(d.m) + ' spricht an (' + zahl(d.r, 1) + ' m vom Brand)', i === 0 ? 'alarm' : '']); });
-      st.filter(function (d) { return d.aus; }).forEach(function (d) { ev.push([0, ART[d.m.art] + ' ' + nummer(d.m) + ' ist durch die Störung ohne Spannung', '']); });
-      if (P.betrieb.abh === 'zwei' && auto.length === 1) ev.push([auto[0].t + 1, 'Nur ein Melder hat angesprochen – bei Zweimelderabhängigkeit kein Feueralarm', 'alarm']);
-      // Handfeuermelder umgeht alle Verzögerungen
-      let tFeuer = Math.min(tAlarm, tHfm), tUe = Infinity, quelle = tHfm < tAlarm ? 'Handfeuermelder' : art;
-      if (isFinite(tHfm)) ev.push([tHfm, 'Person betätigt den Handfeuermelder', 'alarm']);
-      if (isFinite(tFeuer)) {
-        ev.push([tFeuer, 'Zentrale: FEUER – ' + quelle + ', ' + raum.name, 'alarm']);
-        if (P.betrieb.tm === 'an' && !(tHfm <= tAlarm)) {
-          ev.push([tFeuer, 'Technische Maßnahme gegen Falschalarm: interner Alarm, Annahmezeit 30 s läuft', '']);
-          if (P.betrieb.personal === 'ja') { ev.push([tFeuer + 25, 'Personal quittiert, Erkundungszeit 3 min', '']); tUe = tFeuer + 25 + 180; ev.push([tUe, 'Erkundung ohne Rückstellung: Weiterleitung an die Feuerwehr', 'alarm']); }
-          else { tUe = tFeuer + 30; ev.push([tUe, 'Nicht quittiert: Weiterleitung an die Feuerwehr', 'alarm']); }
-        } else tUe = tFeuer;
-        ev.push([tUe, 'Übertragungseinrichtung meldet an die Leitstelle der Feuerwehr', 'alarm']);
-        ev.push([tFeuer, 'Steuerungen: Signalgeber und Blitzleuchten an, Feuerschutztüren schließen, Lüftung aus, Aufzüge ins Erdgeschoss', '']);
-        ev.push([tUe, 'Feuerwehr-Schlüsseldepot entriegelt, Blitzleuchte außen an', '']);
-        ev.push([tUe + P.betrieb.anfahrt * 60, 'Feuerwehr trifft ein', 'alarm']);
-      } else ev.push([tEnde, 'Kein Feueralarm in 30 Minuten', 'alarm']);
-      ev.sort(function (a, b) { return a[0] - b[0]; });
-      const tFw = isFinite(tUe) ? tUe + P.betrieb.anfahrt * 60 : Infinity;
-      const QFw = isFinite(tFw) ? Math.min(b.qMax, b.a * tFw * tFw) : Infinity;
-      S = { raum: raum, st: st, ev: ev, tErk: tErk, tFeuer: tFeuer, tUe: tUe, tFw: tFw, QFw: QFw, Qbei: function (t) { return Math.min(b.qMax, b.a * t * t); }, ende: Math.min(tEnde, isFinite(tFw) ? tFw + 60 : tEnde), b: b, verlauf: verlauf, aus: aus };
+      return st;
     }
-    function nummer(m) { const i = A.R.folge.indexOf(m); return '1/' + (i + 1); }
+    // Zeitpunkt einer Auslösebedingung; „zwei“: zweiter Melder derselben Meldergruppe
+    function ausloeseZeit(st, art, raeume, tHfm, hfmRaum, tUe) {
+      const imBereich = !raeume.length || raeume.indexOf(P.brand.raum) >= 0;
+      const ok = imBereich ? st.filter(function (d) { return isFinite(d.t); }) : [];
+      const einer = ok.length ? Math.min.apply(null, ok.map(function (d) { return d.t; })) : Infinity;
+      let zwei = Infinity;
+      const je = {}; ok.forEach(function (d) { const k = d.g ? d.g.id : '-'; (je[k] = je[k] || []).push(d.t); });
+      Object.keys(je).forEach(function (k) { const t = je[k].sort(function (a, b) { return a - b; }); if (t.length > 1) zwei = Math.min(zwei, t[1]); });
+      const hfm = !raeume.length || raeume.indexOf(hfmRaum) >= 0 ? tHfm : Infinity;
+      const auto = P.betrieb.abh === 'zwei' ? zwei : einer;
+      if (art === 'auto') return auto;
+      if (art === 'hfm') return hfm;
+      if (art === 'zwei') return zwei;
+      if (art === 'ue') return isFinite(Math.min(auto, hfm)) ? tUe : Infinity;
+      return Math.min(auto, hfm);
+    }
+    function nummer(m) {
+      const g = gruppeVon(m); if (!g) return '?';
+      const R = A.LN.filter(function (x) { return x.li.id === g.linie; })[0];
+      const ms = R ? R.folge.filter(function (q) { return gruppeVon(q) === g; }) : [];
+      return g.nr + '/' + (ms.indexOf(m) + 1);
+    }
+    function simulieren() {
+      if (!P.brand) { S = null; return; }
+      const raum = finde(P.raeume, P.brand.raum);
+      if (!raum) { S = null; return; }
+      const b = BRAND[P.betrieb.brand], aus = ausfall(A.LN), tEnde = 1800, ex = A.E;
+      const Q0 = function (t) { return Math.min(b.qMax, b.a * t * t); };
+      const L = A.L, fx = L.lage[raum.id].x + P.brand.x, fy = L.lage[raum.id].y + P.brand.y;
+      let hfmNah = null, dN = Infinity;
+      P.melder.forEach(function (m) { if (m.art !== 'hfm' || aus[m.id]) return; const l = L.lage[m.raum], d = Math.abs(l.x + m.x - fx) + Math.abs(l.y + m.y - fy); if (d < dN) { dN = d; hfmNah = m; } });
+      const tHfm = !ex.tot && P.betrieb.hfmNach > 0 && hfmNah ? P.betrieb.hfmNach : Infinity, hfmRaum = hfmNah ? hfmNah.raum : null;
+      let Qf = Q0, st = null, tFlut = Infinity, wirkung = '', schritte = null;
+      for (let lauf = 0; lauf < 2; lauf++) {
+        st = melderLauf(raum, Qf, aus, ex.tot);
+        const tFeuer = ausloeseZeit(st, 'alle', [], tHfm, hfmRaum, Infinity);
+        let tUe = tFeuer;
+        if (isFinite(tFeuer) && P.betrieb.tm === 'an' && !(tHfm <= tFeuer)) tUe = tFeuer + (P.betrieb.personal === 'ja' ? 25 + 180 : 30);
+        // Akku leer im Alarm: danach schaltet nichts mehr
+        const tLeer = isFinite(tFeuer) && isFinite(ex.alarmH) ? tFeuer + ex.alarmH * 3600 : Infinity;
+        schritte = { tFeuer: tFeuer, tUe: tUe, tLeer: tLeer, aus: P.ausgaenge.filter(function (a) { return a.an; }).map(function (a) { const t0 = ausloeseZeit(st, a.ausloeser, a.raeume, tHfm, hfmRaum, tUe), t1 = isFinite(t0) ? t0 + a.verz : Infinity; return { a: a, t: t1 <= tLeer ? t1 : Infinity }; }) };
+        const lo = schritte.aus.filter(function (x) { return x.a.typ === 'loesch' && isFinite(x.t) && (!x.a.raeume.length || x.a.raeume.indexOf(raum.id) >= 0); })[0];
+        if (!lo || lauf === 1) break;
+        tFlut = lo.t + (lo.a.vorwarn || 0); wirkung = lo.a.wirkung;
+        const tf = tFlut, Qfl = Q0(tf);
+        Qf = function (t) { return t < tf ? Q0(t) : wirkung === 'loeschen' ? Qfl * Math.exp(-(t - tf) / 40) : Qfl; };
+      }
+      const ev = [], tF = schritte.tFeuer, tUe = schritte.tUe;
+      if (ex.netzWeg) ev.push([0, P.energie.ausfallVor > 0 ? 'Netz seit ' + zahl(P.energie.ausfallVor, 1) + ' h ausgefallen – ' + (ex.quelle === 'keine' ? 'Akku ist leer' : 'Versorgung über ' + ex.quelle) + (ex.quelle === 'Akku' ? ' (noch ' + zahl(Math.max(0, ex.rest), 1) + ' Ah)' : '') : 'Netz fällt mit dem Brand aus – ' + (P.energie.ersatz === 'nea' ? 'Akku überbrückt, Netzersatzanlage startet' : 'Akku übernimmt unterbrechungsfrei'), ex.tot ? 'alarm' : '', 'energie']);
+      if (ex.netzWeg && P.energie.ersatz === 'nea' && P.energie.ausfallVor === 0) ev.push([P.energie.neaStart, 'Netzersatzanlage läuft und übernimmt die Versorgung', '', 'energie']);
+      if (ex.tot) ev.push([0, 'Zentrale ohne Energie: Akku leer – kein Melder wird ausgewertet', 'alarm', 'bmz']);
+      const auto = st.filter(function (d) { return isFinite(d.t); }).sort(function (a, b) { return a.t - b.t; });
+      auto.forEach(function (d, i) { ev.push([d.t, (i === 0 && P.betrieb.abh === 'zwei' ? 'Vorstufe: ' : '') + ART[d.m.art] + ' ' + nummer(d.m) + ' spricht an (Meldergruppe ' + (d.g ? d.g.nr + ' ' + d.g.name : '?') + ', ' + zahl(d.r, 1) + ' m vom Brand)', i === 0 ? 'alarm' : '', 'eingang']); });
+      st.filter(function (d) { return d.aus && !ex.tot; }).forEach(function (d) { ev.push([0, ART[d.m.art] + ' ' + nummer(d.m) + ' ist durch die Leitungsstörung ohne Verbindung', '', '']); });
+      if (P.betrieb.abh === 'zwei' && auto.length && !isFinite(tF)) ev.push([auto[0].t + 1, 'Kein zweiter Melder derselben Meldergruppe – bei Zweimelderabhängigkeit kein Feueralarm', 'alarm', '']);
+      if (isFinite(tHfm)) ev.push([tHfm, 'Person betätigt Handfeuermelder ' + nummer(hfmNah), 'alarm', 'eingang']);
+      if (isFinite(tF)) {
+        const g = auto.length && auto[0].t <= tF ? auto[0].g : hfmNah ? gruppeVon(hfmNah) : null, mb = g ? finde(P.bereiche, raum.mb) : null;
+        ev.push([tF, 'Zentrale: FEUER Meldergruppe ' + (g ? g.nr + ' – ' + g.name : '') + (mb ? ', Meldebereich ' + mb.name : ''), 'alarm', 'bmz']);
+        if (P.betrieb.tm === 'an' && tUe > tF) ev.push([tF, 'Maßnahme gegen Falschalarm: Annahmezeit 30 s' + (P.betrieb.personal === 'ja' ? ', Personal quittiert nach 25 s und erkundet 3 min' : ', niemand quittiert'), '', 'bmz']);
+      } else if (!ex.tot) ev.push([tEnde, 'Kein Feueralarm in 30 Minuten', 'alarm', 'bmz']);
+      if (isFinite(schritte.tLeer)) ev.push([schritte.tLeer, 'Akku leer – die Zentrale fällt aus, Signalgeber verstummen', 'alarm', 'energie']);
+      let tFw = Infinity, raeumung = Infinity;
+      schritte.aus.forEach(function (x) {
+        const a = x.a;
+        if (!isFinite(x.t)) return;
+        if (a.typ === 'waehl') {
+          (a.ziele || []).forEach(function (z) {
+            const t0 = (z.art === 'leitstelle' ? x.t : Math.min(x.t, tF + a.verz)) + z.verz;
+            if (t0 > schritte.tLeer) return;
+            ev.push([t0, a.name + ' ruft „' + z.name + '“ an' + (z.art === 'leitstelle' ? ' (Brandmeldung an die Einsatzzentrale)' : ''), z.art === 'leitstelle' ? 'alarm' : '', 'aus:' + a.id]);
+            if (z.art === 'leitstelle') tFw = Math.min(tFw, t0 + P.betrieb.anfahrt * 60);
+          });
+          return;
+        }
+        ev.push([x.t, a.name + (a.anzahl > 1 ? ' (' + a.anzahl + ')' : '') + (a.raeume.length ? ' in ' + a.raeume.map(function (id) { return (finde(P.raeume, id) || {}).name; }).join(', ') : '') + (a.typ === 'loesch' ? ': Vorwarnung ' + zahl(a.vorwarn, 0) + ' s' : ''), a.typ === 'loesch' ? 'alarm' : '', 'aus:' + a.id]);
+        if (a.typ === 'akustisch' && a.raeumung > 0) raeumung = Math.min(raeumung, x.t + a.raeumung * 60);
+      });
+      if (isFinite(raeumung)) ev.push([raeumung, 'Gebäude geräumt (angenommene Räumungszeit)', '', '']);
+      if (isFinite(tFlut)) ev.push([tFlut, 'Löschmittel strömt aus: Brand wird ' + (wirkung === 'loeschen' ? 'gelöscht' : 'unter Kontrolle gehalten') + ' (' + zahl(Qf(tFlut), 0) + ' kW)', 'alarm', '']);
+      if (isFinite(tFw)) ev.push([tFw, 'Feuerwehr trifft ein (Laufkarte Meldergruppe → Meldebereich ' + ((finde(P.bereiche, raum.mb) || {}).name || '') + ')', 'alarm', 'fw']);
+      else if (isFinite(tF)) ev.push([tF + 1, 'Die Feuerwehr wird nicht automatisch alarmiert', 'alarm', '']);
+      ev.sort(function (a, b) { return a[0] - b[0]; });
+      const ende = Math.min(tEnde, Math.max(isFinite(tFw) ? tFw + 60 : 0, isFinite(tFlut) ? tFlut + 120 : 0, isFinite(tF) ? tF + 300 : tEnde));
+      S = { raum: raum, st: st, ev: ev, tErk: auto.length ? auto[0].t : Infinity, tFeuer: tF, tUe: tUe, tFw: tFw, QFw: isFinite(tFw) ? Qf(tFw) : Infinity, Qbei: Qf, ende: ende, b: b, aus: aus, ausg: schritte.aus, tFlut: tFlut, tHfm: tHfm, hfmNah: hfmNah, tLeer: schritte.tLeer };
+    }
 
     // ---------- Eingabefelder ----------
     function feld(ziel, name, hole, setze, opt) {
@@ -435,70 +626,158 @@
         e = document.createElement('select');
         opt.wahl.forEach(function (w) { const o = document.createElement('option'); o.value = String(w[0]); o.textContent = w[1]; e.append(o); });
         e.value = String(hole());
-        e.addEventListener('change', function () { setze(opt.zahl ? +e.value : e.value); aenderung(opt.neu); });
+        e.addEventListener('change', function () { setze(opt.zahl ? +e.value : e.value); if (opt.neu) einstellungenAufbauen(); aenderung(); });
       } else {
         e = document.createElement('input'); e.type = 'text'; e.autocomplete = 'off';
         if (!opt.text) e.inputMode = 'decimal';
         e.value = opt.text ? hole() : String(hole()).replace('.', ',');
         e.addEventListener('input', function () {
-          if (opt.text) { setze(e.value.replace(/[<>"'`]/g, '').slice(0, 40)); aenderung(opt.neu); return; }
+          if (opt.text) { setze(e.value.replace(/[<>"'`]/g, '').slice(0, 60)); aenderung(); return; }
           const w = lies(e.value), ok = isFinite(w) && w >= opt.min && w <= opt.max;
           e.classList.toggle('falsch', !ok); e.setAttribute('aria-invalid', ok ? 'false' : 'true');
-          if (ok) { setze(opt.ganz ? Math.round(w) : w); aenderung(opt.neu); }
+          if (ok) { setze(opt.ganz ? Math.round(w) : w); aenderung(); }
         });
         e.addEventListener('blur', function () { e.classList.remove('falsch'); if (!opt.text) e.value = String(hole()).replace('.', ','); });
       }
       l.append(e); ziel.append(l);
       return e;
     }
+    function karte(ziel, titel, weg, darf) {
+      const k = document.createElement('div'); k.className = 'karte-klein';
+      const h = document.createElement('h4'); h.append(document.createTextNode(titel));
+      const w = document.createElement('button'); w.type = 'button'; w.className = 'weg-k'; w.textContent = '✕'; w.setAttribute('aria-label', titel + ' entfernen'); w.disabled = darf === false;
+      w.addEventListener('click', weg); h.append(w); k.append(h);
+      const g = document.createElement('div'); g.className = 'raster eng'; k.append(g); ziel.append(k);
+      return { k: k, h: h, g: g };
+    }
     function einstellungenAufbauen() {
       const z = $('raeume'); z.innerHTML = '';
+      const gA = P.gruppen.filter(function (g) { return g.art === 'auto'; }).map(function (g) { return [g.id, g.nr + ' ' + g.name]; });
+      const gH = [['', 'keine']].concat(P.gruppen.filter(function (g) { return g.art === 'hfm'; }).map(function (g) { return [g.id, g.nr + ' ' + g.name]; }));
       P.raeume.forEach(function (r) {
-        const k = document.createElement('div'); k.className = 'karte-klein';
-        const h = document.createElement('h4'); h.append(document.createTextNode(r.name));
-        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'weg-k'; weg.textContent = '✕'; weg.setAttribute('aria-label', r.name + ' entfernen'); weg.disabled = P.raeume.length < 2;
-        weg.addEventListener('click', function () { P.raeume = P.raeume.filter(function (x) { return x !== r; }); P.melder = P.melder.filter(function (m) { return m.raum !== r.id; }); if (P.brand && P.brand.raum === r.id) P.brand = null; einstellungenAufbauen(); aenderung(); });
-        h.append(weg); k.append(h);
-        const g = document.createElement('div'); g.className = 'raster eng';
+        const c = karte(z, r.name, function () { P.raeume = P.raeume.filter(function (x) { return x !== r; }); P.melder = P.melder.filter(function (m) { return m.raum !== r.id; }); P.ausgaenge.forEach(function (a) { a.raeume = a.raeume.filter(function (id) { return id !== r.id; }); }); if (P.brand && P.brand.raum === r.id) P.brand = null; einstellungenAufbauen(); aenderung(); }, P.raeume.length > 1);
         const neu = function () { verteilenRaum(P, r); };
-        feld(g, 'Name', function () { return r.name; }, function (v) { r.name = v || 'Raum'; h.firstChild.textContent = r.name; }, { text: true });
-        feld(g, 'Breite m', function () { return r.b; }, function (v) { r.b = v; neu(); }, { min: 1, max: 80 });
-        feld(g, 'Länge m', function () { return r.l; }, function (v) { r.l = v; neu(); }, { min: 1, max: 80 });
-        feld(g, 'Höhe m', function () { return r.h; }, function (v) { r.h = v; neu(); }, { min: 2, max: 20 });
-        feld(g, 'Melder', function () { return r.typ; }, function (v) { r.typ = v; neu(); }, { wahl: [['rauch', 'Rauch'], ['waerme', 'Wärme'], ['multi', 'Mehrkriterien']] });
-        feld(g, 'Handfeuermelder', function () { return r.hfm; }, function (v) { r.hfm = v; neu(); }, { min: 0, max: 6, ganz: true });
-        k.append(g); z.append(k);
+        feld(c.g, 'Name', function () { return r.name; }, function (v) { r.name = v || 'Raum'; c.h.firstChild.textContent = r.name; }, { text: true });
+        feld(c.g, 'Breite m', function () { return r.b; }, function (v) { r.b = v; neu(); }, { min: 1, max: 80 });
+        feld(c.g, 'Länge m', function () { return r.l; }, function (v) { r.l = v; neu(); }, { min: 1, max: 80 });
+        feld(c.g, 'Höhe m', function () { return r.h; }, function (v) { r.h = v; neu(); }, { min: 2, max: 20 });
+        feld(c.g, 'Melder', function () { return r.typ; }, function (v) { r.typ = v; neu(); }, { wahl: [['rauch', 'Rauch'], ['waerme', 'Wärme'], ['multi', 'Mehrkriterien']] });
+        feld(c.g, 'Handfeuermelder', function () { return r.hfm; }, function (v) { r.hfm = v; neu(); }, { min: 0, max: 6, ganz: true });
+        feld(c.g, 'mindestens Melder', function () { return r.nMin || 1; }, function (v) { r.nMin = v; neu(); }, { min: 1, max: 20, ganz: true });
+        feld(c.g, 'Meldebereich', function () { return r.mb; }, function (v) { r.mb = v; }, { wahl: P.bereiche.map(function (b) { return [b.id, b.name]; }) });
+        feld(c.g, 'Gruppe automatisch', function () { return r.mgA; }, function (v) { r.mgA = v; }, { wahl: gA.length ? gA : [['', 'keine']] });
+        feld(c.g, 'Gruppe Handfeuer', function () { return r.mgH; }, function (v) { r.mgH = v; }, { wahl: gH });
+      });
+      const bz = $('bereiche'); bz.innerHTML = '';
+      P.bereiche.forEach(function (b) {
+        const c = karte(bz, b.name, function () { const rest = P.bereiche.filter(function (x) { return x !== b; }); P.raeume.forEach(function (r) { if (r.mb === b.id) r.mb = rest[0].id; }); P.bereiche = rest; einstellungenAufbauen(); aenderung(); }, P.bereiche.length > 1);
+        feld(c.g, 'Name', function () { return b.name; }, function (v) { b.name = v || 'Meldebereich'; c.h.firstChild.textContent = b.name; }, { text: true });
+      });
+      const gz = $('gruppen'); gz.innerHTML = '';
+      P.gruppen.forEach(function (g) {
+        const c = karte(gz, 'MG ' + g.nr + ' ' + g.name, function () { P.gruppen = P.gruppen.filter(function (x) { return x !== g; }); P.raeume.forEach(function (r) { if (r.mgA === g.id) r.mgA = ''; if (r.mgH === g.id) r.mgH = ''; }); einstellungenAufbauen(); aenderung(); }, P.gruppen.length > 1);
+        feld(c.g, 'Nummer', function () { return g.nr; }, function (v) { g.nr = v; c.h.firstChild.textContent = 'MG ' + g.nr + ' ' + g.name; }, { min: 1, max: 999, ganz: true });
+        feld(c.g, 'Name', function () { return g.name; }, function (v) { g.name = v || 'Meldergruppe'; c.h.firstChild.textContent = 'MG ' + g.nr + ' ' + g.name; }, { text: true });
+        feld(c.g, 'Art', function () { return g.art; }, function (v) { g.art = v; P.raeume.forEach(function (r) { if (v === 'hfm' && r.mgA === g.id) r.mgA = ''; if (v === 'auto' && r.mgH === g.id) r.mgH = ''; }); }, { wahl: [['auto', 'automatische Melder'], ['hfm', 'Handfeuermelder']], neu: true });
+        feld(c.g, 'Meldelinie', function () { return g.linie; }, function (v) { g.linie = v; }, { wahl: P.linien.map(function (l) { return [l.id, l.name]; }) });
+      });
+      const lz = $('linien'); lz.innerHTML = '';
+      P.linien.forEach(function (li) {
+        const c = karte(lz, li.name, function () { const rest = P.linien.filter(function (x) { return x !== li; }); P.gruppen.forEach(function (g) { if (g.linie === li.id) g.linie = rest[0].id; }); P.linien = rest; if (P.stoerung && P.stoerung.linie === li.id) P.stoerung = null; einstellungenAufbauen(); aenderung(); }, P.linien.length > 1);
+        feld(c.g, 'Name', function () { return li.name; }, function (v) { li.name = v || 'Linie'; c.h.firstChild.textContent = li.name; }, { text: true });
+        feld(c.g, 'Art', function () { return li.art; }, function (v) { li.art = v; }, { wahl: [['ring', 'Ringleitung'], ['stich', 'Stichleitung']] });
+        feld(c.g, 'Kurzschlusstrenner', function () { return li.trenner; }, function (v) { li.trenner = v; }, { wahl: [['jeder', 'in jedem Teilnehmer'], ['abschnitt', 'alle n Teilnehmer'], ['keine', 'keine']] });
+        feld(c.g, 'n je Abschnitt', function () { return li.abschnitt; }, function (v) { li.abschnitt = v; }, { min: 1, max: 128, ganz: true });
+        feld(c.g, 'Teilnehmer höchstens', function () { return li.max; }, function (v) { li.max = v; }, { min: 8, max: 512, ganz: true });
+        feld(c.g, 'Aderdurchmesser', function () { return li.querschnitt; }, function (v) { li.querschnitt = v; }, { wahl: [[0.6, '0,6 mm'], [0.8, '0,8 mm'], [1, '1,0 mm']], zahl: true });
       });
       const ri = $('ring'); ri.innerHTML = '';
-      feld(ri, 'Kurzschlusstrenner', function () { return P.ring.trenner; }, function (v) { P.ring.trenner = v; }, { wahl: [['jeder', 'in jedem Teilnehmer'], ['abschnitt', 'alle n Teilnehmer'], ['keine', 'keine']] });
-      feld(ri, 'Teilnehmer je Trennerabschnitt', function () { return P.ring.abschnitt; }, function (v) { P.ring.abschnitt = v; }, { min: 1, max: 128, ganz: true });
-      feld(ri, 'Teilnehmer je Ring höchstens', function () { return P.ring.max; }, function (v) { P.ring.max = v; }, { min: 8, max: 512, ganz: true });
-      feld(ri, 'Aderdurchmesser', function () { return P.ring.querschnitt; }, function (v) { P.ring.querschnitt = v; }, { wahl: [[0.6, '0,6 mm'], [0.8, '0,8 mm'], [1, '1,0 mm']], zahl: true });
       feld(ri, 'Leitungszuschlag %', function () { return P.ring.zuschlag; }, function (v) { P.ring.zuschlag = v; }, { min: 0, max: 100 });
       feld(ri, 'Mindestspannung Teilnehmer V', function () { return P.ring.uMin; }, function (v) { P.ring.uMin = v; }, { min: 5, max: 30 });
       feld(ri, 'Grundrissbreite m', function () { return P.breite; }, function (v) { P.breite = v; }, { min: 6, max: 120 });
+      const en = $('energie'); en.innerHTML = '';
+      const e = P.energie;
+      feld(en, '1. Quelle: Netz', function () { return e.netzEigen; }, function (v) { e.netzEigen = v; }, { wahl: [['ja', 'eigener Stromkreis, gekennzeichnet'], ['nein', 'gemeinsam mit anderen Verbrauchern']] });
+      feld(en, '2. Quelle: Ersatz', function () { return e.ersatz; }, function (v) { e.ersatz = v; }, { wahl: [['akku', 'Akku in der Zentrale'], ['nea', 'Akku und Netzersatzanlage (Notstromaggregat)']] });
+      feld(en, 'Störungsbeseitigung', function () { return e.service; }, function (v) { e.service = v; }, { wahl: [['24', 'innerhalb 24 h (Instandhaltungsvertrag)'], ['nein', 'nicht sichergestellt']] });
+      feld(en, 'Akku Ah (0 = automatisch)', function () { return e.akkuAh; }, function (v) { e.akkuAh = v; }, { min: 0, max: 200 });
+      feld(en, 'Netzersatzanlage Startzeit s', function () { return e.neaStart; }, function (v) { e.neaStart = v; }, { min: 1, max: 600 });
+      feld(en, 'Netzersatzanlage Kraftstoff h', function () { return e.neaTank; }, function (v) { e.neaTank = v; }, { min: 1, max: 500 });
+      feld(en, 'Simulation: Netzausfall vor dem Brand h', function () { return e.ausfallVor; }, function (v) { e.ausfallVor = v; }, { min: 0, max: 200 });
+      feld(en, 'Simulation: Netz fällt im Brandfall aus', function () { return e.ausfallBrand; }, function (v) { e.ausfallBrand = v; }, { wahl: [['nein', 'nein'], ['ja', 'ja']] });
       const s = $('strom'); s.innerHTML = '';
       const st = P.strom;
       feld(s, 'Zentrale Ruhe mA', function () { return st.iBmz; }, function (v) { st.iBmz = v; }, { min: 1, max: 5000 });
       feld(s, 'Zentrale Alarm mA', function () { return st.iBmzAlarm; }, function (v) { st.iBmzAlarm = v; }, { min: 1, max: 10000 });
       feld(s, 'je Teilnehmer mA', function () { return st.iMelder; }, function (v) { st.iMelder = v; }, { min: 0, max: 20 });
-      feld(s, 'Signalgeber Anzahl', function () { return st.signal; }, function (v) { st.signal = v; }, { min: 0, max: 200, ganz: true });
-      feld(s, 'je Signalgeber mA', function () { return st.iSignal; }, function (v) { st.iSignal = v; }, { min: 0, max: 2000 });
-      feld(s, 'Übertragungseinrichtung mA', function () { return st.iUe; }, function (v) { st.iUe = v; }, { min: 0, max: 2000 });
-      feld(s, 'Überbrückungszeit', function () { return st.tR; }, function (v) { st.tR = v; }, { wahl: [[72, '72 h'], [30, '30 h (Störung in 24 h behoben)'], [4, '4 h (mit Ersatzstrom)']], zahl: true });
       feld(s, 'Alarmdauer h', function () { return st.tA; }, function (v) { st.tA = v; }, { min: 0.25, max: 3 });
+      ausgaengeAufbauen();
       const b = $('betrieb'); b.innerHTML = '';
       const be = P.betrieb;
       feld(b, 'Brandart', function () { return be.brand; }, function (v) { be.brand = v; }, { wahl: Object.keys(BRAND).map(function (k) { return [k, BRAND[k].name]; }) });
-      feld(b, 'Alarm bei', function () { return be.abh; }, function (v) { be.abh = v; }, { wahl: [['ein', 'einem Melder'], ['zwei', 'zwei Meldern (Typ B)']] });
+      feld(b, 'Feueralarm bei', function () { return be.abh; }, function (v) { be.abh = v; }, { wahl: [['ein', 'einem Melder'], ['zwei', 'zwei Meldern derselben Gruppe (Typ B)']] });
       feld(b, 'Maßnahme gegen Falschalarm', function () { return be.tm; }, function (v) { be.tm = v; }, { wahl: [['aus', 'keine'], ['an', 'mit Annahme- und Erkundungszeit']] });
       feld(b, 'Personal vor Ort', function () { return be.personal; }, function (v) { be.personal = v; }, { wahl: [['nein', 'nein'], ['ja', 'ja, quittiert und erkundet']] });
       feld(b, 'Handfeuermelder gedrückt nach s (0 = nie)', function () { return be.hfmNach; }, function (v) { be.hfmNach = v; }, { min: 0, max: 1800 });
       feld(b, 'Anfahrt der Feuerwehr min', function () { return be.anfahrt; }, function (v) { be.anfahrt = v; }, { min: 1, max: 60 });
     }
-    $('neuerRaum').addEventListener('click', function () { const r = { id: neueId('r'), name: 'Raum ' + (P.raeume.length + 1), b: 5, l: 4, h: 3, typ: 'rauch', hfm: 0 }; P.raeume.push(r); verteilenRaum(P, r); einstellungenAufbauen(); aenderung(); });
+    function ausgaengeAufbauen() {
+      const z = $('ausgaenge'); z.innerHTML = '';
+      P.ausgaenge.forEach(function (a, i) {
+        const c = karte(z, (i + 3) + '  ' + a.name, function () { P.ausgaenge = P.ausgaenge.filter(function (x) { return x !== a; }); ausgaengeAufbauen(); aenderung(); });
+        if (!a.an) c.k.classList.add('aus');
+        feld(c.g, 'Name', function () { return a.name; }, function (v) { a.name = v || TYP[a.typ].name; c.h.firstChild.textContent = (P.ausgaenge.indexOf(a) + 3) + '  ' + a.name; }, { text: true });
+        feld(c.g, 'eingeschaltet', function () { return a.an ? 'ja' : 'nein'; }, function (v) { a.an = v === 'ja'; c.k.classList.toggle('aus', !a.an); }, { wahl: [['ja', 'ja'], ['nein', 'nein']] });
+        feld(c.g, 'Auslöser', function () { return a.ausloeser; }, function (v) { a.ausloeser = v; }, { wahl: AUSLOESER });
+        feld(c.g, 'Verzögerung s', function () { return a.verz; }, function (v) { a.verz = v; }, { min: 0, max: 3600 });
+        feld(c.g, 'Anzahl', function () { return a.anzahl; }, function (v) { a.anzahl = v; }, { min: 0, max: 500, ganz: true });
+        feld(c.g, 'je Gerät Alarm mA', function () { return a.iA; }, function (v) { a.iA = v; }, { min: 0, max: 5000 });
+        feld(c.g, 'je Gerät Ruhe mA', function () { return a.iR; }, function (v) { a.iR = v; }, { min: 0, max: 2000 });
+        if (a.typ === 'akustisch') feld(c.g, 'Räumungszeit min', function () { return a.raeumung; }, function (v) { a.raeumung = v; }, { min: 0.5, max: 60 });
+        if (a.typ === 'loesch') {
+          feld(c.g, 'Vorwarnzeit s', function () { return a.vorwarn; }, function (v) { a.vorwarn = v; }, { min: 0, max: 600 });
+          feld(c.g, 'Wirkung', function () { return a.wirkung; }, function (v) { a.wirkung = v; }, { wahl: [['loeschen', 'löscht (Gas, Wassernebel)'], ['kontrolle', 'hält unter Kontrolle (Sprinkler)']] });
+        }
+        const ue = document.createElement('div'); ue.className = 'unterkopf'; ue.textContent = 'Bereich (nichts gewählt = alle Räume)'; c.k.append(ue);
+        const rw = document.createElement('div'); rw.className = 'raeume-wahl';
+        P.raeume.forEach(function (r) {
+          const l = document.createElement('label'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = a.raeume.indexOf(r.id) >= 0;
+          cb.addEventListener('change', function () { a.raeume = a.raeume.filter(function (id) { return id !== r.id; }); if (cb.checked) a.raeume.push(r.id); aenderung(); });
+          l.append(cb, document.createTextNode(r.name)); rw.append(l);
+        });
+        c.k.append(rw);
+        if (a.typ === 'waehl') {
+          const u2 = document.createElement('div'); u2.className = 'unterkopf'; u2.textContent = 'Rufziele'; c.k.append(u2);
+          (a.ziele || []).forEach(function (zi) {
+            const g2 = document.createElement('div'); g2.className = 'raster eng';
+            feld(g2, 'Rufziel', function () { return zi.name; }, function (v) { zi.name = v || 'Rufziel'; }, { text: true });
+            feld(g2, 'Art', function () { return zi.art; }, function (v) { zi.art = v; }, { wahl: [['leitstelle', 'Einsatzzentrale Feuerwehr'], ['telefon', 'Telefon / Sprachansage']] });
+            feld(g2, 'Verzögerung s', function () { return zi.verz; }, function (v) { zi.verz = v; }, { min: 0, max: 3600 });
+            const wl = document.createElement('label'); wl.textContent = ' '; const wb = document.createElement('button'); wb.type = 'button'; wb.className = 'knopf-leise'; wb.textContent = 'entfernen';
+            wb.addEventListener('click', function () { a.ziele = a.ziele.filter(function (x) { return x !== zi; }); ausgaengeAufbauen(); aenderung(); });
+            wl.append(wb); g2.append(wl); c.k.append(g2);
+          });
+          const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'knopf-leise'; nb.textContent = '+ Rufziel';
+          nb.addEventListener('click', function () { (a.ziele = a.ziele || []).push({ id: neueId('z'), name: 'Rufziel ' + (a.ziele.length + 1), art: 'telefon', verz: 0 }); ausgaengeAufbauen(); aenderung(); });
+          c.k.append(nb);
+        }
+      });
+    }
+    (function () { const s = $('neuTyp'); Object.keys(TYP).forEach(function (k) { const o = document.createElement('option'); o.value = k; o.textContent = TYP[k].name; s.append(o); }); })();
+    $('neuerAusgang').addEventListener('click', function () {
+      const typ = $('neuTyp').value, t = TYP[typ];
+      const a = { id: neueId('a'), typ: typ, name: t.name, an: true, anzahl: t.anzahl, iA: t.iA, iR: t.iR, ausloeser: typ === 'waehl' ? 'ue' : typ === 'loesch' ? 'zwei' : 'alle', raeume: [], verz: 0 };
+      if (typ === 'akustisch') a.raeumung = 4;
+      if (typ === 'loesch') { a.vorwarn = 30; a.wirkung = 'loeschen'; }
+      if (typ === 'waehl') a.ziele = [{ id: neueId('z'), name: 'Einsatzzentrale Feuerwehr', art: 'leitstelle', verz: 0 }];
+      P.ausgaenge.push(a); ausgaengeAufbauen(); aenderung(); status(t.name + ' hinzugefügt.');
+    });
+    $('neuerRaum').addEventListener('click', function () { const r = { id: neueId('r'), name: 'Raum ' + (P.raeume.length + 1), b: 5, l: 4, h: 3, typ: 'rauch', hfm: 0, nMin: 1, mb: P.bereiche[0].id, mgA: (P.gruppen.filter(function (g) { return g.art === 'auto'; })[0] || {}).id || '', mgH: '' }; P.raeume.push(r); verteilenRaum(P, r); einstellungenAufbauen(); aenderung(); });
+    $('neuerBereich').addEventListener('click', function () { P.bereiche.push({ id: neueId('b'), name: 'Meldebereich ' + (P.bereiche.length + 1) }); einstellungenAufbauen(); aenderung(); });
+    $('neueGruppe').addEventListener('click', function () { const n = Math.max.apply(null, P.gruppen.map(function (g) { return g.nr; }).concat([0])) + 1; P.gruppen.push({ id: neueId('g'), nr: n, name: 'Meldergruppe ' + n, art: 'auto', linie: P.linien[0].id }); einstellungenAufbauen(); aenderung(); });
+    $('neueLinie').addEventListener('click', function () { P.linien.push({ id: neueId('l'), name: 'Ring ' + (P.linien.length + 1), art: 'ring', trenner: 'jeder', abschnitt: 32, max: 128, querschnitt: 0.8 }); einstellungenAufbauen(); aenderung(); });
     $('auto').addEventListener('click', function () { if (!window.confirm('Alle Melder neu nach DIN VDE 0833-2 verteilen? Eigene Positionen gehen verloren.')) return; verteilen(P); aenderung(); status('Melder neu verteilt.'); });
-    $('beispiel').addEventListener('click', function () { if (!window.confirm('Beispiel laden? Die aktuelle Planung wird ersetzt.')) return; P = beispiel(); verteilen(P); P.brand = { raum: 'r3', x: 4.5, y: 3.5 }; einstellungenAufbauen(); aenderung(); });
+    $('beispiel').addEventListener('click', function () { if (!window.confirm('Beispiel laden? Die aktuelle Planung wird ersetzt.')) return; P = beispiel(); verteilen(P); P.brand = { raum: 'r3', x: 4.5, y: 3.5 }; zuruecksetzen(); einstellungenAufbauen(); aenderung(); });
     function status(t) { $('status').textContent = t; }
 
     // ---------- Teilen (gemeinsames Muster aus basis.js) ----------
@@ -506,7 +785,7 @@
     const vorherKnopf = Teilen.knopf($('teilen').parentNode, SPEICHER, function (roh) {
       let p = null; try { p = JSON.parse(roh); } catch (e) { p = null; }
       if (!p || !pruefen(p)) { status('Keine gültige vorherige Planung gefunden.'); return; }
-      P = p; einstellungenAufbauen(); aenderung(); status('Vorherige Planung wiederhergestellt.');
+      P = p; zuruecksetzen(); einstellungenAufbauen(); aenderung(); status('Vorherige Planung wiederhergestellt.');
     }, 'Planung');
     $('teilen').parentNode.insertBefore($('teilen').parentNode.querySelector('.vorher-knopf'), $('teilenMeldung'));
 
@@ -517,7 +796,7 @@
     function groesse() {
       const L = A.L;
       B = Math.max(260, cv.parentNode.clientWidth); dpr = window.devicePixelRatio || 1;
-      const breiteM = L.b + 3, k = Math.min((B - 24) / breiteM, 60);
+      const k = Math.min((B - 24) / (L.b + 3), 60);
       Hh = Math.round(Math.min(Math.max(220, (L.l + 2) * k + 24), 900));
       M = { k: k, ox: 12 + 2.5 * k, oy: 14 + 0.6 * k };
       cv.style.height = Hh + 'px'; cv.width = Math.round(B * dpr); cv.height = Math.round(Hh * dpr);
@@ -525,61 +804,68 @@
     }
     function P2(p) { return [M.ox + p[0] * M.k, M.oy + p[1] * M.k]; }
     let tSim = 0, laeuft = false, letzte = 0;
+    const SCHRIFT = function () { return farbe('--technik') || 'sans-serif'; };
     function zeichnen() {
-      const k = M.k, text = farbe('--text'), leise = farbe('--leise'), linie = farbe('--linie'), flaeche = farbe('--flaeche');
+      const k = M.k, text = farbe('--text'), leise = farbe('--leise'), flaeche = farbe('--flaeche');
       cx.clearRect(0, 0, B, Hh);
-      cx.font = '600 ' + Math.max(10, Math.min(13, k * 0.45)) + 'px ' + (farbe('--technik') || 'sans-serif');
-      const aus = S ? S.aus : ausfall(A.R);
-      // Räume
+      const aus = S ? S.aus : ausfall(A.LN), tot = A.E.tot;
       A.raeume.forEach(function (x) {
         const r = x.raum, l = A.L.lage[r.id], p = P2([l.x, l.y]);
         cx.fillStyle = flaeche; cx.fillRect(p[0], p[1], r.b * k, r.l * k);
-        // Lücken in der Überwachung
         if (x.lucken.length) { cx.fillStyle = 'rgba(192,57,43,.22)'; x.lucken.forEach(function (q) { cx.fillRect(p[0] + (q[0] - x.st / 2) * k, p[1] + (q[1] - x.st / 2) * k, x.st * k + 0.5, x.st * k + 0.5); }); }
-        // Brand: Temperatur des Deckenstrahls
         if (S && S.raum === r && tSim > 0) {
-          const Q = S.Qbei(tSim), f = P2([l.x + P.brand.x, l.y + P.brand.y]);
-          const rad = Math.min(Math.max(r.b, r.l), 0.8 + Math.sqrt(Q) * 0.25) * k;
-          const gr = cx.createRadialGradient(f[0], f[1], 2, f[0], f[1], rad);
-          const st = P.betrieb.brand === 'schwel';
-          gr.addColorStop(0, st ? 'rgba(110,110,110,.75)' : 'rgba(228,87,46,.75)'); gr.addColorStop(1, st ? 'rgba(110,110,110,0)' : 'rgba(242,165,65,0)');
+          const Q = S.Qbei(tSim), f = P2([l.x + P.brand.x, l.y + P.brand.y]), rad = Math.min(Math.max(r.b, r.l), 0.8 + Math.sqrt(Q) * 0.25) * k, sw = P.betrieb.brand === 'schwel';
+          const gr = cx.createRadialGradient(f[0], f[1], 2, f[0], f[1], Math.max(4, rad));
+          gr.addColorStop(0, sw ? 'rgba(110,110,110,.75)' : 'rgba(228,87,46,.75)'); gr.addColorStop(1, sw ? 'rgba(110,110,110,0)' : 'rgba(242,165,65,0)');
           cx.save(); cx.beginPath(); cx.rect(p[0], p[1], r.b * k, r.l * k); cx.clip(); cx.fillStyle = gr; cx.fillRect(p[0], p[1], r.b * k, r.l * k); cx.restore();
         }
         cx.strokeStyle = text; cx.lineWidth = 2; cx.strokeRect(p[0], p[1], r.b * k, r.l * k);
+        cx.font = '600 ' + Math.max(10, Math.min(13, k * 0.45)) + 'px ' + SCHRIFT();
         cx.fillStyle = leise; cx.textAlign = 'left'; cx.textBaseline = 'top';
-        if (r.b * k > 40) cx.fillText(r.name.length * 7 > r.b * k ? r.name.slice(0, Math.max(3, Math.floor(r.b * k / 7))) : r.name, p[0] + 4, p[1] + 3);
+        const g = finde(P.gruppen, r.mgA), titel = r.name + (g ? ' · MG ' + g.nr : '');
+        if (r.b * k > 40) cx.fillText(titel.length * 7 > r.b * k ? titel.slice(0, Math.max(3, Math.floor(r.b * k / 7))) : titel, p[0] + 4, p[1] + 3);
+        const pe = P2([l.x + r.b, l.y + r.l]);
+        P.ausgaenge.filter(function (a) { return a.an && a.raeume.indexOf(r.id) >= 0; }).forEach(function (a, i) {
+          const an = S && S.ausg.some(function (q) { return q.a === a && q.t <= tSim; }), t = TYP[a.typ].kurz, w = t.length * 7 + 8;
+          cx.fillStyle = an ? '#C0392B' : 'rgba(110,111,166,.85)'; cx.fillRect(pe[0] - w - 3, pe[1] - 18 - i * 19, w, 15);
+          cx.fillStyle = '#FFFFFF'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.font = '700 10px sans-serif'; cx.fillText(t, pe[0] - w / 2 - 3, pe[1] - 10 - i * 19);
+        });
+      });
+      // Meldebereiche als gestrichelte Umrandung
+      A.bereiche.forEach(function (bx, i) {
+        if (!bx.rs.length) return;
+        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        bx.rs.forEach(function (r) { const l = A.L.lage[r.id]; x1 = Math.min(x1, l.x); y1 = Math.min(y1, l.y); x2 = Math.max(x2, l.x + r.b); y2 = Math.max(y2, l.y + r.l); });
+        const a = P2([x1, y1]), c = P2([x2, y2]);
+        cx.strokeStyle = 'rgba(228,87,46,.7)'; cx.lineWidth = 2; cx.setLineDash([8, 5]); cx.strokeRect(a[0] - 4 - i * 2, a[1] - 4 - i * 2, c[0] - a[0] + 8 + i * 4, c[1] - a[1] + 8 + i * 4); cx.setLineDash([]);
       });
       // Zentrale
-      const bz = P2(A.R.bmz);
-      cx.fillStyle = '#C0392B'; cx.fillRect(bz[0] - 1.1 * k, bz[1] - 0.5 * k, 1.6 * k, 1.9 * k);
-      cx.fillStyle = '#FFFFFF'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('BMZ', bz[0] - 0.3 * k, bz[1] + 0.45 * k);
-      // Ringleitung
-      const pts = A.R.punkte.map(P2), stoer = P.stoerung;
-      for (let i = 1; i < pts.length; i++) {
-        const seg = i - 1, kaputt = stoer && stoer.seg === seg;
-        cx.strokeStyle = kaputt ? (stoer.art === 'kurz' ? '#C0392B' : '#B7791F') : 'rgba(43,123,185,.85)';
-        cx.lineWidth = kaputt ? 4 : 2; cx.setLineDash(kaputt && stoer.art === 'bruch' ? [6, 5] : []);
-        cx.beginPath(); cx.moveTo(pts[i - 1][0], pts[i - 1][1]); cx.lineTo(pts[i][0], pts[i - 1][1]); cx.lineTo(pts[i][0], pts[i][1]); cx.stroke();
-        cx.setLineDash([]);
-        if (kaputt) { const mx = (pts[i - 1][0] + pts[i][0]) / 2, my = pts[i - 1][1]; cx.fillStyle = cx.strokeStyle; cx.font = '700 14px sans-serif'; cx.fillText(stoer.art === 'kurz' ? '⚡' : '✂', mx, my - 10); cx.font = '600 12px ' + (farbe('--technik') || 'sans-serif'); }
-      }
-      // Trenner (nicht bei „jeder“: dort sitzen sie im Melder)
-      if (P.ring.trenner === 'abschnitt') A.R.trenner.forEach(function (t) { const q = pts[t + 1] || pts[pts.length - 1]; if (t === 0 || t === A.R.folge.length) return; cx.fillStyle = '#6E6FA6'; cx.fillRect(q[0] - 9, q[1] - 13, 6, 6); });
-      // Melder
+      const bz = P2([-1.5, 0.8]);
+      cx.fillStyle = tot ? '#888' : '#C0392B'; cx.fillRect(bz[0] - 1.1 * k, bz[1] - 0.5 * k, 1.6 * k, 1.9 * k);
+      cx.fillStyle = '#FFFFFF'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.font = '700 ' + Math.max(9, Math.min(12, k * 0.4)) + 'px sans-serif'; cx.fillText('BMZ', bz[0] - 0.3 * k, bz[1] + 0.45 * k);
+      // Meldelinien
       const r0 = Math.max(5, Math.min(11, k * 0.33));
-      A.R.folge.forEach(function (m, i) {
-        const q = pts[i + 1], s = S ? S.st.filter(function (d) { return d.m === m; })[0] : null;
-        const aktiv = s && s.t <= tSim, hfmAn = m.art === 'hfm' && S && isFinite(S.tFeuer) && P.betrieb.hfmNach > 0 && P.betrieb.hfmNach <= tSim;
-        const tot = aus[m.id];
-        if (m.art === 'hfm') { cx.fillStyle = tot ? '#888' : hfmAn ? '#FF2D1A' : '#C0392B'; cx.fillRect(q[0] - r0, q[1] - r0, 2 * r0, 2 * r0); cx.fillStyle = '#FFF'; cx.fillRect(q[0] - r0 * 0.45, q[1] - r0 * 0.45, r0 * 0.9, r0 * 0.9); }
-        else {
-          cx.fillStyle = tot ? '#888' : flaeche; cx.strokeStyle = tot ? '#888' : aktiv ? '#FF2D1A' : text; cx.lineWidth = aktiv ? 3 : 1.5;
-          cx.beginPath(); cx.arc(q[0], q[1], r0, 0, 2 * Math.PI); cx.fill(); cx.stroke();
-          if (aktiv) { const blink = (Math.floor(performance.now() / 300) % 2) ? 1 : 0.4; cx.fillStyle = 'rgba(255,45,26,' + blink + ')'; cx.beginPath(); cx.arc(q[0], q[1], r0 * 0.55, 0, 2 * Math.PI); cx.fill(); }
-          else { cx.fillStyle = tot ? '#FFF' : text; cx.font = '700 ' + Math.round(r0 * 1.1) + 'px sans-serif'; cx.fillText(m.art === 'waerme' ? 'W' : m.art === 'multi' ? 'M' : 'R', q[0], q[1] + 0.5); cx.font = '600 12px ' + (farbe('--technik') || 'sans-serif'); }
+      A.LN.forEach(function (R) {
+        const pts = R.punkte.map(P2), st = P.stoerung && P.stoerung.linie === R.li.id ? P.stoerung : null;
+        for (let i = 1; i < pts.length; i++) {
+          const kaputt = st && st.seg === i - 1;
+          cx.strokeStyle = kaputt ? (st.art === 'kurz' ? '#C0392B' : '#B7791F') : R.farbe; cx.globalAlpha = kaputt ? 1 : 0.85;
+          cx.lineWidth = kaputt ? 4 : 2; cx.setLineDash(kaputt && st.art === 'bruch' ? [6, 5] : R.li.art === 'stich' ? [10, 3] : []);
+          cx.beginPath(); cx.moveTo(pts[i - 1][0], pts[i - 1][1]); cx.lineTo(pts[i][0], pts[i - 1][1]); cx.lineTo(pts[i][0], pts[i][1]); cx.stroke();
+          cx.setLineDash([]); cx.globalAlpha = 1;
+          if (kaputt) { cx.fillStyle = cx.strokeStyle; cx.font = '700 14px sans-serif'; cx.fillText(st.art === 'kurz' ? '⚡' : '✂', (pts[i - 1][0] + pts[i][0]) / 2, pts[i - 1][1] - 10); }
         }
+        if (R.li.trenner === 'abschnitt') R.trenner.forEach(function (t) { if (t === 0 || t >= R.folge.length) return; const q = pts[t + 1]; cx.fillStyle = '#6E6FA6'; cx.fillRect(q[0] - 9, q[1] - 13, 6, 6); });
+        R.folge.forEach(function (m, i) {
+          const q = pts[i + 1], s = S ? S.st.filter(function (d) { return d.m === m; })[0] : null;
+          const aktiv = s && s.t <= tSim, hfmAn = m.art === 'hfm' && S && S.hfmNah === m && S.tHfm <= tSim, weg = aus[m.id] || tot;
+          if (m.art === 'hfm') { cx.fillStyle = weg ? '#888' : hfmAn ? '#FF2D1A' : '#C0392B'; cx.fillRect(q[0] - r0, q[1] - r0, 2 * r0, 2 * r0); cx.fillStyle = '#FFF'; cx.fillRect(q[0] - r0 * 0.45, q[1] - r0 * 0.45, r0 * 0.9, r0 * 0.9); return; }
+          cx.fillStyle = weg ? '#888' : flaeche; cx.strokeStyle = weg ? '#888' : aktiv ? '#FF2D1A' : text; cx.lineWidth = aktiv ? 3 : 1.5;
+          cx.beginPath(); cx.arc(q[0], q[1], r0, 0, 2 * Math.PI); cx.fill(); cx.stroke();
+          if (aktiv) { const bl = (Math.floor(performance.now() / 300) % 2) ? 1 : 0.4; cx.fillStyle = 'rgba(255,45,26,' + bl + ')'; cx.beginPath(); cx.arc(q[0], q[1], r0 * 0.55, 0, 2 * Math.PI); cx.fill(); }
+          else { cx.fillStyle = weg ? '#FFF' : text; cx.font = '700 ' + Math.round(r0 * 1.1) + 'px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(m.art === 'waerme' ? 'W' : m.art === 'multi' ? 'M' : 'R', q[0], q[1] + 0.5); }
+        });
       });
-      // Brandstelle
       if (P.brand) {
         const l = A.L.lage[P.brand.raum];
         if (l) {
@@ -588,83 +874,153 @@
           cx.fillStyle = '#F2A541'; cx.beginPath(); cx.arc(f[0], f[1] + 2, 3.5, 0, 2 * Math.PI); cx.fill();
         }
       }
-      // Zeit und Brandleistung
-      if (S) {
-        cx.fillStyle = text; cx.textAlign = 'right'; cx.textBaseline = 'top'; cx.font = '700 13px ' + (farbe('--technik') || 'sans-serif');
-        cx.fillText('t = ' + zeitText(tSim) + ' min  ·  ' + zahl(S.Qbei(tSim), 0) + ' kW', B - 8, 4);
-      }
+      if (S) { cx.fillStyle = text; cx.textAlign = 'right'; cx.textBaseline = 'top'; cx.font = '700 13px ' + SCHRIFT(); cx.fillText('t = ' + zeitText(tSim) + ' min  ·  ' + zahl(S.Qbei(tSim), 0) + ' kW', B - 8, 4); }
     }
 
-    // ---------- Anzeige der Zentrale und Ereignisse ----------
+    // ---------- Anzeige der Zentrale, Signalfluss ----------
+    function quelleJetzt() {
+      const e = P.energie, x = A.E;
+      if (!x.netzWeg) return 'netz';
+      if (x.tot) return 'keine';
+      if (S && tSim >= S.tLeer) return 'keine';
+      if (e.ersatz === 'nea' && x.neaRest > 0 && (e.ausfallVor > 0 || tSim >= e.neaStart)) return 'nea';
+      return 'akku';
+    }
     function anzeigen() {
-      const a = $('anzeige'), li = $('ereignisse');
+      const a = $('anzeige'), li = $('ereignisse'), q = quelleJetzt();
+      const lampen = function (feuer, stoer, ue, n, gesamt, loesch) {
+        return '<div class="leuchten"><span class="' + (q === 'keine' ? '' : 'an-gruen') + '">Betrieb</span><span class="' + (q === 'netz' ? 'an-gruen' : '') + '">Netz</span><span class="' + (q === 'akku' ? 'an-gelb' : '') + '">Akku</span>' + (P.energie.ersatz === 'nea' ? '<span class="' + (q === 'nea' ? 'an-gelb' : '') + '">Netzersatz</span>' : '') +
+          '<span class="' + (feuer ? 'an-rot' : '') + '">Feuer</span><span class="' + (stoer ? 'an-gelb' : '') + '">Störung</span><span class="' + (ue ? 'an-rot' : '') + '">ÜE ausgelöst</span><span class="' + (n ? 'an-rot' : '') + '">Steuerungen ' + n + '/' + gesamt + '</span>' + (loesch ? '<span class="an-rot">Löschung</span>' : '') + '</div>';
+      };
+      const gesamt = P.ausgaenge.filter(function (x) { return x.an; }).length, stoer = !!P.stoerung || A.E.netzWeg;
       if (!S) {
-        a.innerHTML = '<div class="zeile"><span>Brandmeldezentrale</span><span>' + zeitText(0) + '</span></div><div class="gross">' + (P.stoerung ? '<span class="stoer">STÖRUNG Ringleitung</span>' : 'Betrieb') + '</div><div>' + (P.brand ? 'Brand gelegt – „Start“ drücken.' : '„Brand legen“ und in einen Raum tippen.') + '</div>' + leuchten(false, !!P.stoerung, false);
-        li.innerHTML = '';
-        return;
+        a.innerHTML = '<div class="zeile"><span>Brandmeldezentrale</span><span>' + zeitText(0) + '</span></div><div class="gross ' + (stoer ? 'stoer' : '') + '">' + (q === 'keine' ? 'AUS – keine Energie' : P.stoerung ? 'STÖRUNG Meldelinie' : A.E.netzWeg ? 'STÖRUNG Netz' : 'Betrieb') + '</div><div>' + (P.brand ? 'Brand gelegt – „Start“ drücken.' : '„Brand legen“ und in einen Raum tippen.') + '</div>' + lampen(false, stoer, false, 0, gesamt, false);
+        li.innerHTML = ''; flussZeichnen(); return;
       }
-      const feuer = tSim >= S.tFeuer, ue = tSim >= S.tUe, vor = tSim >= S.tErk && !feuer;
-      const aktive = S.st.filter(function (d) { return d.t <= tSim; }).length;
+      const feuer = tSim >= S.tFeuer && q !== 'keine', vor = tSim >= S.tErk && !feuer && q !== 'keine';
+      const ue = S.ausg.some(function (x) { return x.a.typ === 'waehl' && x.t <= tSim; }), n = q === 'keine' ? 0 : S.ausg.filter(function (x) { return x.t <= tSim; }).length;
+      const ausgel = S.st.filter(function (d) { return d.t <= tSim; });
+      const erste = ausgel.length ? ausgel.sort(function (x, y) { return x.t - y.t; })[0] : null;
       a.innerHTML = '<div class="zeile"><span>Brandmeldezentrale</span><span>t = ' + zeitText(tSim) + '</span></div>' +
-        '<div class="gross ' + (feuer ? 'alarm' : P.stoerung ? 'stoer' : '') + '">' + (feuer ? 'FEUER ' + esc(S.raum.name) : vor ? 'Vorstufe – 1 Melder' : P.stoerung ? 'STÖRUNG Ringleitung' : 'Betrieb') + '</div>' +
-        '<div>' + aktive + ' von ' + S.st.length + ' Meldern im Brandraum ausgelöst' + (feuer && !ue ? ' · Verzögerung läuft' : '') + (ue ? ' · Feuerwehr alarmiert' : '') + '</div>' +
-        leuchten(feuer, !!P.stoerung, ue);
+        '<div class="gross ' + (feuer ? 'alarm' : stoer ? 'stoer' : '') + '">' + (q === 'keine' ? 'AUS – keine Energie' : feuer ? 'FEUER MG ' + (erste && erste.g ? erste.g.nr + '/' + nummer(erste.m).split('/')[1] : (S.hfmNah ? nummer(S.hfmNah) : '')) : vor ? 'Vorstufe MG ' + (erste && erste.g ? erste.g.nr : '') : P.stoerung ? 'STÖRUNG Meldelinie' : A.E.netzWeg ? 'STÖRUNG Netz' : 'Betrieb') + '</div>' +
+        '<div>' + esc(S.raum.name) + ' · ' + esc((finde(P.bereiche, S.raum.mb) || {}).name || '') + ' · ' + ausgel.length + ' von ' + S.st.length + ' Meldern ausgelöst' + (ue ? ' · Feuerwehr alarmiert' : '') + '</div>' + lampen(feuer, stoer, ue, n, gesamt, S.tFlut <= tSim);
+      flussZeichnen();
       li.innerHTML = S.ev.map(function (e) { return '<li class="' + (e[0] > tSim ? 'kommend ' : '') + (e[2] || '') + '"><time>' + zeitText(e[0]) + '</time><span>' + (e[2] === 'alarm' ? '<b>' + esc(e[1]) + '</b>' : esc(e[1])) + '</span></li>'; }).join('');
     }
-    function leuchten(feuer, stoer, ue) {
-      return '<div class="leuchten"><span class="an-gruen">Betrieb</span><span class="' + (feuer ? 'an-rot' : '') + '">Feuer</span><span class="' + (stoer ? 'an-gelb' : '') + '">Störung</span><span class="' + (ue ? 'an-rot' : '') + '">ÜE ausgelöst</span><span class="' + (feuer ? 'an-rot' : '') + '">Signalgeber</span><span class="' + (feuer ? 'an-rot' : '') + '">Steuerungen</span></div>';
+    function flussZeichnen() {
+      const z = $('fluss'), NS = 'http://www.w3.org/2000/svg';
+      const el = function (tag, at, txt) { const e = document.createElementNS(NS, tag); Object.keys(at).forEach(function (k) { e.setAttribute(k, at[k]); }); if (txt !== undefined) e.textContent = txt; return e; };
+      const aus = P.ausgaenge, zeile = 34, W = 760, H = Math.max(290, aus.length * zeile + 30);
+      const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Signalfluss der Brandmeldeanlage' });
+      const t = tSim, q = quelleJetzt(), lebt = q !== 'keine', feuer = S && t >= S.tFeuer && lebt;
+      const rot = '#E4572E', gruen = '#0E6B6A', gelb = '#B7791F', grau = 'var(--linie)', text = 'var(--text)';
+      const box = function (x, y, w, h, titel, unter, an, farbeAn) {
+        svg.append(el('rect', { x: x, y: y, width: w, height: h, rx: 8, fill: an ? farbeAn || rot : 'var(--flaeche)', stroke: an ? farbeAn || rot : text, 'stroke-width': 1.5 }));
+        svg.append(el('text', { x: x + w / 2, y: y + (unter ? h / 2 - 3 : h / 2 + 4), 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: an ? '#FFFFFF' : text }, titel));
+        if (unter) svg.append(el('text', { x: x + w / 2, y: y + h / 2 + 12, 'text-anchor': 'middle', 'font-size': 10, fill: an ? '#FFFFFF' : 'var(--leise)' }, unter));
+      };
+      const linie = function (x1, y1, x2, y2, an, f) { svg.append(el('path', { d: 'M' + x1 + ' ' + y1 + ' C' + (x1 + x2) / 2 + ' ' + y1 + ' ' + (x1 + x2) / 2 + ' ' + y2 + ' ' + x2 + ' ' + y2, fill: 'none', stroke: an ? f || rot : grau, 'stroke-width': an ? 3 : 1.6 })); };
+      const cy = 110, hfmAn = S && S.tHfm <= t && lebt, autoAn = S && S.tErk <= t && lebt;
+      box(10, cy - 70, 170, 50, '1  Handfeuermelder', A.nHfm + ' Stück, ' + A.gruppen.filter(function (x) { return x.g.art === 'hfm'; }).length + ' Gruppen', hfmAn);
+      box(10, cy + 20, 170, 50, '2  Automatische Melder', A.nAuto + ' Stück, ' + A.gruppen.filter(function (x) { return x.g.art === 'auto'; }).length + ' Gruppen', autoAn);
+      svg.append(el('text', { x: 95, y: cy + 92, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--leise)' }, P.linien.length + ' Meldelinie' + (P.linien.length > 1 ? 'n' : '') + ' · ' + P.bereiche.length + ' Meldebereich' + (P.bereiche.length > 1 ? 'e' : '')));
+      box(250, cy - 45, 120, 90, '', '', feuer, '#C0392B');
+      svg.append(el('text', { x: 310, y: cy - 8, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: feuer ? '#FFFFFF' : text }, 'Brandmelde-'));
+      svg.append(el('text', { x: 310, y: cy + 8, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: feuer ? '#FFFFFF' : text }, 'zentrale'));
+      svg.append(el('text', { x: 310, y: cy + 30, 'text-anchor': 'middle', 'font-size': 10, fill: feuer ? '#FFFFFF' : 'var(--leise)' }, !lebt ? 'ohne Energie' : feuer ? 'FEUER' : S && S.tErk <= t ? 'Vorstufe' : 'Betrieb'));
+      linie(180, cy - 45, 250, cy - 15, hfmAn); linie(180, cy + 45, 250, cy + 15, autoAn);
+      // Energiequellen unter der Zentrale
+      const qn = [['netz', 'Netz 230 V', P.energie.netzEigen === 'ja' ? 'eigener Stromkreis' : 'nicht eigen']].concat([['akku', 'Akku 24 V', zahl(A.E.C || 0, 1) + ' Ah']]).concat(P.energie.ersatz === 'nea' ? [['nea', 'Netzersatz', zahl(P.energie.neaTank, 0) + ' h Kraftstoff']] : []);
+      qn.forEach(function (x, i) {
+        const bx = 200 + i * 112 - (qn.length - 2) * 56, by = H - 62, an = q === x[0], ausgef = x[0] === 'netz' && A.E.netzWeg;
+        box(bx, by, 104, 46, x[1], x[2], an, x[0] === 'netz' ? gruen : gelb);
+        if (ausgef) svg.append(el('text', { x: bx + 96, y: by + 14, 'text-anchor': 'end', 'font-size': 14, fill: '#C0392B', 'font-weight': 700 }, '✕'));
+        linie(bx + 52, by, 310, cy + 45, an, x[0] === 'netz' ? gruen : gelb);
+      });
+      const x0 = 450, w0 = 210;
+      let fwY = null, fwAn = false;
+      aus.forEach(function (a, i) {
+        const y = 15 + i * zeile, qq = S ? S.ausg.filter(function (x) { return x.a === a; })[0] : null, an = !!(qq && qq.t <= t) && lebt;
+        const wartet = qq && isFinite(qq.t) && feuer && !an;
+        linie(370, cy, x0, y + 13, an);
+        svg.append(el('rect', { x: x0, y: y, width: w0, height: 26, rx: 6, fill: !a.an ? 'transparent' : an ? rot : wartet ? '#F2A541' : 'var(--flaeche)', stroke: !a.an ? grau : an ? rot : text, 'stroke-width': 1.2, 'stroke-dasharray': a.an ? '' : '4 4' }));
+        const nm = (i + 3) + '  ' + a.name;
+        svg.append(el('text', { x: x0 + 8, y: y + 17, 'font-size': 11, 'font-weight': 600, fill: !a.an ? 'var(--leise)' : an ? '#FFFFFF' : text }, nm.length > 34 ? nm.slice(0, 33) + '…' : nm));
+        if (a.typ === 'waehl' && fwY === null) { fwY = y + 13; fwAn = !!(S && S.ev.some(function (e) { return e[3] === 'aus:' + a.id && /Einsatzzentrale/.test(e[1]) && e[0] <= t; })); }
+      });
+      if (fwY !== null) { linie(x0 + w0, fwY, 690, fwY, fwAn); box(690, fwY - 22, 64, 44, 'Feuer-', 'wehr', fwAn, '#C0392B'); }
+      z.innerHTML = ''; z.append(svg);
     }
 
     // ---------- Ergebnis ----------
-    function zelle(ok, t) { return '<td class="' + (ok === true ? 'ok' : ok === false ? 'nok' : '') + '">' + t + '</td>'; }
+    function zelle(ok, t) { return '<td class="' + (ok === true ? 'ok' : ok === false ? 'nok' : '') + '" style="text-align:right">' + t + '</td>'; }
+    function zeilen(kopf, z) { return '<thead><tr>' + kopf.map(function (k) { return '<th>' + k + '</th>'; }).join('') + '</tr></thead><tbody>' + z.join('') + '</tbody>'; }
     function ergebnisZeigen() {
       const mel = $('meldungen'); mel.innerHTML = '';
       A.fehler.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis fehler'; d.textContent = t; mel.append(d); });
       A.hinweise.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis'; d.textContent = t; mel.append(d); });
       const u = $('urteil'), ok = !A.fehler.length;
       u.textContent = ok ? 'Planung passt' : A.fehler.length + ' Punkt' + (A.fehler.length > 1 ? 'e' : '') + ' offen'; u.className = 'urteil ' + (ok ? 'gut' : 'schlecht');
-      const kach = [
-        [String(A.nAuto), 'automatische Melder', '#2B7BB9'],
-        [String(A.nHfm), 'Handfeuermelder', '#C0392B'],
-        [zahl(A.R.laenge, 0) + ' m', 'Ringleitung (mit Zuschlag)', '#6E6FA6'],
-        [zahl(A.C, 1) + ' Ah', 'Akkukapazität nötig' + (A.akku ? ' → 2 × 12 V / ' + String(A.akku).replace('.', ',') + ' Ah' : ''), '#0E6B6A']
+      const ex = A.E, kach = [
+        [String(A.nAuto) + ' / ' + A.nHfm, 'automatische / Handfeuermelder', '#2B7BB9'],
+        [P.bereiche.length + ' / ' + P.gruppen.length + ' / ' + P.linien.length, 'Meldebereiche / -gruppen / -linien', '#6E6FA6'],
+        [zahl(ex.Creq, 1) + ' Ah', 'Akku nötig (' + ex.tR + ' h + ' + stunden(P.strom.tA) + ' Alarm)' + (ex.C ? ', gewählt ' + zahl(ex.C, 1) + ' Ah' : ''), '#0E6B6A']
       ];
       if (S) {
         kach.push([isFinite(S.tFeuer) ? zeitText(S.tFeuer) + ' min' : 'kein Alarm', 'bis zum Feueralarm', isFinite(S.tFeuer) ? '#E4572E' : '#C0392B']);
-        kach.push([isFinite(S.QFw) ? zahl(S.QFw, 0) + ' kW' : '–', 'Brandleistung beim Eintreffen der Feuerwehr', '#A0785A']);
+        kach.push([isFinite(S.QFw) ? zahl(S.QFw, 0) + ' kW' : '–', 'Brandleistung beim Eintreffen der Feuerwehr' + (isFinite(S.tFlut) ? ' (Löschanlage ab ' + zeitText(S.tFlut) + ' min)' : ''), '#A0785A']);
       }
       $('kacheln').innerHTML = kach.map(function (k) { return '<div class="kachel" style="--farbe:' + k[2] + '"><div class="wert">' + esc(k[0]) + '</div><small>' + esc(k[1]) + '</small></div>'; }).join('');
-      $('tabRaeume').innerHTML = '<thead><tr><th>Raum</th><th class="zahl">Fläche</th><th class="zahl">Höhe</th><th>Melder</th><th class="zahl">A_max</th><th class="zahl">nötig</th><th class="zahl">gesetzt</th><th class="zahl">größter Abstand</th><th class="zahl">D_H</th><th class="zahl">Handfeuer</th></tr></thead><tbody>' +
-        A.raeume.map(function (x) {
-          return '<tr><td>' + esc(x.raum.name) + '</td><td class="zahl">' + zahl(x.fl, 1) + ' m²</td>' + zelle(x.okH ? null : false, zahl(x.raum.h, 1) + ' m').replace('<td', '<td style="text-align:right"') + '<td>' + ART[x.raum.typ] + '</td><td class="zahl">' + x.g.A + ' m²</td><td class="zahl">' + x.nMin + '</td>' +
-            zelle(x.okN, String(x.n)).replace('<td', '<td style="text-align:right"') + zelle(x.okD, zahl(x.dMax, 2) + ' m').replace('<td', '<td style="text-align:right"') + '<td class="zahl">' + zahl(x.g.D, 1) + ' m</td><td class="zahl">' + x.hfm + '</td></tr>';
-        }).join('') + '</tbody>';
-      const s = P.strom;
-      $('tabRing').innerHTML = '<thead><tr><th>Größe</th><th class="zahl">Wert</th><th>Grenze / Hinweis</th></tr></thead><tbody>' + [
-        ['Teilnehmer auf dem Ring', String(A.n), A.n <= P.ring.max, 'höchstens ' + P.ring.max + ' (Zentrale)'],
-        ['Ausfall bei Kurzschluss höchstens', P.ring.trenner === 'jeder' ? '0' : String(A.maxAus), A.maxAus <= 32, 'höchstens 32 automatische Melder (DIN VDE 0833-2)'],
-        ['Länge der Ringleitung', zahl(A.R.laenge, 0) + ' m', null, 'Aderdurchmesser ' + zahl(P.ring.querschnitt, 1) + ' mm (' + zahl(A.qA, 3) + ' mm²)'],
-        ['Strom auf dem Ring im Alarm', zahl(A.iRing * 1000, 1) + ' mA', null, 'Ruhestrom aller Teilnehmer und zwei Melder im Alarm'],
-        ['Spannungsfall bei Einspeisung von einer Seite', zahl(A.dU, 2) + ' V', null, 'nach einem Drahtbruch am Ringanfang'],
-        ['Spannung am Ringende', zahl(A.uEnde, 1) + ' V', A.uEnde >= P.ring.uMin, 'mindestens ' + zahl(P.ring.uMin, 0) + ' V (Herstellerangabe)'],
-        ['Ruhestrom', zahl(A.iR * 1000, 0) + ' mA', null, 'Zentrale und Teilnehmer'],
-        ['Alarmstrom', zahl(A.iA * 1000, 0) + ' mA', null, s.signal + ' Signalgeber, Übertragungseinrichtung'],
-        ['Akkukapazität', zahl(A.C, 1) + ' Ah', !!A.akku, A.akku ? 'gewählt 2 × 12 V / ' + String(A.akku).replace('.', ',') + ' Ah' : 'über 100 Ah'],
-        ['Ladestrom', zahl(A.iLade, 2) + ' A', null, '80 % der Kapazität in 24 h (DIN EN 54-4)']
-      ].map(function (z) { return '<tr><td>' + z[0] + '</td>' + zelle(z[2], z[1]).replace('<td', '<td style="text-align:right"') + '<td>' + z[3] + '</td></tr>'; }).join('') + '</tbody>';
-      $('tabSim').innerHTML = S ? '<thead><tr><th>Melder</th><th>Art</th><th class="zahl">Abstand zum Brand</th><th class="zahl">spricht an nach</th><th class="zahl">Brandleistung dann</th></tr></thead><tbody>' +
-        S.st.slice().sort(function (a, b) { return a.t - b.t; }).map(function (d) {
-          return '<tr><td>' + nummer(d.m) + '</td><td>' + ART[d.m.art] + '</td><td class="zahl">' + zahl(d.r, 1) + ' m</td>' + zelle(d.aus ? false : isFinite(d.t) ? true : false, d.aus ? 'ausgefallen' : isFinite(d.t) ? zeitText(d.t) + ' min' : 'nicht in 30 min').replace('<td', '<td style="text-align:right"') + '<td class="zahl">' + (isFinite(d.t) ? zahl(S.Qbei(d.t), 0) + ' kW' : '–') + '</td></tr>';
-        }).join('') + '</tbody>' : '<tbody><tr><td>Noch kein Brand gelegt.</td></tr></tbody>';
+      $('tabRaeume').innerHTML = zeilen(['Raum', 'Fläche', 'Höhe', 'Melder', 'A_max', 'nötig', 'gesetzt', 'größter Abstand', 'D_H', 'Handfeuer', 'Meldebereich', 'Gruppe'], A.raeume.map(function (x) {
+        const g = finde(P.gruppen, x.raum.mgA), gh = finde(P.gruppen, x.raum.mgH);
+        return '<tr><td>' + esc(x.raum.name) + '</td><td class="zahl">' + zahl(x.fl, 1) + ' m²</td>' + zelle(x.okH ? null : false, zahl(x.raum.h, 1) + ' m') + '<td>' + ART[x.raum.typ] + '</td><td class="zahl">' + x.g.A + ' m²</td><td class="zahl">' + x.nMin + '</td>' +
+          zelle(x.okN, String(x.n)) + zelle(x.okD, zahl(x.dMax, 2) + ' m') + '<td class="zahl">' + zahl(x.g.D, 1) + ' m</td><td class="zahl">' + x.hfm + '</td><td>' + esc((finde(P.bereiche, x.raum.mb) || {}).name || '–') + '</td><td>' + (g ? 'MG ' + g.nr : '–') + (gh ? ', HFM ' + gh.nr : '') + '</td></tr>';
+      }));
+      $('tabGruppen').innerHTML = zeilen(['Meldebereich / Gruppe', 'Art', 'Räume', 'Fläche', 'Melder', 'Grenze', 'Meldelinie'],
+        A.bereiche.map(function (bx) {
+          return '<tr><td><b>' + esc(bx.b.name) + '</b></td><td>Meldebereich</td><td>' + esc(bx.rs.map(function (r) { return r.name; }).join(', ')) + '</td>' + zelle(bx.fl <= 1600, zahl(bx.fl, 0) + ' m²') + '<td></td><td>bis 1 600 m²</td><td></td></tr>' +
+            A.gruppen.filter(function (gx) { return gx.mbs.indexOf(bx.b.id) >= 0; }).map(function (gx) {
+              const g = gx.g, grenze = g.art === 'auto' ? 32 : 10;
+              return '<tr><td>&nbsp;&nbsp;MG ' + g.nr + ' ' + esc(g.name) + '</td><td>' + (g.art === 'auto' ? 'automatisch' : 'Handfeuermelder') + '</td><td>' + esc(gx.rs.map(function (r) { return r.name; }).join(', ')) + '</td><td class="zahl">' + zahl(gx.fl, 0) + ' m²</td>' + zelle(gx.n <= grenze && gx.mbs.length <= 1, String(gx.n)) + '<td>bis ' + grenze + (g.art === 'auto' ? ' Melder, 5 (10) Räume' : ' Melder') + '</td><td>' + esc((finde(P.linien, g.linie) || {}).name || '') + '</td></tr>';
+            }).join('');
+        }));
+      $('tabLinien').innerHTML = zeilen(['Meldelinie', 'Art', 'Gruppen', 'Teilnehmer', 'Ausfall bei Störung', 'Länge', 'Spannungsfall', 'Spannung am Ende'], A.linien.map(function (x) {
+        const li = x.R.li;
+        return '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + x.R.farbe + '"></span> ' + esc(li.name) + '</td><td>' + (li.art === 'ring' ? 'Ring' : 'Stich') + ', Trenner ' + (li.trenner === 'jeder' ? 'in jedem' : li.trenner === 'abschnitt' ? 'alle ' + li.abschnitt : 'keine') + '</td><td>' + esc(P.gruppen.filter(function (g) { return g.linie === li.id; }).map(function (g) { return g.nr; }).join(', ') || '–') + '</td>' +
+          zelle(x.R.folge.length <= li.max, x.R.folge.length + ' / ' + li.max) + zelle(x.maxAus <= 32, x.maxAus + ' Melder') + '<td class="zahl">' + zahl(x.R.laenge, 0) + ' m</td><td class="zahl">' + zahl(x.dU, 2) + ' V</td>' + zelle(x.uEnde >= P.ring.uMin, zahl(x.uEnde, 1) + ' V') + '</tr>';
+      }));
+      const e = P.energie;
+      $('tabRing').innerHTML = zeilen(['Größe', 'Wert', 'Grenze / Hinweis'], [
+        ['1. Quelle: Netz', e.netzEigen === 'ja' ? 'eigener Stromkreis' : 'gemeinsam', e.netzEigen === 'ja', 'eigener, gekennzeichneter Stromkreis mit eigener Sicherung'],
+        ['2. Quelle: Ersatz', e.ersatz === 'nea' ? 'Akku + Netzersatzanlage' : 'Akku', true, 'unabhängig vom Netz (DIN EN 54-4)'],
+        ['Überbrückung durch den Akku', ex.tR + ' h', null, e.ersatz === 'nea' ? '4 h mit Netzersatzanlage, die ' + ex.tBasis + ' h übernimmt' : ex.tBasis === 30 ? '30 h, weil Störungen in 24 h behoben werden' : '72 h ohne gesicherte Störungsbeseitigung'],
+        ['Ruhestrom', zahl(A.iR * 1000, 0) + ' mA', null, 'Zentrale, Teilnehmer und Steuerungen (' + zahl(A.iRaus, 0) + ' mA)'],
+        ['Alarmstrom', zahl(A.iA * 1000, 0) + ' mA', null, 'Zentrale, Teilnehmer und eingeschaltete Steuerungen (' + zahl(A.iAaus, 0) + ' mA)'],
+        ['Akkukapazität nötig / gewählt', zahl(ex.Creq, 1) + ' / ' + (ex.C ? zahl(ex.C, 1) : '–') + ' Ah', !!ex.C && ex.C >= ex.Creq - 1e-9, '2 × 12 V in Reihe'],
+        ['Ladestrom', zahl(ex.iLade, 2) + ' A', null, '80 % der Kapazität in 24 h'],
+        ['Akku reicht im Ruhebetrieb', stunden(ex.ruheH), null, 'ohne Alterungszuschlag'],
+        e.ersatz === 'nea' ? ['Netzersatzanlage', zahl(e.neaTank, 0) + ' h, Start ' + zahl(e.neaStart, 0) + ' s', e.neaTank >= ex.tBasis, 'Kraftstoff für mindestens ' + ex.tBasis + ' h'] : null,
+        ex.netzWeg ? ['Szenario Netzausfall', ex.quelle, !ex.tot && ex.alarmH >= P.strom.tA, ex.tot ? 'Akku leer vor dem Brand' : isFinite(ex.alarmH) ? 'Alarmbetrieb aus dem Akku ' + stunden(ex.alarmH) : 'Netzersatzanlage versorgt'] : null
+      ].filter(Boolean).map(function (z) { return '<tr><td>' + z[0] + '</td>' + zelle(z[2], esc(z[1])) + '<td>' + z[3] + '</td></tr>'; }));
+      $('tabMatrix').innerHTML = zeilen(['Nr.', 'Steuerung', 'Auslöser', 'Bereich', 'Verzögerung', 'Anzahl', 'Strom Alarm / Ruhe', 'in der Simulation'], P.ausgaenge.map(function (a, i) {
+        const q = S ? S.ausg.filter(function (x) { return x.a === a; })[0] : null;
+        const bereich = a.raeume.length ? a.raeume.map(function (id) { return (finde(P.raeume, id) || {}).name; }).join(', ') : 'alle Räume';
+        return '<tr><td>' + (i + 3) + '</td><td>' + esc(a.name) + (a.an ? '' : ' (aus)') + '</td><td>' + esc((AUSLOESER.filter(function (x) { return x[0] === a.ausloeser; })[0] || [0, ''])[1]) + '</td><td>' + esc(bereich) + '</td><td class="zahl">' + zahl(a.verz, 0) + ' s' + (a.typ === 'loesch' ? ' + ' + zahl(a.vorwarn, 0) + ' s Vorwarnung' : '') + '</td><td class="zahl">' + a.anzahl + '</td><td class="zahl">' + zahl(a.anzahl * a.iA, 0) + ' / ' + zahl(a.anzahl * a.iR, 0) + ' mA</td><td class="zahl">' + (!a.an ? '–' : q && isFinite(q.t) ? zeitText(q.t) + ' min' : S ? 'löst nicht aus' : '–') + '</td></tr>';
+      }));
+      $('tabSim').innerHTML = S ? zeilen(['Melder', 'Art', 'Gruppe', 'Abstand zum Brand', 'spricht an nach', 'Brandleistung dann'], S.st.slice().sort(function (a, b) { return a.t - b.t; }).map(function (d) {
+        return '<tr><td>' + nummer(d.m) + '</td><td>' + ART[d.m.art] + '</td><td>' + (d.g ? 'MG ' + d.g.nr : '–') + '</td><td class="zahl">' + zahl(d.r, 1) + ' m</td>' + zelle(d.aus ? false : isFinite(d.t), d.aus ? 'ausgefallen' : isFinite(d.t) ? zeitText(d.t) + ' min' : 'nicht in 30 min') + '<td class="zahl">' + (isFinite(d.t) ? zahl(S.Qbei(d.t), 0) + ' kW' : '–') + '</td></tr>';
+      })) : '<tbody><tr><td>Noch kein Brand gelegt.</td></tr></tbody>';
       wegZeigen();
     }
     function wegZeigen() {
-      const s = P.strom, w = [
-        ['Ruhestrom', 'I_\\text{R} = ' + tz(s.iBmz, 0) + '\\,\\text{mA} + ' + A.n + ' \\cdot ' + tz(s.iMelder, 2) + '\\,\\text{mA} = ' + E(tz(A.iR * 1000, 0) + '\\,\\text{mA}')],
-        ['Alarmstrom', 'I_\\text{A} = ' + tz(s.iBmzAlarm, 0) + ' + ' + tz(A.n * s.iMelder, 1) + ' + ' + s.signal + ' \\cdot ' + tz(s.iSignal, 0) + ' + ' + tz(s.iUe, 0) + ' = ' + E(tz(A.iA * 1000, 0) + '\\,\\text{mA}')],
-        ['Akkukapazität', 'C = 1{,}25 \\cdot (' + tz(A.iR, 3) + ' \\cdot ' + s.tR + ' + ' + tz(A.iA, 3) + ' \\cdot ' + tz(s.tA, 2) + ') = ' + E(tz(A.C, 1) + '\\,\\text{Ah}')],
-        ['Spannungsfall auf dem Ring', '\\Delta U = \\frac{2 \\cdot ' + tz(A.R.laenge, 0) + ' \\cdot ' + tz(A.iRing, 4) + '}{56 \\cdot ' + tz(A.qA, 3) + '} = ' + E(tz(A.dU, 2) + '\\,\\text{V}')]
+      const s = P.strom, ex = A.E, w = [
+        ['Ruhestrom', 'I_\\text{R} = ' + tz(s.iBmz, 0) + ' + ' + A.n + ' \\cdot ' + tz(s.iMelder, 2) + ' + ' + tz(A.iRaus, 0) + ' = ' + E(tz(A.iR * 1000, 0) + '\\,\\text{mA}')],
+        ['Alarmstrom', 'I_\\text{A} = ' + tz(s.iBmzAlarm, 0) + ' + ' + tz(A.n * s.iMelder, 1) + ' + ' + tz(A.iAaus, 0) + ' = ' + E(tz(A.iA * 1000, 0) + '\\,\\text{mA}')],
+        ['Akkukapazität (' + ex.tR + ' h Überbrückung)', 'C = 1{,}25 \\cdot (' + tz(A.iR, 3) + ' \\cdot ' + ex.tR + ' + ' + tz(A.iA, 3) + ' \\cdot ' + tz(s.tA, 2) + ') = ' + E(tz(ex.Creq, 1) + '\\,\\text{Ah}')]
       ];
+      const l0 = A.linien[0];
+      if (l0) w.push(['Spannungsfall auf ' + l0.R.li.name, '\\Delta U = \\frac{2 \\cdot ' + tz(l0.R.laenge, 0) + ' \\cdot ' + tz(l0.iL, 4) + '}{56 \\cdot ' + tz(l0.qA, 3) + '} = ' + E(tz(l0.dU, 2) + '\\,\\text{V}')]);
+      if (ex.netzWeg && !ex.tot && isFinite(ex.alarmH)) w.push(['Alarmbetrieb aus dem Restakku', 't = \\frac{' + tz(Math.max(0, ex.rest), 2) + '\\,\\text{Ah}}{' + tz(A.iA, 3) + '\\,\\text{A}} = ' + E(tz(ex.alarmH, 2) + '\\,\\text{h}')]);
       if (S && S.st.length) {
         const d = S.st.slice().sort(function (a, b) { return a.t - b.t; })[0], H = S.raum.h;
         if (isFinite(d.t)) {
@@ -674,18 +1030,21 @@
         }
       }
       $('weg').innerHTML = '';
-      w.forEach(function (q) { const li = document.createElement('li'); const t = document.createElement('div'); t.className = 'titel'; t.textContent = q[0]; const r = document.createElement('div'); r.className = 'rechnung'; Formel.setze(r, q[1], true); li.append(t, r); $('weg').append(li); });
+      w.forEach(function (q) { const li = document.createElement('li'), t = document.createElement('div'), r = document.createElement('div'); t.className = 'titel'; t.textContent = q[0]; r.className = 'rechnung'; Formel.setze(r, q[1], true); li.append(t, r); $('weg').append(li); });
     }
     function sammlung() {
       const z = $('sammlung'); z.innerHTML = '';
       [
-        ['Melder je Raum', 'n \\ge \\left\\lceil \\frac{A}{A_\\text{max}} \\right\\rceil,\\quad d_\\text{max} \\le D_\\text{H}', 'Rauchmelder: A ≤ 80 m² → A_max 80 m², D_H 6,7 m; A > 80 m²: bis 6 m Höhe 60 m² (5,8 m), darüber 80 m² (6,7 m), bis 12 m Höhe. Wärmemelder: A ≤ 30 m² → 30 m² (4,4 m), sonst 20 m² (3,6 m), bis 7,5 m Höhe (Decke bis 15° Neigung)'],
-        ['Ringleitung', 'n_\\text{Ausfall} \\le 32', 'Ein Kurzschluss oder eine Unterbrechung darf höchstens 32 automatische Melder außer Betrieb setzen; Meldebereich höchstens 1 600 m²'],
-        ['Notstrom', 'C = 1{,}25 \\cdot (I_\\text{R} \\cdot t_\\text{R} + I_\\text{A} \\cdot t_\\text{A})', 't_R = 72 h, 30 h bei Instandsetzung in 24 h, 4 h mit Ersatzstromanlage; t_A = 0,5 h; Ladung auf 80 % in 24 h'],
-        ['Spannungsfall', '\\Delta U = \\frac{2 \\cdot l \\cdot I}{\\kappa \\cdot A},\\quad \\kappa = 56\\,\\tfrac{\\text{m}}{\\Omega\\,\\text{mm}^2}', 'ungünstigster Fall: Einspeisung des ganzen Rings von einer Seite'],
+        ['Melder je Raum', 'n \\ge \\left\\lceil \\frac{A}{A_\\text{max}} \\right\\rceil,\\quad d_\\text{max} \\le D_\\text{H}', 'Rauchmelder: A ≤ 80 m² → A_max 80 m², D_H 6,7 m; A > 80 m²: bis 6 m Höhe 60 m² (5,8 m), darüber 80 m² (6,7 m), bis 12 m Höhe. Wärmemelder: A ≤ 30 m² → 30 m² (4,4 m), sonst 20 m² (3,6 m), bis 7,5 m Höhe'],
+        ['Meldebereich und Meldergruppe', 'A_\\text{MB} \\le 1\\,600\\,\\text{m}^2,\\quad n_\\text{MG,auto} \\le 32,\\quad n_\\text{MG,HFM} \\le 10', 'Meldergruppe: nur ein Meldebereich, höchstens 5 Räume (10 benachbarte bis 1 000 m² mit Einzel- oder Parallelanzeige), Handfeuermelder und automatische Melder nie in einer Gruppe'],
+        ['Meldelinie', 'n_\\text{Ausfall} \\le 32', 'Ring: Kurzschlusstrenner begrenzen den Ausfall; Stichleitung: eine Störung trennt alles dahinter, also höchstens 32 automatische Melder je Stich'],
+        ['Energieversorgung', 'C = 1{,}25 \\cdot (I_\\text{R} \\cdot t_\\text{R} + I_\\text{A} \\cdot t_\\text{A})', 'zwei unabhängige Quellen: Netz (eigener Stromkreis) und Akku; t_R = 72 h, 30 h bei Störungsbeseitigung in 24 h, 4 h mit Netzersatzanlage (Kraftstoff für 72 bzw. 30 h); t_A = 0,5 h; Ladung auf 80 % in 24 h'],
+        ['Spannungsfall', '\\Delta U = \\frac{2 \\cdot l \\cdot I}{\\kappa \\cdot A},\\quad \\kappa = 56\\,\\tfrac{\\text{m}}{\\Omega\\,\\text{mm}^2}', 'ungünstigster Fall: Einspeisung von einer Seite'],
         ['Brandwachstum', '\\dot Q = \\alpha \\, t^2', 'α: langsam 0,00293, mittel 0,01172, schnell 0,0469, sehr schnell 0,1876 kW/s²'],
         ['Deckenstrahl (Alpert)', '\\Delta T = 16{,}9\\,\\frac{\\dot Q^{2/3}}{H^{5/3}}\\ (r/H \\le 0{,}18),\\quad \\Delta T = 5{,}38\\,\\frac{(\\dot Q/r)^{2/3}}{H}', 'Geschwindigkeit u = 0,96 (Q/H)^{1/3} bzw. 0,195 Q^{1/3} H^{1/2} / r^{5/6}'],
-        ['Ansprechen eines Melders', '\\frac{dT_\\text{M}}{dt} = \\frac{\\sqrt{u}}{\\text{RTI}}\\,(T_\\text{G} - T_\\text{M})', 'Wärmemelder A1: 58 °C, RTI 50; Rauchmelder als Ersatzmodell nach Heskestad: ΔT ≈ 10 K, kleines RTI']
+        ['Ansprechen eines Melders', '\\frac{dT_\\text{M}}{dt} = \\frac{\\sqrt{u}}{\\text{RTI}}\\,(T_\\text{G} - T_\\text{M})', 'Wärmemelder A1: 58 °C, RTI 50; Rauchmelder als Ersatzmodell nach Heskestad: ΔT ≈ 10 K'],
+        ['Steuerungen', 't_\\text{Steuerung} = t_\\text{Auslöser} + t_\\text{Verzögerung}', 'Auslöser: jede Feuermeldung, nur automatische Melder, nur Handfeuermelder, zwei Melder derselben Gruppe oder erst die Weiterleitung an die Feuerwehr; Löschanlage zusätzlich mit Vorwarnzeit'],
+        ['Löschwirkung', '\\dot Q(t) = \\dot Q(t_\\text{L}) \\cdot e^{-(t - t_\\text{L})/40\\,\\text{s}}', 'vereinfachte Annahme für eine löschende Anlage; Sprinkler halten den Brand etwa auf der erreichten Leistung']
       ].forEach(function (q) {
         const s = document.createElement('section'), h = document.createElement('h3'), f = document.createElement('div'), p = document.createElement('p');
         h.textContent = q[0]; Formel.setze(f, q[1], true); p.textContent = q[2]; s.append(h, f, p); z.append(s);
@@ -697,59 +1056,45 @@
     function modusSetzen(m) { modus = m; [['mBrand', 'brand'], ['mMelder', 'melder'], ['mStoer', 'stoer']].forEach(function (q) { $(q[0]).setAttribute('aria-pressed', String(q[1] === m)); }); }
     $('mBrand').addEventListener('click', function () { modusSetzen('brand'); status('In einen Raum tippen, um dort einen Brand zu legen.'); });
     $('mMelder').addEventListener('click', function () { modusSetzen('melder'); status('In einen Raum tippen: Melder setzen. Auf einen Melder tippen: entfernen.'); });
-    $('mStoer').addEventListener('click', function () { modusSetzen('stoer'); status('Auf die Ringleitung tippen: Drahtbruch, nochmal: Kurzschluss, nochmal: behoben.'); });
-    function raumBei(p) {
-      for (let i = 0; i < P.raeume.length; i++) { const r = P.raeume[i], l = A.L.lage[r.id]; if (p[0] >= l.x && p[0] <= l.x + r.b && p[1] >= l.y && p[1] <= l.y + r.l) return { r: r, x: p[0] - l.x, y: p[1] - l.y }; }
-      return null;
-    }
+    $('mStoer').addEventListener('click', function () { modusSetzen('stoer'); status('Auf eine Meldelinie tippen: Drahtbruch, nochmal: Kurzschluss, nochmal: behoben.'); });
+    function abstandStrecke(p, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let t = l ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); }
     cv.addEventListener('click', function (ev) {
-      const b = cv.getBoundingClientRect(), sx = ev.clientX - b.left, sy = ev.clientY - b.top, p = [(sx - M.ox) / M.k, (sy - M.oy) / M.k];
+      const bb = cv.getBoundingClientRect(), sx = ev.clientX - bb.left, sy = ev.clientY - bb.top, p = [(sx - M.ox) / M.k, (sy - M.oy) / M.k];
       if (modus === 'stoer') {
-        const pts = A.R.punkte.map(P2); let best = -1, bd = 18;
-        for (let i = 1; i < pts.length; i++) {
-          const a = pts[i - 1], c = pts[i];
-          const d1 = abstandStrecke([sx, sy], a, [c[0], a[1]]), d2 = abstandStrecke([sx, sy], [c[0], a[1]], c);
-          const d = Math.min(d1, d2); if (d < bd) { bd = d; best = i - 1; }
-        }
-        if (best < 0) { status('Keine Leitung getroffen.'); return; }
-        if (!P.stoerung || P.stoerung.seg !== best) P.stoerung = { art: 'bruch', seg: best };
+        let best = null, bd = 18;
+        A.LN.forEach(function (R) { const pts = R.punkte.map(P2); for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], c = pts[i], d = Math.min(abstandStrecke([sx, sy], a, [c[0], a[1]]), abstandStrecke([sx, sy], [c[0], a[1]], c)); if (d < bd) { bd = d; best = { linie: R.li.id, seg: i - 1 }; } } });
+        if (!best) { status('Keine Leitung getroffen.'); return; }
+        if (!P.stoerung || P.stoerung.seg !== best.seg || P.stoerung.linie !== best.linie) P.stoerung = { art: 'bruch', linie: best.linie, seg: best.seg };
         else if (P.stoerung.art === 'bruch') P.stoerung.art = 'kurz';
         else P.stoerung = null;
-        status(!P.stoerung ? 'Störung behoben.' : P.stoerung.art === 'bruch' ? 'Drahtbruch: Der Ring wird von beiden Seiten gespeist, alle Melder arbeiten weiter. Die Zentrale meldet Störung.' : 'Kurzschluss: Die Trenner links und rechts öffnen; ' + Object.keys(ausfall(A.R)).length + ' Teilnehmer dazwischen fallen aus.');
-        zuruecksetzen(); aenderung(); return;
+        zuruecksetzen(); aenderung();
+        const n = Object.keys(ausfall(A.LN)).length, li = P.stoerung ? finde(P.linien, P.stoerung.linie) : null;
+        status(!P.stoerung ? 'Störung behoben.' : (P.stoerung.art === 'bruch' ? 'Drahtbruch auf ' + li.name + ': ' + (li.art === 'ring' ? 'Der Ring wird von beiden Seiten gespeist, alle Melder arbeiten weiter.' : n + ' Teilnehmer hinter der Bruchstelle fallen aus.') : 'Kurzschluss auf ' + li.name + ': ' + n + ' Teilnehmer fallen aus.') + ' Die Zentrale meldet Störung.');
+        return;
       }
-      const q = raumBei(p);
+      let q = null;
+      P.raeume.forEach(function (r) { const l = A.L.lage[r.id]; if (p[0] >= l.x && p[0] <= l.x + r.b && p[1] >= l.y && p[1] <= l.y + r.l) q = { r: r, x: p[0] - l.x, y: p[1] - l.y }; });
       if (!q) return;
       if (modus === 'brand') { P.brand = { raum: q.r.id, x: q.x, y: q.y }; zuruecksetzen(); aenderung(); status('Brand in ' + q.r.name + ' gelegt. „Start“ drücken.'); return; }
-      // Melder setzen oder entfernen
       const nahe = P.melder.filter(function (m) { return m.raum === q.r.id && Math.hypot(m.x - q.x, m.y - q.y) * M.k < 14; })[0];
       if (nahe) { P.melder = P.melder.filter(function (m) { return m !== nahe; }); status(ART[nahe.art] + ' entfernt.'); }
-      else { const art = $('melderArt').value; P.melder.push({ id: neueId(art === 'hfm' ? 'h' : 'm'), raum: q.r.id, art: art, x: q.x, y: q.y }); status(ART[art] + ' in ' + q.r.name + ' gesetzt.'); }
+      else { const art = $('melderArt').value; P.melder.push({ id: neueId(art === 'hfm' ? 'h' : 'm'), raum: q.r.id, art: art, x: q.x, y: q.y }); status(ART[art] + ' in ' + q.r.name + ' gesetzt' + (art === 'hfm' && !finde(P.gruppen, q.r.mgH) ? ' – der Raum braucht noch eine Meldergruppe für Handfeuermelder.' : '.')); }
       zuruecksetzen(); aenderung();
     });
-    function abstandStrecke(p, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let t = l ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); }
 
-    // ---------- Ablauf der Simulation ----------
+    // ---------- Ablauf ----------
     function zuruecksetzen() { laeuft = false; tSim = 0; $('start').textContent = '▶ Start'; $('zeit').value = 0; }
-    $('start').addEventListener('click', function () {
-      if (!S) { status('Zuerst einen Brand legen.'); return; }
-      if (tSim >= S.ende) tSim = 0;
-      laeuft = !laeuft; $('start').textContent = laeuft ? '❚❚ Anhalten' : '▶ Weiter'; letzte = 0;
-    });
+    $('start').addEventListener('click', function () { if (!S) { status('Zuerst einen Brand legen.'); return; } if (tSim >= S.ende) tSim = 0; laeuft = !laeuft; $('start').textContent = laeuft ? '❚❚ Anhalten' : '▶ Weiter'; letzte = 0; });
     $('zurueck').addEventListener('click', function () { zuruecksetzen(); anzeigen(); zeichnen(); });
     $('zeit').addEventListener('input', function () { laeuft = false; $('start').textContent = '▶ Weiter'; tSim = +$('zeit').value; anzeigen(); });
     function schleife(t) {
       if (laeuft && S) {
         if (letzte) tSim = Math.min(S.ende, tSim + (t - letzte) / 1000 * +$('tempo').value);
         if (tSim >= S.ende) { laeuft = false; $('start').textContent = '▶ Nochmal'; }
-        $('zeit').value = Math.round(tSim);
-        anzeigen();
+        $('zeit').value = Math.round(tSim); anzeigen();
       }
-      letzte = t;
-      zeichnen();
-      requestAnimationFrame(schleife);
+      letzte = t; zeichnen(); requestAnimationFrame(schleife);
     }
-
     function aenderung() {
       speichern();
       A = auswerten();
@@ -758,14 +1103,10 @@
       groesse(); zeichnen(); anzeigen(); ergebnisZeigen();
     }
     window.addEventListener('resize', function () { if (A) { groesse(); zeichnen(); } });
-    document.addEventListener('themawechsel', zeichnen);
+    document.addEventListener('themawechsel', function () { zeichnen(); flussZeichnen(); });
 
-    // ---------- Start ----------
     if (!P.brand && P.raeume.length > 2) P.brand = { raum: P.raeume[2].id, x: P.raeume[2].b * 0.75, y: P.raeume[2].l * 0.7 };
-    einstellungenAufbauen();
-    sammlung();
-    aenderung();
-    requestAnimationFrame(schleife);
+    einstellungenAufbauen(); sammlung(); aenderung(); requestAnimationFrame(schleife);
     Teilen.lesen('anlage').then(function (p) {
       if (!p) return;
       if (!pruefen(p)) throw new Error('ungültig');
