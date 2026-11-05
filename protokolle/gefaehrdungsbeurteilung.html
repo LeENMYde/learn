@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gefährdungsbeurteilung – Formeln &amp; Rechner</title>
+  <meta name="description" content="Gefährdungsbeurteilung nach § 5 ArbSchG: Tätigkeiten und Gefährdungen aus dem Katalog der 11 Gefährdungsfaktoren oder Vorlagen wählen, Risiko vor und nach den Maßnahmen bewerten, Maßnahmen nach dem STOP-Prinzip mit Verantwortlichen und Terminen planen, Wirksamkeit prüfen und als PDF dokumentieren.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/protokolle/gefaehrdungsbeurteilung.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Gefährdungsbeurteilung">
+  <meta property="og:description" content="Gefährdungsbeurteilung nach § 5 ArbSchG: Tätigkeiten und Gefährdungen aus dem Katalog der 11 Gefährdungsfaktoren oder Vorlagen wählen, Risiko vor und nach den Maßnahmen bewerten, Maßnahmen nach dem STOP-Prinzip mit Verantwortlichen und Terminen planen, Wirksamkeit prüfen und als PDF dokumentieren.">
+  <meta property="og:url" content="https://tools.pr1m3.de/protokolle/gefaehrdungsbeurteilung.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Gefährdungsbeurteilung","url":"https://tools.pr1m3.de/protokolle/gefaehrdungsbeurteilung.html","inLanguage":"de","description":"Gefährdungsbeurteilung nach § 5 ArbSchG: Tätigkeiten und Gefährdungen aus dem Katalog der 11 Gefährdungsfaktoren oder Vorlagen wählen, Risiko vor und nach den Maßnahmen bewerten, Maßnahmen nach dem STOP-Prinzip mit Verantwortlichen und Terminen planen, Wirksamkeit prüfen und als PDF dokumentieren.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 12px; margin: 8px 0; }
+    .raster.eng { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster .breit { grid-column: 1 / -1; }
+    .raster input, .raster select, .raster textarea { padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .92rem; min-width: 0; width: 100%; }
+    .raster textarea { min-height: 54px; resize: vertical; }
+    .raster input:focus, .raster select:focus, .raster textarea:focus { border-color: var(--text); outline: none; }
+    .werkzeug-leiste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+    .werkzeug-leiste select { padding: 7px 10px; border-radius: 999px; border: 1.5px solid var(--linie); background: var(--flaeche); color: var(--text); font: inherit; font-size: .9rem; max-width: 100%; }
+    .gef { border: 1px solid var(--linie); border-left: 6px solid var(--farbe, var(--linie)); border-radius: var(--rund); padding: 10px 12px 12px; margin: 12px 0; background: var(--flaeche2); break-inside: avoid; }
+    .gef-kopf { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; align-items: baseline; }
+    .gef-kopf h3 { margin: 0; font-family: var(--technik); font-size: 1.05rem; }
+    .gef-kopf .faktor { font-size: .8rem; color: var(--leise); }
+    .stufe { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; color: #FFFFFF; }
+    .s1 { background: #2E8B57; } .s2 { background: #B7791F; } .s3 { background: #D9541E; } .s4 { background: #B3261E; }
+    .massnahmen { width: 100%; border-collapse: collapse; font-size: .88rem; margin-top: 6px; }
+    .massnahmen th, .massnahmen td { border-bottom: 1px solid var(--linie); padding: 5px 4px; text-align: left; vertical-align: top; }
+    .massnahmen input, .massnahmen select { width: 100%; padding: 4px 6px; border: 1.5px solid var(--linie); border-radius: 6px; background: var(--flaeche); color: var(--text); font: inherit; font-size: .86rem; min-width: 0; }
+    .massnahmen td.stop select { width: 64px; }
+    .massnahmen td.haken { text-align: center; width: 54px; }
+    .massnahmen tr.ueber input[type=date] { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .rollen-x { overflow-x: auto; }
+    .weg-k { border: 1px solid var(--linie); background: var(--flaeche); color: var(--fehler); border-radius: 999px; width: 28px; height: 28px; cursor: pointer; flex: none; }
+    .matrix { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+    @media (max-width: 760px) { .matrix { grid-template-columns: minmax(0, 1fr); } }
+    .matrix canvas { width: 100%; display: block; }
+    [hidden] { display: none !important; }
+    .unterkopf { margin: 10px 0 2px; font-size: .85rem; font-weight: 600; font-family: var(--technik); }
+    @media print {
+      .werkzeug-leiste, .weg-k, .nur-bildschirm { display: none !important; }
+      .gef { background: none; }
+      .raster input, .raster select, .raster textarea, .massnahmen input, .massnahmen select { border: none; padding: 0; background: none; appearance: none; -webkit-appearance: none; }
+      .matrix { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite">
+    <section class="held">
+      <h1><span class="unterstrichen">Gefährdungsbeurteilung</span></h1>
+      <p>Nach § 5 Arbeitsschutzgesetz: Arbeitsbereich und Tätigkeit beschreiben, Gefährdungen aus dem Katalog der 11 Gefährdungsfaktoren oder aus Vorlagen übernehmen, Risiko vor und nach den Maßnahmen bewerten, Maßnahmen nach dem STOP-Prinzip mit Verantwortlichen und Terminen festlegen, Wirksamkeit prüfen und alles als PDF dokumentieren.</p>
+    </section>
+
+    <section class="tafel" aria-labelledby="h-kopf">
+      <h2 id="h-kopf">Angaben</h2>
+      <div class="raster" id="kopf"></div>
+      <div class="werkzeug-leiste nur-bildschirm">
+        <button type="button" class="knopf-leise" id="beispiel">Beispiel laden</button>
+        <button type="button" class="knopf-leise" id="leeren">Neue, leere Beurteilung</button>
+        <button type="button" class="knopf-leise" id="teilen">Link kopieren</button>
+        <span class="teilen-meldung" id="teilenMeldung" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-gef">
+      <div class="kopf-zeile"><h2 id="h-gef">Gefährdungen und Maßnahmen</h2><span class="urteil" id="urteil"></span></div>
+      <p class="hilfe nur-bildschirm">Risiko = Wahrscheinlichkeit × Schwere (je 1 bis 5). Maßnahmen in der Rangfolge S (Substitution) vor T (technisch) vor O (organisatorisch) vor P (persönlich). Das Restrisiko nach den Maßnahmen bewerten.</p>
+      <div class="werkzeug-leiste nur-bildschirm">
+        <select id="vorlage" aria-label="Vorlage für Tätigkeiten"></select>
+        <button type="button" class="knopf" id="vorlageLaden">Vorlage übernehmen</button>
+        <select id="katalog" aria-label="Gefährdung aus dem Katalog"></select>
+        <button type="button" class="knopf" id="neueGef">+ Gefährdung</button>
+      </div>
+      <div class="meldungen" id="meldungen"></div>
+      <div id="liste"></div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-ueber">
+      <h2 id="h-ueber">Übersicht</h2>
+      <div class="kacheln" id="kacheln"></div>
+      <div class="matrix">
+        <div><h3 class="zwischen">Risikomatrix vorher</h3><canvas id="mVor" role="img" aria-label="Risikomatrix vor den Maßnahmen"></canvas></div>
+        <div><h3 class="zwischen">Risikomatrix nach den Maßnahmen</h3><canvas id="mNach" role="img" aria-label="Risikomatrix nach den Maßnahmen"></canvas></div>
+      </div>
+      <h3 class="zwischen">Offene Maßnahmen</h3>
+      <div class="rahmen"><table class="tabelle" id="tabOffen"></table></div>
+      <h3 class="zwischen">Rechenweg</h3>
+      <ol class="weg" id="weg"></ol>
+      <h3 class="zwischen">Unterschriften</h3>
+      <div class="raster" id="unterschrift"></div>
+    </section>
+
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Grundlagen</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">Arbeitsschutzgesetz §§ 3 bis 6, DGUV Vorschrift 1 § 3, Betriebssicherheitsverordnung § 3, Gefahrstoffverordnung § 6, Arbeitsstättenverordnung § 3, TRBS 1111, Leitlinie Gefährdungsbeurteilung und Dokumentation der GDA, Gefährdungsfaktoren nach BAuA. Die Seite hilft beim Aufbau und Dokumentieren; Verantwortung und Fachkunde (Fachkraft für Arbeitssicherheit, Betriebsarzt) bleiben beim Arbeitgeber.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const SPEICHER = 'gefaehrdungsbeurteilung-1';
+    const $ = function (id) { return document.getElementById(id); };
+    const STUFE = [[4, 'gering', 's1', '#2E8B57'], [9, 'mittel', 's2', '#B7791F'], [15, 'hoch', 's3', '#D9541E'], [25, 'sehr hoch', 's4', '#B3261E']];
+    function stufe(r) { for (let i = 0; i < STUFE.length; i++) if (r <= STUFE[i][0]) return { i: i, name: STUFE[i][1], kl: STUFE[i][2], f: STUFE[i][3] }; return { i: 3, name: 'sehr hoch', kl: 's4', f: '#B3261E' }; }
+    const W = ['', 'sehr selten', 'selten', 'gelegentlich', 'häufig', 'sehr häufig / ständig'];
+    const SW = ['', 'geringfügig (ohne Ausfall)', 'leicht (Erste Hilfe)', 'mittel (Arbeitsunfähigkeit)', 'schwer (bleibender Schaden)', 'tödlich / sehr schwer'];
+    const STOP = { S: 'Substitution', T: 'technisch', O: 'organisatorisch', P: 'persönlich' };
+    // 11 Gefährdungsfaktoren (BAuA) mit typischen Gefährdungen: [Text, W, S, [[STOP, Maßnahme], …]]
+    const KATALOG = {
+      '1': ['Mechanische Gefährdungen', [
+        ['Ungeschützt bewegte Maschinenteile (Quetschen, Scheren, Erfassen)', 3, 4, [['T', 'Trennende Schutzeinrichtungen und Not-Halt, Prüfung nach BetrSichV'], ['O', 'Betriebsanweisung, Unterweisung, nur eingewiesene Personen']]],
+        ['Absturz bei Arbeiten in der Höhe', 3, 5, [['T', 'Seitenschutz, Gerüst oder Hubarbeitsbühne statt Leiter'], ['O', 'Arbeiten nur zu zweit, Rettungskonzept'], ['P', 'Persönliche Absturzschutzausrüstung, wenn kollektiver Schutz nicht möglich']]],
+        ['Stolpern, Rutschen, Stürzen auf Verkehrswegen', 4, 3, [['T', 'Rutschhemmende Böden, Kabelbrücken, Beleuchtung'], ['O', 'Ordnung und Sauberkeit, Wege freihalten'], ['P', 'Sicherheitsschuhe S2/S3']]],
+        ['Herabfallende Gegenstände', 2, 4, [['T', 'Bordbretter, Netze, Absperrung des Gefahrenbereichs'], ['P', 'Schutzhelm']]],
+        ['Schnitt- und Stichverletzungen durch Werkzeuge', 3, 2, [['S', 'Werkzeug mit verdeckter oder selbsteinziehender Klinge'], ['P', 'Schnittschutzhandschuhe']]],
+        ['Flurförderzeuge und Fahrzeuge (Anfahren, Umkippen)', 3, 5, [['T', 'Trennung von Fahr- und Gehwegen, Spiegel, Rückfahrwarner'], ['O', 'Nur mit Fahrausweis, jährliche Unterweisung, Geschwindigkeitsbegrenzung']]]
+      ]],
+      '2': ['Elektrische Gefährdungen', [
+        ['Elektrischer Schlag durch Berühren aktiver Teile', 2, 5, [['T', 'Fünf Sicherheitsregeln, Fehlerschutz mit RCD 30 mA'], ['O', 'Arbeiten nur durch Elektrofachkräfte, Prüfung nach DGUV V3'], ['P', 'Isolierende Handschuhe, Gesichtsschutz bei Arbeiten unter Spannung']]],
+        ['Lichtbogen bei Schalthandlungen und Arbeiten an Verteilungen', 2, 5, [['T', 'Störlichtbogengeprüfte Schaltanlagen, Freischalten'], ['P', 'Störlichtbogen-Schutzkleidung der passenden Klasse']]],
+        ['Defekte ortsveränderliche Geräte und Leitungen', 3, 4, [['O', 'Wiederkehrende Prüfung nach DIN VDE 0701-0702, Sichtprüfung vor Benutzung'], ['T', 'Baustromverteiler mit RCD']]]
+      ]],
+      '3': ['Gefahrstoffe', [
+        ['Hautkontakt mit reizenden oder ätzenden Stoffen', 3, 3, [['S', 'Weniger gefährliche Produkte einsetzen'], ['O', 'Gefahrstoffverzeichnis, Betriebsanweisung nach § 14 GefStoffV'], ['P', 'Chemikalienschutzhandschuhe, Schutzbrille, Hautschutzplan']]],
+        ['Einatmen von Stäuben (Quarz, Holz) oder Dämpfen', 3, 4, [['T', 'Absaugung an der Quelle, Geräte mit Staubabsaugung'], ['O', 'Arbeitsplatzgrenzwerte prüfen, arbeitsmedizinische Vorsorge'], ['P', 'Atemschutz FFP2/FFP3 bei Überschreitung']]],
+        ['Lösemitteldämpfe beim Kleben, Lackieren, Reinigen', 3, 3, [['S', 'Wasserbasierte Produkte'], ['T', 'Lüftung, Absaugung'], ['P', 'Atemschutz mit A-Filter']]]
+      ]],
+      '4': ['Biologische Arbeitsstoffe', [
+        ['Infektionsgefahr (Schimmel, Fäkalien, Tierkot, Verletzungen)', 2, 3, [['T', 'Einweg-Arbeitsmittel, geschlossene Systeme'], ['O', 'Hygieneplan, Impfangebot, Vorsorge'], ['P', 'Handschuhe, Atemschutz FFP2']]]
+      ]],
+      '5': ['Brand- und Explosionsgefährdungen', [
+        ['Brand durch Heißarbeiten (Schweißen, Trennschleifen, Löten)', 2, 5, [['O', 'Erlaubnisschein für Heißarbeiten, Brandwache und Nachkontrolle'], ['T', 'Brennbares entfernen oder abdecken, Feuerlöscher bereitstellen']]],
+        ['Brennbare Flüssigkeiten und Gase, explosionsfähige Atmosphäre', 2, 5, [['S', 'Nicht brennbare Ersatzstoffe'], ['T', 'Lüftung, Ex-geschützte Geräte, Lagerung im Sicherheitsschrank'], ['O', 'Explosionsschutzdokument, Zündquellenverbot']]],
+        ['Fehlende Flucht- und Rettungswege, Feuerlöscher', 2, 5, [['T', 'Gekennzeichnete Rettungswege, Feuerlöscher nach ASR A2.2'], ['O', 'Brandschutzhelfer (mind. 5 %), Räumungsübung']]]
+      ]],
+      '6': ['Thermische Gefährdungen', [
+        ['Verbrennung an heißen Oberflächen oder Medien', 3, 3, [['T', 'Isolierung, Berührungsschutz'], ['P', 'Hitzeschutzhandschuhe']]]
+      ]],
+      '7': ['Physikalische Einwirkungen', [
+        ['Lärm über 80 dB(A) Tagespegel', 4, 3, [['T', 'Lärmarme Maschinen, Kapselung'], ['O', 'Lärmbereiche kennzeichnen, Vorsorge ab 80 dB(A)'], ['P', 'Gehörschutz ab 80 dB(A) anbieten, ab 85 dB(A) tragen']]],
+        ['Hand-Arm-Vibrationen (Bohrhammer, Schleifer)', 3, 3, [['T', 'Vibrationsarme Geräte'], ['O', 'Expositionszeit begrenzen, Wechsel der Tätigkeit']]],
+        ['UV-Strahlung bei Arbeiten im Freien', 4, 3, [['T', 'Beschattung'], ['O', 'Arbeiten in die Morgen- und Abendstunden legen'], ['P', 'Kopfbedeckung, Sonnenschutzmittel, langärmelige Kleidung']]]
+      ]],
+      '8': ['Arbeitsumgebung', [
+        ['Ungünstiges Raumklima, Hitze oder Kälte', 3, 2, [['T', 'Sonnenschutz, Heizung, Lüftung nach ASR A3.5/A3.6'], ['O', 'Trinkwasser, Pausen, Arbeitszeit anpassen']]],
+        ['Unzureichende Beleuchtung', 3, 2, [['T', 'Beleuchtungsstärke nach ASR A3.4'], ['O', 'Defekte Leuchten sofort tauschen']]]
+      ]],
+      '9': ['Physische Belastung', [
+        ['Heben und Tragen schwerer Lasten', 4, 3, [['T', 'Hebehilfen, Transportwagen, Kran'], ['O', 'Lasten teilen, zu zweit tragen, Leitmerkmalmethode'], ['P', 'Unterweisung in rückengerechtem Heben']]],
+        ['Zwangshaltungen (Überkopf, Knien, Bücken)', 4, 2, [['T', 'Höhenverstellbare Arbeitsmittel, Podeste'], ['O', 'Wechsel der Tätigkeit, Pausen'], ['P', 'Knieschoner']]]
+      ]],
+      '10': ['Psychische Belastung', [
+        ['Zeitdruck, hohe Arbeitsmenge, Unterbrechungen', 4, 3, [['O', 'Realistische Planung, Prioritäten, Vertretungsregeln'], ['O', 'Beteiligung der Beschäftigten, regelmäßige Gespräche']]],
+        ['Alleinarbeit, Konflikte, Gewalt durch Dritte', 2, 4, [['T', 'Personen-Notsignal-Anlage'], ['O', 'Erreichbarkeit regeln, Deeskalationstraining']]],
+        ['Bildschirmarbeit (Ergonomie, Augen)', 4, 2, [['T', 'Ergonomischer Arbeitsplatz nach ArbStättV Anhang 6'], ['O', 'Mischarbeit, Pausen, Angebotsvorsorge Sehen (G37)']]]
+      ]],
+      '11': ['Sonstige Gefährdungen', [
+        ['Arbeiten in engen Räumen und Behältern', 2, 5, [['T', 'Freimessen, Lüftung'], ['O', 'Erlaubnisschein, Sicherungsposten, Rettungsplan'], ['P', 'Rettungsgurt, Gaswarngerät']]],
+        ['Tiere, Pflanzen, Verkehr im öffentlichen Raum', 2, 3, [['T', 'Absperrung nach RSA'], ['P', 'Warnkleidung']]]
+      ]]
+    };
+    const VORLAGEN = {
+      elektro: ['Elektroarbeiten in Anlagen bis 1 000 V', [['2', 0], ['2', 1], ['2', 2], ['1', 2], ['9', 1], ['5', 0]]],
+      dach: ['Dacharbeiten und Klempnerei', [['1', 1], ['1', 3], ['5', 0], ['7', 2], ['9', 0], ['3', 1]]],
+      buero: ['Büro und Bildschirmarbeit', [['10', 2], ['10', 0], ['1', 2], ['8', 0], ['8', 1], ['5', 2]]],
+      werkstatt: ['Werkstatt mit Maschinen', [['1', 0], ['1', 4], ['7', 0], ['3', 1], ['2', 2], ['5', 0]]],
+      bau: ['Baustelle allgemein', [['1', 1], ['1', 2], ['1', 3], ['7', 0], ['7', 1], ['3', 1], ['11', 1]]],
+      lager: ['Lager mit Flurförderzeugen', [['1', 5], ['9', 0], ['1', 2], ['5', 2], ['8', 0]]],
+      sanitaer: ['Sanitär- und Heizungsinstallation', [['5', 0], ['3', 2], ['4', 0], ['9', 1], ['6', 0], ['11', 0]]]
+    };
+    let nr = 1;
+    function neueId(p) { return p + (nr++) + Math.random().toString(36).slice(2, 5); }
+    function heute(d) { const x = new Date(); x.setDate(x.getDate() + (d || 0)); return x.toISOString().slice(0, 10); }
+    function plusMonate(t, m) { const x = new Date(t + 'T12:00:00'); if (isNaN(x)) return ''; x.setMonth(x.getMonth() + m); return x.toISOString().slice(0, 10); }
+    function datumDe(t) { return /^\d{4}-\d{2}-\d{2}$/.test(t || '') ? t.slice(8, 10) + '.' + t.slice(5, 7) + '.' + t.slice(0, 4) : '–'; }
+    function ausKatalog(f, i) {
+      const k = KATALOG[f][1][i];
+      return { id: neueId('g'), faktor: f, text: k[0], taetigkeit: '', w: k[1], s: k[2], w2: Math.max(1, k[1] - 1), s2: Math.max(1, k[2] - (k[2] >= 4 ? 0 : 1)),
+        massnahmen: k[3].map(function (m, j) { return { id: neueId('m'), stop: m[0], text: m[1], wer: '', bis: heute(14 + 7 * j), erledigt: false, wirksam: false }; }) };
+    }
+    function beispiel() {
+      const d = heute(0);
+      const p = { kopf: { betrieb: 'Muster Elektrotechnik GmbH', bereich: 'Montage Neubau Bürogebäude', taetigkeit: 'Elektroinstallation und Inbetriebnahme', ersteller: '', beteiligte: 'Fachkraft für Arbeitssicherheit, Betriebsarzt, Bauleitung', datum: d, naechste: plusMonate(d, 12), anlass: 'erstmalig' }, gef: [], unterschrift: { verantwortlich: '', sifa: '', betriebsrat: '' } };
+      VORLAGEN.elektro[1].forEach(function (q) { p.gef.push(ausKatalog(q[0], q[1])); });
+      p.gef[0].massnahmen[0].erledigt = true; p.gef[0].massnahmen[0].wirksam = true; p.gef[0].massnahmen[0].bis = heute(-10);
+      p.gef[1].massnahmen[0].bis = heute(-3);
+      return p;
+    }
+    // ---------- Laden und strenge Prüfung ----------
+    function nz(v, d, min, max) { const x = Number(v); return v !== null && v !== '' && typeof v !== 'boolean' && isFinite(x) ? Math.max(min, Math.min(max, Math.round(x))) : d; }
+    function tx(v, n) { return typeof v === 'string' ? v.slice(0, n || 200) : ''; }
+    function dat(v) { return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; }
+    function idw(v) { return typeof v === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(v); }
+    function pruefen(p) {
+      if (!p || typeof p !== 'object' || !Array.isArray(p.gef)) return false;
+      const k = p.kopf || {}, u = p.unterschrift || {};
+      p.kopf = { betrieb: tx(k.betrieb, 120), bereich: tx(k.bereich, 120), taetigkeit: tx(k.taetigkeit, 200), ersteller: tx(k.ersteller, 80), beteiligte: tx(k.beteiligte, 200), datum: dat(k.datum), naechste: dat(k.naechste), anlass: ['erstmalig', 'aenderung', 'unfall', 'regel'].indexOf(k.anlass) >= 0 ? k.anlass : 'erstmalig' };
+      p.unterschrift = { verantwortlich: tx(u.verantwortlich, 80), sifa: tx(u.sifa, 80), betriebsrat: tx(u.betriebsrat, 80) };
+      const ids = [];
+      p.gef = p.gef.slice(0, 120).filter(function (g) { return g && idw(g.id) && ids.indexOf(g.id) < 0 && ids.push(g.id); }).map(function (g) {
+        const mids = [];
+        return { id: g.id, faktor: KATALOG[g.faktor] ? g.faktor : '11', text: tx(g.text, 200) || 'Gefährdung', taetigkeit: tx(g.taetigkeit, 120), w: nz(g.w, 3, 1, 5), s: nz(g.s, 3, 1, 5), w2: nz(g.w2, 2, 1, 5), s2: nz(g.s2, 3, 1, 5),
+          massnahmen: (Array.isArray(g.massnahmen) ? g.massnahmen : []).slice(0, 30).filter(function (m) { return m && idw(m.id) && mids.indexOf(m.id) < 0 && mids.push(m.id); }).map(function (m) {
+            return { id: m.id, stop: STOP[m.stop] ? m.stop : 'O', text: tx(m.text, 200), wer: tx(m.wer, 60), bis: dat(m.bis), erledigt: m.erledigt === true, wirksam: m.wirksam === true };
+          }) };
+      });
+      return true;
+    }
+    function laden() { let roh = null; try { roh = localStorage.getItem(SPEICHER); } catch (e) { roh = null; } if (!roh) return null; try { const p = JSON.parse(roh); return pruefen(p) ? p : null; } catch (e) { return null; } }
+    let P = laden() || beispiel();
+    let uhr = 0;
+    function speichernJetzt() { try { localStorage.setItem(SPEICHER, JSON.stringify(P)); } catch (e) { /* ohne Speicher */ } }
+    function speichern() { clearTimeout(uhr); uhr = setTimeout(speichernJetzt, 300); }
+    window.addEventListener('pagehide', function () { clearTimeout(uhr); speichernJetzt(); });
+
+    // ---------- Eingaben ----------
+    function feld(ziel, name, hole, setze, opt) {
+      opt = opt || {};
+      const l = document.createElement('label'); l.textContent = name; if (opt.breit) l.className = 'breit';
+      let e;
+      if (opt.wahl) { e = document.createElement('select'); opt.wahl.forEach(function (w) { const o = document.createElement('option'); o.value = String(w[0]); o.textContent = w[1]; e.append(o); }); e.value = String(hole()); e.addEventListener('change', function () { setze(opt.zahl ? +e.value : e.value); neu(opt.bau); }); }
+      else {
+        e = document.createElement(opt.lang ? 'textarea' : 'input'); if (!opt.lang) e.type = opt.datum ? 'date' : 'text';
+        e.value = hole();
+        e.addEventListener(opt.datum ? 'change' : 'input', function () { setze(opt.datum ? dat(e.value) : e.value.slice(0, opt.max || 200)); neu(false); });
+      }
+      l.append(e); ziel.append(l); return e;
+    }
+    function kopfAufbauen() {
+      const z = $('kopf'); z.innerHTML = ''; const k = P.kopf;
+      feld(z, 'Betrieb', function () { return k.betrieb; }, function (v) { k.betrieb = v; }, { max: 120 });
+      feld(z, 'Arbeitsbereich / Arbeitsplatz', function () { return k.bereich; }, function (v) { k.bereich = v; }, { max: 120 });
+      feld(z, 'Tätigkeit', function () { return k.taetigkeit; }, function (v) { k.taetigkeit = v; });
+      feld(z, 'Anlass', function () { return k.anlass; }, function (v) { k.anlass = v; }, { wahl: [['erstmalig', 'erstmalige Beurteilung'], ['regel', 'regelmäßige Überprüfung'], ['aenderung', 'Änderung der Arbeitsbedingungen'], ['unfall', 'nach Unfall oder Beinaheunfall']] });
+      feld(z, 'Erstellt von', function () { return k.ersteller; }, function (v) { k.ersteller = v; }, { max: 80 });
+      feld(z, 'Beteiligte', function () { return k.beteiligte; }, function (v) { k.beteiligte = v; });
+      const d = feld(z, 'Datum', function () { return k.datum; }, function (v) { const alt = plusMonate(k.datum, 12); k.datum = v; if (!k.naechste || k.naechste === alt) { k.naechste = plusMonate(v, 12); nae.value = k.naechste; } }, { datum: true });
+      const nae = feld(z, 'Nächste Überprüfung', function () { return k.naechste; }, function (v) { k.naechste = v; }, { datum: true });
+      void d;
+      const u = $('unterschrift'); u.innerHTML = ''; const s = P.unterschrift;
+      feld(u, 'Verantwortlich (Arbeitgeber/Vorgesetzte)', function () { return s.verantwortlich; }, function (v) { s.verantwortlich = v; }, { max: 80 });
+      feld(u, 'Fachkraft für Arbeitssicherheit', function () { return s.sifa; }, function (v) { s.sifa = v; }, { max: 80 });
+      feld(u, 'Betriebsrat / Beschäftigte', function () { return s.betriebsrat; }, function (v) { s.betriebsrat = v; }, { max: 80 });
+    }
+    function wahlRisiko(ziel, titel, hole, setze, liste) { return feld(ziel, titel, hole, setze, { wahl: liste.map(function (t, i) { return [i, i + ' – ' + t]; }).slice(1), zahl: true }); }
+    function listeAufbauen() {
+      const z = $('liste'); z.innerHTML = '';
+      if (!P.gef.length) { const p = document.createElement('p'); p.className = 'hilfe'; p.textContent = 'Noch keine Gefährdungen. Vorlage übernehmen oder Gefährdungen aus dem Katalog hinzufügen.'; z.append(p); }
+      P.gef.forEach(function (g, gi) {
+        const k = document.createElement('article'); k.className = 'gef'; k.dataset.id = g.id;
+        const kopf = document.createElement('div'); kopf.className = 'gef-kopf';
+        const h = document.createElement('h3'); h.textContent = (gi + 1) + '. ' + g.text;
+        const f = document.createElement('span'); f.className = 'faktor'; f.textContent = g.faktor + ' ' + KATALOG[g.faktor][0];
+        const sv = document.createElement('span'), sn = document.createElement('span'); sv.className = 'stufe'; sn.className = 'stufe';
+        const weg = document.createElement('button'); weg.type = 'button'; weg.className = 'weg-k'; weg.textContent = '✕'; weg.setAttribute('aria-label', 'Gefährdung ' + (gi + 1) + ' entfernen');
+        weg.addEventListener('click', function () { if (!window.confirm('Gefährdung „' + g.text + '“ entfernen?')) return; P.gef = P.gef.filter(function (x) { return x !== g; }); neu(true); });
+        const rechts = document.createElement('span'); rechts.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+        rechts.append(document.createTextNode('vorher '), sv, document.createTextNode(' nachher '), sn, weg);
+        kopf.append(h, rechts); k.append(kopf, f);
+        const r = document.createElement('div'); r.className = 'raster eng';
+        feld(r, 'Gefährdung', function () { return g.text; }, function (v) { g.text = v || 'Gefährdung'; h.textContent = (P.gef.indexOf(g) + 1) + '. ' + g.text; }, { breit: true });
+        feld(r, 'Tätigkeit / Ort (optional)', function () { return g.taetigkeit; }, function (v) { g.taetigkeit = v; }, { breit: true, max: 120 });
+        wahlRisiko(r, 'Wahrscheinlichkeit vorher', function () { return g.w; }, function (v) { g.w = v; }, W);
+        wahlRisiko(r, 'Schwere vorher', function () { return g.s; }, function (v) { g.s = v; }, SW);
+        wahlRisiko(r, 'Wahrscheinlichkeit nachher', function () { return g.w2; }, function (v) { g.w2 = v; }, W);
+        wahlRisiko(r, 'Schwere nachher', function () { return g.s2; }, function (v) { g.s2 = v; }, SW);
+        k.append(r);
+        const uk = document.createElement('div'); uk.className = 'unterkopf'; uk.textContent = 'Maßnahmen'; k.append(uk);
+        const rol = document.createElement('div'); rol.className = 'rollen-x';
+        const t = document.createElement('table'); t.className = 'massnahmen';
+        t.innerHTML = '<thead><tr><th>STOP</th><th>Maßnahme</th><th>Verantwortlich</th><th>bis</th><th>erledigt</th><th>wirksam</th><th class="nur-bildschirm"></th></tr></thead>';
+        const tb = document.createElement('tbody');
+        g.massnahmen.forEach(function (m) {
+          const tr = document.createElement('tr');
+          const td = function (kl) { const c = document.createElement('td'); if (kl) c.className = kl; tr.append(c); return c; };
+          const s = document.createElement('select'); Object.keys(STOP).forEach(function (q) { const o = document.createElement('option'); o.value = q; o.textContent = q; o.title = STOP[q]; s.append(o); }); s.value = m.stop; s.setAttribute('aria-label', 'Art der Maßnahme'); s.addEventListener('change', function () { m.stop = s.value; neu(false); }); td('stop').append(s);
+          const a = document.createElement('input'); a.type = 'text'; a.value = m.text; a.setAttribute('aria-label', 'Maßnahme'); a.addEventListener('input', function () { m.text = a.value.slice(0, 200); neu(false); }); td().append(a);
+          const w = document.createElement('input'); w.type = 'text'; w.value = m.wer; w.setAttribute('aria-label', 'Verantwortlich'); w.addEventListener('input', function () { m.wer = w.value.slice(0, 60); neu(false); }); td().append(w);
+          const b = document.createElement('input'); b.type = 'date'; b.value = m.bis; b.setAttribute('aria-label', 'Termin'); b.addEventListener('change', function () { m.bis = dat(b.value); neu(false); }); td().append(b);
+          const e1 = document.createElement('input'); e1.type = 'checkbox'; e1.checked = m.erledigt; e1.setAttribute('aria-label', 'erledigt'); e1.addEventListener('change', function () { m.erledigt = e1.checked; if (!m.erledigt) { m.wirksam = false; e2.checked = false; } neu(false); }); td('haken').append(e1);
+          const e2 = document.createElement('input'); e2.type = 'checkbox'; e2.checked = m.wirksam; e2.setAttribute('aria-label', 'Wirksamkeit geprüft'); e2.addEventListener('change', function () { m.wirksam = e2.checked; if (m.wirksam) { m.erledigt = true; e1.checked = true; } neu(false); }); td('haken').append(e2);
+          const x = document.createElement('button'); x.type = 'button'; x.className = 'weg-k'; x.textContent = '✕'; x.setAttribute('aria-label', 'Maßnahme entfernen'); x.addEventListener('click', function () { g.massnahmen = g.massnahmen.filter(function (q) { return q !== m; }); neu(true); }); td('nur-bildschirm').append(x);
+          tr.dataset.id = m.id; tb.append(tr);
+        });
+        t.append(tb); rol.append(t); k.append(rol);
+        const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'knopf-leise nur-bildschirm'; nb.textContent = '+ Maßnahme';
+        nb.addEventListener('click', function () { g.massnahmen.push({ id: neueId('m'), stop: 'T', text: '', wer: '', bis: heute(14), erledigt: false, wirksam: false }); neu(true); const f2 = z.querySelector('[data-id="' + g.id + '"] tbody tr:last-child input[type=text]'); if (f2) f2.focus(); });
+        k.append(nb);
+        z.append(k);
+      });
+    }
+
+    // ---------- Auswertung ----------
+    let A = null;
+    function auswerten() {
+      const r = { fehler: [], hinweise: [], gef: [], offen: [], ueber: 0, mVor: [], mNach: [], nochNicht: [] };
+      for (let i = 0; i < 25; i++) { r.mVor.push(0); r.mNach.push(0); }
+      const t0 = heute(0);
+      P.gef.forEach(function (g, i) {
+        const rv = g.w * g.s, rn = g.w2 * g.s2, sv = stufe(rv), sn = stufe(rn);
+        const ms = g.massnahmen, arten = ms.map(function (m) { return m.stop; });
+        const x = { g: g, nr: i + 1, rv: rv, rn: rn, sv: sv, sn: sn };
+        r.mVor[(g.s - 1) * 5 + g.w - 1]++; r.mNach[(g.s2 - 1) * 5 + g.w2 - 1]++;
+        if (sv.i >= 1 && !ms.length) r.fehler.push(x.nr + '. ' + g.text + ': Risiko ' + sv.name + ', aber keine Maßnahme festgelegt.');
+        if (rn > rv) r.fehler.push(x.nr + '. ' + g.text + ': Restrisiko höher als vorher – Bewertung prüfen.');
+        if (sn.i >= 2) r.fehler.push(x.nr + '. ' + g.text + ': Restrisiko ' + sn.name + ' (' + rn + ') – weitere Maßnahmen nötig, Arbeit so nicht vertretbar.');
+        if (sv.i >= 2 && ms.length && arten.every(function (a) { return a === 'P' || a === 'O'; })) r.hinweise.push(x.nr + '. ' + g.text + ': hohes Risiko nur mit organisatorischen oder persönlichen Maßnahmen – nach dem STOP-Prinzip zuerst Ersatz oder technische Lösungen prüfen.');
+        if (rn < rv && ms.length && ms.every(function (m) { return !m.erledigt; })) r.nochNicht.push(x.nr);
+        ms.forEach(function (m) {
+          if (!m.text.trim()) r.hinweise.push(x.nr + '. ' + g.text + ': Maßnahme ohne Beschreibung.');
+          if (!m.erledigt || !m.wirksam) r.offen.push({ x: x, m: m, ueber: !m.erledigt && m.bis && m.bis < t0 });
+          if (!m.erledigt && m.bis && m.bis < t0) r.ueber++;
+          if (!m.erledigt && !m.wer.trim()) m._ohneWer = true; else delete m._ohneWer;
+        });
+        r.gef.push(x);
+      });
+      if (r.nochNicht.length) r.hinweise.push('Das Restrisiko bei Nr. ' + r.nochNicht.join(', ') + ' setzt Maßnahmen voraus, die noch nicht erledigt sind – bis dahin gilt das Risiko vorher.');
+      const ohneWer = r.offen.filter(function (o) { return !o.m.erledigt && !o.m.wer.trim(); }).length;
+      if (ohneWer) r.hinweise.push(ohneWer + ' offene Maßnahme' + (ohneWer > 1 ? 'n haben' : ' hat') + ' noch keine verantwortliche Person.');
+      if (r.ueber) r.fehler.push(r.ueber + ' Maßnahme' + (r.ueber > 1 ? 'n sind' : ' ist') + ' überfällig.');
+      if (P.kopf.naechste && P.kopf.naechste < t0) r.fehler.push('Die Überprüfung der Gefährdungsbeurteilung war am ' + datumDe(P.kopf.naechste) + ' fällig.');
+      if (!P.kopf.bereich.trim() && !P.kopf.taetigkeit.trim()) r.hinweise.push('Arbeitsbereich oder Tätigkeit angeben, damit die Beurteilung zugeordnet werden kann.');
+      const faktoren = {}; P.gef.forEach(function (g) { faktoren[g.faktor] = 1; });
+      r.faktoren = Object.keys(faktoren).length;
+      if (!faktoren['10'] && P.gef.length) r.hinweise.push('Psychische Belastung (Faktor 10) ist nicht beurteilt – sie gehört seit 2013 ausdrücklich dazu (§ 5 Abs. 3 Nr. 6 ArbSchG).');
+      r.erledigt = 0; r.gesamt = 0; r.wirksam = 0;
+      P.gef.forEach(function (g) { g.massnahmen.forEach(function (m) { r.gesamt++; if (m.erledigt) r.erledigt++; if (m.wirksam) r.wirksam++; }); });
+      return r;
+    }
+    function zeigen() {
+      A = auswerten();
+      // Stufen in den Karten
+      document.querySelectorAll('#liste .gef').forEach(function (k) {
+        const x = A.gef.filter(function (q) { return q.g.id === k.dataset.id; })[0]; if (!x) return;
+        k.style.setProperty('--farbe', x.sn.f);
+        const st = k.querySelectorAll('.stufe');
+        st[0].className = 'stufe ' + x.sv.kl; st[0].textContent = x.rv + ' ' + x.sv.name;
+        st[1].className = 'stufe ' + x.sn.kl; st[1].textContent = x.rn + ' ' + x.sn.name;
+        k.querySelectorAll('tbody tr').forEach(function (tr) { const m = x.g.massnahmen.filter(function (q) { return q.id === tr.dataset.id; })[0]; tr.classList.toggle('ueber', !!(m && !m.erledigt && m.bis && m.bis < heute(0))); });
+      });
+      const mel = $('meldungen'); mel.innerHTML = '';
+      A.fehler.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis fehler'; d.textContent = t; mel.append(d); });
+      A.hinweise.forEach(function (t) { const d = document.createElement('div'); d.className = 'hinweis'; d.textContent = t; mel.append(d); });
+      const u = $('urteil'), ok = !A.fehler.length && P.gef.length > 0;
+      u.textContent = !P.gef.length ? 'noch leer' : ok ? (A.offen.length ? 'vertretbar, Maßnahmen offen' : 'vollständig umgesetzt') : A.fehler.length + ' Punkt' + (A.fehler.length > 1 ? 'e' : '') + ' offen';
+      u.className = 'urteil ' + (ok ? 'gut' : 'schlecht');
+      const zaehl = function (feld) { const n = [0, 0, 0, 0]; A.gef.forEach(function (x) { n[x[feld].i]++; }); return n; };
+      const nv = zaehl('sv'), nn = zaehl('sn');
+      $('kacheln').innerHTML = '';
+      [[String(P.gef.length), 'Gefährdungen aus ' + A.faktoren + ' von 11 Faktoren', '#1E3A5F'],
+       [(nv[2] + nv[3]) + ' → ' + (nn[2] + nn[3]), 'hohe und sehr hohe Risiken vorher → nachher', '#B3261E'],
+       [A.erledigt + ' / ' + A.gesamt, 'Maßnahmen erledigt (' + A.wirksam + ' wirksam geprüft)', '#2E8B57'],
+       [String(A.ueber), 'überfällige Maßnahmen', A.ueber ? '#B3261E' : '#6B7785'],
+       [datumDe(P.kopf.naechste), 'nächste Überprüfung', '#6E6FA6']].forEach(function (q) {
+        const d = document.createElement('div'); d.className = 'kachel'; d.style.setProperty('--farbe', q[2]);
+        const w = document.createElement('div'); w.className = 'wert'; w.textContent = q[0]; const s = document.createElement('small'); s.textContent = q[1]; d.append(w, s); $('kacheln').append(d);
+      });
+      // offene Maßnahmen nach Termin
+      const tab = $('tabOffen'); tab.innerHTML = '';
+      const th = document.createElement('thead'); th.innerHTML = '<tr><th>Nr.</th><th>Gefährdung</th><th>STOP</th><th>Maßnahme</th><th>Verantwortlich</th><th>bis</th><th>Stand</th></tr>'; tab.append(th);
+      const tb = document.createElement('tbody');
+      A.offen.slice().sort(function (a, b) { return (a.m.bis || '9') < (b.m.bis || '9') ? -1 : 1; }).forEach(function (o) {
+        const tr = document.createElement('tr'); if (o.ueber) tr.className = 'schlecht';
+        [String(o.x.nr), o.x.g.text, o.m.stop + ' ' + STOP[o.m.stop], o.m.text || '–', o.m.wer || '–', datumDe(o.m.bis), o.m.erledigt ? 'Wirksamkeit prüfen' : o.ueber ? 'überfällig' : 'offen'].forEach(function (t) { const td = document.createElement('td'); td.textContent = t; tr.append(td); });
+        tb.append(tr);
+      });
+      if (!A.offen.length) { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 7; td.textContent = 'Keine offenen Maßnahmen.'; tr.append(td); tb.append(tr); }
+      tab.append(tb);
+      wegZeigen(); matrixZeichnen();
+    }
+    function wegZeigen() {
+      const o = $('weg'); o.innerHTML = '';
+      const x = A.gef.slice().sort(function (a, b) { return b.rv - a.rv; })[0];
+      const zeilen = x ? [
+        ['Höchstes Risiko vorher: ' + x.nr + '. ' + x.g.text, 'R = W \\cdot S = ' + x.g.w + ' \\cdot ' + x.g.s + ' = \\htmlClass{ergebnis}{' + x.rv + '}\\ (\\text{' + x.sv.name + '})'],
+        ['Nach den Maßnahmen', 'R_\\text{Rest} = ' + x.g.w2 + ' \\cdot ' + x.g.s2 + ' = \\htmlClass{ergebnis}{' + x.rn + '}\\ (\\text{' + x.sn.name + '})'],
+        ['Minderung', '\\frac{' + x.rv + ' - ' + x.rn + '}{' + x.rv + '} = \\htmlClass{ergebnis}{' + Math.round((x.rv - x.rn) / x.rv * 100) + '\\,\\%}']
+      ] : [['Noch keine Gefährdung', 'R = W \\cdot S']];
+      zeilen.forEach(function (q) { const li = document.createElement('li'), t = document.createElement('div'), r = document.createElement('div'); t.className = 'titel'; t.textContent = q[0]; r.className = 'rechnung'; Formel.setze(r, q[1], true); li.append(t, r); o.append(li); });
+    }
+    // ---------- Risikomatrix ----------
+    let phase = 0;
+    function matrixZeichnen() {
+      [['mVor', A.mVor], ['mNach', A.mNach]].forEach(function (q) {
+        const cv = $(q[0]), cx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, B = Math.max(220, cv.parentNode.clientWidth), H = Math.round(Math.min(360, B * 0.82));
+        cv.style.height = H + 'px'; cv.width = Math.round(B * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const text = Thema.farbe('--text'), leise = Thema.farbe('--leise'), x0 = 44, y0 = 8, b = B - x0 - 8, h = H - y0 - 40, zb = b / 5, zh = h / 5;
+        cx.clearRect(0, 0, B, H);
+        for (let s = 1; s <= 5; s++) for (let w = 1; w <= 5; w++) {
+          const st = stufe(w * s), x = x0 + (w - 1) * zb, y = y0 + (5 - s) * zh, n = q[1][(s - 1) * 5 + w - 1];
+          cx.globalAlpha = n ? 0.95 : 0.35 + 0.05 * Math.sin(phase + w + s); cx.fillStyle = st.f; cx.fillRect(x + 1, y + 1, zb - 2, zh - 2); cx.globalAlpha = 1;
+          cx.fillStyle = '#FFFFFF'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+          cx.font = '600 10px sans-serif'; cx.fillText(String(w * s), x + 10, y + 9);
+          if (n) { cx.font = '700 ' + Math.round(Math.min(zb, zh) * 0.42) + 'px sans-serif'; cx.fillText(String(n), x + zb / 2, y + zh / 2 + 2); }
+        }
+        cx.fillStyle = leise; cx.font = '11px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'top';
+        for (let w = 1; w <= 5; w++) cx.fillText(String(w), x0 + (w - 0.5) * zb, y0 + h + 4);
+        cx.fillText('Wahrscheinlichkeit →', x0 + b / 2, y0 + h + 20);
+        cx.textAlign = 'right'; cx.textBaseline = 'middle';
+        for (let s = 1; s <= 5; s++) cx.fillText(String(s), x0 - 6, y0 + (5 - s + 0.5) * zh);
+        cx.save(); cx.translate(12, y0 + h / 2); cx.rotate(-Math.PI / 2); cx.textAlign = 'center'; cx.fillStyle = text; cx.fillText('Schwere →', 0, 0); cx.restore();
+      });
+    }
+
+    // ---------- Bedienung ----------
+    function neu(bau) { speichern(); if (bau) listeAufbauen(); zeigen(); }
+    (function () {
+      const v = $('vorlage'); Object.keys(VORLAGEN).forEach(function (k) { const o = document.createElement('option'); o.value = k; o.textContent = 'Vorlage: ' + VORLAGEN[k][0]; v.append(o); });
+      const k = $('katalog'); Object.keys(KATALOG).forEach(function (f) { const g = document.createElement('optgroup'); g.label = f + ' ' + KATALOG[f][0]; KATALOG[f][1].forEach(function (q, i) { const o = document.createElement('option'); o.value = f + '|' + i; o.textContent = q[0]; g.append(o); }); const o = document.createElement('option'); o.value = f + '|frei'; o.textContent = 'eigene Gefährdung (' + KATALOG[f][0] + ')'; g.append(o); k.append(g); });
+    })();
+    $('vorlageLaden').addEventListener('click', function () {
+      const v = VORLAGEN[$('vorlage').value]; let n = 0;
+      v[1].forEach(function (q) { const t = KATALOG[q[0]][1][q[1]][0]; if (P.gef.some(function (g) { return g.text === t; })) return; P.gef.push(ausKatalog(q[0], q[1])); n++; });
+      if (!P.kopf.taetigkeit) P.kopf.taetigkeit = v[0];
+      kopfAufbauen(); neu(true); $('teilenMeldung').textContent = n + ' Gefährdungen aus „' + v[0] + '“ übernommen.';
+    });
+    $('neueGef').addEventListener('click', function () {
+      const q = $('katalog').value.split('|');
+      if (q[1] === 'frei') P.gef.push({ id: neueId('g'), faktor: q[0], text: 'Neue Gefährdung', taetigkeit: '', w: 3, s: 3, w2: 2, s2: 3, massnahmen: [] });
+      else P.gef.push(ausKatalog(q[0], +q[1]));
+      neu(true);
+      const k = $('liste').lastElementChild; if (k && k.scrollIntoView) k.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    $('beispiel').addEventListener('click', function () { if (!window.confirm('Beispiel laden? Die aktuelle Beurteilung wird ersetzt.')) return; P = beispiel(); kopfAufbauen(); neu(true); });
+    $('leeren').addEventListener('click', function () { if (!window.confirm('Neue, leere Beurteilung beginnen? Die aktuelle wird ersetzt.')) return; const d = heute(0); P = { kopf: { betrieb: P.kopf.betrieb, bereich: '', taetigkeit: '', ersteller: P.kopf.ersteller, beteiligte: '', datum: d, naechste: plusMonate(d, 12), anlass: 'erstmalig' }, gef: [], unterschrift: { verantwortlich: '', sifa: '', betriebsrat: '' } }; kopfAufbauen(); neu(true); });
+    $('teilen').addEventListener('click', function () { Teilen.url('plan', P).then(function (url) { Teilen.kopieren(url, function (t) { $('teilenMeldung').textContent = t; setTimeout(function () { $('teilenMeldung').textContent = ''; }, 5000); }); }); });
+    const vorherKnopf = Teilen.knopf($('teilen').parentNode, SPEICHER, function (roh) {
+      let p = null; try { p = JSON.parse(roh); } catch (e) { p = null; }
+      if (!p || !pruefen(p)) return;
+      P = p; kopfAufbauen(); neu(true); $('teilenMeldung').textContent = 'Vorherige Beurteilung wiederhergestellt.';
+    }, 'Beurteilung');
+    $('teilen').parentNode.insertBefore($('teilen').parentNode.querySelector('.vorher-knopf'), $('teilenMeldung'));
+
+    // Grundlagen
+    (function () {
+      const z = $('sammlung');
+      [
+        ['Risiko', 'R = W \\cdot S', 'W: Wahrscheinlichkeit 1 (sehr selten) bis 5 (ständig), S: Schwere 1 (geringfügig) bis 5 (tödlich); 1–4 gering, 5–9 mittel, 10–15 hoch, 16–25 sehr hoch'],
+        ['STOP-Prinzip', 'S \\succ T \\succ O \\succ P', 'Substitution vor technischen vor organisatorischen vor persönlichen Maßnahmen (§ 4 ArbSchG, § 7 GefStoffV)'],
+        ['Ablauf', '\\text{Ermitteln} \\to \\text{Beurteilen} \\to \\text{Maßnahmen} \\to \\text{Umsetzen} \\to \\text{Wirksamkeit} \\to \\text{Fortschreiben}', 'Sieben Schritte nach der GDA-Leitlinie; Dokumentationspflicht nach § 6 ArbSchG'],
+        ['11 Gefährdungsfaktoren', '\\text{mechanisch, elektrisch, Gefahrstoffe, biologisch, Brand/Explosion, thermisch,}\\\\ \\text{physikalisch, Arbeitsumgebung, physisch, psychisch, sonstige}', 'Katalog der BAuA; psychische Belastung ausdrücklich nach § 5 Abs. 3 Nr. 6 ArbSchG'],
+        ['Überprüfung', 't_\\text{nächste} = t_\\text{Beurteilung} + 12\\ \\text{Monate}', 'üblicher Rhythmus; außerdem bei Änderungen, neuen Arbeitsmitteln, nach Unfällen und Beinaheunfällen']
+      ].forEach(function (q) { const s = document.createElement('section'), h = document.createElement('h3'), f = document.createElement('div'), p = document.createElement('p'); h.textContent = q[0]; Formel.setze(f, q[1], true); p.textContent = q[2]; s.append(h, f, p); z.append(s); });
+    })();
+    window.addEventListener('resize', function () { if (A) matrixZeichnen(); });
+    document.addEventListener('themawechsel', function () { if (A) matrixZeichnen(); });
+    (function puls() { phase += 0.05; if (A) matrixZeichnen(); setTimeout(function () { requestAnimationFrame(puls); }, 120); })();
+
+    kopfAufbauen(); listeAufbauen(); zeigen();
+    Teilen.lesen('plan').then(function (p) {
+      if (!p) return;
+      if (!pruefen(p)) throw new Error('ungültig');
+      const text = JSON.stringify(p), gesichert = Teilen.sichern(SPEICHER, text);
+      P = p; clearTimeout(uhr); try { localStorage.setItem(SPEICHER, text); } catch (e) { /* ohne Speicher */ }
+      kopfAufbauen(); neu(true); vorherKnopf.zeigen();
+      $('teilenMeldung').textContent = 'Beurteilung aus dem Link geladen und gespeichert.' + (gesichert ? ' Deine vorherige ist gesichert.' : '');
+    }).catch(function () { $('teilenMeldung').textContent = 'Der Link ist unvollständig oder beschädigt – es gilt die gespeicherte Beurteilung.'; });
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>
