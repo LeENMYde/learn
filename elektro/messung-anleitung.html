@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elektrische Messungen Schritt für Schritt – Formeln &amp; Rechner</title>
+  <meta name="description" content="Prüfung elektrischer Anlagen nach DIN VDE 0100-600 Schritt für Schritt mit Simulation: Spannungsfreiheit, Schutzleiter, Isolationswiderstand, Schleifenimpedanz, RCD-Prüfung und Drehfeld – wo die Messspitzen hingehören, was das Gerät misst, Grenzwerte und Bewertung.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/elektro/messung-anleitung.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Elektrische Messungen Schritt für Schritt">
+  <meta property="og:description" content="Prüfung elektrischer Anlagen nach DIN VDE 0100-600 Schritt für Schritt mit Simulation: Spannungsfreiheit, Schutzleiter, Isolationswiderstand, Schleifenimpedanz, RCD-Prüfung und Drehfeld – wo die Messspitzen hingehören, was das Gerät misst, Grenzwerte und Bewertung.">
+  <meta property="og:url" content="https://tools.pr1m3.de/elektro/messung-anleitung.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Elektrische Messungen Schritt für Schritt","url":"https://tools.pr1m3.de/elektro/messung-anleitung.html","inLanguage":"de","description":"Prüfung elektrischer Anlagen nach DIN VDE 0100-600 Schritt für Schritt mit Simulation: Spannungsfreiheit, Schutzleiter, Isolationswiderstand, Schleifenimpedanz, RCD-Prüfung und Drehfeld – wo die Messspitzen hingehören, was das Gerät misst, Grenzwerte und Bewertung.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .reiter-leiste { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+    .reiter-leiste button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 7px 14px; font: inherit; font-size: .92rem; cursor: pointer; }
+    .reiter-leiste button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .bereich { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 14px; align-items: start; }
+    #anweisung { display: none; margin: 6px 0 0; }
+    @media (max-width: 960px) { .bereich { grid-template-columns: minmax(0, 1fr); } .bereich > .sim-tafel { order: -1; } #anweisung { display: block; } }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster input, .raster select { padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .92rem; min-width: 0; width: 100%; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .schritte { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; }
+    .schritte li { counter-increment: s; position: relative; padding: 9px 10px 9px 42px; border-radius: var(--rund); margin: 4px 0; cursor: pointer; border: 1px solid transparent; }
+    .schritte li::before { content: counter(s); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; background: var(--linie); color: var(--text); font-size: .8rem; font-weight: 700; display: grid; place-items: center; }
+    .schritte li.aktiv { background: var(--flaeche2); border-color: var(--linie); }
+    .schritte li.aktiv::before { background: var(--akzent, #E4572E); color: #FFFFFF; }
+    .schritte li.fertig::before { content: '✓'; background: #2E8B57; color: #FFFFFF; }
+    .schritte b { display: block; font-family: var(--technik); }
+    .schritte span { font-size: .9rem; color: var(--leise); }
+    .warn { border-left: 4px solid #C0392B; background: var(--fehler-flaeche); padding: 8px 12px; border-radius: 6px; font-size: .9rem; margin: 8px 0; }
+    #sim { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); }
+    .stepper { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .stepper .status { color: var(--leise); font-size: .9rem; }
+    @media print { .reiter-leiste, .stepper { display: none !important; } .bereich { display: block; } #sim { max-height: 110mm; width: auto; max-width: 100%; } }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Elektrische Messungen</span></h1>
+      <p>Die Prüfung nach DIN VDE 0100-600 Schritt für Schritt: wo die Messspitzen hingehören, was das Messgerät tut, welcher Strom fließt, welcher Wert herauskommt und wie er bewertet wird. Mit Fehlern zum Ausprobieren – lockere Klemme, feuchte Dose, zu lange Leitung, träger Fehlerstromschutzschalter.</p>
+      <div class="warn">Messungen an elektrischen Anlagen nur durch Elektrofachkräfte mit geeignetem, geprüftem Messgerät (DIN EN 61557) und persönlicher Schutzausrüstung. Die Simulation ersetzt keine Ausbildung.</div>
+    </section>
+
+    <div class="reiter-leiste" role="group" aria-label="Messung wählen" id="reiter"></div>
+
+    <div class="bereich">
+      <section class="tafel" aria-labelledby="h-schritte">
+        <h2 id="h-schritte">Schritte</h2>
+        <p class="hilfe" id="kurz"></p>
+        <div class="raster" id="felder" data-nicht-merken></div>
+        <input type="hidden" id="mess-merken">
+        <ol class="schritte" id="schritte"></ol>
+      </section>
+      <section class="tafel sim-tafel" aria-labelledby="h-sim">
+        <h2 id="h-sim">Simulation</h2>
+        <canvas id="sim" role="img" aria-label="Schaltbild mit Messgerät und Messspitzen"></canvas>
+        <div class="stepper" data-nicht-merken>
+          <button type="button" class="knopf-leise" id="zurueck">← Schritt zurück</button>
+          <button type="button" class="knopf" id="weiter">Nächster Schritt →</button>
+          <span class="status" id="stand"></span>
+        </div>
+        <p class="hilfe" id="anweisung" aria-hidden="true"></p>
+        <div class="kopf-zeile"><h3 class="zwischen">Ergebnis</h3><span class="urteil" id="urteil"></span></div>
+        <div class="meldungen" id="meldungen"></div>
+        <div class="kacheln" id="kacheln"></div>
+      </section>
+    </div>
+
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg</h2>
+      <ol class="weg" id="weg"></ol>
+      <p class="hilfe">Gemessene Werte lassen sich direkt im <a href="../protokolle/elektro.html">Elektro-Prüfprotokoll</a> eintragen.</p>
+    </section>
+
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung und Grenzwerte</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">DIN VDE 0100-600 (Erstprüfung), DIN VDE 0105-100 (Betrieb, fünf Sicherheitsregeln), DIN EN 61557 (Messgeräte), DIN VDE 0100-410 (Abschaltbedingungen), DIN EN 61008/61009 (Fehlerstromschutzschalter), DGUV Vorschrift 3. Die Werte der Simulation sind berechnete Beispiele; gemessen wird an der echten Anlage.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    const RHO = 0.0178, U0 = 230;
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; return (Math.round(w * Math.pow(10, n || 0)) / Math.pow(10, n || 0)).toFixed(n || 0).replace('.', ','); }
+    function lies(t) { const s = String(t).trim().replace(',', '.'); return s === '' ? NaN : Number(s); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+
+    // ---------- Messungen ----------
+    // Punkte im Schaltbild (0..1): Verteiler links, Steckdose rechts, Messgerät unten
+    const PKT = { VL: [0.2, 0.22], VN: [0.2, 0.34], VPE: [0.2, 0.46], SL: [0.8, 0.22], SN: [0.8, 0.34], SPE: [0.8, 0.46], M: [0.5, 0.82] };
+    const M = {
+      frei: {
+        name: 'Spannungsfreiheit', kurz: 'Vor jeder Arbeit und vor den Messungen ohne Spannung: die fünf Sicherheitsregeln nach DIN VDE 0105-100.',
+        felder: [['fehler', 'Situation', [['ok', 'richtig freigeschaltet'], ['falsch', 'falscher Stromkreis abgeschaltet']]]],
+        schritte: [
+          ['Freischalten', 'Leitungsschutzschalter bzw. Sicherung des Stromkreises allpolig ausschalten.'],
+          ['Gegen Wiedereinschalten sichern', 'Sperrelement oder Schloss am Schalter, Schild „Nicht schalten – es wird gearbeitet“.'],
+          ['Spannungsprüfer prüfen', 'Zweipoligen Spannungsprüfer (DIN EN 61243-3) an einer bekannten Spannungsquelle testen.'],
+          ['Spannungsfreiheit feststellen', 'An der Arbeitsstelle allpolig messen: L–N, L–PE, N–PE. Danach den Spannungsprüfer erneut an der bekannten Quelle testen.'],
+          ['Erden, kurzschließen, abdecken', 'Bei Anlagen über 1 kV und bei Freileitungen erden und kurzschließen; benachbarte, unter Spannung stehende Teile abdecken.']
+        ]
+      },
+      pe: {
+        name: 'Schutzleiter', kurz: 'Durchgängigkeit des Schutzleiters und des Schutzpotentialausgleichs mit mindestens 200 mA Prüfstrom (DIN EN 61557-4).',
+        felder: [['l', 'Leitungslänge m', 1, 200, 20], ['a', 'Querschnitt PE mm²', [[1.5, '1,5 mm²'], [2.5, '2,5 mm²'], [4, '4 mm²'], [6, '6 mm²'], [10, '10 mm²']]], ['fehler', 'Fehler', [['ok', 'keiner'], ['klemme', 'lockere Klemme (+0,8 Ω)'], ['bruch', 'Schutzleiter unterbrochen']]]],
+        schritte: [
+          ['Freischalten', 'Stromkreis freischalten, sichern, Spannungsfreiheit feststellen (Reiter „Spannungsfreiheit“).'],
+          ['Messleitungen kompensieren', 'Gerät auf R_LO (≥ 200 mA), Messspitzen kurzschließen und Nullabgleich drücken – sonst zählt der Widerstand der Messleitungen mit.'],
+          ['Anklemmen', 'Eine Messspitze an die PE-Schiene im Verteiler, die andere an den Schutzkontakt der Steckdose (lange Messleitung oder Verlängerung).'],
+          ['Messen in beiden Richtungen', 'Messung starten, dann die Polarität tauschen: Beide Werte müssen gleich sein, sonst stimmt eine Klemmstelle nicht.'],
+          ['Bewerten', 'Messwert mit dem berechneten Leitungswiderstand vergleichen; deutlich höher heißt lockere Klemme oder Unterbrechung.']
+        ]
+      },
+      iso: {
+        name: 'Isolationswiderstand', kurz: 'Isolationswiderstand zwischen den aktiven Leitern und dem Schutzleiter mit Gleichspannung (DIN EN 61557-2).',
+        felder: [['un', 'Stromkreis', [['500', '230/400 V: 500 V, ≥ 1 MΩ'], ['250', 'SELV/PELV: 250 V, ≥ 0,5 MΩ'], ['1000', 'über 500 V: 1 000 V, ≥ 1 MΩ']]], ['fehler', 'Zustand', [['ok', 'in Ordnung'], ['feucht', 'feuchte Abzweigdose (0,6 MΩ)'], ['fehler', 'beschädigte Ader (0,02 MΩ)'], ['last', 'Verbraucher nicht abgeklemmt']]]],
+        schritte: [
+          ['Freischalten', 'Stromkreis freischalten, sichern, Spannungsfreiheit feststellen.'],
+          ['Verbraucher trennen', 'Stecker ziehen, fest angeschlossene Geräte und Überspannungsschutz abklemmen, Schalter einschalten, damit alle Leitungsteile erfasst werden.'],
+          ['L und N verbinden', 'L und N am Verteiler brücken und gemeinsam gegen PE messen – so prüft man beide aktiven Leiter auf einmal.'],
+          ['Prüfspannung anlegen', 'Gleichspannung anlegen und den Wert ablesen, wenn er stabil ist. Nicht berühren: Die Leitung lädt sich auf.'],
+          ['Entladen und bewerten', 'Gerät entlädt die Leitung; Messwert mit dem Mindestwert vergleichen, Brücke wieder entfernen.']
+        ]
+      },
+      zs: {
+        name: 'Schleifenimpedanz', kurz: 'Fehlerschleifenimpedanz L–PE und Kurzschlussstrom – reicht der Strom, damit der Schutzschalter im Fehlerfall schnell genug auslöst? (DIN EN 61557-3)',
+        felder: [['ls', 'Schutzorgan', [['B10', 'B 10 A'], ['B16', 'B 16 A'], ['B20', 'B 20 A'], ['C16', 'C 16 A'], ['C32', 'C 32 A']]], ['l', 'Leitungslänge m', 1, 300, 25], ['a', 'Querschnitt mm²', [[1.5, '1,5 mm²'], [2.5, '2,5 mm²'], [4, '4 mm²'], [6, '6 mm²']]], ['zv', 'Impedanz bis Verteiler Ω', 0.05, 3, 0.35], ['fehler', 'Fehler', [['ok', 'keiner'], ['klemme', 'Übergangswiderstand (+0,5 Ω)'], ['lose', 'verschmorte Klemme (+3 Ω)']]]],
+        schritte: [
+          ['Unter Spannung messen', 'Diese Messung braucht die Netzspannung: Stromkreis eingeschaltet lassen, persönliche Schutzausrüstung, geprüfter Prüfstecker.'],
+          ['Prüfstecker einstecken', 'Prüfstecker in die Steckdose; das Gerät zeigt Spannung L–N und L–PE und prüft, ob PE angeschlossen ist.'],
+          ['Messen', 'Das Gerät belastet die Schleife L → PE für wenige Millisekunden mit einem Prüfstrom und misst den Spannungseinbruch.'],
+          ['Ablesen', 'Fehlerschleifenimpedanz Z_S und daraus den Kurzschlussstrom I_k = U₀ / Z_S.'],
+          ['Bewerten', 'Z_S muss so klein sein, dass der Schutzschalter in 0,4 s abschaltet; gemessen gilt: Z_S ≤ 2/3 · U₀ / I_a (Erwärmung der Leitung im Fehlerfall).']
+        ]
+      },
+      rcd: {
+        name: 'Fehlerstromschutzschalter', kurz: 'Auslösezeit, Auslösestrom und Berührungsspannung des Fehlerstromschutzschalters (RCD, DIN EN 61557-6).',
+        felder: [['idn', 'Bemessungsfehlerstrom', [[30, '30 mA'], [100, '100 mA'], [300, '300 mA']]], ['ra', 'Erdungs-/Schleifenwiderstand Ω', 0.1, 2000, 1.2], ['fehler', 'Zustand', [['ok', 'in Ordnung'], ['traege', 'träge (löst bei 1 × I_Δn nach 360 ms aus)'], ['defekt', 'defekt (löst nicht aus)']]]],
+        schritte: [
+          ['Vorbereiten', 'Stromkreis eingeschaltet; Verbraucher mit Ableitströmen (Computer, Umrichter) abziehen, sonst verfälschen sie die Messung. Prüfstecker hinter dem RCD einstecken.'],
+          ['Berührungsspannung', 'Das Gerät schickt einen kleinen Strom (etwa 1/3 I_Δn) von L nach PE, ohne auszulösen, und rechnet auf I_Δn hoch: U_B = I_Δn · R.'],
+          ['Auslösen bei 1 × I_Δn', 'Fehlerstrom gleich dem Bemessungsfehlerstrom: Der RCD muss innerhalb von 300 ms auslösen.'],
+          ['Auslösen bei 5 × I_Δn und Rampe', 'Fünffacher Fehlerstrom: höchstens 40 ms. Mit der Rampe steigt der Strom an, bis der RCD auslöst – zwischen 50 % und 100 % von I_Δn.'],
+          ['Prüftaste und bewerten', 'RCD einschalten, Prüftaste drücken: Er muss mechanisch auslösen. Werte mit den Grenzwerten vergleichen.']
+        ]
+      },
+      dreh: {
+        name: 'Drehfeld', kurz: 'Drehrichtung an Drehstromsteckdosen und -anschlüssen: Rechtsdrehfeld L1 → L2 → L3, sonst laufen Motoren falsch herum.',
+        felder: [['fehler', 'Anschluss', [['ok', 'L1, L2, L3 richtig'], ['tausch', 'L2 und L3 vertauscht']]]],
+        schritte: [
+          ['Unter Spannung messen', 'Stromkreis eingeschaltet, persönliche Schutzausrüstung.'],
+          ['Anschließen', 'Drehfeldanzeiger mit CEE-Adapter einstecken oder Messspitzen an L1, L2, L3 – Reihenfolge wie beschriftet.'],
+          ['Ablesen', 'Anzeige „R“ bzw. rechtsdrehend: in Ordnung; „L“: zwei Außenleiter tauschen.'],
+          ['Spannungen prüfen', 'Zusätzlich die Außenleiterspannungen L1–L2, L2–L3, L3–L1 (je etwa 400 V) und L–N (230 V) messen.'],
+          ['Bewerten', 'Rechtsdrehfeld und alle drei Spannungen vorhanden – sonst fehlt eine Phase oder der Anschluss ist vertauscht.']
+        ]
+      }
+    };
+    const REIHE = ['frei', 'pe', 'iso', 'zs', 'rcd', 'dreh'];
+    let akt = 'frei', schritt = 0;
+    const werte = {};
+    REIHE.forEach(function (k) { werte[k] = {}; M[k].felder.forEach(function (f) { werte[k][f[0]] = Array.isArray(f[2]) ? f[2][0][0] : f[4]; }); });
+
+    // ---------- Rechnen ----------
+    function rechne(k, w) {
+      const r = { ok: null, kach: [], weg: [], meld: [] };
+      if (k === 'frei') {
+        r.U = w.fehler === 'falsch' ? 230 : 0;
+        r.ok = r.U < 1;
+        r.anzeige = schritt >= 3 ? zahl(r.U, 0) + ' V' : schritt === 2 ? '230 V (Test)' : '– – –';
+        r.kach = [[r.U < 1 ? 'spannungsfrei' : '230 V!', 'Ergebnis an der Arbeitsstelle', r.U < 1 ? '#2E8B57' : '#C0392B']];
+        if (!r.ok) r.meld.push(['Spannung an der Arbeitsstelle: Der falsche Stromkreis wurde abgeschaltet. Nie ohne Feststellen der Spannungsfreiheit arbeiten!', true]);
+        r.weg = [['Spannung zwischen allen Leitern', 'U_\\text{L-N} = U_\\text{L-PE} = U_\\text{N-PE} = ' + E(tz(r.U, 0) + '\\,\\text{V}')]];
+        return r;
+      }
+      if (k === 'pe') {
+        r.Rl = RHO * w.l / w.a; r.Rue = 0.05; r.Rmess = 0.15;
+        r.R = w.fehler === 'bruch' ? Infinity : r.Rl + r.Rue + (w.fehler === 'klemme' ? 0.8 : 0);
+        r.anzeige = schritt < 1 ? '– – –' : schritt === 1 ? '0,00 Ω' : schritt === 2 ? 'bereit' : isFinite(r.R) ? zahl(r.R, 2) + ' Ω' : '> 2 kΩ';
+        r.grenze = r.Rl + 0.2;
+        r.ok = isFinite(r.R) && r.R <= r.grenze && r.R <= 1;
+        r.kach = [[isFinite(r.R) ? zahl(r.R, 2) + ' Ω' : 'offen', 'Messwert R_PE', r.ok ? '#2E8B57' : '#C0392B'], [zahl(r.Rl, 3) + ' Ω', 'berechneter Leitungswiderstand', '#2B7BB9'], ['≥ 200 mA', 'Prüfstrom', '#6E6FA6']];
+        if (!r.ok) r.meld.push([isFinite(r.R) ? 'Messwert deutlich über dem Leitungswiderstand: Klemmstellen prüfen und nachziehen.' : 'Kein Durchgang: Schutzleiter unterbrochen – Stromkreis darf nicht in Betrieb.', true]);
+        r.weg = [['Leitungswiderstand', 'R_\\text{L} = \\frac{\\rho \\cdot l}{A} = \\frac{0{,}0178 \\cdot ' + tz(w.l, 0) + '}{' + tz(w.a, 1) + '} = ' + E(tz(r.Rl, 3) + '\\,\\Omega')], ['Erwartet mit Übergängen', 'R_\\text{PE} \\approx ' + tz(r.Rl, 3) + ' + 0{,}05 = ' + E(tz(r.Rl + 0.05, 3) + '\\,\\Omega')], ['Ohne Nullabgleich', 'R_\\text{angezeigt} = R_\\text{PE} + R_\\text{Messleitungen} \\approx ' + tz((isFinite(r.R) ? r.R : 0) + 0.15, 2) + '\\,\\Omega']];
+        return r;
+      }
+      if (k === 'iso') {
+        const up = +w.un, min = up === 250 ? 0.5 : 1;
+        r.R = w.fehler === 'feucht' ? 0.6 : w.fehler === 'fehler' ? 0.02 : 299;
+        r.min = min;
+        r.ok = r.R >= min && w.fehler !== 'last';
+        r.I = up / (r.R * 1e6) * 1000;
+        r.anzeige = schritt < 3 ? '– – –' : r.R > 200 ? '> 200 MΩ' : zahl(r.R, 2) + ' MΩ';
+        r.kach = [[r.R > 200 ? '> 200 MΩ' : zahl(r.R, 2) + ' MΩ', 'Isolationswiderstand', r.ok ? '#2E8B57' : '#C0392B'], ['≥ ' + zahl(min, 1) + ' MΩ', 'Mindestwert', '#2B7BB9'], [up + ' V DC', 'Prüfspannung', '#6E6FA6']];
+        if (w.fehler === 'last') r.meld.push(['Verbraucher nicht abgeklemmt: Bei L+N gegen PE bleibt der Messwert gültig, aber Elektronik und Überspannungsschutz können durch die Prüfspannung beschädigt werden oder den Wert verfälschen. Vorher trennen!', true]);
+        if (r.R < min) r.meld.push(['Isolationswiderstand zu klein: Fehler eingrenzen, indem Leitungsabschnitte nacheinander getrennt gemessen werden.', true]);
+        r.weg = [['Strom durch die Isolation', 'I = \\frac{U}{R_\\text{iso}} = \\frac{' + up + '\\,\\text{V}}{' + tz(r.R, 2) + '\\,\\text{M}\\Omega} = ' + E(tz(r.I, 4) + '\\,\\text{mA}')], ['Bewertung', 'R_\\text{iso} ' + (r.R >= min ? '\\ge' : '<') + ' ' + tz(min, 1) + '\\,\\text{M}\\Omega']];
+        return r;
+      }
+      if (k === 'zs') {
+        const In = +w.ls.slice(1), fak = w.ls[0] === 'B' ? 5 : 10;
+        r.Ia = fak * In;
+        r.Zl = 2 * RHO * w.l / w.a;
+        r.Zf = { klemme: 0.5, lose: 3 }[w.fehler] || 0;
+        r.Z = w.zv + r.Zl + r.Zf;
+        r.Ik = U0 / r.Z;
+        r.Zmax = U0 / r.Ia; r.Zmess = 2 / 3 * r.Zmax;
+        r.ok = r.Z <= r.Zmess;
+        r.anzeige = schritt < 1 ? '– – –' : schritt === 1 ? '230 V' : schritt === 2 ? 'misst …' : zahl(r.Z, 2) + ' Ω';
+        r.kach = [[zahl(r.Z, 2) + ' Ω', 'Schleifenimpedanz Z_S', r.ok ? '#2E8B57' : '#C0392B'], [zahl(r.Ik, 0) + ' A', 'Kurzschlussstrom I_k', '#E4572E'], [zahl(r.Zmess, 2) + ' Ω', 'höchstens zulässig (2/3 · U₀/I_a)', '#2B7BB9'], [zahl(r.Ia, 0) + ' A', 'Auslösestrom ' + w.ls + ' (' + fak + ' × I_n)', '#6E6FA6']];
+        if (!r.ok) r.meld.push(['Schleifenimpedanz zu groß: Der Schutzschalter löst im Fehlerfall nicht schnell genug aus. Größerer Querschnitt, kürzere Leitung, kleinerer Schutzschalter, Typ B statt C oder zusätzlicher RCD.', true]);
+        if (r.Z > r.Zmess && r.Z <= r.Zmax) r.meld.push(['Der Wert liegt unter U₀/I_a, aber über 2/3 davon: bei warmer Leitung im Fehlerfall reicht es nicht.', false]);
+        r.weg = [['Leitung hin und zurück', 'Z_\\text{L} = \\frac{2 \\cdot 0{,}0178 \\cdot ' + tz(w.l, 0) + '}{' + tz(w.a, 1) + '} = ' + tz(r.Zl, 3) + '\\,\\Omega'], ['Schleifenimpedanz', 'Z_\\text{S} = ' + tz(w.zv, 2) + ' + ' + tz(r.Zl, 3) + (r.Zf ? ' + ' + tz(r.Zf, 1) : '') + ' = ' + E(tz(r.Z, 2) + '\\,\\Omega')], ['Kurzschlussstrom', 'I_\\text{k} = \\frac{230}{' + tz(r.Z, 2) + '} = ' + E(tz(r.Ik, 0) + '\\,\\text{A}')], ['Grenzwert', 'Z_\\text{S} \\le \\frac{2}{3} \\cdot \\frac{230}{' + tz(r.Ia, 0) + '} = ' + E(tz(r.Zmess, 2) + '\\,\\Omega')]];
+        return r;
+      }
+      if (k === 'rcd') {
+        const idn = +w.idn / 1000;
+        r.Ub = idn * w.ra; r.ok = true;
+        r.t1 = w.fehler === 'defekt' ? Infinity : w.fehler === 'traege' ? 360 : 22;
+        r.t5 = w.fehler === 'defekt' ? Infinity : w.fehler === 'traege' ? 48 : 12;
+        r.ia = w.fehler === 'defekt' ? Infinity : 0.72 * w.idn;
+        r.ok = r.Ub <= 50 && r.t1 <= 300 && r.t5 <= 40;
+        r.anzeige = schritt < 1 ? '– – –' : schritt === 1 ? 'U_B ' + zahl(r.Ub, 1) + ' V' : schritt === 2 ? (isFinite(r.t1) ? zahl(r.t1, 0) + ' ms' : '> 300 ms') : schritt === 3 ? (isFinite(r.t5) ? zahl(r.t5, 0) + ' ms' : '> 40 ms') : r.ok ? 'i. O.' : 'n. i. O.';
+        r.kach = [[zahl(r.Ub, 1) + ' V', 'Berührungsspannung bei I_Δn (≤ 50 V)', r.Ub <= 50 ? '#2E8B57' : '#C0392B'], [isFinite(r.t1) ? zahl(r.t1, 0) + ' ms' : 'keine', 'Auslösezeit 1 × I_Δn (≤ 300 ms)', r.t1 <= 300 ? '#2E8B57' : '#C0392B'], [isFinite(r.t5) ? zahl(r.t5, 0) + ' ms' : 'keine', 'Auslösezeit 5 × I_Δn (≤ 40 ms)', r.t5 <= 40 ? '#2E8B57' : '#C0392B'], [isFinite(r.ia) ? zahl(r.ia, 1) + ' mA' : '–', 'Auslösestrom (50 bis 100 % I_Δn)', '#6E6FA6']];
+        if (r.Ub > 50) r.meld.push(['Berührungsspannung über 50 V: Erdung bzw. Schutzleiter verbessern.', true]);
+        if (r.t1 > 300 || r.t5 > 40) r.meld.push([isFinite(r.t1) ? 'Auslösezeit zu lang: RCD tauschen.' : 'RCD löst nicht aus: sofort tauschen, Stromkreis bis dahin außer Betrieb.', true]);
+        r.weg = [['Berührungsspannung', 'U_\\text{B} = I_{\\Delta n} \\cdot R = ' + tz(idn, 3) + '\\,\\text{A} \\cdot ' + tz(w.ra, 2) + '\\,\\Omega = ' + E(tz(r.Ub, 2) + '\\,\\text{V}')], ['Größter Erdungswiderstand', 'R_\\text{max} = \\frac{50\\,\\text{V}}{' + tz(idn, 3) + '\\,\\text{A}} = ' + E(tz(50 / idn, 0) + '\\,\\Omega')]];
+        return r;
+      }
+      // Drehfeld
+      r.rechts = w.fehler === 'ok'; r.ok = r.rechts;
+      r.anzeige = schritt < 2 ? '– – –' : schritt === 3 ? '400 V' : r.rechts ? 'R ↻' : 'L ↺';
+      r.kach = [[r.rechts ? 'rechts' : 'links', 'Drehfeld', r.rechts ? '#2E8B57' : '#C0392B'], ['400 V', 'Außenleiterspannung', '#2B7BB9']];
+      if (!r.rechts) r.meld.push(['Linksdrehfeld: Zwei Außenleiter (z. B. L2 und L3) im spannungsfreien Zustand tauschen.', true]);
+      r.weg = [['Außenleiterspannung', 'U = \\sqrt{3} \\cdot 230\\,\\text{V} = ' + E(tz(Math.sqrt(3) * 230, 0) + '\\,\\text{V}')], ['Phasenfolge', '\\varphi_{L2} = \\varphi_{L1} - 120^\\circ,\\ \\varphi_{L3} = \\varphi_{L1} - 240^\\circ']];
+      return r;
+    }
+
+    // ---------- Oberfläche ----------
+    let R = null;
+    function reiterBauen() {
+      const z = $('reiter'); z.innerHTML = '';
+      REIHE.forEach(function (k, i) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = (i + 1) + ' ' + M[k].name; b.setAttribute('aria-pressed', String(k === akt));
+        b.addEventListener('click', function () { akt = k; schritt = 0; reiterBauen(); felderBauen(); neu(); });
+        z.append(b);
+      });
+    }
+    function felderBauen() {
+      const z = $('felder'); z.innerHTML = '';
+      $('kurz').textContent = M[akt].kurz;
+      M[akt].felder.forEach(function (f) {
+        const l = document.createElement('label'); l.textContent = f[1];
+        let e;
+        if (Array.isArray(f[2])) {
+          e = document.createElement('select'); f[2].forEach(function (o) { const op = document.createElement('option'); op.value = String(o[0]); op.textContent = o[1]; e.append(op); });
+          e.value = String(werte[akt][f[0]]);
+          e.addEventListener('change', function () { werte[akt][f[0]] = typeof f[2][0][0] === 'number' ? +e.value : e.value; neu(); });
+        } else {
+          e = document.createElement('input'); e.type = 'text'; e.inputMode = 'decimal'; e.value = String(werte[akt][f[0]]).replace('.', ',');
+          e.addEventListener('input', function () { const v = lies(e.value), ok = isFinite(v) && v >= f[2] && v <= f[3]; e.classList.toggle('falsch', !ok); if (ok) { werte[akt][f[0]] = v; neu(); } });
+          e.addEventListener('blur', function () { e.classList.remove('falsch'); e.value = String(werte[akt][f[0]]).replace('.', ','); });
+        }
+        e.id = 'f-' + akt + '-' + f[0];
+        l.append(e); z.append(l);
+      });
+    }
+    function schritteBauen() {
+      const z = $('schritte'); z.innerHTML = '';
+      M[akt].schritte.forEach(function (s, i) {
+        const li = document.createElement('li'); li.className = i === schritt ? 'aktiv' : i < schritt ? 'fertig' : '';
+        const b = document.createElement('b'); b.textContent = s[0]; const t = document.createElement('span'); t.textContent = s[1];
+        li.append(b, t); li.tabIndex = 0; li.setAttribute('role', 'button');
+        li.addEventListener('click', function () { schritt = i; neu(); });
+        li.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); schritt = i; neu(); } });
+        z.append(li);
+      });
+      $('anweisung').textContent = M[akt].schritte[schritt][1];
+      $('stand').textContent = 'Schritt ' + (schritt + 1) + ' von ' + M[akt].schritte.length + ': ' + M[akt].schritte[schritt][0];
+      $('zurueck').disabled = schritt === 0; $('weiter').textContent = schritt === M[akt].schritte.length - 1 ? 'Von vorn ↺' : 'Nächster Schritt →';
+    }
+    $('weiter').addEventListener('click', function () { schritt = schritt >= M[akt].schritte.length - 1 ? 0 : schritt + 1; neu(); });
+    $('zurueck').addEventListener('click', function () { if (schritt > 0) schritt--; neu(); });
+    // Alle Messungen, gewählte Messung und Schritt für Merken und Teilen-Link (basis.js liest das versteckte Feld)
+    $('mess-merken').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      if (a.werte && typeof a.werte === 'object') REIHE.forEach(function (k) {
+        const q = a.werte[k]; if (!q || typeof q !== 'object') return;
+        M[k].felder.forEach(function (f) {
+          const v = q[f[0]];
+          if (Array.isArray(f[2])) { const o = f[2].filter(function (o) { return String(o[0]) === String(v); })[0]; if (o) werte[k][f[0]] = o[0]; }
+          else if (typeof v === 'number' && isFinite(v) && v >= f[2] && v <= f[3]) werte[k][f[0]] = v;
+        });
+      });
+      if (REIHE.indexOf(a.akt) >= 0) akt = a.akt;
+      schritt = typeof a.schritt === 'number' && a.schritt >= 0 && a.schritt < M[akt].schritte.length ? Math.floor(a.schritt) : 0;
+      reiterBauen(); felderBauen(); neu();
+    });
+    function neu() {
+      $('mess-merken').value = JSON.stringify({ akt: akt, schritt: schritt, werte: werte });
+      R = rechne(akt, werte[akt]);
+      schritteBauen();
+      const fertig = schritt === M[akt].schritte.length - 1;
+      const u = $('urteil'); u.textContent = !fertig ? 'Messung läuft' : R.ok ? 'in Ordnung' : 'nicht in Ordnung'; u.className = 'urteil' + (!fertig ? '' : R.ok ? ' gut' : ' schlecht');
+      const mel = $('meldungen'); mel.innerHTML = '';
+      R.meld.forEach(function (m) { const d = document.createElement('div'); d.className = 'hinweis' + (m[1] ? ' fehler' : ''); d.textContent = m[0]; mel.append(d); });
+      const k = $('kacheln'); k.innerHTML = '';
+      R.kach.forEach(function (q) { const d = document.createElement('div'); d.className = 'kachel'; d.style.setProperty('--farbe', q[2]); const w = document.createElement('div'); w.className = 'wert'; w.textContent = q[0]; const s = document.createElement('small'); s.textContent = q[1]; d.append(w, s); k.append(d); });
+      const o = $('weg'); o.innerHTML = '';
+      R.weg.forEach(function (q) { const li = document.createElement('li'), t = document.createElement('div'), r = document.createElement('div'); t.className = 'titel'; t.textContent = q[0]; r.className = 'rechnung'; Formel.setze(r, q[1], true); li.append(t, r); o.append(li); });
+      groesse();
+    }
+
+    // ---------- Simulation ----------
+    const cv = $('sim'), cx = cv.getContext('2d');
+    let B = 600, H = 380;
+    function groesse() { const d = window.devicePixelRatio || 1; B = Math.max(280, cv.parentNode.clientWidth); H = Math.round(Math.max(300, Math.min(440, B * 0.62))); cv.style.height = H + 'px'; cv.width = Math.round(B * d); cv.height = Math.round(H * d); cx.setTransform(d, 0, 0, d, 0, 0); }
+    function P(p) { return [p[0] * B, p[1] * H]; }
+    function f(n) { return Thema.farbe(n); }
+    function linie(pts, farbe, w, strich) { cx.strokeStyle = farbe; cx.lineWidth = w || 2; cx.setLineDash(strich || []); cx.beginPath(); pts.forEach(function (p, i) { const q = P(p); if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.stroke(); cx.setLineDash([]); }
+    function text(t, p, opt) { opt = opt || {}; const q = P(p); cx.fillStyle = opt.f || f('--text'); cx.font = (opt.b ? '700 ' : '600 ') + (opt.g || 12) + 'px ' + (f('--technik') || 'sans-serif'); cx.textAlign = opt.a || 'center'; cx.textBaseline = 'middle'; cx.fillText(t, q[0], q[1]); }
+    // Strom als wandernde Punkte entlang eines Pfads
+    function strom(pts, t, farbe) {
+      const P2 = pts.map(P); let lang = 0; const seg = [];
+      for (let i = 1; i < P2.length; i++) { const l = Math.hypot(P2[i][0] - P2[i - 1][0], P2[i][1] - P2[i - 1][1]); seg.push(l); lang += l; }
+      cx.fillStyle = farbe || '#F2A541';
+      for (let d = (t * 0.09) % 22; d < lang; d += 22) {
+        let rest = d, i = 0; while (i < seg.length && rest > seg[i]) { rest -= seg[i]; i++; }
+        if (i >= seg.length) break;
+        const a = P2[i], b = P2[i + 1], u = rest / seg[i];
+        cx.beginPath(); cx.arc(a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, 3.5, 0, 2 * Math.PI); cx.fill();
+      }
+    }
+    function bahn(von, z) {
+      // Messleitung: senkrecht nach oben, waagrecht unter den Leitern entlang, dann von unten an die Messstelle;
+      // jede Leitung bekommt eigene Höhe und seitlichen Versatz, damit sich nichts überdeckt
+      const yb = 0.62 + (von[0] - 0.4) * 0.2, dx = (von[0] - 0.5) * 0.12;
+      return [von, [von[0], yb], [z[0] + dx, yb], [z[0] + dx, z[1]], z];
+    }
+    function rueck(a) { return a.slice().reverse(); }
+    function spitze(von, nach, farbe, t, an) {
+      // beim Anklemmen fährt die Spitze heran
+      const z = an ? nach : [von[0] + (nach[0] - von[0]) * 0.6, von[1] + (nach[1] - von[1]) * 0.6 + 0.04 * Math.sin(t / 400)];
+      linie(bahn(von, z), farbe, 3);
+      const q = P(z); cx.fillStyle = farbe; cx.beginPath(); cx.arc(q[0], q[1], 6, 0, 2 * Math.PI); cx.fill();
+    }
+    function zeichnen(t) {
+      if (!R) return;
+      const w = werte[akt], tx = f('--text'), leise = f('--leise'), fl = f('--flaeche');
+      cx.clearRect(0, 0, B, H);
+      const braun = '#8B5A2B', blau = '#2B7BB9', gg = '#4C9F38';
+      const spannung = akt === 'zs' || akt === 'rcd' || akt === 'dreh' || (akt === 'frei' && (schritt < 1 || w.fehler === 'falsch')) || ((akt === 'pe' || akt === 'iso') && false);
+      // Verteiler
+      const v1 = P([0.04, 0.1]), v2 = P([0.24, 0.58]);
+      cx.fillStyle = fl; cx.strokeStyle = tx; cx.lineWidth = 2; cx.fillRect(v1[0], v1[1], v2[0] - v1[0], v2[1] - v1[1]); cx.strokeRect(v1[0], v1[1], v2[0] - v1[0], v2[1] - v1[1]);
+      text('Verteiler', [0.14, 0.07], { g: 11, f: leise });
+      // Schutzschalter: offen, wenn freigeschaltet
+      const aus = !spannung, q1 = P([0.08, 0.22]), q2 = P([0.14, 0.22]);
+      linie([[0.04, 0.22], [0.08, 0.22]], braun, 3);
+      cx.strokeStyle = aus ? '#C0392B' : '#2E8B57'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(q1[0], q1[1]); cx.lineTo(q2[0], q2[1] - (aus ? 12 : 0)); cx.stroke();
+      text(akt === 'rcd' ? 'RCD' : akt === 'dreh' ? '3 × LS' : 'LS', [0.11, 0.15], { g: 10, f: aus ? '#C0392B' : '#2E8B57' });
+      if (aus && schritt >= 1 && (akt === 'frei' || akt === 'pe' || akt === 'iso')) { const s = P([0.11, 0.28]); cx.fillStyle = '#F2A541'; cx.fillRect(s[0] - 9, s[1] - 6, 18, 12); text('🔒', [0.11, 0.28], { g: 10 }); }
+      // Leiter zur Steckdose
+      const pe = w.fehler === 'bruch' && akt === 'pe';
+      linie([[0.14, 0.22], PKT.SL], braun, 4);
+      linie([PKT.VN, PKT.SN], blau, 4);
+      if (pe) { linie([PKT.VPE, [0.58, 0.46]], gg, 4); linie([[0.64, 0.46], PKT.SPE], gg, 4); text('✂', [0.61, 0.43], { g: 14, f: '#C0392B' }); }
+      else linie([PKT.VPE, PKT.SPE], gg, 4, [10, 4]);
+      if (akt === 'dreh') { linie([[0.14, 0.28], [0.8, 0.28]], tx, 4); linie([[0.14, 0.4], [0.8, 0.4]], '#6B7785', 4); }
+      text(akt === 'dreh' ? 'L1' : 'L', [0.27, 0.19], { g: 11, f: braun }); text('N', [0.27, 0.31], { g: 11, f: blau }); text('PE', [0.27, 0.43], { g: 11, f: gg });
+      if (akt === 'dreh') { text('L2', [0.27, 0.25], { g: 11 }); text('L3', [0.27, 0.37], { g: 11 }); }
+      // Klemmstelle mit Übergangswiderstand bzw. Isolationsfehler
+      if ((akt === 'pe' || akt === 'zs') && w.fehler === 'klemme') { const k = P([0.66, akt === 'pe' ? 0.46 : 0.22]); cx.strokeStyle = '#C0392B'; cx.lineWidth = 2; cx.strokeRect(k[0] - 10, k[1] - 7, 20, 14); text('R_Ü', [0.66, (akt === 'pe' ? 0.46 : 0.22) - 0.06], { g: 10, f: '#C0392B' }); }
+      if (akt === 'iso' && (w.fehler === 'feucht' || w.fehler === 'fehler')) { const a = P([0.55, 0.22]), b = P([0.55, 0.46]); cx.strokeStyle = '#C0392B'; cx.lineWidth = 2; cx.setLineDash([3, 3]); cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b[0], b[1]); cx.stroke(); cx.setLineDash([]); text(w.fehler === 'feucht' ? 'Feuchte' : 'Ader beschädigt', [0.55, 0.52], { g: 10, f: '#C0392B' }); }
+      // Steckdose
+      const s1 = P([0.76, 0.12]), s2 = P([0.94, 0.56]);
+      cx.fillStyle = fl; cx.strokeStyle = tx; cx.lineWidth = 2; cx.fillRect(s1[0], s1[1], s2[0] - s1[0], s2[1] - s1[1]); cx.strokeRect(s1[0], s1[1], s2[0] - s1[0], s2[1] - s1[1]);
+      text(akt === 'dreh' ? 'CEE 16 A' : 'Steckdose', [0.85, 0.08], { g: 11, f: leise });
+      // Verbraucher
+      if (akt === 'iso' && (w.fehler === 'last' || schritt < 1)) { const g1 = P([0.95, 0.24]); cx.fillStyle = '#6B7785'; cx.fillRect(g1[0], g1[1], Math.min(36, B * 0.045), 34); text('Gerät', [0.97, 0.21], { g: 9, f: leise, a: 'right' }); }
+      // Messgerät
+      const m1 = P([0.36, 0.7]), m2 = P([0.64, 0.97]);
+      cx.fillStyle = '#F2A541'; cx.fillRect(m1[0], m1[1], m2[0] - m1[0], m2[1] - m1[1]);
+      cx.fillStyle = '#10202F'; const d1 = P([0.38, 0.73]), d2 = P([0.62, 0.86]); cx.fillRect(d1[0], d1[1], d2[0] - d1[0], d2[1] - d1[1]);
+      text(R.anzeige, [0.5, 0.795], { g: Math.max(13, Math.min(20, B * 0.03)), b: true, f: '#7CFFB2' });
+      text({ frei: 'Spannungsprüfer', pe: 'R_LO 200 mA', iso: 'R_ISO ' + w.un + ' V', zs: 'Z_L-PE', rcd: 'RCD ' + w.idn + ' mA', dreh: 'Drehfeld' }[akt], [0.5, 0.92], { g: 11, f: '#10202F' });
+      const mL = [0.42, 0.7], mR = [0.58, 0.7];
+      // Messspitzen und Strompfade je Messung und Schritt
+      const an = schritt >= 2;
+      if (akt === 'frei') {
+        if (schritt >= 3) { spitze(mL, PKT.SL, '#C0392B', t, true); spitze(mR, PKT.SN, tx, t, true); if (w.fehler === 'falsch') strom(rueck(bahn(mL, PKT.SL)), t, '#F2A541'); }
+        else if (schritt === 2) { text('Test an bekannter Quelle', [0.5, 0.62], { g: 11, f: leise }); }
+      } else if (akt === 'pe') {
+        if (schritt === 1) { linie([mL, [0.46, 0.64], [0.54, 0.64], mR], '#C0392B', 3); text('kurzgeschlossen: Nullabgleich', [0.5, 0.6], { g: 11, f: leise }); }
+        if (schritt >= 2) { spitze(mL, PKT.VPE, '#C0392B', t, true); spitze(mR, PKT.SPE, tx, t, true); }
+        if (schritt >= 3 && !pe) strom(schritt === 3 && Math.floor(t / 2500) % 2 ? bahn(mR, PKT.SPE).concat(rueck(bahn(mL, PKT.VPE))) : bahn(mL, PKT.VPE).concat(rueck(bahn(mR, PKT.SPE))), t, '#F2A541');
+      } else if (akt === 'iso') {
+        if (schritt >= 2) { linie([[0.2, 0.22], [0.22, 0.28], [0.2, 0.34]], '#C0392B', 3); text('Brücke L+N', [0.31, 0.27], { g: 10, f: '#C0392B', a: 'left' }); spitze(mL, [0.21, 0.28], '#C0392B', t, true); spitze(mR, PKT.VPE, tx, t, true); }
+        if (schritt >= 3) { text(w.un + ' V ⎓', [0.66, 0.76], { g: 12, b: true, f: '#C0392B', a: 'left' }); if (R.R < 10) strom(bahn(mL, [0.21, 0.28]).concat([[0.21, 0.22], [0.55, 0.22], [0.55, 0.46], [0.21, 0.46]], rueck(bahn(mR, PKT.VPE))), t, '#F2A541'); else { const pulse = (Math.sin(t / 300) + 1) / 2; cx.globalAlpha = 0.25 + 0.5 * pulse; linie([[0.2, 0.22], [0.8, 0.22]], '#F2A541', 8); cx.globalAlpha = 1; } }
+      } else if (akt === 'zs') {
+        if (schritt >= 1) { spitze(mL, PKT.SL, '#C0392B', t, true); spitze(mR, PKT.SPE, tx, t, true); }
+        if (schritt >= 2) strom([[0.04, 0.22]].concat(rueck(bahn(mL, PKT.SL)), bahn(mR, PKT.SPE), [PKT.VPE, [0.04, 0.46]]), t * 1.5, '#E4572E');
+        if (schritt >= 3) text('I_k = ' + zahl(R.Ik, 0) + ' A', [0.66, 0.76], { g: 12, b: true, f: '#E4572E', a: 'left' });
+      } else if (akt === 'rcd') {
+        if (schritt >= 0) { spitze(mL, PKT.SL, '#C0392B', t, true); spitze(mR, PKT.SPE, tx, t, true); }
+        const ausgeloest = (schritt === 2 && isFinite(R.t1)) || (schritt === 3 && isFinite(R.t5)) || schritt === 4;
+        if (schritt >= 1 && !(ausgeloest && Math.floor(t / 1500) % 2)) strom([[0.04, 0.22]].concat(rueck(bahn(mL, PKT.SL)), bahn(mR, PKT.SPE), [PKT.VPE]), t, schritt === 1 ? '#9BBFDF' : '#E4572E');
+        if (schritt >= 2) text(schritt === 2 ? 'I = ' + w.idn + ' mA' : schritt === 3 ? 'I = ' + 5 * w.idn + ' mA' : 'Prüftaste', [0.66, 0.76], { g: 12, b: true, f: '#E4572E', a: 'left' });
+        if (ausgeloest && Math.floor(t / 1500) % 2) text('ausgelöst', [0.11, 0.66], { g: 11, b: true, f: '#C0392B' });
+      } else if (akt === 'dreh') {
+        if (schritt >= 1) { spitze([0.4, 0.7], [0.8, 0.22], braun, t, true); spitze([0.5, 0.7], [0.8, 0.28], tx, t, true); spitze([0.6, 0.7], [0.8, 0.4], '#6B7785', t, true); }
+        if (schritt >= 2) {
+          const z = P([0.86, 0.66]), r0 = Math.min(26, B * 0.035), dir = R.rechts ? 1 : -1;
+          cx.strokeStyle = R.rechts ? '#2E8B57' : '#C0392B'; cx.lineWidth = 3; cx.beginPath(); cx.arc(z[0], z[1], r0, 0, 2 * Math.PI); cx.stroke();
+          const a = dir * t / 300; cx.beginPath(); cx.moveTo(z[0], z[1]); cx.lineTo(z[0] + r0 * Math.cos(a), z[1] + r0 * Math.sin(a)); cx.stroke();
+          text(R.rechts ? 'rechts' : 'links', [0.86, 0.79], { g: 11, b: true, f: R.rechts ? '#2E8B57' : '#C0392B' });
+        }
+      }
+      // Hinweis zur Spannung
+      text(spannung ? '⚡ unter Spannung' : 'spannungsfrei', [0.5, 0.04], { g: 11, b: true, f: spannung ? '#C0392B' : '#2E8B57' });
+      void an;
+    }
+    function schleife(t) { zeichnen(t); requestAnimationFrame(schleife); }
+    window.addEventListener('resize', function () { groesse(); });
+    // Formelsammlung
+    (function () {
+      const z = $('sammlung');
+      [
+        ['Schutzleiter', 'R_\\text{PE} \\approx \\frac{\\rho \\cdot l}{A},\\quad \\rho_\\text{Cu} = 0{,}0178\\,\\tfrac{\\Omega\\,\\text{mm}^2}{\\text{m}}', 'Prüfstrom mindestens 200 mA, Leerlaufspannung 4 bis 24 V; Messleitungen vorher abgleichen; in beiden Richtungen messen'],
+        ['Isolationswiderstand', 'R_\\text{iso} \\ge 1\\,\\text{M}\\Omega\\ (500\\,\\text{V DC}),\\quad R_\\text{iso} \\ge 0{,}5\\,\\text{M}\\Omega\\ (\\text{SELV/PELV}, 250\\,\\text{V DC})', 'bei Nennspannung über 500 V: 1 000 V Prüfspannung, mindestens 1 MΩ (DIN VDE 0100-600 Tabelle 6.1)'],
+        ['Schleifenimpedanz', 'Z_\\text{S} \\le \\frac{2}{3} \\cdot \\frac{U_0}{I_\\text{a}},\\quad I_\\text{k} = \\frac{U_0}{Z_\\text{S}}', 'I_a: Typ B 5 × I_n, Typ C 10 × I_n; Abschaltzeit 0,4 s bei Endstromkreisen bis 32 A (TN-System)'],
+        ['Fehlerstromschutzschalter', 'U_\\text{B} = I_{\\Delta n} \\cdot R_\\text{A} \\le 50\\,\\text{V},\\quad t(I_{\\Delta n}) \\le 300\\,\\text{ms},\\quad t(5\\,I_{\\Delta n}) \\le 40\\,\\text{ms}', 'Auslösestrom zwischen 0,5 und 1 × I_Δn; Prüftaste regelmäßig betätigen'],
+        ['Drehfeld', 'U_\\text{LL} = \\sqrt{3} \\cdot U_0 = 400\\,\\text{V}', 'Rechtsdrehfeld L1 → L2 → L3 an allen Drehstromsteckdosen'],
+        ['Reihenfolge der Prüfung', '\\text{Besichtigen} \\to R_\\text{PE} \\to R_\\text{iso} \\to Z_\\text{S} \\to \\text{RCD} \\to \\text{Drehfeld} \\to \\text{Funktion}', 'erst die Messungen ohne Spannung, dann die unter Spannung (DIN VDE 0100-600)']
+      ].forEach(function (q) { const s = document.createElement('section'), h = document.createElement('h3'), fo = document.createElement('div'), p = document.createElement('p'); h.textContent = q[0]; Formel.setze(fo, q[1], true); p.textContent = q[2]; s.append(h, fo, p); z.append(s); });
+    })();
+    reiterBauen(); felderBauen(); neu(); requestAnimationFrame(schleife);
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>
