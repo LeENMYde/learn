@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IT-Sicherheitsprotokoll – Formeln &amp; Rechner</title>
-  <meta name="description" content="Prüfprotokoll für IT-Sicherheitsaudits eigener Server und Dienste: Grundschutz-Checkliste, Port-Scan und Dienste, Findings mit CVSS, Schwachstellen, Unterschrift, PDF.">
+  <meta name="description" content="Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz mit Prüfbefehlen zu jedem Punkt, Import von Scan-Ausgaben, Header-Analyse, CVSS-3.1-Rechner, Findings, Maßnahmenplan mit Fristen, Unterschrift und PDF.">
   <!-- seo -->
   <link rel="canonical" href="https://tools.pr1m3.de/protokolle/it-sicherheit.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Formeln &amp; Rechner">
   <meta property="og:locale" content="de_DE">
   <meta property="og:title" content="IT-Sicherheitsprotokoll">
-  <meta property="og:description" content="Prüfprotokoll für IT-Sicherheitsaudits eigener Server und Dienste: Grundschutz-Checkliste, Port-Scan und Dienste, Findings mit CVSS, Schwachstellen, Unterschrift, PDF.">
+  <meta property="og:description" content="Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz mit Prüfbefehlen zu jedem Punkt, Import von Scan-Ausgaben, Header-Analyse, CVSS-3.1-Rechner, Findings, Maßnahmenplan mit Fristen, Unterschrift und PDF.">
   <meta property="og:url" content="https://tools.pr1m3.de/protokolle/it-sicherheit.html">
   <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
   <meta name="twitter:card" content="summary">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"IT-Sicherheitsprotokoll","url":"https://tools.pr1m3.de/protokolle/it-sicherheit.html","inLanguage":"de","description":"Prüfprotokoll für IT-Sicherheitsaudits eigener Server und Dienste: Grundschutz-Checkliste, Port-Scan und Dienste, Findings mit CVSS, Schwachstellen, Unterschrift, PDF.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"IT-Sicherheitsprotokoll","url":"https://tools.pr1m3.de/protokolle/it-sicherheit.html","inLanguage":"de","description":"Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz mit Prüfbefehlen zu jedem Punkt, Import von Scan-Ausgaben, Header-Analyse, CVSS-3.1-Rechner, Findings, Maßnahmenplan mit Fristen, Unterschrift und PDF.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
   <!-- /seo -->
   <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
@@ -25,6 +25,27 @@
   <link rel="stylesheet" href="../assets/stil.css">
   <link rel="stylesheet" href="protokoll.css">
   <script src="../assets/basis.js"></script>
+  <style>
+    .einfuegen { margin: 6px 0 14px; padding: 10px 12px; border: 1px dashed var(--linie); border-radius: 8px; }
+    .einfuegen textarea { width: 100%; min-height: 110px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
+    .pruef-tipp { margin-top: 4px; font-size: .82rem; color: var(--leise); }
+    .pruef-tipp summary { cursor: pointer; display: inline; color: var(--leise); list-style: none; }
+    .pruef-tipp summary::-webkit-details-marker { display: none; }
+    .pruef-tipp[open] summary { color: var(--text); }
+    .pruef-tipp code { display: block; margin: 4px 0; padding: 4px 6px; background: var(--flaeche2); border-radius: 4px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+    .cvss-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px 10px; }
+    .cvss-feld { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); margin: 4px 0; }
+    .cvss-feld.breit input { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .cvss-ergebnis { margin: 8px 0; font-size: 1.05rem; }
+    .cvss-ergebnis b { font-size: 1.3rem; }
+    .header-liste { margin: 8px 0 0; padding-left: 18px; font-size: .9rem; }
+    .header-liste li.gut::marker { color: #2E8B57; } .header-liste li.warn::marker { color: #B07A12; } .header-liste li.fehl::marker { color: #C0392B; }
+    #auswertung-grafik { display: block; width: 100%; max-width: 760px; margin: 8px 0; }
+    .plan-tabelle { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .plan-tabelle th, .plan-tabelle td { border-bottom: 1px solid var(--linie); padding: 4px 6px; text-align: left; vertical-align: top; }
+    .plan-tabelle .prio-kritisch { color: #C0392B; font-weight: 700; } .plan-tabelle .prio-hoch { color: #C0392B; } .plan-tabelle .prio-mittel { color: #B07A12; }
+    @media print { .kein-druck, .pruef-tipp, .einfuegen { display: none !important; } }
+  </style>
 </head>
 
 <body>
@@ -33,7 +54,7 @@
   <main class="seite protokoll-seite" data-merken data-eigenes-pdf>
     <section class="held">
       <h1><span class="unterstrichen">IT-Sicherheitsprotokoll</span></h1>
-      <p>Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz, Port-Scan mit Dienstübersicht und Vorlagen, Findings mit CVSS und Schwachstellenliste, Prüfwerkzeuge, Unterschriften und PDF. Alles bleibt in diesem Browser.</p>
+      <p>Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz mit Prüfhinweisen und Befehlen zu jedem Punkt, Port-Scan mit Import der Scan-Ausgabe, automatische Header-Analyse, CVSS-3.1-Rechner, Findings und Schwachstellen, Maßnahmenplan mit Fristen, Unterschriften und PDF. Alles bleibt in diesem Browser.</p>
     </section>
 
     <div class="protokoll">
@@ -178,6 +199,42 @@
   <tr><td>Docker: Keine privilegierten Container ohne Begründung</td><td class="center"><input id="r-cfg7-1" type="radio" name="cfg7" value="ok"></td><td class="center"><input id="r-cfg7-2" type="radio" name="cfg7" value="warn"></td><td class="center"><input id="r-cfg7-3" type="radio" name="cfg7" value="fail"></td><td class="center"><input id="r-cfg7-4" type="radio" name="cfg7" value="na"></td><td><input type="text"></td></tr>
 </tbody></table></div>
 
+<div class="section-title">9. E-Mail & DNS</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>SPF-Eintrag vorhanden und mit -all abgeschlossen</td><td class="center"><input id="r-mail1-1" type="radio" name="mail1" value="ok"></td><td class="center"><input id="r-mail1-2" type="radio" name="mail1" value="warn"></td><td class="center"><input id="r-mail1-3" type="radio" name="mail1" value="fail"></td><td class="center"><input id="r-mail1-4" type="radio" name="mail1" value="na"></td><td><input type="text" placeholder="v=spf1 … -all"></td></tr>
+  <tr><td>DKIM: ausgehende Mails signiert (Schlüssel ≥ 2048 bit)</td><td class="center"><input id="r-mail2-1" type="radio" name="mail2" value="ok"></td><td class="center"><input id="r-mail2-2" type="radio" name="mail2" value="warn"></td><td class="center"><input id="r-mail2-3" type="radio" name="mail2" value="fail"></td><td class="center"><input id="r-mail2-4" type="radio" name="mail2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>DMARC mit p=quarantine oder p=reject</td><td class="center"><input id="r-mail3-1" type="radio" name="mail3" value="ok"></td><td class="center"><input id="r-mail3-2" type="radio" name="mail3" value="warn"></td><td class="center"><input id="r-mail3-3" type="radio" name="mail3" value="fail"></td><td class="center"><input id="r-mail3-4" type="radio" name="mail3" value="na"></td><td><input type="text" placeholder="_dmarc: v=DMARC1; p=…"></td></tr>
+  <tr><td>MTA-STS oder DANE für eingehende Mails</td><td class="center"><input id="r-mail4-1" type="radio" name="mail4" value="ok"></td><td class="center"><input id="r-mail4-2" type="radio" name="mail4" value="warn"></td><td class="center"><input id="r-mail4-3" type="radio" name="mail4" value="fail"></td><td class="center"><input id="r-mail4-4" type="radio" name="mail4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Kein offenes Mail-Relay</td><td class="center"><input id="r-mail5-1" type="radio" name="mail5" value="ok"></td><td class="center"><input id="r-mail5-2" type="radio" name="mail5" value="warn"></td><td class="center"><input id="r-mail5-3" type="radio" name="mail5" value="fail"></td><td class="center"><input id="r-mail5-4" type="radio" name="mail5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Reverse-DNS (PTR) passt zum Mailserver-Namen</td><td class="center"><input id="r-mail6-1" type="radio" name="mail6" value="ok"></td><td class="center"><input id="r-mail6-2" type="radio" name="mail6" value="warn"></td><td class="center"><input id="r-mail6-3" type="radio" name="mail6" value="fail"></td><td class="center"><input id="r-mail6-4" type="radio" name="mail6" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>DNSSEC für die Zone aktiv</td><td class="center"><input id="r-mail7-1" type="radio" name="mail7" value="ok"></td><td class="center"><input id="r-mail7-2" type="radio" name="mail7" value="warn"></td><td class="center"><input id="r-mail7-3" type="radio" name="mail7" value="fail"></td><td class="center"><input id="r-mail7-4" type="radio" name="mail7" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>CAA-Eintrag begrenzt Zertifizierungsstellen</td><td class="center"><input id="r-mail8-1" type="radio" name="mail8" value="ok"></td><td class="center"><input id="r-mail8-2" type="radio" name="mail8" value="warn"></td><td class="center"><input id="r-mail8-3" type="radio" name="mail8" value="fail"></td><td class="center"><input id="r-mail8-4" type="radio" name="mail8" value="na"></td><td><input type="text" placeholder="0 issue "…""></td></tr>
+</tbody></table></div>
+
+<div class="section-title">10. Container & Virtualisierung</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Docker-Socket nicht in Container eingebunden</td><td class="center"><input id="r-ctr1-1" type="radio" name="ctr1" value="ok"></td><td class="center"><input id="r-ctr1-2" type="radio" name="ctr1" value="warn"></td><td class="center"><input id="r-ctr1-3" type="radio" name="ctr1" value="fail"></td><td class="center"><input id="r-ctr1-4" type="radio" name="ctr1" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Container laufen nicht als root (USER / rootless)</td><td class="center"><input id="r-ctr2-1" type="radio" name="ctr2" value="ok"></td><td class="center"><input id="r-ctr2-2" type="radio" name="ctr2" value="warn"></td><td class="center"><input id="r-ctr2-3" type="radio" name="ctr2" value="fail"></td><td class="center"><input id="r-ctr2-4" type="radio" name="ctr2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Ports hinter Reverse Proxy nur an 127.0.0.1 gebunden (Docker umgeht die Host-Firewall)</td><td class="center"><input id="r-ctr3-1" type="radio" name="ctr3" value="ok"></td><td class="center"><input id="r-ctr3-2" type="radio" name="ctr3" value="warn"></td><td class="center"><input id="r-ctr3-3" type="radio" name="ctr3" value="fail"></td><td class="center"><input id="r-ctr3-4" type="radio" name="ctr3" value="na"></td><td><input type="text" placeholder="127.0.0.1:8080:80"></td></tr>
+  <tr><td>Images aus vertrauenswürdiger Quelle, Version fest (kein :latest)</td><td class="center"><input id="r-ctr4-1" type="radio" name="ctr4" value="ok"></td><td class="center"><input id="r-ctr4-2" type="radio" name="ctr4" value="warn"></td><td class="center"><input id="r-ctr4-3" type="radio" name="ctr4" value="fail"></td><td class="center"><input id="r-ctr4-4" type="radio" name="ctr4" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Ressourcenlimits gesetzt (CPU, RAM, PIDs)</td><td class="center"><input id="r-ctr5-1" type="radio" name="ctr5" value="ok"></td><td class="center"><input id="r-ctr5-2" type="radio" name="ctr5" value="warn"></td><td class="center"><input id="r-ctr5-3" type="radio" name="ctr5" value="fail"></td><td class="center"><input id="r-ctr5-4" type="radio" name="ctr5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Dateisystem read-only wo möglich, keine unnötigen Capabilities</td><td class="center"><input id="r-ctr6-1" type="radio" name="ctr6" value="ok"></td><td class="center"><input id="r-ctr6-2" type="radio" name="ctr6" value="warn"></td><td class="center"><input id="r-ctr6-3" type="radio" name="ctr6" value="fail"></td><td class="center"><input id="r-ctr6-4" type="radio" name="ctr6" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Hypervisor- und Management-Oberflächen nur im Verwaltungsnetz</td><td class="center"><input id="r-ctr7-1" type="radio" name="ctr7" value="ok"></td><td class="center"><input id="r-ctr7-2" type="radio" name="ctr7" value="warn"></td><td class="center"><input id="r-ctr7-3" type="radio" name="ctr7" value="fail"></td><td class="center"><input id="r-ctr7-4" type="radio" name="ctr7" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Snapshots / Vorlagen ohne Geheimnisse und aktuell gepatcht</td><td class="center"><input id="r-ctr8-1" type="radio" name="ctr8" value="ok"></td><td class="center"><input id="r-ctr8-2" type="radio" name="ctr8" value="warn"></td><td class="center"><input id="r-ctr8-3" type="radio" name="ctr8" value="fail"></td><td class="center"><input id="r-ctr8-4" type="radio" name="ctr8" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
+<div class="section-title">11. Organisation & Notfall</div>
+<div class="rollen"><table class="check-grid"><thead><tr><th style="width:45%">Prüfpunkt</th><th style="width:55px">OK</th><th style="width:55px">WARN</th><th style="width:55px">FAIL</th><th style="width:45px">N/A</th><th>Befund / Messwert</th></tr></thead><tbody>
+  <tr><td>Inventar aller Systeme und Dienste aktuell</td><td class="center"><input id="r-org1-1" type="radio" name="org1" value="ok"></td><td class="center"><input id="r-org1-2" type="radio" name="org1" value="warn"></td><td class="center"><input id="r-org1-3" type="radio" name="org1" value="fail"></td><td class="center"><input id="r-org1-4" type="radio" name="org1" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Verantwortliche und Vertretung benannt</td><td class="center"><input id="r-org2-1" type="radio" name="org2" value="ok"></td><td class="center"><input id="r-org2-2" type="radio" name="org2" value="warn"></td><td class="center"><input id="r-org2-3" type="radio" name="org2" value="fail"></td><td class="center"><input id="r-org2-4" type="radio" name="org2" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Notfall- und Wiederanlaufplan vorhanden und geübt</td><td class="center"><input id="r-org3-1" type="radio" name="org3" value="ok"></td><td class="center"><input id="r-org3-2" type="radio" name="org3" value="warn"></td><td class="center"><input id="r-org3-3" type="radio" name="org3" value="fail"></td><td class="center"><input id="r-org3-4" type="radio" name="org3" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Kontakt für Sicherheitsmeldungen (security.txt)</td><td class="center"><input id="r-org4-1" type="radio" name="org4" value="ok"></td><td class="center"><input id="r-org4-2" type="radio" name="org4" value="warn"></td><td class="center"><input id="r-org4-3" type="radio" name="org4" value="fail"></td><td class="center"><input id="r-org4-4" type="radio" name="org4" value="na"></td><td><input type="text" placeholder="/.well-known/security.txt"></td></tr>
+  <tr><td>Admin-Zugänge personalisiert, Rechtevergabe dokumentiert</td><td class="center"><input id="r-org5-1" type="radio" name="org5" value="ok"></td><td class="center"><input id="r-org5-2" type="radio" name="org5" value="warn"></td><td class="center"><input id="r-org5-3" type="radio" name="org5" value="fail"></td><td class="center"><input id="r-org5-4" type="radio" name="org5" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Datenschutz: AV-Verträge, Löschfristen, Verarbeitungsverzeichnis</td><td class="center"><input id="r-org6-1" type="radio" name="org6" value="ok"></td><td class="center"><input id="r-org6-2" type="radio" name="org6" value="warn"></td><td class="center"><input id="r-org6-3" type="radio" name="org6" value="fail"></td><td class="center"><input id="r-org6-4" type="radio" name="org6" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Serverraum / Hardware physisch geschützt</td><td class="center"><input id="r-org7-1" type="radio" name="org7" value="ok"></td><td class="center"><input id="r-org7-2" type="radio" name="org7" value="warn"></td><td class="center"><input id="r-org7-3" type="radio" name="org7" value="fail"></td><td class="center"><input id="r-org7-4" type="radio" name="org7" value="na"></td><td><input type="text"></td></tr>
+  <tr><td>Sensibilisierung der Nutzer (Phishing, Passwörter) durchgeführt</td><td class="center"><input id="r-org8-1" type="radio" name="org8" value="ok"></td><td class="center"><input id="r-org8-2" type="radio" name="org8" value="warn"></td><td class="center"><input id="r-org8-3" type="radio" name="org8" value="fail"></td><td class="center"><input id="r-org8-4" type="radio" name="org8" value="na"></td><td><input type="text"></td></tr>
+</tbody></table></div>
+
 <div class="section-title">Verwendete Prüfwerkzeuge</div>
 <div class="rollen"><table class="form-table">
   <tr>
@@ -224,6 +281,11 @@
     <td><label class="inline">Prüfplakette: <input id="r-a-plakette-1" type="radio" name="a-plakette"> ja <input id="r-a-plakette-2" type="radio" name="a-plakette"> nein</label></td>
   </tr>
 </table></div>
+
+<div class="section-title">Maßnahmenplan (automatisch)</div>
+<p class="hilfe kein-druck">Aus FAIL- und WARN-Punkten der Checkliste, offenen Findings, kritischen Ports und Headern. Fristen ab Prüfdatum: kritisch 7 Tage, hoch 30, mittel 90, niedrig 180.</p>
+<div id="massnahmenplan"></div>
+<button type="button" class="btn kein-druck" id="plan-uebernehmen">Maßnahmen in das Mängel-Feld übernehmen</button>
 
 <div class="section-title">Mängel / Befunde / Empfehlungen</div>
 <textarea id="a-maengel" placeholder="Festgestellte Mängel, Befunde und Empfehlungen zur Behebung…" style="min-height:100px;"></textarea>
@@ -329,6 +391,13 @@
   <button onclick="clearPortTable()"           class="btn btn-small" style="background:#c0392b;">Leeren</button>
 </div>
 
+<div class="section-title kein-druck">Scan-Ausgabe einfügen</div>
+<div class="einfuegen kein-druck" data-nicht-merken>
+  <p class="hilfe">Ausgabe von <code>nmap</code> (normal oder <code>-oG</code>), <code>masscan</code> oder <code>ss -tulpn</code> einfügen – Ports, Dienste und Versionen landen in der Tabelle, bekannte Ports mit Bewertung und Empfehlung. Die Daten bleiben im Browser.</p>
+  <textarea id="scan-eingabe" spellcheck="false" placeholder="22/tcp   open  ssh     OpenSSH 9.6p1 Ubuntu&#10;80/tcp   open  http    nginx 1.24.0&#10;3306/tcp open  mysql   MySQL 8.0.36"></textarea>
+  <button type="button" class="btn" id="scan-uebernehmen">In die Tabelle übernehmen</button> <span class="hilfe" id="scan-ergebnis"></span>
+</div>
+
 <div class="section-title">Port-Scan Ergebnisse</div>
 <div style="overflow-x:auto;">
 <div class="rollen"><table class="measurement-table" id="portscan-table">
@@ -369,6 +438,12 @@
 </div>
 
 <div class="section-title">HTTP-Sicherheitsheader</div>
+<div class="einfuegen kein-druck" data-nicht-merken>
+  <p class="hilfe">Antwort-Header einfügen, z. B. aus <code>curl -sI https://dienst.beispiel.de</code> oder den Entwicklerwerkzeugen des Browsers – die Tabelle wird ausgefüllt und bewertet, Cookies werden mitgeprüft.</p>
+  <textarea id="header-eingabe" spellcheck="false" placeholder="HTTP/2 200&#10;strict-transport-security: max-age=31536000; includeSubDomains&#10;content-security-policy: default-src 'self'&#10;x-content-type-options: nosniff&#10;server: nginx/1.24.0"></textarea>
+  <button type="button" class="btn" id="header-auswerten">Header auswerten</button>
+  <div id="header-ergebnis"></div>
+</div>
 <div style="overflow-x:auto;">
 <div class="rollen"><table class="measurement-table">
   <thead><tr><th>Header</th><th style="width:180px;">Wert (Kurzform)</th><th style="width:75px;">Vorhanden</th><th style="width:75px;">Bewertung</th><th>Bemerkung</th></tr></thead>
@@ -430,6 +505,15 @@
   <tr><td>A09 – Security Logging and Monitoring Failures</td><td class="center"><input id="r-ow9-1" type="radio" name="ow9" value="ok"></td><td class="center"><input id="r-ow9-2" type="radio" name="ow9" value="warn"></td><td class="center"><input id="r-ow9-3" type="radio" name="ow9" value="fail"></td><td class="center"><input id="r-ow9-4" type="radio" name="ow9" value="na"></td><td><input type="text"></td></tr>
   <tr><td>A10 – Server-Side Request Forgery (SSRF)</td><td class="center"><input id="r-ow10-1" type="radio" name="ow10" value="ok"></td><td class="center"><input id="r-ow10-2" type="radio" name="ow10" value="warn"></td><td class="center"><input id="r-ow10-3" type="radio" name="ow10" value="fail"></td><td class="center"><input id="r-ow10-4" type="radio" name="ow10" value="na"></td><td><input type="text"></td></tr>
 </tbody></table></div>
+
+<div class="section-title kein-druck">CVSS-3.1-Rechner</div>
+<div class="einfuegen kein-druck">
+  <div class="cvss-raster"><label class="cvss-feld">Angriffsvektor (AV)<select id="cvss-av"><option value="N">Netzwerk</option><option value="A">benachbartes Netz</option><option value="L">lokal</option><option value="P">physisch</option></select></label><label class="cvss-feld">Komplexität (AC)<select id="cvss-ac"><option value="L">niedrig</option><option value="H">hoch</option></select></label><label class="cvss-feld">Rechte nötig (PR)<select id="cvss-pr"><option value="N">keine</option><option value="L">niedrig</option><option value="H">hoch</option></select></label><label class="cvss-feld">Benutzerinteraktion (UI)<select id="cvss-ui"><option value="N">keine</option><option value="R">nötig</option></select></label><label class="cvss-feld">Auswirkungsbereich (S)<select id="cvss-s"><option value="U">unverändert</option><option value="C">verändert</option></select></label><label class="cvss-feld">Vertraulichkeit (C)<select id="cvss-c"><option value="H">hoch</option><option value="L">niedrig</option><option value="N">keine</option></select></label><label class="cvss-feld">Integrität (I)<select id="cvss-i"><option value="H">hoch</option><option value="L">niedrig</option><option value="N">keine</option></select></label><label class="cvss-feld">Verfügbarkeit (A)<select id="cvss-a"><option value="H">hoch</option><option value="L">niedrig</option><option value="N">keine</option></select></label></div>
+  <label class="cvss-feld breit">Vektor (zum Einfügen oder Kopieren)<input type="text" id="cvss-vektor" spellcheck="false" placeholder="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"></label>
+  <div id="cvss-ergebnis" class="cvss-ergebnis"></div>
+  <label class="cvss-feld">in Finding Nr.<select id="cvss-ziel" data-nicht-merken></select></label>
+  <button type="button" class="btn" id="cvss-uebernehmen">Wert und Vektor übernehmen</button>
+</div>
 
 <div class="section-title">Findings / Schwachstellen-Register</div>
 <div style="overflow-x:auto;">
@@ -653,6 +737,7 @@
   <script src="felder.js"></script>
   <script src="it-sicherheit.js"></script>
   <script src="it-pruefung.js"></script>
+  <script src="it-ausbau.js"></script>
   <script>
   // Zeilen der dynamischen Tabellen merken (basis.js speichert das versteckte Feld mit)
   (function () {
