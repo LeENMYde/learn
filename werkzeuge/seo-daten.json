@@ -1,0 +1,20 @@
+{
+  "protokolle/elektro.html": {
+    "typ": "WebApplication",
+    "kategorie": "BusinessApplication",
+    "stichworte": "Elektro Prüfprotokoll, VDE 0100-600, VDE 0105-100, VDE 0701, VDE 0702, DIN EN 50678, DIN EN 50699, DGUV V3, Prüfprotokoll PDF, E-Check",
+    "funktionen": ["Anlagenprüfung nach DIN VDE 0100-600 und 0105-100", "Geräteprüfung nach DIN EN 50678 und DIN EN 50699", "Automatische Grenzwertprüfung von Zs, Riso, RLO und RCD", "Geräteliste mit Prüfterminen", "Unterschrift und PDF-Export", "Offline nutzbar, Daten bleiben im Browser"]
+  },
+  "protokolle/it-sicherheit.html": {
+    "typ": "WebApplication",
+    "kategorie": "SecurityApplication",
+    "stichworte": "IT-Sicherheitsaudit, Checkliste, BSI IT-Grundschutz, OWASP Top 10, CVSS 3.1 Rechner, nmap Auswertung, Security Header, Pentest Bericht, Maßnahmenplan",
+    "funktionen": ["81-Punkte-Checkliste in 11 Bereichen", "Import von nmap-, masscan- und ss-Ausgaben", "Bewertung von HTTP-Sicherheits-Headern", "CVSS-3.1-Rechner", "Maßnahmenplan mit Fristen", "PDF-Bericht mit Unterschrift"]
+  },
+  "protokolle/gefaehrdungsbeurteilung.html": {
+    "typ": "WebApplication",
+    "kategorie": "BusinessApplication",
+    "stichworte": "Gefährdungsbeurteilung, § 5 ArbSchG, Risikomatrix, STOP-Prinzip, Arbeitsschutz, Vorlage, Gefährdungsfaktoren, DGUV Vorschrift 1",
+    "funktionen": ["Katalog der 11 Gefährdungsfaktoren", "Vorlagen für typische Arbeitsbereiche", "Risikomatrix vor und nach Maßnahmen", "Maßnahmen nach STOP mit Verantwortlichen und Terminen", "Wirksamkeitskontrolle", "PDF-Dokumentation"]
+  }
+}
