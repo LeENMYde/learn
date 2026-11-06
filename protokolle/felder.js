@@ -43,3 +43,45 @@
     huelle.parentNode.replaceChild(raster, huelle);
   });
 })();
+
+/*
+ * Reiter der Protokolle für Tastatur und Bildschirmleser: role="tablist"/"tab"/"tabpanel",
+ * aria-selected und aria-controls, Pfeiltasten, Pos1 und Ende wechseln den Reiter.
+ */
+(function () {
+  const leiste = document.querySelector('.protokoll .tabs');
+  if (!leiste) return;
+  const knoepfe = Array.prototype.slice.call(leiste.querySelectorAll('.tab-btn'));
+  leiste.setAttribute('role', 'tablist');
+  leiste.setAttribute('aria-label', 'Bereiche des Protokolls');
+  function name(b) { const m = /switchTab\('([a-z0-9-]+)'\)/.exec(b.getAttribute('onclick') || ''); return m ? m[1] : ''; }
+  function abgleichen() {
+    knoepfe.forEach(function (b) {
+      const an = b.classList.contains('active');
+      b.setAttribute('aria-selected', an ? 'true' : 'false');
+      b.tabIndex = an ? 0 : -1;
+    });
+  }
+  knoepfe.forEach(function (b) {
+    const n = name(b), feld = n && document.getElementById('tab-' + n);
+    b.setAttribute('role', 'tab');
+    b.type = 'button';
+    if (!b.id) b.id = 'reiter-' + n;
+    if (feld) { b.setAttribute('aria-controls', feld.id); feld.setAttribute('role', 'tabpanel'); feld.setAttribute('aria-labelledby', b.id); }
+    b.addEventListener('keydown', function (ev) {
+      const i = knoepfe.indexOf(b);
+      let z = -1;
+      if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') z = (i + 1) % knoepfe.length;
+      else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') z = (i - 1 + knoepfe.length) % knoepfe.length;
+      else if (ev.key === 'Home') z = 0;
+      else if (ev.key === 'End') z = knoepfe.length - 1;
+      if (z < 0) return;
+      ev.preventDefault();
+      knoepfe[z].click();
+      knoepfe[z].focus();
+    });
+  });
+  abgleichen();
+  // switchTab() wird auch aus dem Programm aufgerufen (Wiederherstellen, Sprungmarken): Klassenwechsel beobachten
+  if (window.MutationObserver) new MutationObserver(abgleichen).observe(leiste, { attributes: true, subtree: true, attributeFilter: ['class'] });
+})();

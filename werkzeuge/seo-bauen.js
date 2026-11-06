@@ -3,7 +3,9 @@
  * Auffindbarkeit in Suchmaschinen – nach jeder neuen oder umbenannten Seite ausführen:
  *   node werkzeuge/seo-bauen.js
  * Schreibt in jede Seite einen Block zwischen <!-- seo --> und <!-- /seo -->:
- *   kanonische Adresse, Vorschau für Messenger und soziale Netzwerke (Open Graph), strukturierte Daten (JSON-LD).
+ *   kanonische Adresse, Robots-Angabe, Vorschau für Messenger und soziale Netzwerke (Open Graph, eigenes Bild aus
+ *   assets/og/<pfad-mit-bindestrichen>.png, sonst das Symbol), strukturierte Daten (JSON-LD als @graph: WebPage,
+ *   BreadcrumbList, FAQPage aus einem sichtbaren <div class="faq"> mit <details>, Zusatzangaben aus werkzeuge/seo-daten.json).
  * Ergänzt „ – Formeln & Rechner“ im Titel der Unterseiten, die feste Linkliste der Startseite (<noscript>),
  * sitemap.xml (Änderungsdatum aus Git) und robots.txt.
  * Nur Node.js, keine Pakete. Die Seiten selbst bleiben reines HTML, CSS und JavaScript.
@@ -19,6 +21,22 @@ const MARKE = 'Formeln & Rechner';
 const ZUSATZ = ' – ' + MARKE;
 const BILD = DOMAIN + '/assets/symbol-512.png';
 const NICHT_INDEXIEREN = ['projektmappe.html'];   // persönliche Ablage im Browser, kein eigener Inhalt
+const ZUSATZDATEN = (function () { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'seo-daten.json'), 'utf8')); } catch (e) { return {}; } })();
+const HERAUSGEBER = { '@type': 'Organization', '@id': DOMAIN + '/#herausgeber', name: MARKE, url: DOMAIN + '/', logo: BILD };
+
+// Sichtbare häufige Fragen der Seite (<div class="faq"> mit <details><summary>Frage</summary><p>Antwort</p></details>)
+const nurText = function (t) { return entities(t.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()).replace(/&nbsp;/g, ' '); };
+function fragen(s) {
+  const block = /<div class="faq">([\s\S]*?)<\/div>/.exec(s);
+  if (!block) return [];
+  const liste = []; const re = /<details>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g; let m;
+  while ((m = re.exec(block[1]))) liste.push({ '@type': 'Question', name: nurText(m[1]), acceptedAnswer: { '@type': 'Answer', text: nurText(m[2]) } });
+  return liste;
+}
+function vorschaubild(rel) {
+  const name = rel.replace(/\.html$/, '').replace(/\//g, '-') + '.png';
+  return fs.existsSync(path.join(WURZEL, 'assets', 'og', name)) ? DOMAIN + '/assets/og/' + name : '';
+}
 
 function seiten(ordner, rel) {
   let liste = [];
@@ -49,28 +67,63 @@ alle.forEach(function (rel) {
   const kurz = titel.endsWith(ZUSATZ) ? titel.slice(0, -ZUSATZ.length) : titel;
   if (rel !== 'index.html' && !titel.endsWith(ZUSATZ)) { titel = kurz + ZUSATZ; s = s.replace(/<title>[^<]*<\/title>/, '<title>' + html(titel) + '</title>'); }
   const beschreibung = entities((/<meta name="description" content="([^"]*)"/.exec(s) || ['', ''])[1]);
-  const daten = rel === 'index.html'
-    ? { '@context': 'https://schema.org', '@type': 'WebSite', name: MARKE, url: url, inLanguage: 'de', description: beschreibung }
-    : { '@context': 'https://schema.org', '@type': 'WebPage', name: kurz, url: url, inLanguage: 'de', description: beschreibung, isPartOf: { '@type': 'WebSite', name: MARKE, url: DOMAIN + '/' } };
+  const indexieren = NICHT_INDEXIEREN.indexOf(rel) < 0;
+  const eigenesBild = vorschaubild(rel);
+  const bild = eigenesBild || BILD;
+  const graph = [];
+  if (rel === 'index.html') {
+    graph.push({ '@type': 'WebSite', '@id': DOMAIN + '/#website', name: MARKE, url: url, inLanguage: 'de', description: beschreibung, publisher: { '@id': HERAUSGEBER['@id'] } });
+    graph.push(HERAUSGEBER);
+  } else {
+    const seite = { '@type': 'WebPage', '@id': url + '#seite', name: kurz, url: url, inLanguage: 'de', description: beschreibung,
+      isPartOf: { '@type': 'WebSite', '@id': DOMAIN + '/#website', name: MARKE, url: DOMAIN + '/' },
+      breadcrumb: { '@id': url + '#pfad' }, dateModified: datum(rel) };
+    if (eigenesBild) seite.primaryImageOfPage = { '@type': 'ImageObject', url: eigenesBild, width: 1200, height: 630 };
+    graph.push(seite);
+    graph.push({ '@type': 'BreadcrumbList', '@id': url + '#pfad', itemListElement: [
+      { '@type': 'ListItem', position: 1, name: MARKE, item: DOMAIN + '/' },
+      { '@type': 'ListItem', position: 2, name: kurz, item: url }] });
+    const z = ZUSATZDATEN[rel];
+    if (z) {
+      const app = { '@type': z.typ || 'WebApplication', '@id': url + '#anwendung', name: kurz, url: url, description: beschreibung, inLanguage: 'de',
+        applicationCategory: z.kategorie || 'UtilitiesApplication', operatingSystem: 'Alle mit aktuellem Webbrowser', browserRequirements: 'JavaScript',
+        isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' }, publisher: { '@id': HERAUSGEBER['@id'] }, mainEntityOfPage: { '@id': url + '#seite' } };
+      if (z.funktionen) app.featureList = z.funktionen;
+      if (z.stichworte) app.keywords = z.stichworte;
+      app.image = bild;
+      graph.push(app);
+      graph.push(HERAUSGEBER);
+    }
+    const f = fragen(s);
+    if (f.length) graph.push({ '@type': 'FAQPage', '@id': url + '#fragen', mainEntity: f, isPartOf: { '@id': url + '#seite' } });
+  }
+  const daten = { '@context': 'https://schema.org', '@graph': graph };
+  const bildText = eigenesBild ? kurz + ' – Vorschau' : MARKE;
   const block = [
     '  <!-- seo -->',
     '  <link rel="canonical" href="' + attr(url) + '">',
-    NICHT_INDEXIEREN.indexOf(rel) >= 0 ? '  <meta name="robots" content="noindex, follow">' : '',
+    indexieren ? '  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">' : '  <meta name="robots" content="noindex, follow">',
     '  <meta property="og:type" content="website">',
     '  <meta property="og:site_name" content="' + attr(MARKE) + '">',
     '  <meta property="og:locale" content="de_DE">',
     '  <meta property="og:title" content="' + attr(kurz) + '">',
     '  <meta property="og:description" content="' + attr(beschreibung) + '">',
     '  <meta property="og:url" content="' + attr(url) + '">',
-    '  <meta property="og:image" content="' + attr(BILD) + '">',
-    '  <meta name="twitter:card" content="summary">',
+    '  <meta property="og:image" content="' + attr(bild) + '">',
+    eigenesBild ? '  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">\n  <meta property="og:image:type" content="image/png">' : '',
+    '  <meta property="og:image:alt" content="' + attr(bildText) + '">',
+    '  <meta name="twitter:card" content="' + (eigenesBild ? 'summary_large_image' : 'summary') + '">',
+    '  <meta name="twitter:title" content="' + attr(kurz) + '">',
+    '  <meta name="twitter:description" content="' + attr(beschreibung) + '">',
+    '  <meta name="twitter:image" content="' + attr(bild) + '">',
+    ZUSATZDATEN[rel] && ZUSATZDATEN[rel].stichworte ? '  <meta name="keywords" content="' + attr(ZUSATZDATEN[rel].stichworte) + '">' : '',
     '  <script type="application/ld+json">' + JSON.stringify(daten).replace(/</g, '\\u003c') + '</script>',
     '  <!-- /seo -->'
   ].filter(Boolean).join('\n');
   if (/<!-- seo -->[\s\S]*?<!-- \/seo -->/.test(s)) s = s.replace(/ *<!-- seo -->[\s\S]*?<!-- \/seo -->/, block.replace(/^ {2}/, '  '));
   else s = s.replace(/(<meta name="description" content="[^"]*">)/, '$1\n' + block);
   fs.writeFileSync(datei, s);
-  if (NICHT_INDEXIEREN.indexOf(rel) < 0) karte.push({ url: url, datum: datum(rel) });
+  if (indexieren) karte.push({ url: url, datum: datum(rel) });
 });
 
 // Startseite: feste Linkliste aller Seiten (für Suchmaschinen und Browser ohne JavaScript)

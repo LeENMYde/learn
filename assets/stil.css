@@ -381,6 +381,23 @@ ol.weg li::before {
 .seitenfuss .haftung { flex: 1 1 100%; margin: 0 0 6px; padding: 10px 14px; border-radius: var(--rund); background: var(--flaeche); max-width: none; line-height: 1.45; }
 .seitenfuss .haftung a { color: var(--text); font-weight: 600; }
 
+/* ---------- Infoteil unter Werkzeugen (So funktioniert's, Grundlagen, häufige Fragen) ---------- */
+.seo-info { margin-top: 22px; line-height: 1.55; }
+.tafel.seo-info.abstand { margin-top: 22px; }
+.seo-info h2 { margin: 0 0 8px; }
+.seo-info h3 { margin: 18px 0 6px; font-size: 1.05rem; }
+.seo-info p { max-width: 75ch; margin: 0 0 8px; }
+.seo-info ol.info-schritte, .seo-info ul.info-liste, .seo-info ul.info-links { margin: 0 0 6px; padding-left: 1.3em; max-width: 80ch; }
+.seo-info li { margin: 4px 0; }
+.seo-info ul.info-links a { color: var(--text); font-weight: 600; }
+.seo-info code { font-family: var(--technik, monospace); font-size: .9em; background: var(--flaeche2); padding: 0 4px; border-radius: 4px; }
+.faq details { border-top: 1px solid var(--linie); padding: 2px 0; max-width: 80ch; }
+.faq details:last-child { border-bottom: 1px solid var(--linie); }
+.faq summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.faq summary:focus-visible { outline: 2px solid var(--ergebnis); outline-offset: 2px; border-radius: 4px; }
+.faq details p { margin: 0 0 10px; color: var(--text); }
+@media print { .seo-info { display: none !important; } }
+
 /* ---------- Druck: nur der Inhalt, hell, ohne Bedienelemente ---------- */
 @media print {
   :root, :root[data-thema="dunkel"], :root:not([data-thema="hell"]) {
