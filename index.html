@@ -159,6 +159,7 @@
      *   pfad     relativ zu dieser Datei
      *   bereich  Kategorie, wird zur Überschrift und zum Reiter oben
      *   gruppe   Untergruppe im Bereich (darf fehlen)
+     *   auchIn   weitere Bereiche, in denen die Karte zusätzlich erscheint (darf fehlen)
      *   themen   Stichwörter für die Suche, die ersten drei stehen auf der Karte
      *   text     ein Satz, was man dort tun kann
      *   tex      eine typische Formel als Erkennungszeichen (LaTeX, darf fehlen)
@@ -438,6 +439,7 @@
         gruppe: 'Sicherheit',
         pfad: 'protokolle/it-sicherheit.html',
         bereich: 'IT und Netzwerk',
+        auchIn: ['Werkzeuge'],
         themen: ['IT-Sicherheit', 'Audit', 'Port-Scan', 'CVSS', 'Grundschutz', 'Maßnahmenplan'],
         text: 'Prüfprotokoll für Sicherheitsaudits eigener Server und Dienste: Checkliste nach IT-Grundschutz mit Prüfbefehlen zu jedem Punkt, Import von Scan-Ausgaben, Header-Analyse, CVSS-3.1-Rechner, Findings, Maßnahmenplan mit Fristen, Unterschrift und PDF.',
         tex: '\\text{Risiko} = P \\cdot S'
@@ -617,9 +619,13 @@
     const GRUPPEN = ['Grundlagen', 'Installation und Schutz', 'Energie und Photovoltaik'];
     const farbe = function (b) { return BEREICHE[b] || 'var(--leise)'; };
 
+    // Gehört ein Eintrag zu einem Bereich (eigener Bereich oder zusätzlich über auchIn)?
+    function imBereich(e, b) { return e.bereich === b || (e.auchIn || []).indexOf(b) >= 0; }
+    // Untergruppe nur im eigenen Bereich; in weiteren Bereichen ohne Untergruppe
+    function gruppeIn(e, b) { return e.bereich === b ? (e.gruppe || '') : ''; }
     const bereiche = [];
     Object.keys(BEREICHE).concat(eintraege.map(function (e) { return e.bereich; })).forEach(function (b) {
-      if (bereiche.indexOf(b) < 0 && eintraege.some(function (e) { return e.bereich === b; })) bereiche.push(b);
+      if (bereiche.indexOf(b) < 0 && eintraege.some(function (e) { return imBereich(e, b); })) bereiche.push(b);
     });
 
     let auswahl = '';
@@ -628,7 +634,7 @@
       const k = document.createElement('button');
       k.type = 'button';
       k.style.setProperty('--farbe', b ? farbe(b) : 'var(--leise)');
-      const anzahl = b ? eintraege.filter(function (e) { return e.bereich === b; }).length : eintraege.length;
+      const anzahl = b ? eintraege.filter(function (e) { return imBereich(e, b); }).length : eintraege.length;
       k.innerHTML = (b ? '<i aria-hidden="true"></i>' : '') + '<span></span> <small>' + anzahl + '</small>';
       k.querySelector('span').textContent = b || 'Alle';
       k.setAttribute('aria-pressed', String(b === auswahl));
@@ -644,8 +650,8 @@
 
     function passt(e) {
       const suche = document.getElementById('suchfeld').value.trim().toLowerCase();
-      const alles = [e.titel, e.text, e.bereich, e.gruppe || ''].concat(e.themen).join(' ').toLowerCase();
-      return (!auswahl || e.bereich === auswahl) && (!suche || suche.split(/\s+/).every(function (w) { return alles.indexOf(w) >= 0; }));
+      const alles = [e.titel, e.text, e.bereich, e.gruppe || ''].concat(e.auchIn || []).concat(e.themen).join(' ').toLowerCase();
+      return (!auswahl || imBereich(e, auswahl)) && (!suche || suche.split(/\s+/).every(function (w) { return alles.indexOf(w) >= 0; }));
     }
 
     function karte(e) {
@@ -675,7 +681,8 @@
         return;
       }
       bereiche.forEach(function (b) {
-        const liste = treffer.filter(function (e) { return e.bereich === b; });
+        if (auswahl && b !== auswahl) return;   // gewählter Reiter: nur dieser Bereich
+        const liste = treffer.filter(function (e) { return imBereich(e, b); });
         if (!liste.length) return;
         const abschnitt = document.createElement('section');
         abschnitt.className = 'bereich';
@@ -688,8 +695,8 @@
         abschnitt.append(kopf);
         // Untergruppen, falls vorhanden; sonst ein Raster
         const gruppen = [];
-        GRUPPEN.concat(liste.map(function (e) { return e.gruppe || ''; })).forEach(function (gr) {
-          if (gruppen.indexOf(gr) < 0 && liste.some(function (e) { return (e.gruppe || '') === gr; })) gruppen.push(gr);
+        GRUPPEN.concat(liste.map(function (e) { return gruppeIn(e, b); })).forEach(function (gr) {
+          if (gruppen.indexOf(gr) < 0 && liste.some(function (e) { return gruppeIn(e, b) === gr; })) gruppen.push(gr);
         });
         gruppen.forEach(function (gr) {
           if (gr && gruppen.length > 1) {
@@ -698,7 +705,7 @@
           }
           const raster = document.createElement('div');
           raster.className = 'raster';
-          liste.filter(function (e) { return (e.gruppe || '') === gr; }).forEach(function (e) { raster.append(karte(e)); });
+          liste.filter(function (e) { return gruppeIn(e, b) === gr; }).forEach(function (e) { raster.append(karte(e)); });
           abschnitt.append(raster);
         });
         ziel.append(abschnitt);
