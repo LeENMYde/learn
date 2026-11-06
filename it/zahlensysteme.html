@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zahlensysteme und Bits</title>
+  <meta name="description" content="Zahlensysteme umrechnen: Binär, Oktal, Dezimal, Hexadezimal und jede Basis bis 36, beliebig lang. Ganzzahlen mit 8 bis 64 bit im Zweierkomplement mit Überlauf und Bitoperationen, Gleitkomma nach IEEE 754 Bit für Bit mit Rundungsfehler.">
+  <!-- seo -->
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .reiter-leiste { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+    .reiter-leiste button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 7px 14px; font: inherit; font-size: .92rem; cursor: pointer; }
+    .reiter-leiste button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster label.breit { grid-column: 1 / -1; }
+    .raster input, .raster select { padding: 7px 9px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .98rem; min-width: 0; width: 100%; }
+    .raster input.mono, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .raster input[type="range"] { padding: 0; border: none; accent-color: #3B5BDB; }
+    .bild { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); }
+    .schritte { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; }
+    .schritte li { counter-increment: s; position: relative; padding: 9px 10px 9px 42px; border-radius: var(--rund); margin: 4px 0; cursor: pointer; border: 1px solid transparent; }
+    .schritte li::before { content: counter(s); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; background: var(--linie); color: var(--text); font-size: .8rem; font-weight: 700; display: grid; place-items: center; }
+    .schritte li.aktiv { background: var(--flaeche2); border-color: var(--linie); }
+    .schritte li.aktiv::before { background: #3B5BDB; color: #FFFFFF; }
+    .schritte li.fertig::before { content: '✓'; background: #2E8B57; color: #FFFFFF; }
+    .schritte b { display: block; font-family: var(--technik); }
+    .schritte span { font-size: .9rem; color: var(--leise); }
+    .stepper { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .stepper .status { color: var(--leise); font-size: .9rem; }
+    .bereich { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 14px; align-items: start; }
+    @media (max-width: 960px) { .bereich { grid-template-columns: minmax(0, 1fr); } .bereich > .bild-tafel { order: -1; } }
+    @media print { .reiter-leiste, .stepper { display: none !important; } .bereich { display: block; } .bild { max-height: 100mm; width: auto; max-width: 100%; } }
+    .ausgabe { display: grid; gap: 6px; margin-top: 10px; }
+    .ausgabe div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+    .ausgabe b { font-family: var(--technik); color: var(--leise); font-weight: 600; font-size: .85rem; }
+    .ausgabe code { font-family: ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; font-size: .98rem; }
+    .knopfzeile { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .knopfzeile .knopf { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    #bild { cursor: pointer; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Zahlensysteme und Bits</span></h1>
+      <p>Zahlen zwischen Binär, Oktal, Dezimal, Hexadezimal und jeder Basis bis 36 umrechnen – beliebig lang. Ganzzahlen mit 8 bis 64 bit, Zweierkomplement, Überlauf und Bitoperationen. Gleitkommazahlen nach IEEE 754 Bit für Bit, mit dem exakt gespeicherten Wert und dem Rundungsfehler. Bits lassen sich direkt anklicken.</p>
+    </section>
+    <div class="reiter-leiste" id="reiter" data-nicht-merken></div>
+    <input type="hidden" id="zustand">
+    <div class="bereich">
+      <section class="tafel" aria-labelledby="h-ein">
+        <h2 id="h-ein">Eingabe</h2>
+        <div id="eingabe" data-nicht-merken></div>
+      </section>
+      <section class="tafel bild-tafel" aria-labelledby="h-bild">
+        <h2 id="h-bild">Bits und Stellen</h2>
+        <canvas id="bild" class="bild" role="img" aria-label="Stellen bzw. Bits der Zahl; Bits sind anklickbar"></canvas>
+        <p class="hilfe" id="bild-hilfe"></p>
+      </section>
+    </div>
+    <section class="tafel abstand" aria-labelledby="h-erg">
+      <div class="kopf-zeile"><h2 id="h-erg">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div class="meldungen" id="meldungen"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <div class="rahmen"><div id="tabelle"></div></div>
+    </section>
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg</h2>
+      <ol class="weg" id="weg"></ol>
+    </section>
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">IEEE 754-2019 (Gleitkomma), ISO/IEC 80000-13 (Binärpräfixe kibi, mebi, gibi), DIN 44300 (Begriffe der Informationsverarbeitung).</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; const p = Math.pow(10, n || 0); const t = (Math.round(w * p) / p).toFixed(n || 0).replace('.', ',').split(','); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(','); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function f(n) { return Thema.farbe(n); }
+    function knoten(tag, klasse, text) { const k = document.createElement(tag); if (klasse) k.className = klasse; if (text !== undefined) k.textContent = text; return k; }
+    function leinwand(c, hoehe) {
+      const d = window.devicePixelRatio || 1, w = Math.max(240, c.parentNode.clientWidth), h = Math.round(hoehe(w));
+      if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.height = h + 'px'; }
+      const cx = c.getContext('2d'); cx.setTransform(d, 0, 0, d, 0, 0); return { cx: cx, w: w, h: h };
+    }
+    function txt(cx, t, x, y, o) { o = o || {}; cx.fillStyle = o.f || f('--text'); cx.font = (o.b ? '700 ' : '500 ') + Math.round(o.g || 12) + 'px ' + (o.mono ? 'ui-monospace, Menlo, Consolas, monospace' : (f('--technik') || 'sans-serif')); cx.textAlign = o.a || 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y); }
+    function rund(cx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function kasten(cx, x, y, w, h, r, fuell, rand, lw) { rund(cx, x, y, w, h, r); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.2; cx.stroke(); } }
+    function strich(cx, pts, farbe, w, dash) { cx.strokeStyle = farbe; cx.lineWidth = w; cx.lineJoin = 'round'; cx.lineCap = 'round'; cx.setLineDash(dash || []); cx.beginPath(); pts.forEach(function (q, i) { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.stroke(); cx.setLineDash([]); }
+    function kreis(cx, x, y, r, fuell, rand, lw) { cx.beginPath(); cx.arc(x, y, Math.max(0.1, r), 0, 2 * Math.PI); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); } }
+    function pfeil(cx, a, b, farbe, w) { strich(cx, [a, b], farbe, w || 2); const an = Math.atan2(b[1] - a[1], b[0] - a[0]), k = 8; cx.fillStyle = farbe; cx.beginPath(); cx.moveTo(b[0], b[1]); cx.lineTo(b[0] - k * Math.cos(an - 0.4), b[1] - k * Math.sin(an - 0.4)); cx.lineTo(b[0] - k * Math.cos(an + 0.4), b[1] - k * Math.sin(an + 0.4)); cx.closePath(); cx.fill(); }
+    // Ergebnis-Bausteine
+    function meldungen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (m) { ziel.append(knoten('div', 'hinweis' + (m[1] ? ' fehler' : ''), m[0])); }); }
+    function kacheln(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const d = knoten('div', 'kachel'); d.style.setProperty('--farbe', q[2] || 'var(--linie)'); d.append(knoten('div', 'wert', q[0]), knoten('small', '', q[1])); ziel.append(d); }); }
+    function wegZeigen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const li = knoten('li'), r = knoten('div', 'rechnung'); Formel.setze(r, q[1], true); li.append(knoten('div', 'titel', q[0]), r); ziel.append(li); }); }
+    function sammlung(ziel, liste) { liste.forEach(function (q) { const s = knoten('section'), fo = knoten('div', 'formelblock'); Formel.setze(fo, q[1], true); s.append(knoten('h3', '', q[0]), fo, knoten('p', '', q[2])); ziel.append(s); }); }
+    function tabelle(ziel, kopf, zeilen, opt) {
+      opt = opt || {}; ziel.innerHTML = '';
+      const t = knoten('table', 'tabelle'), tr0 = knoten('tr');
+      kopf.forEach(function (k, i) { tr0.append(knoten('th', (opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '', k)); }); t.append(tr0);
+      zeilen.forEach(function (z, j) { const tr = knoten('tr', opt.klasse ? opt.klasse(j) || '' : ''); z.forEach(function (w, i) { tr.append(knoten('td', ((opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '') + (opt.mono && opt.mono.indexOf(i) >= 0 ? ' mono' : ''), w)); }); t.append(tr); });
+      ziel.append(t);
+    }
+
+    const ZIFFERN = '0123456789abcdefghijklmnopqrstuvwxyz';
+    const START = { tab: 'basis', wert: '2024', von: 10, nach: 16, bits: '11111110', breite: 8, flt: '0,1', genau: 64 };
+    let Z = JSON.parse(JSON.stringify(START));
+    const REITER = [['basis', 'Umrechnen'], ['ganz', 'Ganzzahl und Zweierkomplement'], ['float', 'Gleitkomma IEEE 754']];
+
+    // ---------- Große Zahlen als Ziffernfolgen (höchstwertige zuerst) ----------
+    function mulAdd(ziff, basis, faktor, plus) {
+      const o = ziff.slice(); let uebertrag = plus;
+      for (let i = o.length - 1; i >= 0; i--) { const v = o[i] * faktor + uebertrag; o[i] = v % basis; uebertrag = Math.floor(v / basis); }
+      while (uebertrag > 0) { o.unshift(uebertrag % basis); uebertrag = Math.floor(uebertrag / basis); }
+      return o;
+    }
+    // Ziffern von Basis a nach Basis b
+    function wandle(ziff, a, b) { let o = [0]; ziff.forEach(function (d) { o = mulAdd(o, b, a, d); }); while (o.length > 1 && o[0] === 0) o.shift(); return o; }
+    function alsText(ziff) { return ziff.map(function (d) { return ZIFFERN.charAt(d); }).join(''); }
+    function gruppiert(s, n) { let o = ''; for (let i = 0; i < s.length; i++) { if (i && (s.length - i) % n === 0) o += ' '; o += s.charAt(i); } return o; }
+    function liesZiffern(s, b) {
+      const t = s.toLowerCase(), o = [];
+      for (let i = 0; i < t.length; i++) { const d = ZIFFERN.indexOf(t.charAt(i)); if (d < 0 || d >= b) return null; o.push(d); }
+      return o;
+    }
+
+    // ---------- Umrechnen ----------
+    function rechneBasis() {
+      const s = String(Z.wert).trim().replace(/\s/g, '').replace(/^0[xob](?=.)/i, '');
+      const neg = s.charAt(0) === '-', rest = neg ? s.slice(1) : s;
+      const teile = rest.split(/[.,]/);
+      if (!rest || teile.length > 2 || rest.length > 120) return { fehler: 'Eine Zahl eingeben (höchstens 120 Stellen, ein Komma).' };
+      const ganz = liesZiffern(teile[0] || '0', Z.von), bruch = teile.length === 2 ? liesZiffern(teile[1], Z.von) : [];
+      if (!ganz || !bruch) return { fehler: 'Ziffer passt nicht zur Basis ' + Z.von + ': erlaubt sind ' + ZIFFERN.slice(0, Z.von).toUpperCase().split('').join(' ') + '.' };
+      const r = { neg: neg, ganz: ganz, bruch: bruch };
+      // Bruchteil als Gleitkommazahl (genau genug für die Anzeige)
+      let bw = 0; for (let i = bruch.length - 1; i >= 0; i--) bw = (bw + bruch[i]) / Z.von;
+      r.bruchWert = bw;
+      r.ziele = [2, 8, 10, 16, Z.nach].filter(function (b, i, a) { return a.indexOf(b) === i; }).map(function (b) {
+        let t = alsText(wandle(ganz, Z.von, b));
+        let periodisch = false;
+        if (bruch.length) {
+          let x = bw, d = '';
+          for (let i = 0; i < 24 && x > 0; i++) { x *= b; const k = Math.floor(x + 1e-12); d += ZIFFERN.charAt(Math.min(b - 1, k)); x -= k; if (x < 1e-12) x = 0; }
+          if (x > 0) periodisch = true;
+          t += ',' + (d || '0');
+        }
+        return [b, (neg ? '−' : '') + t.toUpperCase(), periodisch];
+      });
+      r.dez = alsText(wandle(ganz, Z.von, 10));
+      r.bitzahl = alsText(wandle(ganz, Z.von, 2)).replace(/^0+(?=.)/, '').length;
+      r.klein = ganz.length <= 15 && parseInt(r.dez, 10) <= Number.MAX_SAFE_INTEGER;
+      r.wertZahl = r.klein ? parseInt(r.dez, 10) : NaN;
+      return r;
+    }
+
+    // ---------- Ganzzahl ----------
+    function bitsVon(s, n) { const t = String(s).replace(/[^01]/g, ''); let o = t.slice(-n); while (o.length < n) o = '0' + o; return o; }
+    function unsigned(bs) { return alsText(wandle(bs.split('').map(Number), 2, 10)); }
+    function negiere(bs) { const inv = bs.split('').map(function (c) { return c === '1' ? 0 : 1; }); let u = 1; for (let i = inv.length - 1; i >= 0 && u; i--) { const v = inv[i] + u; inv[i] = v % 2; u = v >> 1; } return inv.join(''); }
+    function rechneGanz() {
+      const n = Z.breite, bs = bitsVon(Z.bits, n), r = { bs: bs, n: n };
+      r.u = unsigned(bs);
+      r.neg = bs.charAt(0) === '1';
+      r.betrag = r.neg ? unsigned(negiere(bs)) : r.u;
+      r.s = (r.neg ? '−' : '') + r.betrag;
+      r.hex = alsText(wandle(bs.split('').map(Number), 2, 16)).toUpperCase();
+      while (r.hex.length < n / 4) r.hex = '0' + r.hex;
+      r.okt = alsText(wandle(bs.split('').map(Number), 2, 8));
+      r.maxU = subEins(alsText(wandle([1].concat(new Array(n).fill(0)), 2, 10)));
+      return r;
+    }
+    function decZuBits(t, n) {
+      // Dezimalzahl in n Bits: negativ im Zweierkomplement (ab −2^(n−1)), positiv bis 2^n − 1; null bei Überlauf
+      const s = String(t).trim().replace(/\s/g, ''), neg = s.charAt(0) === '-' || s.charAt(0) === '−', ziff = neg ? s.slice(1) : s;
+      if (!/^\d{1,25}$/.test(ziff)) return null;
+      let b = alsText(wandle(ziff.split('').map(Number), 10, 2));
+      if (b === '0') return new Array(n + 1).join('0');
+      if (b.length > n || (neg && b.length === n && !/^10*$/.test(b))) return null;
+      while (b.length < n) b = '0' + b;
+      return neg ? negiere(b) : b;
+    }
+    function operation(op) {
+      const n = Z.breite, bs = bitsVon(Z.bits, n);
+      let o = bs, carry = false, overflow = false;
+      const plus = function (x, y) { let u = 0, r = ''; for (let i = n - 1; i >= 0; i--) { const v = +x.charAt(i) + +y.charAt(i) + u; r = (v % 2) + r; u = v >> 1; } return [r, u === 1]; };
+      const eins = bitsVon('1', n);
+      if (op === '+1') { const p = plus(bs, eins); o = p[0]; carry = p[1]; overflow = bs.charAt(0) === '0' && o.charAt(0) === '1'; }
+      if (op === '−1') { const p = plus(bs, negiere(eins)); o = p[0]; carry = !p[1]; overflow = bs.charAt(0) === '1' && o.charAt(0) === '0'; }
+      if (op === '<<') { carry = bs.charAt(0) === '1'; o = bs.slice(1) + '0'; overflow = bs.charAt(0) !== bs.charAt(1); }
+      if (op === '>>') { o = bs.charAt(0) + bs.slice(0, -1); }
+      if (op === '>>>') { o = '0' + bs.slice(0, -1); }
+      if (op === 'NOT') o = bs.split('').map(function (c) { return c === '1' ? '0' : '1'; }).join('');
+      if (op === '−x') { o = negiere(bs); overflow = /^10*$/.test(bs); }
+      Z.bits = o; Z.flag = (carry ? 'Übertrag (vorzeichenlos übergelaufen)' : '') + (carry && overflow ? ', ' : '') + (overflow ? 'Überlauf (mit Vorzeichen)' : '');
+    }
+
+    // ---------- Gleitkomma ----------
+    function floatBits(x, g) {
+      const dv = new DataView(new ArrayBuffer(8));
+      if (g === 32) { dv.setFloat32(0, x); let s = ''; for (let i = 0; i < 4; i++) { let b = dv.getUint8(i).toString(2); while (b.length < 8) b = '0' + b; s += b; } return s; }
+      dv.setFloat64(0, x); let s = ''; for (let i = 0; i < 8; i++) { let b = dv.getUint8(i).toString(2); while (b.length < 8) b = '0' + b; s += b; } return s;
+    }
+    function bitsZuFloat(bs, g) {
+      const dv = new DataView(new ArrayBuffer(8));
+      for (let i = 0; i < g / 8; i++) dv.setUint8(i, parseInt(bs.substr(i * 8, 8), 2));
+      return g === 32 ? dv.getFloat32(0) : dv.getFloat64(0);
+    }
+    // exakter Dezimalwert von ±M·2^e als Text
+    function exakt(bs, g) {
+      const eb = g === 32 ? 8 : 11, mb = g - 1 - eb, bias = g === 32 ? 127 : 1023;
+      const s = bs.charAt(0), e = parseInt(bs.substr(1, eb), 2), m = bs.substr(1 + eb);
+      if (e === (1 << eb) - 1) return null;
+      const subn = e === 0;
+      const mant = ((subn ? '0' : '1') + m).split('').map(Number);
+      let exp = (subn ? 1 - bias : e - bias) - mb;
+      let ganz = wandle(mant, 2, 10);
+      let komma = 0;
+      if (exp >= 0) { for (let i = 0; i < exp; i++) ganz = mulAdd(ganz, 10, 2, 0); }
+      else { for (let i = 0; i < -exp; i++) ganz = mulAdd(ganz, 10, 5, 0); komma = -exp; }
+      let t = alsText(ganz);
+      if (komma) { while (t.length <= komma) t = '0' + t; t = t.slice(0, t.length - komma) + ',' + t.slice(t.length - komma); t = t.replace(/0+$/, '').replace(/,$/, ''); }
+      return (s === '1' ? '−' : '') + t;
+    }
+    function rechneFloat() {
+      const g = Z.genau, eb = g === 32 ? 8 : 11, bias = g === 32 ? 127 : 1023;
+      let bs = Z.fbits && Z.fbits.length === g ? Z.fbits : null;
+      if (!bs) {
+        const t = String(Z.flt).trim().replace(/\s/g, '').replace(',', '.').replace('−', '-');
+        let x;
+        if (/^-?(inf|unendlich|∞)$/i.test(t)) x = t.charAt(0) === '-' ? -Infinity : Infinity;
+        else if (/^-?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(t)) x = Number(t);
+        else return { fehler: 'Eine Dezimalzahl eingeben, z. B. 0,1 oder -3,75 oder 6,02e23 (oder „inf“).' };
+        bs = floatBits(x, g);
+      }
+      const r = { bs: bs, g: g, eb: eb, bias: bias };
+      r.wert = bitsZuFloat(bs, g);
+      r.s = bs.charAt(0); r.e = parseInt(bs.substr(1, eb), 2); r.m = bs.substr(1 + eb);
+      r.art = r.e === (1 << eb) - 1 ? (/^0+$/.test(r.m) ? 'unendlich' : 'keine Zahl') : r.e === 0 ? (/^0+$/.test(r.m) ? 'null' : 'subnormal') : 'normal';
+      r.exakt = exakt(bs, g);
+      r.hex = parseInt(bs.substr(0, 32), 2).toString(16).toUpperCase() + (g === 64 ? ' ' + ('00000000' + parseInt(bs.substr(32), 2).toString(16).toUpperCase()).slice(-8) : '');
+      while (r.hex.split(' ')[0].length < 8) r.hex = '0' + r.hex;
+      // Abstand zur nächsten darstellbaren Zahl (ulp)
+      if (r.art === 'normal' || r.art === 'subnormal') { const ex = (r.art === 'subnormal' ? 1 : r.e) - bias - (g - 1 - eb); r.ulp = Math.pow(2, ex); }
+      // Abweichung zur Eingabe
+      if (!Z.fbits) {
+        const ein = Number(String(Z.flt).trim().replace(/\s/g, '').replace(',', '.').replace('−', '-'));
+        if (isFinite(ein) && g === 32) r.fehlerAbs = Math.fround(ein) - ein;
+        r.ein = String(Z.flt).trim();
+      }
+      return r;
+    }
+
+    // ---------- Oberfläche ----------
+    function reiterBauen() {
+      const z = $('reiter'); z.innerHTML = '';
+      REITER.forEach(function (r) { const b = knoten('button', '', r[1]); b.type = 'button'; b.setAttribute('aria-pressed', String(Z.tab === r[0])); b.addEventListener('click', function () { Z.tab = r[0]; reiterBauen(); eingabeBauen(); neu(); }); z.append(b); });
+    }
+    function feldText(ziel, label, wert, setzen, breit, mono) {
+      const l = knoten('label', breit ? 'breit' : ''); l.append(knoten('span', '', label));
+      const i = knoten('input', mono ? 'mono' : ''); i.type = 'text'; i.value = wert; i.autocomplete = 'off'; i.spellcheck = false; i.maxLength = 140;
+      i.addEventListener('input', function () { const ok = setzen(i.value.slice(0, 140)); i.classList.toggle('falsch', ok === false); neu(); });
+      l.append(i); ziel.append(l); return i;
+    }
+    function feldWahl(ziel, label, wahl, wert, setzen) {
+      const l = knoten('label'); l.append(knoten('span', '', label));
+      const s = knoten('select'); wahl.forEach(function (w) { const o = knoten('option', '', w[1]); o.value = String(w[0]); s.append(o); }); s.value = String(wert);
+      s.addEventListener('change', function () { setzen(s.value); eingabeBauen(); neu(); });
+      l.append(s); ziel.append(l);
+    }
+    const BASEN = [[2, 'Binär (2)'], [8, 'Oktal (8)'], [10, 'Dezimal (10)'], [16, 'Hexadezimal (16)']].concat([3, 4, 5, 6, 7, 9, 12, 20, 32, 36].map(function (b) { return [b, 'Basis ' + b]; }));
+    function eingabeBauen() {
+      const z = $('eingabe'); z.innerHTML = ''; const r = knoten('div', 'raster'); z.append(r);
+      if (Z.tab === 'basis') {
+        feldWahl(r, 'von Basis', BASEN, Z.von, function (v) { Z.von = +v; });
+        feldWahl(r, 'zusätzlich nach Basis', BASEN, Z.nach, function (v) { Z.nach = +v; });
+        feldText(r, 'Zahl', Z.wert, function (v) { Z.wert = v; }, true, true);
+        const k = knoten('div', 'knopfzeile'); z.append(k);
+        [['255', 10], ['2024', 10], ['FF', 16], ['DEADBEEF', 16], ['101101', 2], ['0,1', 10], ['18446744073709551615', 10]].forEach(function (b) { const x = knoten('button', 'knopf', b[0] + (b[1] !== 10 ? ' (' + b[1] + ')' : '')); x.type = 'button'; x.addEventListener('click', function () { Z.wert = b[0]; Z.von = b[1]; eingabeBauen(); neu(); }); k.append(x); });
+      } else if (Z.tab === 'ganz') {
+        feldWahl(r, 'Breite', [[8, '8 bit (Byte)'], [16, '16 bit'], [32, '32 bit'], [64, '64 bit']], Z.breite, function (v) { Z.breite = +v; Z.bits = bitsVon(Z.bits, Z.breite); });
+        feldText(r, 'Dezimal (mit Vorzeichen)', '', function (v) { if (v.trim() === '') return true; const b = decZuBits(v, Z.breite); if (b === null) return false; Z.bits = b; Z.flag = ''; return true; }, false, true);
+        feldText(r, 'oder Bits', bitsVon(Z.bits, Z.breite), function (v) { if (!/^[01\s]{1,80}$/.test(v)) return false; Z.bits = bitsVon(v, Z.breite); Z.flag = ''; return true; }, true, true);
+        const k = knoten('div', 'knopfzeile'); z.append(k);
+        ['+1', '−1', '<<', '>>', '>>>', 'NOT', '−x'].forEach(function (op) { const x = knoten('button', 'knopf', op); x.type = 'button'; x.title = { '+1': 'eins addieren', '−1': 'eins abziehen', '<<': 'nach links schieben (×2)', '>>': 'arithmetisch nach rechts (÷2, Vorzeichen bleibt)', '>>>': 'logisch nach rechts (mit 0 auffüllen)', 'NOT': 'alle Bits umkehren', '−x': 'Zweierkomplement: negieren' }[op]; x.addEventListener('click', function () { operation(op); eingabeBauen(); neu(); }); k.append(x); });
+      } else {
+        feldWahl(r, 'Genauigkeit', [[32, 'einfach (32 bit, float)'], [64, 'doppelt (64 bit, double)']], Z.genau, function (v) { Z.genau = +v; Z.fbits = null; });
+        feldText(r, 'Dezimalzahl', Z.flt, function (v) { Z.flt = v; Z.fbits = null; return true; }, true, true);
+        const k = knoten('div', 'knopfzeile'); z.append(k);
+        ['0,1', '0,5', '1', '-3,75', '16777217', '3,14159265358979', '1e-45', '6,02e23', 'inf'].forEach(function (b) { const x = knoten('button', 'knopf', b); x.type = 'button'; x.addEventListener('click', function () { Z.flt = b; Z.fbits = null; eingabeBauen(); neu(); }); k.append(x); });
+      }
+      const bsp = knoten('button', 'knopf-leise', 'Beispielwerte wiederherstellen'); bsp.type = 'button';
+      bsp.addEventListener('click', function () { const tab = Z.tab; Z = JSON.parse(JSON.stringify(START)); Z.tab = tab; eingabeBauen(); neu(); });
+      z.append(bsp);
+    }
+    $('zustand').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      const bas = BASEN.map(function (b) { return b[0]; });
+      if (['basis', 'ganz', 'float'].indexOf(a.tab) >= 0) Z.tab = a.tab;
+      if (typeof a.wert === 'string' && a.wert.length <= 140 && /^[0-9a-zA-Z.,\-\s]*$/.test(a.wert)) Z.wert = a.wert;
+      if (bas.indexOf(a.von) >= 0) Z.von = a.von;
+      if (bas.indexOf(a.nach) >= 0) Z.nach = a.nach;
+      if ([8, 16, 32, 64].indexOf(a.breite) >= 0) Z.breite = a.breite;
+      if (typeof a.bits === 'string' && /^[01]{1,64}$/.test(a.bits)) Z.bits = a.bits;
+      if (typeof a.flt === 'string' && a.flt.length <= 40 && /^[0-9eE.,+\-−a-zA-Z∞]*$/.test(a.flt)) Z.flt = a.flt;
+      if ([32, 64].indexOf(a.genau) >= 0) Z.genau = a.genau;
+      Z.fbits = typeof a.fbits === 'string' && a.fbits.length === Z.genau && /^[01]+$/.test(a.fbits) ? a.fbits : null;
+      Z.flag = '';
+      reiterBauen(); eingabeBauen(); neu();
+    });
+
+    let A = null;
+    function zeile(ziel, name, wert) { const d = knoten('div'); d.append(knoten('b', '', name), knoten('code', '', wert)); ziel.append(d); }
+    function neu() {
+      const sp = JSON.parse(JSON.stringify(Z)); delete sp.flag; $('zustand').value = JSON.stringify(sp);
+      const mel = [], ka = [], weg = [], u = $('urteil');
+      $('tabelle').innerHTML = '';
+      if (Z.tab === 'basis') {
+        const r = rechneBasis(); A = r;
+        if (r.fehler) { mel.push([r.fehler, true]); u.textContent = 'ungültig'; u.className = 'urteil schlecht'; }
+        else {
+          u.textContent = r.bitzahl + ' bit'; u.className = 'urteil gut';
+          const aus = knoten('div', 'ausgabe');
+          r.ziele.forEach(function (q) { zeile(aus, q[0] === 2 ? 'Binär' : q[0] === 8 ? 'Oktal' : q[0] === 10 ? 'Dezimal' : q[0] === 16 ? 'Hex' : 'Basis ' + q[0], q[0] === 2 ? gruppiert(q[1].split(',')[0], 4) + (q[1].indexOf(',') >= 0 ? ',' + q[1].split(',')[1] : '') : q[1]); });
+          $('tabelle').append(aus);
+          if (r.ziele.some(function (q) { return q[2]; })) mel.push(['Der Nachkommateil bricht in mindestens einer Basis nicht ab (periodisch) – gezeigt sind 24 Stellen. So entstehen Rundungsfehler, etwa bei 0,1 im Binärsystem.']);
+          ka.push([r.bitzahl + ' bit', 'nötig für den ganzzahligen Teil', '#3B5BDB'], [Math.ceil(r.bitzahl / 8) + ' Byte', 'Speicher', '#0E6B6A'], [r.dez.length + ' Stellen', 'dezimal', '#6E6FA6']);
+          const g = r.ganz, b = Z.von;
+          if (g.length <= 10) weg.push(['Stellenwerte (Basis ' + b + ' → 10)', g.map(function (d, i) { return d + ' \\cdot ' + b + '^{' + (g.length - 1 - i) + '}'; }).join(' + ') + ' = ' + E(r.dez)]);
+          if (r.klein && r.wertZahl > 0) {
+            const zb = Z.nach === 10 ? 2 : Z.nach; let x = r.wertZahl; const sch = [];
+            while (x > 0 && sch.length < 12) { sch.push(x + ' : ' + zb + ' = ' + Math.floor(x / zb) + '\\ \\text{Rest}\\ ' + ZIFFERN.charAt(x % zb).toUpperCase()); x = Math.floor(x / zb); }
+            weg.push(['Division mit Rest (10 → ' + zb + '), Reste von unten lesen', '\\begin{aligned}' + sch.join('\\\\') + (x > 0 ? '\\\\ \\ldots' : '') + '\\end{aligned}']);
+          }
+          if (r.bruch.length) weg.push(['Nachkommastellen: mit der Basis malnehmen', '0{,}x \\cdot b \\rightarrow \\text{Ganzzahlteil ist die nächste Ziffer}']);
+        }
+        $('bild-hilfe').textContent = 'Jede Stelle zählt ihre Ziffer mal Basis hoch Position.';
+      } else if (Z.tab === 'ganz') {
+        const r = rechneGanz(); A = r;
+        u.textContent = Z.flag ? Z.flag : r.n + ' bit'; u.className = 'urteil' + (Z.flag ? ' schlecht' : ' gut');
+        const aus = knoten('div', 'ausgabe');
+        zeile(aus, 'Bits', gruppiert(r.bs, 4)); zeile(aus, 'ohne Vorz.', r.u); zeile(aus, 'mit Vorz.', r.s); zeile(aus, 'Hex', '0x' + gruppiert(r.hex, 4)); zeile(aus, 'Oktal', r.okt);
+        $('tabelle').append(aus);
+        if (Z.flag) mel.push(['Die letzte Operation hat den Wertebereich verlassen: ' + Z.flag + '. Das Ergebnis „springt“ ans andere Ende.', true]);
+        const maxS = alsText(wandle([1].concat(new Array(r.n - 1).fill(0)), 2, 10));
+        ka.push(['0 … ' + r.maxU, 'ohne Vorzeichen (unsigned)', '#3B5BDB'], ['−' + maxS + ' … ' + subEins(maxS), 'mit Vorzeichen (Zweierkomplement)', '#E4572E']);
+        weg.push(['Wert ohne Vorzeichen', '\\sum b_i \\cdot 2^i = ' + E(r.u)]);
+        if (r.neg) weg.push(['Mit Vorzeichen: höchstes Bit 1 → negativ', '\\text{invertieren und } +1 \\Rightarrow ' + gruppiert(negiere(r.bs), 4).replace(/ /g, '\\,') + ' = ' + r.betrag + ' \\Rightarrow ' + E('-' + r.betrag)]);
+        else weg.push(['Mit Vorzeichen', '\\text{höchstes Bit } 0 \\Rightarrow \\text{positiv}: ' + E(r.u)]);
+        weg.push(['Bereich', '-2^{' + (r.n - 1) + '} \\ldots 2^{' + (r.n - 1) + '} - 1']);
+        $('bild-hilfe').textContent = 'Bits anklicken zum Umschalten. Das höchste Bit hat im Zweierkomplement den Wert −2^(n−1).';
+      } else {
+        const r = rechneFloat(); A = r;
+        if (r.fehler) { mel.push([r.fehler, true]); u.textContent = 'ungültig'; u.className = 'urteil schlecht'; }
+        else {
+          u.textContent = r.art; u.className = 'urteil ' + (r.art === 'normal' || r.art === 'null' ? 'gut' : 'schlecht');
+          const aus = knoten('div', 'ausgabe');
+          zeile(aus, 'gespeichert', r.exakt === null ? (r.art === 'unendlich' ? (r.s === '1' ? '−∞' : '+∞') : 'keine Zahl') : (r.exakt.length > 80 ? r.exakt.slice(0, 80) + '…' : r.exakt));
+          zeile(aus, 'Bits', r.s + ' ' + r.bs.substr(1, r.eb) + ' ' + r.m); zeile(aus, 'Hex', r.hex);
+          $('tabelle').append(aus);
+          if (r.art === 'subnormal') mel.push(['Subnormale Zahl: kleiner als die kleinste normale Zahl, mit weniger gültigen Stellen.']);
+          if (r.exakt !== null && r.ein && !Z.fbits && r.exakt.replace('−', '-').replace(/,/, '.') !== String(Number(r.ein.replace(',', '.').replace('−', '-')))) mel.push(['Die Eingabe ist im Binärsystem nicht exakt darstellbar; gespeichert wird die nächstgelegene Zahl (siehe „gespeichert“).']);
+          const ee = r.e - r.bias;
+          ka.push([r.s === '1' ? '−' : '+', 'Vorzeichen', '#C0392B'], [r.art === 'normal' ? String(ee).replace('-', '−') : r.art === 'subnormal' ? String(1 - r.bias) : '–', 'Exponent (gespeichert ' + r.e + ', Bias ' + r.bias + ')', '#2E8B57'], [r.g === 32 ? '≈ 7 Stellen' : '≈ 16 Stellen', 'dezimale Genauigkeit', '#3B5BDB'], r.ulp ? [r.ulp.toExponential(3).replace('.', ','), 'Abstand zur nächsten Zahl (ulp)', '#6E6FA6'] : null, r.fehlerAbs !== undefined && r.fehlerAbs !== 0 ? [r.fehlerAbs.toExponential(3).replace('.', ','), 'Rundungsfehler gegenüber der Eingabe', '#E4572E'] : null);
+          if (r.art === 'normal') weg.push(['Aufbau', '(-1)^{' + r.s + '} \\cdot 1{,}m_2 \\cdot 2^{' + r.e + ' - ' + r.bias + '}'], ['Exponent', 'e = ' + r.e + ' - ' + r.bias + ' = ' + E(String(ee))], ['Mantisse', '1{,}' + r.m.replace(/0+$/, '').slice(0, 30) + (r.m.replace(/0+$/, '').length > 30 ? '\\ldots' : '') + '_2']);
+          weg.push(['Wert', '\\approx ' + E(isFinite(r.wert) ? String(r.wert).replace('e', '\\cdot 10^{').replace(/(\\cdot 10\^\{[+-]?\d+)$/, '$1}').replace('.', '{,}') : '\\infty')]);
+        }
+        $('bild-hilfe').textContent = 'Rot: Vorzeichen, grün: Exponent, blau: Mantisse. Bits anklicken zum Umschalten.';
+      }
+      meldungen($('meldungen'), mel); kacheln($('kacheln'), ka); wegZeigen($('weg'), weg);
+    }
+    function subEins(dez) { const d = dez.split('').map(Number); let i = d.length - 1; while (i >= 0 && d[i] === 0) { d[i] = 9; i--; } if (i >= 0) d[i]--; return d.join('').replace(/^0+(?=.)/, ''); }
+
+    // ---------- Zeichnung ----------
+    let flaechen = [];
+    function zeichnen(t) {
+      const lw = leinwand($('bild'), function (w) { return Z.tab === 'basis' ? Math.max(170, Math.min(230, w * 0.36)) : Z.tab === 'ganz' ? (Z.breite > 32 && w < 700 ? 230 : 170) : (Z.genau === 64 && w < 700 ? 230 : 180); });
+      const cx = lw.cx, w = lw.w, h = lw.h; cx.clearRect(0, 0, w, h); flaechen = [];
+      if (!A || A.fehler) { txt(cx, 'Eingabe prüfen', w / 2, h / 2, { g: 14, b: true, f: f('--leise') }); return; }
+      if (Z.tab === 'basis') {
+        const g = A.ganz.slice(-10), n = g.length, bw = Math.min(64, (w - 20) / Math.max(1, n)), x0 = (w - bw * n) / 2;
+        const aktiv = Math.floor(t / 600) % (n + 2);
+        g.forEach(function (d, i) {
+          const x = x0 + i * bw, pos = n - 1 - i, an = i === aktiv;
+          kasten(cx, x + 3, 24, bw - 6, bw - 6, 6, an ? '#3B5BDB' : f('--flaeche'), '#3B5BDB', 2);
+          txt(cx, ZIFFERN.charAt(d).toUpperCase(), x + bw / 2, 24 + (bw - 6) / 2, { g: Math.min(26, bw * 0.5), b: true, f: an ? '#FFFFFF' : f('--text'), mono: true });
+          txt(cx, Z.von + '^' + pos, x + bw / 2, 24 + bw + 8, { g: Math.min(12, bw / 4), f: f('--leise') });
+          const sw = Math.pow(Z.von, pos);
+          if (sw < 1e15) txt(cx, '= ' + zahl(sw, 0), x + bw / 2, 24 + bw + 24, { g: Math.min(10, bw / 5), f: f('--leise') });
+        });
+        if (A.ganz.length > 10) txt(cx, '… nur die letzten 10 Stellen', w / 2, 10, { g: 10, f: f('--leise') });
+        txt(cx, 'Dezimal: ' + (A.dez.length > 40 ? A.dez.slice(0, 40) + '…' : A.dez), w / 2, h - 16, { g: Math.min(14, w / 30), b: true, mono: true });
+      } else {
+        const bs = A.bs, n = bs.length, zeilen = (n > 32 && w < 700) ? 2 : 1, jeZ = n / zeilen, bw = (w - 20) / jeZ, zh = Math.min(46, bw * 1.6);
+        for (let i = 0; i < n; i++) {
+          const zz = Math.floor(i / jeZ), x = 10 + (i % jeZ) * bw, y = 30 + zz * (zh + 40);
+          let farbe = '#3B5BDB';
+          if (Z.tab === 'float') farbe = i === 0 ? '#C0392B' : i <= A.eb ? '#2E8B57' : '#3B5BDB';
+          else if (i === 0) farbe = '#E4572E';
+          cx.globalAlpha = bs.charAt(i) === '1' ? 1 : 0.22;
+          kasten(cx, x + 1, y, bw - 2, zh, 3, farbe); cx.globalAlpha = 1;
+          if (bw > 8) txt(cx, bs.charAt(i), x + bw / 2, y + zh / 2, { g: Math.min(14, bw * 0.75), b: true, f: bs.charAt(i) === '1' ? '#FFFFFF' : f('--text'), mono: true });
+          if ((n - 1 - i) % 4 === 0 && i < n - 1 && Z.tab === 'ganz') strich(cx, [[x + bw, y - 4], [x + bw, y + zh + 4]], f('--leise'), 1);
+          flaechen.push([x, y, bw, zh, i]);
+          if (Z.tab === 'ganz' && ((n - 1 - i) % 8 === 7 || i === n - 1)) txt(cx, String(n - 1 - i), x + bw / 2, y + zh + 10, { g: 9, f: f('--leise') });
+        }
+        if (Z.tab === 'float') {
+          txt(cx, 'V', 10 + bw / 2, 16, { g: 10, b: true, f: '#C0392B' });
+          txt(cx, 'Exponent (' + A.eb + ')', 10 + (1 + A.eb / 2) * bw, 16, { g: 10, b: true, f: '#2E8B57' });
+          if (zeilen === 1) txt(cx, 'Mantisse (' + (A.g - 1 - A.eb) + ')', 10 + (1 + A.eb + (A.g - 1 - A.eb) / 2) * bw, 16, { g: 10, b: true, f: '#3B5BDB' });
+          txt(cx, '= ' + (A.exakt === null ? (A.art === 'unendlich' ? (A.s === '1' ? '−∞' : '+∞') : 'keine Zahl') : (A.exakt.length > 34 ? A.exakt.slice(0, 34) + '…' : A.exakt)), w / 2, h - 14, { g: Math.min(14, w / 32), b: true, mono: true });
+        } else {
+          txt(cx, '= ' + A.u + (A.neg ? '  bzw.  ' + A.s : ''), w / 2, h - 14, { g: Math.min(14, w / 34), b: true, mono: true });
+        }
+      }
+    }
+    $('bild').addEventListener('click', function (ev) {
+      if (Z.tab === 'basis') return;
+      const rr = $('bild').getBoundingClientRect(), x = ev.clientX - rr.left, y = ev.clientY - rr.top;
+      flaechen.forEach(function (q) {
+        if (x >= q[0] && x < q[0] + q[2] && y >= q[1] && y < q[1] + q[3]) {
+          if (Z.tab === 'ganz') { const b = bitsVon(Z.bits, Z.breite); Z.bits = b.slice(0, q[4]) + (b.charAt(q[4]) === '1' ? '0' : '1') + b.slice(q[4] + 1); Z.flag = ''; }
+          else { const b = A.bs; Z.fbits = b.slice(0, q[4]) + (b.charAt(q[4]) === '1' ? '0' : '1') + b.slice(q[4] + 1); }
+          eingabeBauen(); neu();
+        }
+      });
+    });
+    function schleife(t) { zeichnen(t); requestAnimationFrame(schleife); }
+    sammlung($('sammlung'), [
+      ['Stellenwertsystem', 'z = \\sum_{i} d_i \\cdot b^i', 'Ziffer d an Position i (von rechts, ab 0) mal Basis b hoch i'],
+      ['Umrechnen von 10 nach b', 'z = q \\cdot b + r \\rightarrow \\text{Reste von unten nach oben lesen}', 'fortgesetzte Division mit Rest'],
+      ['Hex und Binär', '1\\ \\text{Hex-Ziffer} = 4\\ \\text{bit},\\quad 1\\ \\text{Oktal-Ziffer} = 3\\ \\text{bit}', 'darum lassen sich Bits in Vierergruppen direkt als Hex lesen'],
+      ['Zweierkomplement', '-x = \\lnot x + 1,\\qquad \\text{Bereich } -2^{n-1} \\ldots 2^{n-1} - 1', 'Addition und Subtraktion funktionieren mit denselben Schaltungen wie ohne Vorzeichen'],
+      ['IEEE 754', 'x = (-1)^s \\cdot 1{,}m \\cdot 2^{e - \\text{Bias}}', 'einfach: 1 + 8 + 23 bit, Bias 127; doppelt: 1 + 11 + 52 bit, Bias 1023'],
+      ['Präfixe', '1\\,\\text{KiB} = 1024\\,\\text{Byte},\\quad 1\\,\\text{kB} = 1000\\,\\text{Byte}', 'Binärpräfixe kibi, mebi, gibi, tebi nach IEC 80000-13']
+    ]);
+    reiterBauen(); eingabeBauen(); neu(); requestAnimationFrame(schleife);
+    window.addEventListener('resize', function () { zeichnen(performance.now()); });
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>
