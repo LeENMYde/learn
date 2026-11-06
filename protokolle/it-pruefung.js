@@ -27,7 +27,7 @@
       t.querySelectorAll('tbody tr').forEach(function (tr) {
         const radios = tr.querySelectorAll('input[type="radio"]'); if (!radios.length) return;
         const c = tr.querySelector('input[type="radio"]:checked');
-        const punkt = (tr.cells[0] ? tr.cells[0].textContent : '').trim();
+        const punkt = (tr.cells[0] && tr.cells[0].firstChild ? tr.cells[0].firstChild.textContent : '').trim();
         if (!c) { r.offen++; return; }
         const v = c.value === 'on' ? ['ok', 'warn', 'fail', 'na'][Array.prototype.indexOf.call(radios, c)] || 'ok' : c.value;
         if (r[v] !== undefined) r[v]++;
