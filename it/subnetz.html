@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IP-Subnetzrechner – Formeln &amp; Rechner</title>
+  <meta name="description" content="IPv4- und IPv6-Subnetzrechner: Netzadresse, Broadcast, nutzbarer Bereich, Hosts, Subnetzmaske und Wildcard aus Adresse und Präfix, Adresstyp, Netz in Subnetze aufteilen (VLSM), IPv6 kürzen und ausschreiben – mit Bit-Ansicht.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/it/subnetz.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="IP-Subnetzrechner">
+  <meta property="og:description" content="IPv4- und IPv6-Subnetzrechner: Netzadresse, Broadcast, nutzbarer Bereich, Hosts, Subnetzmaske und Wildcard aus Adresse und Präfix, Adresstyp, Netz in Subnetze aufteilen (VLSM), IPv6 kürzen und ausschreiben – mit Bit-Ansicht.">
+  <meta property="og:url" content="https://tools.pr1m3.de/it/subnetz.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"IP-Subnetzrechner","url":"https://tools.pr1m3.de/it/subnetz.html","inLanguage":"de","description":"IPv4- und IPv6-Subnetzrechner: Netzadresse, Broadcast, nutzbarer Bereich, Hosts, Subnetzmaske und Wildcard aus Adresse und Präfix, Adresstyp, Netz in Subnetze aufteilen (VLSM), IPv6 kürzen und ausschreiben – mit Bit-Ansicht.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .reiter-leiste { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+    .reiter-leiste button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 7px 14px; font: inherit; font-size: .92rem; cursor: pointer; }
+    .reiter-leiste button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster label.breit { grid-column: 1 / -1; }
+    .raster input, .raster select { padding: 7px 9px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .98rem; min-width: 0; width: 100%; }
+    .raster input.mono, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .raster input[type="range"] { padding: 0; border: none; accent-color: #3B5BDB; }
+    .bild { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); }
+    .schritte { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; }
+    .schritte li { counter-increment: s; position: relative; padding: 9px 10px 9px 42px; border-radius: var(--rund); margin: 4px 0; cursor: pointer; border: 1px solid transparent; }
+    .schritte li::before { content: counter(s); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; background: var(--linie); color: var(--text); font-size: .8rem; font-weight: 700; display: grid; place-items: center; }
+    .schritte li.aktiv { background: var(--flaeche2); border-color: var(--linie); }
+    .schritte li.aktiv::before { background: #3B5BDB; color: #FFFFFF; }
+    .schritte li.fertig::before { content: '✓'; background: #2E8B57; color: #FFFFFF; }
+    .schritte b { display: block; font-family: var(--technik); }
+    .schritte span { font-size: .9rem; color: var(--leise); }
+    .stepper { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .stepper .status { color: var(--leise); font-size: .9rem; }
+    .bereich { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 14px; align-items: start; }
+    @media (max-width: 960px) { .bereich { grid-template-columns: minmax(0, 1fr); } .bereich > .bild-tafel { order: -1; } }
+    @media print { .reiter-leiste, .stepper { display: none !important; } .bereich { display: block; } .bild { max-height: 100mm; width: auto; max-width: 100%; } }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">IP-Subnetzrechner</span></h1>
+      <p>IPv4 und IPv6 auseinandernehmen: Netzadresse, Broadcast, nutzbarer Bereich und Anzahl der Hosts aus Adresse und Präfix oder Subnetzmaske, Adresstyp (privat, öffentlich, Link-Local …), ein Netz in passend große Subnetze aufteilen (VLSM) – mit allen Bits sichtbar.</p>
+    </section>
+    <div class="reiter-leiste" id="reiter" data-nicht-merken></div>
+    <input type="hidden" id="zustand">
+    <div class="bereich">
+      <section class="tafel" aria-labelledby="h-ein">
+        <h2 id="h-ein">Eingabe</h2>
+        <div id="eingabe" data-nicht-merken></div>
+      </section>
+      <section class="tafel bild-tafel" aria-labelledby="h-bild">
+        <h2 id="h-bild">Bits</h2>
+        <canvas id="bild" class="bild" role="img" aria-label="Adresse und Maske als Bits, Netzanteil und Hostanteil farbig"></canvas>
+        <p class="hilfe" id="bild-hilfe"></p>
+      </section>
+    </div>
+    <section class="tafel abstand" aria-labelledby="h-erg">
+      <div class="kopf-zeile"><h2 id="h-erg">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div class="meldungen" id="meldungen"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <div class="rahmen"><div id="tabelle"></div></div>
+    </section>
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg</h2>
+      <ol class="weg" id="weg"></ol>
+    </section>
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">RFC 791 (IPv4), RFC 4632 (CIDR), RFC 1918 (private Adressen), RFC 6598 (Shared Address Space), RFC 3021 (/31), RFC 3927 (Link-Local), RFC 5737 (Dokumentation), RFC 4291 (IPv6-Adressierung), RFC 5952 (IPv6-Schreibweise), RFC 4193 (Unique Local Addresses).</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; const p = Math.pow(10, n || 0); const t = (Math.round(w * p) / p).toFixed(n || 0).replace('.', ',').split(','); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(','); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function f(n) { return Thema.farbe(n); }
+    function knoten(tag, klasse, text) { const k = document.createElement(tag); if (klasse) k.className = klasse; if (text !== undefined) k.textContent = text; return k; }
+    function leinwand(c, hoehe) {
+      const d = window.devicePixelRatio || 1, w = Math.max(240, c.parentNode.clientWidth), h = Math.round(hoehe(w));
+      if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.height = h + 'px'; }
+      const cx = c.getContext('2d'); cx.setTransform(d, 0, 0, d, 0, 0); return { cx: cx, w: w, h: h };
+    }
+    function txt(cx, t, x, y, o) { o = o || {}; cx.fillStyle = o.f || f('--text'); cx.font = (o.b ? '700 ' : '500 ') + Math.round(o.g || 12) + 'px ' + (o.mono ? 'ui-monospace, Menlo, Consolas, monospace' : (f('--technik') || 'sans-serif')); cx.textAlign = o.a || 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y); }
+    function rund(cx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function kasten(cx, x, y, w, h, r, fuell, rand, lw) { rund(cx, x, y, w, h, r); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.2; cx.stroke(); } }
+    function strich(cx, pts, farbe, w, dash) { cx.strokeStyle = farbe; cx.lineWidth = w; cx.lineJoin = 'round'; cx.lineCap = 'round'; cx.setLineDash(dash || []); cx.beginPath(); pts.forEach(function (q, i) { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.stroke(); cx.setLineDash([]); }
+    function kreis(cx, x, y, r, fuell, rand, lw) { cx.beginPath(); cx.arc(x, y, Math.max(0.1, r), 0, 2 * Math.PI); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); } }
+    function pfeil(cx, a, b, farbe, w) { strich(cx, [a, b], farbe, w || 2); const an = Math.atan2(b[1] - a[1], b[0] - a[0]), k = 8; cx.fillStyle = farbe; cx.beginPath(); cx.moveTo(b[0], b[1]); cx.lineTo(b[0] - k * Math.cos(an - 0.4), b[1] - k * Math.sin(an - 0.4)); cx.lineTo(b[0] - k * Math.cos(an + 0.4), b[1] - k * Math.sin(an + 0.4)); cx.closePath(); cx.fill(); }
+    // Ergebnis-Bausteine
+    function meldungen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (m) { ziel.append(knoten('div', 'hinweis' + (m[1] ? ' fehler' : ''), m[0])); }); }
+    function kacheln(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const d = knoten('div', 'kachel'); d.style.setProperty('--farbe', q[2] || 'var(--linie)'); d.append(knoten('div', 'wert', q[0]), knoten('small', '', q[1])); ziel.append(d); }); }
+    function wegZeigen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const li = knoten('li'), r = knoten('div', 'rechnung'); Formel.setze(r, q[1], true); li.append(knoten('div', 'titel', q[0]), r); ziel.append(li); }); }
+    function sammlung(ziel, liste) { liste.forEach(function (q) { const s = knoten('section'), fo = knoten('div', 'formelblock'); Formel.setze(fo, q[1], true); s.append(knoten('h3', '', q[0]), fo, knoten('p', '', q[2])); ziel.append(s); }); }
+    function tabelle(ziel, kopf, zeilen, opt) {
+      opt = opt || {}; ziel.innerHTML = '';
+      const t = knoten('table', 'tabelle'), tr0 = knoten('tr');
+      kopf.forEach(function (k, i) { tr0.append(knoten('th', (opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '', k)); }); t.append(tr0);
+      zeilen.forEach(function (z, j) { const tr = knoten('tr', opt.klasse ? opt.klasse(j) || '' : ''); z.forEach(function (w, i) { tr.append(knoten('td', ((opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '') + (opt.mono && opt.mono.indexOf(i) >= 0 ? ' mono' : ''), w)); }); t.append(tr); });
+      ziel.append(t);
+    }
+
+    // ---------- Zustand ----------
+    const START = { tab: 'v4', v4: '192.168.10.37/24', vlsm: { basis: '10.20.0.0/22', netze: [{ n: 'Büro', h: 200 }, { n: 'Gäste-WLAN', h: 120 }, { n: 'Server', h: 50 }, { n: 'Drucker', h: 12 }, { n: 'Verbindung Router', h: 2 }] }, v6: '2001:db8:abcd:12::1/64' };
+    let Z = JSON.parse(JSON.stringify(START));
+    const REITER = [['v4', 'IPv4'], ['vlsm', 'Netz aufteilen (VLSM)'], ['v6', 'IPv6']];
+
+    // ---------- IPv4 ----------
+    function liesV4(s) {
+      const m = /^\s*(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\s*$/.exec(s);
+      if (!m) return null;
+      const o = [m[1], m[2], m[3], m[4]].map(Number);
+      if (o.some(function (x) { return x > 255; })) return null;
+      return ((o[0] << 24) >>> 0) + (o[1] << 16) + (o[2] << 8) + o[3];
+    }
+    function v4Text(n) { return [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+    function maske(p) { return p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0; }
+    function praefixAusMaske(m) { for (let p = 0; p <= 32; p++) if (maske(p) === m) return p; return -1; }
+    function bits(n) { let s = (n >>> 0).toString(2); while (s.length < 32) s = '0' + s; return s; }
+    function liesCidr(s) {
+      // „a.b.c.d/p“ oder „a.b.c.d 255.255.255.0“ oder „a.b.c.d/255.255.255.0“
+      const t = String(s).trim().split(/\s*[\/\s]\s*/);
+      if (t.length !== 2) return null;
+      const ip = liesV4(t[0]); if (ip === null) return null;
+      let p;
+      if (/^\d{1,2}$/.test(t[1])) { p = +t[1]; if (p > 32) return null; }
+      else { const m = liesV4(t[1]); if (m === null) return null; p = praefixAusMaske(m); if (p < 0) return { fehler: 'maske' }; }
+      return { ip: ip, p: p };
+    }
+    function typV4(n) {
+      const im = function (netz, p) { return ((n & maske(p)) >>> 0) === liesV4(netz); };
+      if (n === 0xFFFFFFFF) return ['Broadcast an alle', false];
+      if (im('0.0.0.0', 8)) return ['„dieses Netz“ (0.0.0.0/8)', false];
+      if (im('10.0.0.0', 8) || im('172.16.0.0', 12) || im('192.168.0.0', 16)) return ['privat (RFC 1918)', true];
+      if (im('100.64.0.0', 10)) return ['Provider-NAT (CGNAT, RFC 6598)', true];
+      if (im('127.0.0.0', 8)) return ['Loopback', false];
+      if (im('169.254.0.0', 16)) return ['Link-Local (APIPA, RFC 3927)', true];
+      if (im('192.0.2.0', 24) || im('198.51.100.0', 24) || im('203.0.113.0', 24)) return ['Dokumentation (RFC 5737)', false];
+      if (im('224.0.0.0', 4)) return ['Multicast', false];
+      if (im('240.0.0.0', 4)) return ['reserviert', false];
+      return ['öffentlich', true];
+    }
+    function klasse(n) { const a = n >>> 24; return a < 128 ? 'A' : a < 192 ? 'B' : a < 224 ? 'C' : a < 240 ? 'D' : 'E'; }
+    function rechneV4(s) {
+      const c = liesCidr(s);
+      if (!c) return { fehler: 'Eingabe als Adresse/Präfix, z. B. 192.168.10.37/24 oder 192.168.10.37 255.255.255.0.' };
+      if (c.fehler) return { fehler: 'Die Subnetzmaske muss aus durchgehenden Einsen und dann Nullen bestehen (z. B. 255.255.255.0).' };
+      const r = { ip: c.ip, p: c.p, m: maske(c.p) };
+      r.netz = (r.ip & r.m) >>> 0; r.bc = (r.netz | (~r.m >>> 0)) >>> 0; r.wild = (~r.m) >>> 0;
+      r.anzahl = Math.pow(2, 32 - r.p);
+      r.hosts = r.p <= 30 ? r.anzahl - 2 : r.p === 31 ? 2 : 1;
+      r.erste = r.p <= 30 ? r.netz + 1 : r.netz; r.letzte = r.p <= 30 ? r.bc - 1 : r.bc;
+      r.typ = typV4(r.ip);
+      r.istNetz = r.ip === r.netz && r.p < 31; r.istBc = r.ip === r.bc && r.p < 31;
+      return r;
+    }
+
+    // ---------- IPv6 ----------
+    function liesV6(s) {
+      s = String(s).trim().toLowerCase();
+      if (!/^[0-9a-f:.]+$/.test(s) || s.length > 45) return null;
+      let v4teil = null;
+      const lp = s.lastIndexOf(':');
+      if (s.indexOf('.') >= 0) { v4teil = liesV4(s.slice(lp + 1)); if (v4teil === null) return null; s = s.slice(0, lp + 1) + (v4teil >>> 16).toString(16) + ':' + (v4teil & 65535).toString(16); }
+      const doppelt = s.split('::');
+      if (doppelt.length > 2) return null;
+      const teil = function (t) { return t === '' ? [] : t.split(':'); };
+      const a = teil(doppelt[0]), b = doppelt.length === 2 ? teil(doppelt[1]) : [];
+      if (a.concat(b).some(function (g) { return !/^[0-9a-f]{1,4}$/.test(g); })) return null;
+      let g;
+      if (doppelt.length === 2) { const fehl = 8 - a.length - b.length; if (fehl < 1) return null; g = a.concat(new Array(fehl).fill('0'), b); }
+      else { if (a.length !== 8) return null; g = a; }
+      return g.map(function (x) { return parseInt(x, 16); });
+    }
+    function v6Lang(g) { return g.map(function (x) { let s = x.toString(16); while (s.length < 4) s = '0' + s; return s; }).join(':'); }
+    function v6Kurz(g) {
+      // längste Folge von mindestens zwei Null-Gruppen durch :: ersetzen (RFC 5952)
+      let best = -1, bl = 0;
+      for (let i = 0; i < 8;) { if (g[i] === 0) { let j = i; while (j < 8 && g[j] === 0) j++; if (j - i > bl && j - i >= 2) { best = i; bl = j - i; } i = j; } else i++; }
+      const h = g.map(function (x) { return x.toString(16); });
+      if (best < 0) return h.join(':');
+      return h.slice(0, best).join(':') + '::' + h.slice(best + bl).join(':');
+    }
+    function v6Maske(p) { const m = []; for (let i = 0; i < 8; i++) { const b = Math.max(0, Math.min(16, p - i * 16)); m.push(b === 0 ? 0 : (0xFFFF << (16 - b)) & 0xFFFF); } return m; }
+    function typV6(g) {
+      const pre = function (wert, bitsN) { const m = v6Maske(bitsN); for (let i = 0; i < 8; i++) if ((g[i] & m[i]) !== (wert[i] & m[i])) return false; return true; };
+      if (g.every(function (x) { return x === 0; })) return 'unspezifiziert (::)';
+      if (pre([0, 0, 0, 0, 0, 0, 0, 1], 128)) return 'Loopback (::1)';
+      if (pre([0, 0, 0, 0, 0, 0xFFFF, 0, 0], 96)) return 'IPv4-abgebildet (::ffff:0:0/96)';
+      if (pre([0xfe80, 0, 0, 0, 0, 0, 0, 0], 10)) return 'Link-Local (fe80::/10)';
+      if (pre([0xfc00, 0, 0, 0, 0, 0, 0, 0], 7)) return 'Unique Local (fc00::/7, privat)';
+      if (pre([0xff00, 0, 0, 0, 0, 0, 0, 0], 8)) return 'Multicast (ff00::/8)';
+      if (pre([0x2001, 0x0db8, 0, 0, 0, 0, 0, 0], 32)) return 'Dokumentation (2001:db8::/32)';
+      if (pre([0x2000, 0, 0, 0, 0, 0, 0, 0], 3)) return 'global (2000::/3)';
+      return 'reserviert';
+    }
+    function rechneV6(s) {
+      const t = String(s).trim().split('/');
+      if (t.length > 2) return { fehler: 'Eingabe als Adresse/Präfix, z. B. 2001:db8::1/64.' };
+      const g = liesV6(t[0]);
+      const p = t.length === 2 ? (/^\d{1,3}$/.test(t[1]) ? +t[1] : -1) : 128;
+      if (!g || p < 0 || p > 128) return { fehler: 'Keine gültige IPv6-Adresse: acht Gruppen aus je bis zu vier Hex-Ziffern, „::“ einmal für Nullen, Präfix 0 bis 128.' };
+      const m = v6Maske(p), r = { g: g, p: p, m: m };
+      r.netz = g.map(function (x, i) { return x & m[i]; });
+      r.letzte = g.map(function (x, i) { return (x & m[i]) | (~m[i] & 0xFFFF); });
+      r.typ = typV6(g);
+      r.exp = 128 - p;
+      r.netze64 = p <= 64 ? Math.pow(2, 64 - p) : 0;
+      r.eui = p >= 64 && (g[5] & 0xFF) === 0xFF && (g[6] >> 8) === 0xFE;
+      if (r.eui) { const mac = [g[4] >> 8 ^ 2, g[4] & 255, g[5] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255]; r.mac = mac.map(function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join(':'); }
+      return r;
+    }
+
+    // ---------- VLSM ----------
+    function rechneVlsm(v) {
+      const b = liesCidr(v.basis);
+      if (!b || b.fehler) return { fehler: 'Basisnetz als Adresse/Präfix eintragen, z. B. 10.20.0.0/22.' };
+      const basis = (b.ip & maske(b.p)) >>> 0, ende = basis + Math.pow(2, 32 - b.p);
+      const liste = v.netze.map(function (x, i) { return { i: i, n: x.n, h: x.h }; }).sort(function (a, c) { return c.h - a.h; });
+      let pos = basis; const erg = []; let voll = false;
+      liste.forEach(function (x) {
+        const groesse = x.h <= 1 ? 1 : Math.pow(2, Math.ceil(Math.log(x.h + 2) / Math.LN2 - 1e-9));
+        const p = 32 - Math.round(Math.log(groesse) / Math.LN2);
+        pos = Math.ceil((pos - basis) / groesse) * groesse + basis;
+        if (pos + groesse > ende) { voll = true; erg.push({ x: x, p: p, groesse: groesse, passt: false }); return; }
+        erg.push({ x: x, p: p, groesse: groesse, netz: pos, bc: pos + groesse - 1, passt: true });
+        pos += groesse;
+      });
+      const belegt = erg.filter(function (e) { return e.passt; }).reduce(function (s, e) { return s + e.groesse; }, 0);
+      return { basis: basis, bp: b.p, ende: ende, erg: erg, voll: voll, belegt: belegt, groesse: Math.pow(2, 32 - b.p), versatz: b.ip !== basis };
+    }
+
+    // ---------- Oberfläche ----------
+    function reiterBauen() {
+      const z = $('reiter'); z.innerHTML = '';
+      REITER.forEach(function (r) { const b = knoten('button', '', r[1]); b.type = 'button'; b.setAttribute('aria-pressed', String(Z.tab === r[0])); b.addEventListener('click', function () { Z.tab = r[0]; reiterBauen(); eingabeBauen(); neu(); }); z.append(b); });
+    }
+    function textFeld(ziel, label, wert, setzen, breit) {
+      const l = knoten('label', breit ? 'breit' : ''); l.append(knoten('span', '', label));
+      const i = knoten('input', 'mono'); i.type = 'text'; i.value = wert; i.autocomplete = 'off'; i.spellcheck = false; i.maxLength = 60;
+      i.addEventListener('input', function () { setzen(i.value.slice(0, 60)); neu(); });
+      l.append(i); ziel.append(l); return i;
+    }
+    function eingabeBauen() {
+      const z = $('eingabe'); z.innerHTML = '';
+      const r = knoten('div', 'raster'); z.append(r);
+      if (Z.tab === 'v4') {
+        const ein = textFeld(r, 'Adresse/Präfix oder Adresse und Maske', Z.v4, function (v) { Z.v4 = v; }, true);
+        const sl = knoten('label', 'breit'); const st = knoten('span', '', 'Präfix verschieben'); const rng = knoten('input'); rng.type = 'range'; rng.min = '0'; rng.max = '32';
+        const c = liesCidr(Z.v4); rng.value = String(c && !c.fehler ? c.p : 24);
+        rng.addEventListener('input', function () { const c2 = liesCidr(Z.v4); const ip = c2 && !c2.fehler ? v4Text(c2.ip) : '192.168.0.1'; Z.v4 = ip + '/' + rng.value; ein.value = Z.v4; neu(); });
+        sl.append(st, rng); r.append(sl);
+        const vor = knoten('div', 'raster'); z.append(vor);
+        [['/24 Heimnetz', '192.168.178.20/24'], ['/30 Verbindung', '10.0.0.5/30'], ['/16 groß', '172.20.14.9/16'], ['Maske', '10.1.2.3 255.255.252.0']].forEach(function (b) { const k = knoten('button', 'knopf', b[0]); k.type = 'button'; k.addEventListener('click', function () { Z.v4 = b[1]; eingabeBauen(); neu(); }); vor.append(k); });
+      } else if (Z.tab === 'v6') {
+        textFeld(r, 'IPv6-Adresse/Präfix', Z.v6, function (v) { Z.v6 = v; }, true);
+        const vor = knoten('div', 'raster'); z.append(vor);
+        [['global /64', '2001:db8:abcd:12::1/64'], ['Zuteilung /56', '2001:db8:4f00:1200::/56'], ['Link-Local', 'fe80::21a:2bff:fe3c:4d5e/64'], ['ULA /48', 'fd12:3456:789a::/48']].forEach(function (b) { const k = knoten('button', 'knopf', b[0]); k.type = 'button'; k.addEventListener('click', function () { Z.v6 = b[1]; eingabeBauen(); neu(); }); vor.append(k); });
+      } else {
+        textFeld(r, 'Basisnetz', Z.vlsm.basis, function (v) { Z.vlsm.basis = v; }, true);
+        z.append(knoten('p', 'hilfe', 'Subnetze mit der Zahl der nötigen Hosts. Vergeben wird von groß nach klein, jedes Netz auf seiner Blockgrenze.'));
+        const liste = knoten('div', 'liste'); z.append(liste);
+        Z.vlsm.netze.forEach(function (x, i) {
+          const fs = knoten('fieldset', 'listen-zeile'); const lg = knoten('legend'); lg.append(knoten('span', '', 'Subnetz ' + (i + 1)));
+          const weg = knoten('button', 'entfernen', '×'); weg.type = 'button'; weg.setAttribute('aria-label', 'Subnetz ' + (i + 1) + ' entfernen'); weg.disabled = Z.vlsm.netze.length <= 1;
+          weg.addEventListener('click', function () { Z.vlsm.netze.splice(i, 1); eingabeBauen(); neu(); });
+          lg.append(weg); fs.append(lg);
+          const l1 = knoten('label', 'listen-feld breit'); l1.append(knoten('span', 'listen-name', 'Name')); const n = knoten('input', 'text'); n.type = 'text'; n.maxLength = 30; n.value = x.n; n.addEventListener('input', function () { x.n = n.value.slice(0, 30); neu(); }); l1.append(n);
+          const l2 = knoten('label', 'listen-feld'); l2.append(knoten('span', 'listen-name', 'Hosts')); const h = knoten('input'); h.type = 'text'; h.inputMode = 'numeric'; h.value = String(x.h);
+          h.addEventListener('input', function () { const v = Number(h.value.trim()); const ok = Math.floor(v) === v && v >= 1 && v <= 16777214; l2.classList.toggle('widerspruch', !ok); if (ok) { x.h = v; neu(); } });
+          h.addEventListener('blur', function () { h.value = String(x.h); l2.classList.remove('widerspruch'); });
+          l2.append(h); fs.append(l1, l2); liste.append(fs);
+        });
+        const plus = knoten('button', 'knopf', '+ Subnetz hinzufügen'); plus.type = 'button'; plus.disabled = Z.vlsm.netze.length >= 64;
+        plus.addEventListener('click', function () { Z.vlsm.netze.push({ n: 'Netz ' + (Z.vlsm.netze.length + 1), h: 10 }); eingabeBauen(); neu(); });
+        z.append(plus);
+      }
+      const bsp = knoten('button', 'knopf-leise', 'Beispielwerte wiederherstellen'); bsp.type = 'button';
+      bsp.addEventListener('click', function () { const tab = Z.tab; Z = JSON.parse(JSON.stringify(START)); Z.tab = tab; eingabeBauen(); neu(); });
+      z.append(bsp);
+    }
+    // Merken und Teilen: strenge Prüfung
+    $('zustand').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      const txtOk = function (s, re) { return typeof s === 'string' && s.length <= 60 && re.test(s); };
+      if (['v4', 'vlsm', 'v6'].indexOf(a.tab) >= 0) Z.tab = a.tab;
+      if (txtOk(a.v4, /^[0-9.\/ ]*$/)) Z.v4 = a.v4;
+      if (txtOk(a.v6, /^[0-9a-fA-F:.\/ ]*$/)) Z.v6 = a.v6;
+      if (a.vlsm && typeof a.vlsm === 'object') {
+        if (txtOk(a.vlsm.basis, /^[0-9.\/ ]*$/)) Z.vlsm.basis = a.vlsm.basis;
+        if (Array.isArray(a.vlsm.netze) && a.vlsm.netze.length >= 1) {
+          const n = a.vlsm.netze.slice(0, 64).filter(function (x) { return x && typeof x === 'object' && typeof x.h === 'number' && Math.floor(x.h) === x.h && x.h >= 1 && x.h <= 16777214; }).map(function (x) { return { n: String(typeof x.n === 'string' ? x.n : '').slice(0, 30), h: x.h }; });
+          if (n.length) Z.vlsm.netze = n;
+        }
+      }
+      reiterBauen(); eingabeBauen(); neu();
+    });
+
+    let A = null;
+    function neu() {
+      $('zustand').value = JSON.stringify(Z);
+      const mel = [], ka = [], weg = [];
+      $('tabelle').innerHTML = '';
+      const u = $('urteil');
+      if (Z.tab === 'v4') {
+        const r = rechneV4(Z.v4); A = r;
+        if (r.fehler) { mel.push([r.fehler, true]); u.textContent = 'ungültig'; u.className = 'urteil schlecht'; }
+        else {
+          u.textContent = '/' + r.p + ' · ' + r.typ[0]; u.className = 'urteil gut';
+          if (r.istNetz) mel.push(['Das ist die Netzadresse selbst – sie kann keinem Gerät zugewiesen werden.', true]);
+          if (r.istBc) mel.push(['Das ist die Broadcast-Adresse – sie kann keinem Gerät zugewiesen werden.', true]);
+          if (r.p === 31) mel.push(['/31: zwei Adressen ohne Netz- und Broadcast-Adresse, nur für Punkt-zu-Punkt-Verbindungen (RFC 3021).']);
+          if (r.p === 32) mel.push(['/32: eine einzelne Adresse (Host-Route, Loopback).']);
+          ka.push([v4Text(r.netz) + '/' + r.p, 'Netzadresse', '#3B5BDB'], [v4Text(r.bc), 'Broadcast', '#E4572E'], [v4Text(r.erste) + ' – ' + v4Text(r.letzte), 'nutzbare Adressen', '#0E6B6A'], [zahl(r.hosts, 0), 'Hosts (' + zahl(r.anzahl, 0) + ' Adressen)', '#2E8B57'], [v4Text(r.m), 'Subnetzmaske', '#6E6FA6'], [v4Text(r.wild), 'Wildcard (ACL, OSPF)', '#6B7785'], [r.typ[0], 'Adresstyp, historische Klasse ' + klasse(r.ip), '#B5533C']);
+          const zeilen = []; for (let p = Math.max(0, r.p - 4); p <= Math.min(32, r.p + 4); p++) { const m = maske(p), n = (r.ip & m) >>> 0, b = (n | (~m >>> 0)) >>> 0; zeilen.push(['/' + p, v4Text(m), v4Text(n) + ' – ' + v4Text(b), zahl(p <= 30 ? Math.pow(2, 32 - p) - 2 : p === 31 ? 2 : 1, 0)]); }
+          tabelle($('tabelle'), ['Präfix', 'Maske', 'Netz dieser Adresse', 'Hosts'], zeilen, { zahl: [3], mono: [1, 2], klasse: function (j) { return zeilen[j][0] === '/' + r.p ? 'gewaehlt' : ''; } });
+          const b = function (n) { return '\\texttt{' + bits(n).replace(/(.{8})(?!$)/g, '$1.') + '}'; };
+          weg.push(['Adresse in Bits', b(r.ip)], ['Maske /' + r.p, b(r.m)], ['Netz = Adresse UND Maske', b(r.netz) + ' = ' + E('\\text{' + v4Text(r.netz) + '}')], ['Broadcast = Netz ODER NICHT Maske', b(r.bc) + ' = ' + E('\\text{' + v4Text(r.bc) + '}')], ['Hosts', 'n = 2^{32 - ' + r.p + '} - 2 = ' + E(tz(r.hosts, 0))]);
+        }
+        $('bild-hilfe').textContent = 'Blau: Netzanteil (von der Maske festgelegt), orange: Hostanteil. Die Netzadresse hat alle Hostbits 0, der Broadcast alle 1.';
+      } else if (Z.tab === 'v6') {
+        const r = rechneV6(Z.v6); A = r;
+        if (r.fehler) { mel.push([r.fehler, true]); u.textContent = 'ungültig'; u.className = 'urteil schlecht'; }
+        else {
+          u.textContent = '/' + r.p + ' · ' + r.typ; u.className = 'urteil gut';
+          if (r.p > 64 && r.p < 127 && r.typ.indexOf('Loopback') < 0) mel.push(['Präfixe länger als /64 brechen die automatische Adressvergabe (SLAAC). Für Endgerätenetze immer /64 nehmen.']);
+          if (r.p < 64) mel.push(['Ein /' + r.p + ' enthält ' + (r.netze64 > 1e6 ? '2^' + (64 - r.p) : zahl(r.netze64, 0)) + ' Subnetze der Größe /64 – je eines pro Netzsegment.']);
+          if (r.eui) mel.push(['Die Schnittstellenkennung enthält ff:fe – sie ist aus der MAC-Adresse ' + r.mac + ' gebildet (EUI-64). Datenschutzadressen (RFC 8981) vermeiden das.']);
+          ka.push([v6Kurz(r.g), 'kurz (RFC 5952)', '#3B5BDB'], [v6Kurz(r.netz) + '/' + r.p, 'Netz', '#0E6B6A'], [r.exp > 52 ? '2^' + r.exp : zahl(Math.pow(2, r.exp), 0), 'Adressen im Netz', '#2E8B57'], [r.typ, 'Adresstyp', '#B5533C'], r.p <= 64 ? [r.netze64 > 1e9 ? '2^' + (64 - r.p) : zahl(r.netze64, 0), 'Subnetze /64', '#6E6FA6'] : null);
+          tabelle($('tabelle'), ['Darstellung', 'Wert'], [['ausgeschrieben', v6Lang(r.g)], ['gekürzt', v6Kurz(r.g)], ['erste Adresse', v6Lang(r.netz)], ['letzte Adresse', v6Lang(r.letzte)], ['Präfix', '/' + r.p + ' = ' + r.p + ' Netzbits, ' + r.exp + ' Hostbits']], { mono: [1] });
+          weg.push(['Gruppen', '8 \\times 16\\,\\text{bit} = 128\\,\\text{bit}'], ['Netz', '\\text{Adresse} \\land \\text{Maske}_{/' + r.p + '} = ' + E('\\texttt{' + v6Kurz(r.netz) + '}')], ['Adressen', 'n = 2^{128 - ' + r.p + '} = 2^{' + r.exp + '}'], r.p <= 64 ? ['Subnetze /64', '2^{64 - ' + r.p + '} = ' + E(r.netze64 > 1e15 ? '2^{' + (64 - r.p) + '}' : tz(r.netze64, 0))] : null);
+        }
+        $('bild-hilfe').textContent = 'Jedes Kästchen ist eine Hex-Ziffer (4 bit). Blau: Präfix (Netz), orange: Schnittstellenkennung.';
+      } else {
+        const r = rechneVlsm(Z.vlsm); A = r;
+        if (r.fehler) { mel.push([r.fehler, true]); u.textContent = 'ungültig'; u.className = 'urteil schlecht'; }
+        else {
+          if (r.versatz) mel.push(['Das Basisnetz beginnt bei ' + v4Text(r.basis) + ' – die eingetragene Adresse lag mitten im Netz.']);
+          if (r.voll) mel.push(['Nicht alle Subnetze passen in /' + r.bp + '. Größeres Basisnetz wählen oder Hosts verringern.', true]);
+          u.textContent = r.voll ? 'passt nicht' : 'passt'; u.className = 'urteil ' + (r.voll ? 'schlecht' : 'gut');
+          const genutzt = r.erg.filter(function (e) { return e.passt; }).reduce(function (s, e) { return s + e.x.h; }, 0);
+          ka.push([zahl(r.belegt, 0) + ' / ' + zahl(r.groesse, 0), 'Adressen vergeben', '#3B5BDB'], [zahl(r.groesse - r.belegt, 0), 'frei für später', '#2E8B57'], [zahl(genutzt / Math.max(1, r.belegt) * 100, 0) + ' %', 'der vergebenen Adressen genutzt', '#6E6FA6']);
+          tabelle($('tabelle'), ['Name', 'Hosts', 'Präfix', 'Netz', 'nutzbar', 'Broadcast', 'Reserve'], r.erg.map(function (e) { return e.passt ? [e.x.n, zahl(e.x.h, 0), '/' + e.p, v4Text(e.netz), e.p <= 30 ? v4Text(e.netz + 1) + ' – ' + v4Text(e.bc - 1) : v4Text(e.netz) + ' – ' + v4Text(e.bc), v4Text(e.bc), zahl((e.p <= 30 ? e.groesse - 2 : e.groesse) - e.x.h, 0)] : [e.x.n, zahl(e.x.h, 0), '/' + e.p, 'passt nicht', '', '', '']; }), { zahl: [1, 6], mono: [3, 4, 5], klasse: function (j) { return r.erg[j].passt ? '' : 'schlecht'; } });
+          const e0 = r.erg[0];
+          if (e0) weg.push(['Größtes Netz: ' + e0.x.n, '2^{\\lceil \\log_2(' + e0.x.h + ' + 2) \\rceil} = ' + e0.groesse + '\\ \\text{Adressen} \\Rightarrow /' + e0.p]);
+          weg.push(['Regel', '\\text{Blockgröße} = 2^{32-p},\\ \\text{Netz beginnt bei einem Vielfachen der Blockgröße}'], ['Belegung', zahl(r.belegt, 0).replace(/ /g, '\\,') + ' \\text{ von } ' + zahl(r.groesse, 0).replace(/ /g, '\\,') + '\\ \\text{Adressen}']);
+        }
+        $('bild-hilfe').textContent = 'Der Adressraum des Basisnetzes von links nach rechts; jedes Subnetz liegt auf seiner Blockgrenze.';
+      }
+      meldungen($('meldungen'), mel); kacheln($('kacheln'), ka); wegZeigen($('weg'), weg);
+    }
+    // ---------- Zeichnung ----------
+    function zeichnen(t) {
+      const lw = leinwand($('bild'), function (w) { return Z.tab === 'v4' ? Math.max(200, Math.min(260, w * 0.42)) : Z.tab === 'v6' ? Math.max(180, Math.min(240, w * 0.38)) : Math.max(160, 80 + (A && A.erg ? A.erg.length : 0) * 14); });
+      const cx = lw.cx, w = lw.w, h = lw.h; cx.clearRect(0, 0, w, h);
+      if (!A || A.fehler) { txt(cx, 'Eingabe prüfen', w / 2, h / 2, { g: 14, b: true, f: f('--leise') }); return; }
+      const NETZ = '#3B5BDB', HOST = '#E4572E';
+      if (Z.tab === 'v4') {
+        const zeilen = [['Adresse', A.ip], ['Maske', A.m], ['Netz', A.netz], ['Broadcast', A.bc]];
+        const lx = Math.min(80, w * 0.2), bx = lx + 6, bw = (w - bx - 10) / 32, zh = (h - 30) / 4;
+        const puls = 0.6 + 0.4 * Math.sin(t / 300);
+        zeilen.forEach(function (z, j) {
+          const y = 18 + j * zh, s = bits(z[1]);
+          txt(cx, z[0], lx, y + zh / 2, { g: Math.min(12, w / 32), a: 'right', f: f('--leise') });
+          for (let i = 0; i < 32; i++) {
+            const x = bx + i * bw + Math.floor(i / 8) * 0, netz = i < A.p;
+            cx.globalAlpha = s.charAt(i) === '1' ? 1 : 0.35;
+            kasten(cx, x + 1, y + 2, bw - 2, zh - 6, 3, netz ? NETZ : HOST); cx.globalAlpha = 1;
+            if (bw > 9) txt(cx, s.charAt(i), x + bw / 2, y + zh / 2 - 1, { g: Math.min(13, bw * 0.75), b: true, f: '#FFFFFF', mono: true });
+            if (i % 8 === 7 && i < 31) strich(cx, [[x + bw, y], [x + bw, y + zh - 2]], f('--text'), 1.5);
+          }
+          const oct = [z[1] >>> 24, (z[1] >>> 16) & 255, (z[1] >>> 8) & 255, z[1] & 255];
+          if (j === 0 && h > 0) oct.forEach(function (o, k) { txt(cx, String(o), bx + (k * 8 + 4) * bw, 9, { g: 10, b: true, f: f('--leise') }); });
+        });
+        const xg = bx + A.p * bw;
+        cx.globalAlpha = puls; strich(cx, [[xg, 12], [xg, h - 10]], f('--text'), 3); cx.globalAlpha = 1;
+        txt(cx, '/' + A.p, Math.min(w - 16, Math.max(bx + 14, xg)), h - 6, { g: 11, b: true });
+      } else if (Z.tab === 'v6') {
+        const g = A.g, n = 32, bw = (w - 20) / n, y = 30, zh = Math.min(40, h * 0.25);
+        for (let i = 0; i < n; i++) {
+          const nibble = (g[Math.floor(i / 4)] >> (12 - (i % 4) * 4)) & 15, x = 10 + i * bw;
+          const bitsNetz = Math.max(0, Math.min(4, A.p - i * 4));
+          kasten(cx, x + 1, y, bw - 2, zh, 3, bitsNetz === 4 ? NETZ : bitsNetz === 0 ? HOST : '#7E5FC2');
+          txt(cx, nibble.toString(16), x + bw / 2, y + zh / 2, { g: Math.min(15, bw * 0.8), b: true, f: '#FFFFFF', mono: true });
+          if (i % 4 === 3 && i < n - 1) strich(cx, [[x + bw, y - 6], [x + bw, y + zh + 6]], f('--text'), 1.5);
+        }
+        txt(cx, 'Präfix /' + A.p, 10 + Math.min(A.p, 120) / 4 * bw / 2, y + zh + 22, { g: 12, b: true, f: NETZ });
+        if (A.p < 124) txt(cx, A.exp + ' bit Schnittstelle / Subnetz', 10 + (A.p / 4 + (n - A.p / 4) / 2) * bw, y + zh + 22, { g: 12, b: true, f: HOST });
+        const p64 = 10 + 16 * bw; strich(cx, [[p64, y + zh + 34], [p64, h - 10]], f('--leise'), 1, [4, 4]); txt(cx, '/64', p64, h - 6, { g: 10, f: f('--leise') });
+        txt(cx, v6Lang(g), w / 2, 12, { g: Math.min(13, w / 42), mono: true, f: f('--leise') });
+      } else {
+        const x0 = 10, x1 = w - 10, bw = x1 - x0, y = 20;
+        kasten(cx, x0, y, bw, 34, 4, f('--linie'));
+        const farben = ['#3B5BDB', '#0E6B6A', '#E4572E', '#6E6FA6', '#B5533C', '#2E8B57', '#B07A12', '#7E5FC2'];
+        A.erg.forEach(function (e, j) {
+          if (!e.passt) return;
+          const xa = x0 + (e.netz - A.basis) / A.groesse * bw, xb = x0 + (e.bc + 1 - A.basis) / A.groesse * bw;
+          const anim = Math.min(1, ((t / 900) % (A.erg.length + 2)) - j);
+          if (anim <= 0) return;
+          kasten(cx, xa, y, Math.max(1, (xb - xa) * anim), 34, 3, farben[j % farben.length]);
+          if (xb - xa > 36) txt(cx, '/' + e.p, (xa + xb) / 2, y + 17, { g: 11, b: true, f: '#FFFFFF' });
+        });
+        txt(cx, v4Text(A.basis), x0, y + 46, { g: 10, a: 'left', f: f('--leise') });
+        txt(cx, v4Text(A.ende - 1), x1, y + 46, { g: 10, a: 'right', f: f('--leise') });
+        A.erg.forEach(function (e, j) { const yy = y + 66 + j * 14; if (yy > h - 4) return; cx.fillStyle = e.passt ? farben[j % farben.length] : '#C0392B'; cx.fillRect(x0, yy - 5, 10, 10); txt(cx, e.x.n + (e.passt ? '  ' + v4Text(e.netz) + '/' + e.p : '  passt nicht'), x0 + 16, yy, { g: 11, a: 'left' }); });
+      }
+    }
+    function schleife(t) { zeichnen(t); requestAnimationFrame(schleife); }
+    sammlung($('sammlung'), [
+      ['Netzadresse und Broadcast', '\\text{Netz} = \\text{IP} \\land \\text{Maske},\\quad \\text{Broadcast} = \\text{Netz} \\lor \\lnot\\text{Maske}', 'bitweise UND bzw. ODER'],
+      ['Hosts', 'n = 2^{32 - p} - 2', 'Netz- und Broadcast-Adresse abgezogen; /31 hat 2, /32 eine Adresse'],
+      ['Maske aus Präfix', '\\text{Maske} = \\underbrace{1\\ldots1}_{p}\\underbrace{0\\ldots0}_{32-p}', '/24 = 255.255.255.0, /26 = 255.255.255.192'],
+      ['Subnetzgröße für h Hosts', 'p = 32 - \\lceil \\log_2(h + 2) \\rceil', 'VLSM: von groß nach klein vergeben, jeder Block auf einer Vielfachen seiner Größe'],
+      ['IPv6', '128\\,\\text{bit} = 8 \\times 16\\,\\text{bit},\\quad \\text{Endgerätenetz} = /64', 'Provider vergeben meist /48 oder /56 – also 65 536 bzw. 256 Netze /64'],
+      ['Private IPv4-Netze', '10.0.0.0/8,\\ 172.16.0.0/12,\\ 192.168.0.0/16', 'RFC 1918; im Internet nicht geroutet, Zugang über NAT']
+    ]);
+    reiterBauen(); eingabeBauen(); neu(); requestAnimationFrame(schleife);
+    window.addEventListener('resize', function () { zeichnen(performance.now()); });
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>

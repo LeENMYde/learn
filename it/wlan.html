@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WLAN planen – Formeln &amp; Rechner</title>
+  <meta name="description" content="WLAN planen: Empfangspegel aus Sendeleistung, Antennen, Freiraumdämpfung und Wänden, Reichweite für den Ziel-Pegel, erreichbare Datenrate nach Wi-Fi 6 und Kanalplanung für 2,4, 5 und 6 GHz.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/it/wlan.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="WLAN planen">
+  <meta property="og:description" content="WLAN planen: Empfangspegel aus Sendeleistung, Antennen, Freiraumdämpfung und Wänden, Reichweite für den Ziel-Pegel, erreichbare Datenrate nach Wi-Fi 6 und Kanalplanung für 2,4, 5 und 6 GHz.">
+  <meta property="og:url" content="https://tools.pr1m3.de/it/wlan.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"WLAN planen","url":"https://tools.pr1m3.de/it/wlan.html","inLanguage":"de","description":"WLAN planen: Empfangspegel aus Sendeleistung, Antennen, Freiraumdämpfung und Wänden, Reichweite für den Ziel-Pegel, erreichbare Datenrate nach Wi-Fi 6 und Kanalplanung für 2,4, 5 und 6 GHz.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+
+    // Dämpfung in dB je Band [2,4 GHz, 5 GHz, 6 GHz] – Richtwerte aus Messungen, real stark abhängig vom Aufbau
+    const WAND = {
+      holz: ['Holztür / Holzwand', [3, 4, 5]],
+      gips: ['Gipskarton-Ständerwand', [3, 4, 5]],
+      glas: ['Glas, einfach', [2, 4, 5]],
+      waermeglas: ['Wärmeschutzglas (bedampft)', [25, 30, 35]],
+      ziegel: ['Ziegel- oder Kalksandsteinwand', [8, 12, 15]],
+      beton: ['Betonwand', [15, 22, 28]],
+      decke: ['Stahlbetondecke', [20, 30, 35]],
+      metall: ['Metall, Aufzug, Brandschutztür', [30, 40, 45]]
+    };
+    const BAND = { '2.4': [2442, 0, '2,4 GHz', 3], '5': [5500, 1, '5 GHz', 19], '6': [6185, 2, '6 GHz', 24] };
+    // Wi-Fi 6 (802.11ax), 1 Datenstrom, 0,8 µs Schutzintervall: [nötiger Pegel bei 20 MHz in dBm, MCS, Rate Mbit/s bei 20 MHz]
+    const MCS = [[-82, 0, 8.6], [-79, 1, 17.2], [-77, 2, 25.8], [-74, 3, 34.4], [-70, 4, 51.6], [-66, 5, 68.8], [-65, 6, 77.4], [-64, 7, 86], [-59, 8, 103.2], [-57, 9, 114.7], [-54, 10, 129], [-52, 11, 143.4]];
+    const BREITE = { 20: [1, 0], 40: [2.0, 3], 80: [4.2, 6], 160: [8.3, 9] };   // Faktor Rate, Mehrbedarf Pegel dB
+    const BEISPIEL = { band: '5', ptx: 18, gAP: 4, gCl: 0, d: 12, ziel: '-67', breite: '80', ss: 2, n: 4, waende: [{ art: 'gips' }, { art: 'ziegel' }] };
+
+    R.seite({
+      titel: 'WLAN planen',
+      einleitung: 'Reicht das Funksignal bis ins letzte Zimmer? Freiraumdämpfung, Wände und Decken, Antennen und Sendeleistung ergeben den Pegel am Gerät – und daraus die erreichbare Datenrate. Dazu die Kanalplanung für mehrere Zugangspunkte in 2,4, 5 und 6 GHz.',
+      hilfe: 'Pegel in dBm: −30 sehr stark, −67 gut für Sprache und Video, −75 noch nutzbar, unter −85 Abbrüche.',
+      gruppen: [
+        { titel: 'Funk', farbe: '#3B5BDB', felder: [
+          { k: 'band', name: 'Frequenzband', wahl: [['2.4', '2,4 GHz'], ['5', '5 GHz'], ['6', '6 GHz (Wi-Fi 6E/7)']] },
+          { k: 'ptx', tex: 'P_\\text{TX}', name: 'Sendeleistung', e: 'dBm', min: 0, max: 36 },
+          { k: 'gAP', tex: 'G_\\text{AP}', name: 'Antennengewinn Zugangspunkt', e: 'dBi', min: -5, max: 20 },
+          { k: 'gCl', tex: 'G_\\text{Client}', name: 'Antennengewinn Endgerät', e: 'dBi', min: -10, max: 10 },
+          { k: 'breite', name: 'Kanalbreite', wahl: [['20', '20 MHz'], ['40', '40 MHz'], ['80', '80 MHz'], ['160', '160 MHz']] },
+          { k: 'ss', tex: 'n_\\text{SS}', name: 'Datenströme (MIMO)', e: '', min: 1, max: 4, ganz: true }
+        ] },
+        { titel: 'Weg zum Endgerät', farbe: '#B5533C', felder: [
+          { k: 'd', tex: 'd', name: 'Entfernung', e: 'm', min: 0.5, max: 2000 },
+          { k: 'ziel', name: 'Ziel-Pegel', wahl: [['-60', '−60 dBm: sehr gut, hohe Raten'], ['-67', '−67 dBm: Sprache, Video, Roaming'], ['-70', '−70 dBm: Daten, Surfen'], ['-75', '−75 dBm: Grundversorgung']] }
+        ], liste: { k: 'waende', name: 'Wände', zeile: 'Hindernis', max: 12, min: 0, spalten: [{ k: 'art', name: 'Art', wahl: Object.keys(WAND).map(function (k) { return [k, WAND[k][0]]; }), text: true, breit: true }], neu: function () { return { art: 'gips' }; } } },
+        { titel: 'Mehrere Zugangspunkte', farbe: '#0E6B6A', felder: [
+          { k: 'n', tex: 'n_\\text{AP}', name: 'Zugangspunkte, die sich hören', e: '', min: 1, max: 100, ganz: true }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Freiraumdämpfung', 'FSPL = 20 \\log_{10}(d) + 20 \\log_{10}(f) - 27{,}55\\,\\text{dB}', 'd in m, f in MHz'],
+        ['Empfangspegel', 'P_\\text{RX} = P_\\text{TX} + G_\\text{AP} + G_\\text{Client} - FSPL - \\sum L_\\text{Wand}', 'alle Größen in dB bzw. dBm'],
+        ['Reichweite', 'd = 10^{\\frac{P_\\text{TX} + G - L_\\text{Wand} - P_\\text{Ziel} - 20 \\log_{10} f + 27{,}55}{20}}', 'Freiraumdämpfung nach d umgestellt'],
+        ['Datenrate', 'R \\approx R_\\text{MCS}(P_\\text{RX}) \\cdot k_\\text{Breite} \\cdot n_\\text{SS}', 'Wi-Fi 6, Pegel je Stufe aus der Empfindlichkeit typischer Geräte; netto etwa 60 % davon'],
+        ['dBm', 'P[\\text{dBm}] = 10 \\log_{10}\\frac{P}{1\\,\\text{mW}}', '20 dBm = 100 mW; +3 dB = doppelte Leistung'],
+        ['Kanalplanung', 'n_\\text{Kanäle}\\ (2{,}4\\,\\text{GHz}) = 3,\\quad (5\\,\\text{GHz}, 20\\,\\text{MHz}) = 19,\\quad (6\\,\\text{GHz}, 20\\,\\text{MHz}) = 24', 'Europa; 5-GHz-Kanäle teils mit DFS, 6 GHz in der EU 5945–6425 MHz']
+      ],
+      quellen: 'ITU-R P.525 (Freiraumdämpfung), ITU-R P.2040 und P.1238 (Gebäudedämpfung), IEEE 802.11ax, ETSI EN 300 328 / 301 893 / 303 687 (Sendeleistung in Europa: 2,4 GHz 20 dBm EIRP, 5 GHz 23–30 dBm, 6 GHz 23 dBm EIRP). Wanddämpfungen sind Richtwerte.',
+      bild: { titel: 'Pegel auf dem Weg', label: 'Pegelverlauf in dBm über die Entfernung mit Stufen an jeder Wand', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(250, Math.min(320, B * 0.55)); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Pegel am Gerät ' + z(r.prx, 0) + ' dBm, ' + (r.mcs ? 'MCS ' + r.mcs[1] : 'keine Verbindung') + '.'; } }
+    });
+
+    function fspl(d, f) { return 20 * Math.log(Math.max(0.01, d)) / Math.LN10 + 20 * Math.log(f) / Math.LN10 - 27.55; }
+    function rechne(e) {
+      const r = {}, b = BAND[String(e.band)];
+      r.f = b[0];
+      r.eirp = e.ptx + e.gAP;
+      r.fspl = fspl(e.d, r.f);
+      r.wand = e.waende.map(function (w) { return WAND[w.art] ? WAND[w.art][1][b[1]] : 0; });
+      r.lWand = r.wand.reduce(function (a, x) { return a + x; }, 0);
+      r.prx = e.ptx + e.gAP + e.gCl - r.fspl - r.lWand;
+      const zuschlag = BREITE[e.breite][1];
+      r.mcs = null;
+      MCS.forEach(function (m) { if (r.prx >= m[0] + zuschlag) r.mcs = m; });
+      r.brutto = r.mcs ? r.mcs[2] * BREITE[e.breite][0] * e.ss : 0;
+      r.netto = r.brutto * 0.6;
+      r.ziel = +e.ziel;
+      const rest = e.ptx + e.gAP + e.gCl - r.lWand - r.ziel - 20 * Math.log(r.f) / Math.LN10 + 27.55;
+      r.reichweite = Math.pow(10, rest / 20);
+      r.reichFrei = Math.pow(10, (rest + r.lWand) / 20);
+      r.reserve = r.prx - r.ziel;
+      r.ok = r.reserve >= 0;
+      // Kanäle: wie viele überlappungsfreie Kanäle gibt es bei dieser Breite?
+      const basis = b[3], teiler = { 20: 1, 40: 2, 80: 4, 160: 8 }[e.breite];
+      r.kanaele = String(e.band) === '2.4' ? (String(e.breite) === '20' ? 3 : 1) : Math.max(1, Math.floor(basis / teiler));
+      r.teilen = Math.ceil(e.n / r.kanaele);
+      r.eirpMax = String(e.band) === '2.4' ? 20 : String(e.band) === '5' ? 23 : 23;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (r.eirp > r.eirpMax + 0.01) H.meldung('EIRP ' + z(r.eirp, 0) + ' dBm liegt über ' + r.eirpMax + ' dBm – in Europa für ' + BAND[String(e.band)][2] + ' im Innenbereich meist nicht zulässig (5 GHz mit TPC bis 30 dBm in Teilbändern).', true);
+      if (!r.ok) H.meldung('Ziel-Pegel verfehlt um ' + z(-r.reserve, 0) + ' dB: zusätzlicher Zugangspunkt näher am Raum, weniger Wände im Weg oder 2,4 GHz für Reichweite (dafür langsamer).', true);
+      if (String(e.band) === '2.4' && String(e.breite) !== '20') H.meldung('2,4 GHz mit mehr als 20 MHz belegt fast das ganze Band – nur 20 MHz und die Kanäle 1, 6, 11 nutzen.', true);
+      if (r.teilen > 1) H.meldung(e.n + ' Zugangspunkte hören sich, es gibt aber nur ' + r.kanaele + ' überlappungsfreie Kanäle mit ' + e.breite + ' MHz: je ' + r.teilen + ' teilen sich einen Kanal und die Sendezeit. Schmalere Kanäle oder Sendeleistung senken.');
+      if (r.reserve > 25 && e.n > 1) H.meldung('Sehr viel Reserve: Sendeleistung senken, damit sich benachbarte Zugangspunkte weniger stören und Geräte sauber wechseln.');
+      H.urteil(r.ok, r.ok ? 'Pegel reicht' : 'zu schwach');
+      H.kacheln([
+        [z(r.prx, 0) + ' dBm', 'Pegel am Endgerät (Ziel ' + String(e.ziel).replace('-', '−') + ')', r.ok ? '#2E8B57' : '#C0392B'],
+        [r.mcs ? z(r.netto, 0) + ' Mbit/s' : '–', r.mcs ? 'netto etwa (brutto ' + z(r.brutto, 0) + ', MCS ' + r.mcs[1] + ')' : 'keine stabile Verbindung', '#3B5BDB'],
+        [z(r.reichweite, 0) + ' m', 'Reichweite für den Ziel-Pegel durch diese Wände', '#0E6B6A'],
+        [z(r.reichFrei, 0) + ' m', 'Reichweite ohne Wände', '#6B7785'],
+        [z(r.lWand, 0) + ' dB', 'Dämpfung aller Wände', '#B5533C'],
+        [r.kanaele + '', 'überlappungsfreie Kanäle mit ' + e.breite + ' MHz', '#6E6FA6']
+      ]);
+      H.tabelle('Dämpfung je Wand (Richtwerte)', ['Hindernis', '2,4 GHz', '5 GHz', '6 GHz'], Object.keys(WAND).map(function (k) { return [WAND[k][0]].concat(WAND[k][1].map(function (x) { return x + ' dB'; })); }), { zahl: [1, 2, 3], fuss: 'Höhere Frequenzen werden stärker gedämpft: 6 GHz ist schnell, reicht aber am wenigsten weit.' });
+    }
+    function weg(r, e) {
+      return [
+        ['Freiraumdämpfung', 'FSPL = 20 \\log_{10}(' + tz(e.d, 1) + ') + 20 \\log_{10}(' + r.f + ') - 27{,}55 = ' + tz(r.fspl, 1) + '\\,\\text{dB}'],
+        ['Wände', '\\sum L = ' + (r.wand.length ? r.wand.join(' + ') : '0') + ' = ' + tz(r.lWand, 0) + '\\,\\text{dB}'],
+        ['Pegel', 'P_\\text{RX} = ' + tz(e.ptx, 0) + ' + ' + tz(e.gAP, 0) + ' + ' + tz(e.gCl, 0) + ' - ' + tz(r.fspl, 1) + ' - ' + tz(r.lWand, 0) + ' = ' + E(tz(r.prx, 1) + '\\,\\text{dBm}')],
+        ['Reserve', tz(r.prx, 1) + ' - (' + String(e.ziel).replace('-', '−') + ') = ' + E(tz(r.reserve, 1) + '\\,\\text{dB}')],
+        ['Reichweite', 'd = 10^{\\frac{' + tz(e.ptx + e.gAP + e.gCl - r.lWand - r.ziel - 20 * Math.log(r.f) / Math.LN10 + 27.55, 1) + '}{20}} = ' + E(tz(r.reichweite, 0) + '\\,\\text{m}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      const x0 = 52, x1 = B - 18, y0 = 30, h = H - 78;
+      const dMax = Math.max(e.d * 1.15, 2);
+      const pMax = r.eirp + e.gCl + 5, pMin = Math.min(-95, r.prx - 8);
+      const A = Z.achsen(cx, x0, y0, x1 - x0, h, 0, dMax, pMin, pMax, { xSchritt: dMax > 40 ? 10 : dMax > 15 ? 5 : 2, ySchritt: 10, xName: 'Entfernung in m', yName: 'Pegel dBm' });
+      // Ziel-Pegel
+      cx.fillStyle = 'rgba(46,139,87,0.10)'; cx.fillRect(x0, A.Y(pMax), x1 - x0, A.Y(r.ziel) - A.Y(pMax));
+      cx.strokeStyle = '#2E8B57'; cx.setLineDash([5, 4]); cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(x0, A.Y(r.ziel)); cx.lineTo(x1, A.Y(r.ziel)); cx.stroke(); cx.setLineDash([]);
+      Z.text(cx, 'Ziel ' + String(e.ziel).replace('-', '−') + ' dBm', x0 + 6, A.Y(r.ziel) + 9, 'left', 10, true, '#2E8B57');
+      // Wände gleichmäßig auf dem Weg verteilt
+      const n = r.wand.length, pos = r.wand.map(function (_, i) { return e.d * (i + 1) / (n + 1); });
+      pos.forEach(function (p, i) { cx.fillStyle = 'rgba(181,83,60,0.35)'; cx.fillRect(A.X(p) - 4, y0, 8, h); Z.text(cx, '−' + r.wand[i], A.X(p), y0 - 8, 'center', 10, true, '#B5533C'); });
+      // Pegelkurve
+      cx.strokeStyle = '#3B5BDB'; cx.lineWidth = 2.5; cx.beginPath();
+      let verlust = 0, erst = true;
+      for (let s = 0; s <= 300; s++) {
+        const d = Math.max(0.3, dMax * s / 300);
+        pos.forEach(function (p, i) { if (p <= d && p > dMax * (s - 1) / 300) verlust += r.wand[i]; });
+        const pr = r.eirp + e.gCl - fspl(d, r.f) - verlust;
+        const y = A.Y(Math.max(pMin, Math.min(pMax, pr)));
+        if (erst) { cx.moveTo(A.X(d), y); erst = false; } else cx.lineTo(A.X(d), y);
+      }
+      cx.stroke();
+      // Wellen vom Zugangspunkt
+      for (let i = 0; i < 3; i++) { const rr = ((t / 18 + i * 30) % 90); cx.strokeStyle = 'rgba(59,91,219,' + (0.5 - rr / 200) + ')'; cx.lineWidth = 2; cx.beginPath(); cx.arc(x0, A.Y(r.eirp + e.gCl - fspl(1, r.f)), rr, -1.2, 1.2); cx.stroke(); }
+      // Endgerät
+      const xe = A.X(e.d), ye = A.Y(Math.max(pMin, r.prx));
+      cx.fillStyle = r.ok ? '#2E8B57' : '#C0392B'; cx.beginPath(); cx.arc(xe, ye, 6, 0, 2 * Math.PI); cx.fill();
+      Z.text(cx, z(r.prx, 0) + ' dBm', xe, ye - 14, 'center', 11, true, r.ok ? '#2E8B57' : '#C0392B');
+    }
+  })();
+  </script>
+</body>
+</html>

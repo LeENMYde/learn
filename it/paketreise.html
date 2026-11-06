@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paketreise durchs Netz – Formeln &amp; Rechner</title>
+  <meta name="description" content="Was passiert beim Aufruf einer Webseite? Schritt für Schritt mit Simulation: DNS, ARP, TCP- und TLS-Handshake, Kapselung, NAT am Router, Weiterleitung durchs Internet und Antwort – mit Kopfdaten, OSI-Schichten und Zeit bis zum ersten Byte.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/it/paketreise.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Paketreise durchs Netz">
+  <meta property="og:description" content="Was passiert beim Aufruf einer Webseite? Schritt für Schritt mit Simulation: DNS, ARP, TCP- und TLS-Handshake, Kapselung, NAT am Router, Weiterleitung durchs Internet und Antwort – mit Kopfdaten, OSI-Schichten und Zeit bis zum ersten Byte.">
+  <meta property="og:url" content="https://tools.pr1m3.de/it/paketreise.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Paketreise durchs Netz","url":"https://tools.pr1m3.de/it/paketreise.html","inLanguage":"de","description":"Was passiert beim Aufruf einer Webseite? Schritt für Schritt mit Simulation: DNS, ARP, TCP- und TLS-Handshake, Kapselung, NAT am Router, Weiterleitung durchs Internet und Antwort – mit Kopfdaten, OSI-Schichten und Zeit bis zum ersten Byte.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .reiter-leiste { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+    .reiter-leiste button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 7px 14px; font: inherit; font-size: .92rem; cursor: pointer; }
+    .reiter-leiste button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster label.breit { grid-column: 1 / -1; }
+    .raster input, .raster select { padding: 7px 9px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .98rem; min-width: 0; width: 100%; }
+    .raster input.mono, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .raster input[type="range"] { padding: 0; border: none; accent-color: #3B5BDB; }
+    .bild { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); }
+    .schritte { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; }
+    .schritte li { counter-increment: s; position: relative; padding: 9px 10px 9px 42px; border-radius: var(--rund); margin: 4px 0; cursor: pointer; border: 1px solid transparent; }
+    .schritte li::before { content: counter(s); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; background: var(--linie); color: var(--text); font-size: .8rem; font-weight: 700; display: grid; place-items: center; }
+    .schritte li.aktiv { background: var(--flaeche2); border-color: var(--linie); }
+    .schritte li.aktiv::before { background: #3B5BDB; color: #FFFFFF; }
+    .schritte li.fertig::before { content: '✓'; background: #2E8B57; color: #FFFFFF; }
+    .schritte b { display: block; font-family: var(--technik); }
+    .schritte span { font-size: .9rem; color: var(--leise); }
+    .stepper { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .stepper .status { color: var(--leise); font-size: .9rem; }
+    .bereich { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 14px; align-items: start; }
+    @media (max-width: 960px) { .bereich { grid-template-columns: minmax(0, 1fr); } .bereich > .bild-tafel { order: -1; } }
+    @media print { .reiter-leiste, .stepper { display: none !important; } .bereich { display: block; } .bild { max-height: 100mm; width: auto; max-width: 100%; } }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Paketreise durchs Netz</span></h1>
+      <p>Was passiert zwischen Eingabe einer Adresse und der fertigen Seite? Schritt für Schritt: Namensauflösung, ARP, TCP- und TLS-Handshake, Kapselung in Rahmen und Pakete, NAT am Router, Weiterleitung über viele Router und die Antwort des Servers – mit allen Kopfdaten und der Zeit, die jeder Schritt kostet.</p>
+    </section>
+    <input type="hidden" id="zustand">
+    <div class="bereich">
+      <section class="tafel" aria-labelledby="h-schritte">
+        <h2 id="h-schritte">Schritte</h2>
+        <div class="raster" id="felder" data-nicht-merken></div>
+        <ol class="schritte" id="schritte"></ol>
+      </section>
+      <section class="tafel bild-tafel" aria-labelledby="h-bild">
+        <h2 id="h-bild">Simulation</h2>
+        <canvas id="bild" class="bild" role="img" aria-label="Netz mit Rechner, Switch, Router, Internet und Server; Pakete wandern mit ihren Kopfdaten"></canvas>
+        <div class="stepper" data-nicht-merken>
+          <button type="button" class="knopf-leise" id="zurueck">← Schritt zurück</button>
+          <button type="button" class="knopf" id="weiter">Nächster Schritt →</button>
+          <span class="status" id="stand"></span>
+        </div>
+        <p class="hilfe" id="anweisung"></p>
+      </section>
+    </div>
+    <section class="tafel abstand" aria-labelledby="h-erg">
+      <div class="kopf-zeile"><h2 id="h-erg">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div class="meldungen" id="meldungen"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <h3 class="zwischen">Kopfdaten im aktuellen Schritt</h3>
+      <div class="rahmen"><div id="tabelle"></div></div>
+    </section>
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg</h2>
+      <ol class="weg" id="weg"></ol>
+    </section>
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">RFC 1034/1035 (DNS), RFC 826 (ARP), RFC 4861 (Neighbor Discovery), RFC 9293 (TCP), RFC 8446 (TLS 1.3), RFC 9110 (HTTP), RFC 791 / 8200 (IPv4 / IPv6), RFC 3022 (NAT), RFC 6928 (Startfenster 10 Segmente). Adressen aus den Dokumentationsbereichen.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; const p = Math.pow(10, n || 0); const t = (Math.round(w * p) / p).toFixed(n || 0).replace('.', ',').split(','); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(','); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function f(n) { return Thema.farbe(n); }
+    function knoten(tag, klasse, text) { const k = document.createElement(tag); if (klasse) k.className = klasse; if (text !== undefined) k.textContent = text; return k; }
+    function leinwand(c, hoehe) {
+      const d = window.devicePixelRatio || 1, w = Math.max(240, c.parentNode.clientWidth), h = Math.round(hoehe(w));
+      if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.height = h + 'px'; }
+      const cx = c.getContext('2d'); cx.setTransform(d, 0, 0, d, 0, 0); return { cx: cx, w: w, h: h };
+    }
+    function txt(cx, t, x, y, o) { o = o || {}; cx.fillStyle = o.f || f('--text'); cx.font = (o.b ? '700 ' : '500 ') + Math.round(o.g || 12) + 'px ' + (o.mono ? 'ui-monospace, Menlo, Consolas, monospace' : (f('--technik') || 'sans-serif')); cx.textAlign = o.a || 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y); }
+    function rund(cx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function kasten(cx, x, y, w, h, r, fuell, rand, lw) { rund(cx, x, y, w, h, r); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.2; cx.stroke(); } }
+    function strich(cx, pts, farbe, w, dash) { cx.strokeStyle = farbe; cx.lineWidth = w; cx.lineJoin = 'round'; cx.lineCap = 'round'; cx.setLineDash(dash || []); cx.beginPath(); pts.forEach(function (q, i) { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.stroke(); cx.setLineDash([]); }
+    function kreis(cx, x, y, r, fuell, rand, lw) { cx.beginPath(); cx.arc(x, y, Math.max(0.1, r), 0, 2 * Math.PI); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); } }
+    function pfeil(cx, a, b, farbe, w) { strich(cx, [a, b], farbe, w || 2); const an = Math.atan2(b[1] - a[1], b[0] - a[0]), k = 8; cx.fillStyle = farbe; cx.beginPath(); cx.moveTo(b[0], b[1]); cx.lineTo(b[0] - k * Math.cos(an - 0.4), b[1] - k * Math.sin(an - 0.4)); cx.lineTo(b[0] - k * Math.cos(an + 0.4), b[1] - k * Math.sin(an + 0.4)); cx.closePath(); cx.fill(); }
+    // Ergebnis-Bausteine
+    function meldungen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (m) { ziel.append(knoten('div', 'hinweis' + (m[1] ? ' fehler' : ''), m[0])); }); }
+    function kacheln(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const d = knoten('div', 'kachel'); d.style.setProperty('--farbe', q[2] || 'var(--linie)'); d.append(knoten('div', 'wert', q[0]), knoten('small', '', q[1])); ziel.append(d); }); }
+    function wegZeigen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const li = knoten('li'), r = knoten('div', 'rechnung'); Formel.setze(r, q[1], true); li.append(knoten('div', 'titel', q[0]), r); ziel.append(li); }); }
+    function sammlung(ziel, liste) { liste.forEach(function (q) { const s = knoten('section'), fo = knoten('div', 'formelblock'); Formel.setze(fo, q[1], true); s.append(knoten('h3', '', q[0]), fo, knoten('p', '', q[2])); ziel.append(s); }); }
+    function tabelle(ziel, kopf, zeilen, opt) {
+      opt = opt || {}; ziel.innerHTML = '';
+      const t = knoten('table', 'tabelle'), tr0 = knoten('tr');
+      kopf.forEach(function (k, i) { tr0.append(knoten('th', (opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '', k)); }); t.append(tr0);
+      zeilen.forEach(function (z, j) { const tr = knoten('tr', opt.klasse ? opt.klasse(j) || '' : ''); z.forEach(function (w, i) { tr.append(knoten('td', ((opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '') + (opt.mono && opt.mono.indexOf(i) >= 0 ? ' mono' : ''), w)); }); t.append(tr); });
+      ziel.append(t);
+    }
+
+    const FELDER = [
+      ['ip', 'Protokoll', [['v4', 'IPv4 mit NAT am Router'], ['v6', 'IPv6 ohne NAT']]],
+      ['dns', 'Namensauflösung', [['cache', 'Name schon im Cache'], ['resolver', 'Resolver kennt den Namen'], ['rekursiv', 'Resolver fragt Root, TLD, Zone']]],
+      ['tls', 'Verschlüsselung', [['13', 'TLS 1.3 (1 Umlauf)'], ['12', 'TLS 1.2 (2 Umläufe)'], ['ohne', 'ohne (HTTP)']]],
+      ['rtt', 'Umlaufzeit zum Server ms', 1, 1000, 30],
+      ['rttDns', 'Umlaufzeit zum Resolver ms', 0.5, 500, 8],
+      ['hops', 'Router bis zum Server', 1, 40, 9],
+      ['groesse', 'Größe der Antwort KB', 0.1, 100000, 120],
+      ['mtu', 'MTU Byte', 576, 9000, 1500]
+    ];
+    const START = { ip: 'v4', dns: 'resolver', tls: '13', rtt: 30, rttDns: 8, hops: 9, groesse: 120, mtu: 1500, schritt: 0 };
+    let W = JSON.parse(JSON.stringify(START)), schritt = 0;
+    const SCHRITTE = [
+      ['Adresse eingeben', 'Der Browser zerlegt https://www.beispiel.de/start in Schema (https → Port 443), Rechnername und Pfad.'],
+      ['Name auflösen (DNS)', 'Steht der Name nicht im Cache, fragt der Rechner per UDP an Port 53 den Resolver – meist den Router oder den Provider. Antwort: die IP-Adresse des Servers.'],
+      ['Gateway finden (ARP / ND)', 'Der Server liegt in einem fremden Netz, also geht alles über den Router. Dessen MAC-Adresse erfragt der Rechner per ARP-Broadcast (IPv6: Neighbor Discovery).'],
+      ['Verbindung aufbauen (TCP)', 'Drei-Wege-Handschlag: SYN → SYN-ACK → ACK. Danach kennen beide Seiten die Startnummern ihrer Bytes. Kostet einen Umlauf.'],
+      ['Verschlüsseln (TLS)', 'ClientHello und ServerHello mit Zertifikat; beide berechnen einen gemeinsamen Schlüssel. TLS 1.3 braucht einen Umlauf, TLS 1.2 zwei.'],
+      ['Anfrage verpacken', 'Die HTTP-Anfrage wird Schicht für Schicht eingepackt: TCP-Segment (Ports), IP-Paket (Adressen, TTL), Ethernet-Rahmen (MAC-Adressen, Prüfsumme).'],
+      ['Router und NAT', 'Der Router packt den Rahmen aus, zieht TTL um eins ab und ersetzt bei IPv4 die private Quelladresse durch seine öffentliche (NAT). Für den nächsten Abschnitt entsteht ein neuer Rahmen mit neuen MAC-Adressen.'],
+      ['Durchs Internet', 'Jeder Router schaut nur auf die Zieladresse, sucht in seiner Routingtabelle den besten Weg und gibt das Paket weiter. IP-Adressen bleiben gleich, MAC-Adressen wechseln bei jedem Abschnitt.'],
+      ['Server antwortet', 'Der Server schickt die Seite zurück, zerlegt in Segmente von höchstens MSS Byte. TCP sendet anfangs 10 Segmente und verdoppelt je Umlauf (Slow Start).'],
+      ['Zurück und auspacken', 'Der Router übersetzt die Zieladresse zurück (NAT), der Rechner packt Schicht für Schicht aus, setzt die Segmente in Reihenfolge zusammen und der Browser zeigt die Seite.']
+    ];
+    const ADR = { v4: { pc: '192.168.178.20', gw: '192.168.178.1', pub: '203.0.113.7', srv: '198.51.100.80', dns: '192.168.178.1' }, v6: { pc: '2001:db8:1:2::20', gw: 'fe80::1', pub: '2001:db8:1:2::20', srv: '2001:db8:5::80', dns: '2001:db8:1:2::1' } };
+    const MAC = { pc: '3c:22:fb:1a:2b:3c', gw: 'a0:63:91:0e:4f:01', isp: '00:1b:21:aa:bb:cc', srvgw: '00:25:90:12:34:56', srv: '0c:c4:7a:65:43:21' };
+
+    function rechne() {
+      const r = {};
+      r.tDns = W.dns === 'cache' ? 0 : W.dns === 'resolver' ? W.rttDns : W.rttDns + 3 * Math.max(15, W.rtt * 0.8);
+      r.tArp = 1;
+      r.tTcp = W.rtt;
+      r.tTls = W.tls === '13' ? W.rtt : W.tls === '12' ? 2 * W.rtt : 0;
+      r.tHttp = W.rtt;
+      r.ttfb = r.tDns + r.tArp + r.tTcp + r.tTls + r.tHttp;
+      r.iphdr = W.ip === 'v4' ? 20 : 40;
+      r.mss = W.mtu - r.iphdr - 20;
+      r.bytes = W.groesse * 1000;
+      r.segmente = Math.ceil(r.bytes / r.mss);
+      // Slow Start: 10, 20, 40 … Segmente je Umlauf
+      let rest = r.segmente, cw = 10, runden = 0; while (rest > 0 && runden < 60) { rest -= cw; cw *= 2; runden++; }
+      r.runden = runden;
+      r.tLaden = r.ttfb + (runden - 1) * W.rtt;
+      r.rahmen = r.segmente * (W.mtu + 18 + 20);
+      r.overhead = (1 - r.bytes / r.rahmen) * 100;
+      r.ttl = W.ip === 'v4' ? 64 : 64;
+      return r;
+    }
+    // Kopfdaten je Schritt: [Schicht, Feld, Wert]
+    function kopf(r) {
+      const a = ADR[W.ip], v6 = W.ip === 'v6';
+      const quellIp = schritt >= 6 && schritt <= 8 && !v6 ? a.pub : a.pc;
+      const port = schritt >= 6 && schritt <= 8 && !v6 ? '41 237 (NAT)' : '52 814';
+      const hop = schritt === 7 ? Math.ceil(W.hops / 2) : schritt >= 8 ? W.hops : schritt === 6 ? 1 : 0;
+      const ttl = r.ttl - hop;
+      if (schritt === 0) return [['Anwendung', 'URL', 'https://www.beispiel.de/start'], ['Anwendung', 'Schema → Port', 'https → 443'], ['Anwendung', 'Rechnername', 'www.beispiel.de']];
+      if (schritt === 1) return [['Anwendung', 'DNS-Frage', 'www.beispiel.de, Typ ' + (v6 ? 'AAAA' : 'A')], ['Transport', 'UDP', '52 001 → 53'], ['Vermittlung', 'IP', a.pc + ' → ' + a.dns], ['Anwendung', 'DNS-Antwort', a.srv + ' (gültig 3600 s)']];
+      if (schritt === 2) return v6 ? [['Vermittlung', 'Neighbor Solicitation', 'Wer hat ' + a.gw + '?'], ['Sicherung', 'Ziel-MAC', '33:33:ff:00:00:01 (Multicast)'], ['Sicherung', 'Antwort', a.gw + ' ist ' + MAC.gw]] : [['Sicherung', 'ARP-Frage', 'Wer hat ' + a.gw + '? Sag es ' + a.pc], ['Sicherung', 'Ziel-MAC', 'ff:ff:ff:ff:ff:ff (Broadcast)'], ['Sicherung', 'ARP-Antwort', a.gw + ' ist ' + MAC.gw]];
+      if (schritt === 3) return [['Transport', 'SYN', 'Seq = 1 000 000, MSS ' + r.mss], ['Transport', 'SYN-ACK', 'Seq = 5 000 000, Ack = 1 000 001'], ['Transport', 'ACK', 'Ack = 5 000 001'], ['Transport', 'Ports', '52 814 → 443']];
+      if (schritt === 4) return W.tls === 'ohne' ? [['Anwendung', 'ohne TLS', 'Daten gehen lesbar über das Netz']] : [['Darstellung', 'ClientHello', 'TLS ' + (W.tls === '13' ? '1.3' : '1.2') + ', Schlüsselanteil, Servername (SNI)'], ['Darstellung', 'ServerHello', 'Schlüsselanteil, Zertifikat www.beispiel.de'], ['Darstellung', 'Ergebnis', 'gemeinsamer Sitzungsschlüssel (AES-GCM)']];
+      const rows = [
+        ['Sicherung', 'Quell-MAC', schritt <= 5 ? MAC.pc : schritt === 9 ? MAC.gw : schritt === 6 ? MAC.gw : MAC.isp],
+        ['Sicherung', 'Ziel-MAC', schritt <= 5 ? MAC.gw : schritt === 9 ? MAC.pc : schritt === 6 ? MAC.isp : MAC.srv],
+        ['Vermittlung', 'Quell-IP', schritt === 9 ? a.srv : schritt === 8 ? a.srv : quellIp],
+        ['Vermittlung', 'Ziel-IP', schritt === 9 ? a.pc : schritt === 8 ? (v6 ? a.pc : a.pub) : a.srv],
+        ['Vermittlung', v6 ? 'Hop Limit' : 'TTL', String(schritt === 9 || schritt === 8 ? 64 - W.hops : ttl)],
+        ['Transport', 'Ports', schritt >= 8 ? '443 → ' + (schritt === 8 && !v6 ? '41 237' : '52 814') : (schritt === 6 || schritt === 7) && !v6 ? '41 237 → 443' : '52 814 → 443'],
+        ['Anwendung', 'Inhalt', schritt >= 8 ? 'HTTP/1.1 200 OK, ' + zahl(W.groesse, 0) + ' KB' : 'GET /start HTTP/1.1, Host: www.beispiel.de']
+      ];
+      return rows;
+    }
+
+    // ---------- Oberfläche ----------
+    function felderBauen() {
+      const z = $('felder'); z.innerHTML = '';
+      FELDER.forEach(function (fd) {
+        const l = knoten('label'); l.append(knoten('span', '', fd[1]));
+        let e;
+        if (Array.isArray(fd[2])) { e = knoten('select'); fd[2].forEach(function (o) { const op = knoten('option', '', o[1]); op.value = o[0]; e.append(op); }); e.value = W[fd[0]]; e.addEventListener('change', function () { W[fd[0]] = e.value; neu(); }); }
+        else {
+          e = knoten('input'); e.type = 'text'; e.inputMode = 'decimal'; e.value = String(W[fd[0]]).replace('.', ',');
+          e.addEventListener('input', function () { const v = Number(e.value.trim().replace(',', '.')); const ok = e.value.trim() !== '' && isFinite(v) && v >= fd[2] && v <= fd[3]; e.classList.toggle('falsch', !ok); if (ok) { W[fd[0]] = fd[0] === 'hops' || fd[0] === 'mtu' ? Math.round(v) : v; neu(); } });
+          e.addEventListener('blur', function () { e.classList.remove('falsch'); e.value = String(W[fd[0]]).replace('.', ','); });
+        }
+        l.append(e); z.append(l);
+      });
+    }
+    function schritteBauen() {
+      const z = $('schritte'); z.innerHTML = '';
+      SCHRITTE.forEach(function (s, i) {
+        const li = knoten('li', i === schritt ? 'aktiv' : i < schritt ? 'fertig' : ''); li.append(knoten('b', '', s[0]), knoten('span', '', s[1]));
+        li.tabIndex = 0; li.setAttribute('role', 'button');
+        li.addEventListener('click', function () { schritt = i; neu(); });
+        li.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); schritt = i; neu(); } });
+        z.append(li);
+      });
+      $('stand').textContent = 'Schritt ' + (schritt + 1) + ' von ' + SCHRITTE.length + ': ' + SCHRITTE[schritt][0];
+      $('anweisung').textContent = SCHRITTE[schritt][1];
+      $('zurueck').disabled = schritt === 0; $('weiter').textContent = schritt === SCHRITTE.length - 1 ? 'Von vorn ↺' : 'Nächster Schritt →';
+    }
+    $('weiter').addEventListener('click', function () { schritt = schritt >= SCHRITTE.length - 1 ? 0 : schritt + 1; startZeit = performance.now(); neu(); });
+    $('zurueck').addEventListener('click', function () { if (schritt > 0) schritt--; startZeit = performance.now(); neu(); });
+    $('zustand').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      FELDER.forEach(function (fd) { const v = a[fd[0]]; if (Array.isArray(fd[2])) { if (fd[2].some(function (o) { return o[0] === v; })) W[fd[0]] = v; } else if (typeof v === 'number' && isFinite(v) && v >= fd[2] && v <= fd[3]) W[fd[0]] = v; });
+      if (typeof a.schritt === 'number' && a.schritt >= 0 && a.schritt < SCHRITTE.length) schritt = Math.floor(a.schritt);
+      felderBauen(); neu();
+    });
+    let R = null, startZeit = 0;
+    function neu() {
+      W.schritt = schritt; $('zustand').value = JSON.stringify(W);
+      R = rechne(); schritteBauen();
+      const mel = [];
+      if (W.tls === 'ohne') mel.push(['Ohne TLS kann jeder auf dem Weg mitlesen und Inhalte verändern – heute nur noch für Tests.', true]);
+      if (W.mtu < 1280 && W.ip === 'v6') mel.push(['IPv6 verlangt eine MTU von mindestens 1280 Byte.', true]);
+      if (W.dns === 'rekursiv') mel.push(['Rekursive Auflösung fragt nacheinander Root-, TLD- und zuständigen Namensserver – das dauert spürbar. Danach liegt der Name im Cache.']);
+      if (W.ip === 'v4') mel.push(['Mit NAT teilen sich alle Geräte im Heimnetz eine öffentliche IPv4-Adresse; der Router merkt sich jede Verbindung in seiner NAT-Tabelle.']);
+      meldungen($('meldungen'), mel);
+      $('urteil').textContent = 'Seite nach ' + zahl(R.tLaden, 0) + ' ms'; $('urteil').className = 'urteil ' + (R.tLaden < 1000 ? 'gut' : 'schlecht');
+      kacheln($('kacheln'), [
+        [zahl(R.ttfb, 0) + ' ms', 'bis zum ersten Byte (TTFB)', '#3B5BDB'],
+        [zahl(R.tLaden, 0) + ' ms', 'bis die ganze Antwort da ist (ohne Bandbreitengrenze)', '#0E6B6A'],
+        [zahl(R.segmente, 0), 'Segmente à ' + R.mss + ' Byte (MSS)', '#E4572E'],
+        [R.runden + '', 'Umläufe im Slow Start', '#6E6FA6'],
+        [zahl(R.overhead, 1) + ' %', 'Kopfdaten-Anteil auf der Leitung', '#6B7785']
+      ]);
+      tabelle($('tabelle'), ['Schicht', 'Feld', 'Wert'], kopf(R), { mono: [2] });
+      wegZeigen($('weg'), [
+        ['Namensauflösung', 't_\\text{DNS} = ' + (W.dns === 'cache' ? '0' : W.dns === 'resolver' ? tz(W.rttDns, 0) : tz(W.rttDns, 0) + ' + 3 \\cdot ' + tz(Math.max(15, W.rtt * 0.8), 0)) + ' = ' + tz(R.tDns, 0) + '\\,\\text{ms}'],
+        ['Handschläge', 't = \\underbrace{' + tz(R.tTcp, 0) + '}_{\\text{TCP}} + \\underbrace{' + tz(R.tTls, 0) + '}_{\\text{TLS}} + \\underbrace{' + tz(R.tHttp, 0) + '}_{\\text{HTTP}}'],
+        ['Erstes Byte', 't_\\text{TTFB} = ' + tz(R.tDns, 0) + ' + 1 + ' + tz(R.tTcp + R.tTls + R.tHttp, 0) + ' = ' + E(tz(R.ttfb, 0) + '\\,\\text{ms}')],
+        ['Segmentgröße', 'MSS = ' + W.mtu + ' - ' + R.iphdr + '_{\\text{IP}} - 20_{\\text{TCP}} = ' + R.mss + '\\,\\text{Byte}'],
+        ['Segmente', 'n = \\lceil ' + tz(R.bytes, 0) + ' / ' + R.mss + ' \\rceil = ' + R.segmente + ' \\Rightarrow ' + R.runden + '\\ \\text{Umläufe (10, 20, 40 …)}'],
+        ['Ganze Antwort', 't = ' + tz(R.ttfb, 0) + ' + (' + R.runden + ' - 1) \\cdot ' + tz(W.rtt, 0) + ' = ' + E(tz(R.tLaden, 0) + '\\,\\text{ms}')]
+      ]);
+    }
+
+    // ---------- Zeichnung ----------
+    const SCHICHTEN = [['Anwendung', '#3B5BDB', 'HTTP, DNS'], ['Darstellung', '#7E5FC2', 'TLS'], ['Transport', '#0E6B6A', 'TCP, UDP'], ['Vermittlung', '#E4572E', 'IP'], ['Sicherung', '#B07A12', 'Ethernet, WLAN'], ['Bitübertragung', '#6B7785', 'Kabel, Funk']];
+    function zeichnen(t) {
+      const lw = leinwand($('bild'), function (w) { return Math.max(300, Math.min(400, w * 0.66)); });
+      const cx = lw.cx, w = lw.w, h = lw.h; cx.clearRect(0, 0, w, h);
+      const y = h * 0.36, K = Math.max(0.75, Math.min(1.1, w / 620));
+      const P = { pc: [w * 0.07, y], sw: [w * 0.22, y], rt: [w * 0.38, y], net: [w * 0.62, y], srv: [w * 0.92, y], dns: [w * 0.38, y - h * 0.22] };
+      // Verbindungen
+      strich(cx, [P.pc, P.sw, P.rt, P.net, P.srv], f('--linie'), 4);
+      strich(cx, [P.rt, P.dns], f('--linie'), 3, [5, 5]);
+      // Internet als Wolke mit Routern
+      cx.fillStyle = f('--flaeche'); [[-46, 0, 30], [-14, -16, 30], [20, -8, 32], [44, 6, 24], [0, 14, 30]].forEach(function (c) { cx.beginPath(); cx.arc(P.net[0] + c[0] * K, P.net[1] + c[1] * K, c[2] * K, 0, 2 * Math.PI); cx.fill(); });
+      const nh = Math.min(8, W.hops), hopX = function (i) { return P.rt[0] + (P.srv[0] - P.rt[0]) * (i + 1) / (nh + 1); };
+      for (let i = 0; i < nh; i++) kreis(cx, hopX(i), y + (i % 2 ? 8 : -8) * K, 5 * K, '#9AA3AD', f('--text'), 1);
+      txt(cx, 'Internet (' + W.hops + ' Router)', P.net[0], y + 46 * K, { g: 10 * K, f: f('--leise') });
+      // Geräte
+      const geraet = function (p, name, farbe, sub) { kasten(cx, p[0] - 24 * K, p[1] - 18 * K, 48 * K, 36 * K, 6, farbe); txt(cx, name, p[0], p[1] - 28 * K, { g: 11 * K, b: true }); if (sub) txt(cx, sub, p[0], p[1] + 30 * K, { g: 9 * K, f: f('--leise'), mono: true }); };
+      const a = ADR[W.ip];
+      geraet(P.pc, 'Rechner', '#3B5BDB', a.pc.length > 16 ? '' : a.pc);
+      geraet(P.sw, 'Switch', '#6B7785');
+      geraet(P.rt, W.ip === 'v4' ? 'Router/NAT' : 'Router', '#E4572E', W.ip === 'v4' ? a.pub : '');
+      geraet(P.srv, 'Server', '#0E6B6A', a.srv.length > 16 ? '' : a.srv);
+      kasten(cx, P.dns[0] - 30 * K, P.dns[1] - 14 * K, 60 * K, 28 * K, 6, '#7E5FC2'); txt(cx, 'DNS', P.dns[0], P.dns[1], { g: 11 * K, b: true, f: '#FFFFFF' });
+      // Paketbewegung je Schritt
+      const dt = (t - startZeit) / 1000, T = 2.6, u = (dt % T) / T;
+      const wegHin = [P.pc, P.sw, P.rt].concat(Array.apply(null, Array(nh)).map(function (_, i) { return [hopX(i), y + (i % 2 ? 8 : -8) * K]; }), [P.srv]);
+      const paket = function (pfad, u2, text, farbe) {
+        let L = 0; const seg = []; for (let i = 1; i < pfad.length; i++) { const l = Math.hypot(pfad[i][0] - pfad[i - 1][0], pfad[i][1] - pfad[i - 1][1]); seg.push(l); L += l; }
+        let d = Math.max(0, Math.min(1, u2)) * L, i = 0; while (i < seg.length - 1 && d > seg[i]) { d -= seg[i]; i++; }
+        const q = pfad[i], q2 = pfad[i + 1] || q, s = seg[i] ? d / seg[i] : 0, x = q[0] + (q2[0] - q[0]) * s, yy = q[1] + (q2[1] - q[1]) * s;
+        kasten(cx, x - 22 * K, yy - 10 * K, 44 * K, 20 * K, 4, farbe, '#FFFFFF', 1.5); txt(cx, text, x, yy, { g: 9 * K, b: true, f: '#FFFFFF' });
+      };
+      const zurueck = function (p) { return p.slice().reverse(); };
+      if (schritt === 0) { txt(cx, 'https://www.beispiel.de/start', P.pc[0] + 30 * K, P.pc[1] + 54 * K, { g: 11 * K, mono: true, a: 'left' }); }
+      if (schritt === 1 && W.dns !== 'cache') { const p = [P.pc, P.sw, P.rt, P.dns]; if (u < 0.5) paket(p, u * 2, 'DNS?', '#7E5FC2'); else paket(zurueck(p), (u - 0.5) * 2, a.srv.length > 14 ? 'AAAA' : 'A', '#7E5FC2'); }
+      if (schritt === 1 && W.dns === 'cache') txt(cx, 'Name im Cache – keine Anfrage nötig', w / 2, h * 0.62, { g: 12 * K, b: true, f: '#2E8B57' });
+      if (schritt === 2) { const p = [P.pc, P.sw, P.rt]; if (u < 0.5) { paket(p, u * 2, W.ip === 'v4' ? 'ARP?' : 'NS?', '#B07A12'); } else paket(zurueck(p), (u - 0.5) * 2, 'MAC', '#B07A12'); }
+      if (schritt === 3) { const k = Math.floor(u * 3), uu = (u * 3) % 1; paket(k === 1 ? zurueck(wegHin) : wegHin, uu, ['SYN', 'SYN-ACK', 'ACK'][k], '#0E6B6A'); }
+      if (schritt === 4) { if (W.tls === 'ohne') txt(cx, 'kein TLS – Klartext', w / 2, h * 0.62, { g: 12 * K, b: true, f: '#C0392B' }); else { const k = Math.floor(u * 2), uu = (u * 2) % 1; paket(k ? zurueck(wegHin) : wegHin, uu, k ? 'Server' : 'Client', '#7E5FC2'); } }
+      if (schritt === 5) paket([P.pc, P.sw], u, 'GET', '#3B5BDB');
+      if (schritt === 6) { paket([P.sw, P.rt, wegHin[3] || P.srv], u, u < 0.5 ? 'GET' : (W.ip === 'v4' ? 'NAT' : 'TTL−1'), u < 0.5 ? '#3B5BDB' : '#E4572E'); }
+      if (schritt === 7) paket(wegHin.slice(2), u, 'GET', '#3B5BDB');
+      if (schritt === 8) for (let k = 0; k < Math.min(6, R.segmente); k++) paket(zurueck(wegHin), u - k * 0.08, 'Daten', '#0E6B6A');
+      if (schritt === 9) paket(zurueck(wegHin), 0.7 + u * 0.3, '200 OK', '#0E6B6A');
+      // Schichten-Stapel unten
+      const aktiv = { 0: [0], 1: [0, 2, 3, 4, 5], 2: [4, 5], 3: [2, 3, 4, 5], 4: [1, 2, 3, 4, 5], 5: [0, 1, 2, 3, 4, 5], 6: [3, 4, 5], 7: [3, 4, 5], 8: [0, 1, 2, 3, 4, 5], 9: [0, 1, 2, 3, 4, 5] }[schritt];
+      const sx = 12, sy = h * 0.62, sw = w - 24, sh = (h - sy - 10) / 6;
+      SCHICHTEN.forEach(function (s, i) {
+        const an = aktiv.indexOf(i) >= 0;
+        cx.globalAlpha = an ? 1 : 0.22;
+        // Kapselung: weiter unten liegende Schichten umschließen die oberen
+        kasten(cx, sx, sy + i * sh, sw, sh - 3, 4, s[1]);
+        cx.globalAlpha = 1;
+        txt(cx, [7, 6, 4, 3, 2, 1][i] + ' ' + s[0], sx + 8, sy + i * sh + sh / 2 - 1, { g: Math.min(11, sh * 0.5), b: true, f: an ? '#FFFFFF' : f('--leise'), a: 'left' });
+        txt(cx, s[2], sx + sw - 8, sy + i * sh + sh / 2 - 1, { g: Math.min(10, sh * 0.45), f: an ? '#FFFFFF' : f('--leise'), a: 'right' });
+      });
+    }
+    function schleife(t) { zeichnen(t); requestAnimationFrame(schleife); }
+    sammlung($('sammlung'), [
+      ['Zeit bis zum ersten Byte', 't_\\text{TTFB} = t_\\text{DNS} + RTT_\\text{TCP} + k \\cdot RTT_\\text{TLS} + RTT_\\text{HTTP}', 'k = 1 bei TLS 1.3, 2 bei TLS 1.2; mit QUIC (HTTP/3) entfällt der eigene TCP-Umlauf'],
+      ['Segmentgröße', 'MSS = MTU - \\text{IP-Kopf} - \\text{TCP-Kopf}', 'IPv4 20 Byte, IPv6 40 Byte, TCP 20 Byte ohne Optionen'],
+      ['Slow Start', 'cwnd_{k} = 10 \\cdot 2^{k}\\ \\text{Segmente}', 'Startfenster 10 Segmente (RFC 6928), Verdopplung je Umlauf bis zum ersten Verlust'],
+      ['Ethernet-Rahmen', '\\text{Rahmen} = 14 + \\text{Nutzlast} + 4\\,\\text{Byte},\\ \\text{auf der Leitung} + 20', 'Kopf, Prüfsumme; Präambel 8 und Pause 12 Byte'],
+      ['TTL', 'TTL_\\text{neu} = TTL - 1,\\quad TTL = 0 \\Rightarrow \\text{verwerfen}', 'verhindert endlos kreisende Pakete; traceroute nutzt das aus'],
+      ['OSI-Modell', '7\\ \\text{Anwendung} \\ldots 1\\ \\text{Bitübertragung}', 'im Internet zählt praktisch das TCP/IP-Modell mit 4 Schichten; Sitzungsschicht (5) entfällt hier']
+    ]);
+    felderBauen(); neu(); requestAnimationFrame(schleife);
+    window.addEventListener('resize', function () { zeichnen(performance.now()); });
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>

@@ -121,6 +121,18 @@
         <li><a href="elektro/messung-anleitung.html">Elektrische Messungen Schritt für Schritt</a> – Anlagen nach DIN VDE 0100-600 und Geräte nach DIN VDE 0701/0702 Schritt für Schritt mit Simulation: Schutzleiter, Isolation, Schleifenimpedanz, RCD, Drehfeld, Schutzleiter- und Berührungsstrom – wo die Messspitzen hingehören, Grenzwerte und typische Fehler.</li>
         <li><a href="heizung/abgasmessung.html">Abgasmessung Schritt für Schritt</a> – Schornsteinzug, Abgasverlust, CO-Messung, Ringspalt und Rußzahl Schritt für Schritt mit Simulation: Förderdruck aus Höhe und Temperaturen, Siegert-Formel, Grenzwerte nach 1. BImSchV und KÜO, typische Messfehler.</li>
         <li><a href="mechanik/gangschaltung.html">Gangschaltung: Simulator und Rechner</a> – Gangschaltung von Fahrrad, Auto und Motorrad frei einstellen und fahren: Übersetzungen, Entfaltung, Geschwindigkeit je Gang, Gangsprünge, Schräglauf, Sägezahn- und Zugkraftdiagramm, Höchstgeschwindigkeit, 0–100 km/h.</li>
+        <li><a href="it/subnetz.html">IP-Subnetzrechner</a> – IPv4 und IPv6: Netzadresse, Broadcast, nutzbarer Bereich, Hosts, Maske und Wildcard aus Adresse und Präfix, Adresstyp, Netz in Subnetze aufteilen (VLSM) – mit Bit-Ansicht.</li>
+        <li><a href="it/paketreise.html">Paketreise durchs Netz</a> – Webseitenaufruf Schritt für Schritt mit Simulation: DNS, ARP, TCP- und TLS-Handshake, Kapselung, NAT, Router im Internet und Antwort – mit Kopfdaten und Zeit bis zum ersten Byte.</li>
+        <li><a href="it/datenrate.html">Datenrate und Übertragungszeit</a> – Echte Übertragungszeit aus Datenmenge, Bandbreite, Overhead, Latenz, TCP-Fenster und Paketverlust – mit Engpass und Bandbreite-Verzögerungs-Produkt.</li>
+        <li><a href="it/netzwerkkabel-poe.html">Netzwerkkabel und PoE</a> – Kanallänge je Kategorie und Datenrate, Spannung und Leistung am PoE-Endgerät, Verlust im Kabel, Erwärmung im Bündel und PoE-Budget des Switches.</li>
+        <li><a href="it/wlan.html">WLAN planen</a> – Empfangspegel aus Sendeleistung, Antennen, Freiraumdämpfung und Wänden, Reichweite, Datenrate nach Wi-Fi 6 und Kanalplanung für 2,4, 5 und 6 GHz.</li>
+        <li><a href="it/usv.html">USV auslegen</a> – USV für Server und Netzwerk: Scheinleistung mit Reserve, Baugröße, Überbrückungszeit mit Peukert und Alterung, Kapazität für die Wunschzeit – mit simuliertem Stromausfall.</li>
+        <li><a href="it/raid.html">RAID- und Speicherrechner</a> – RAID 0 bis 60: nutzbare Kapazität, erlaubte Ausfälle, Leistung, Rebuild-Zeit, Lesefehler beim Wiederaufbau und Datenverlust im Jahr – mit Simulation.</li>
+        <li><a href="it/serverraum-klima.html">Serverraum-Klima</a> – Kühllast, Luftvolumenstrom zwischen Kalt- und Warmgang, Klimageräte mit Redundanz, PUE und Zeit bis zur Überhitzung bei Ausfall der Kühlung.</li>
+        <li><a href="it/backup.html">Backup-Planer</a> – Speicherbedarf mit Voll-, inkrementeller oder differenzieller Sicherung, Dauer von Sicherung und Wiederherstellung, RPO und Prüfung nach 3-2-1-1-0.</li>
+        <li><a href="it/passwort.html">Passwort- und Schlüsselstärke</a> – Entropie aus Länge und Zeichenvorrat oder Passphrase, Suchzeit für Online-Angriffe und gestohlene Hashes mit Grafikkarten, Vergleich mit Schlüssellängen.</li>
+        <li><a href="it/verschluesselung.html">Verschlüsselung Schritt für Schritt</a> – Hash, symmetrische Verschlüsselung, Diffie-Hellman, RSA und Signatur mit echten Rechnungen und Simulation, dazu der TLS-1.3-Handshake.</li>
+        <li><a href="it/zahlensysteme.html">Zahlensysteme und Bits</a> – Binär, Oktal, Dezimal, Hex und jede Basis bis 36, Zweierkomplement mit Überlauf und Bitoperationen, Gleitkomma nach IEEE 754 Bit für Bit.</li>
       </ul>
     </section>
   </noscript>
@@ -483,11 +495,119 @@
         themen: ['Übersetzung', 'Fahrrad', 'Getriebe', 'Drehzahl', 'Zugkraft'],
         text: 'Gangschaltung von Fahrrad, Auto und Motorrad frei einstellen und fahren: Übersetzungen, Entfaltung, Geschwindigkeit je Gang, Gangsprünge, Schräglauf, Sägezahn- und Zugkraftdiagramm, Höchstgeschwindigkeit, 0–100 km/h.',
         tex: 'v = \\frac{n \\cdot U}{i_\\text{G} \\cdot i_\\text{A}}'
+      },
+      {
+        titel: 'IP-Subnetzrechner',
+        gruppe: 'Netzwerk',
+        pfad: 'it/subnetz.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Subnetz', 'CIDR', 'IPv4', 'IPv6', 'VLSM'],
+        text: 'IPv4 und IPv6: Netzadresse, Broadcast, nutzbarer Bereich, Hosts, Maske und Wildcard aus Adresse und Präfix, Adresstyp, Netz in Subnetze aufteilen (VLSM) – mit Bit-Ansicht.',
+        tex: 'n = 2^{32-p} - 2'
+      },
+      {
+        titel: 'Paketreise durchs Netz',
+        gruppe: 'Netzwerk',
+        pfad: 'it/paketreise.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['DNS', 'TCP', 'TLS', 'NAT', 'OSI'],
+        text: 'Webseitenaufruf Schritt für Schritt mit Simulation: DNS, ARP, TCP- und TLS-Handshake, Kapselung, NAT, Router im Internet und Antwort – mit Kopfdaten und Zeit bis zum ersten Byte.',
+        tex: 't_\\text{TTFB} = t_\\text{DNS} + RTT_\\text{TCP} + RTT_\\text{TLS} + RTT_\\text{HTTP}'
+      },
+      {
+        titel: 'Datenrate und Übertragungszeit',
+        gruppe: 'Netzwerk',
+        pfad: 'it/datenrate.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Bandbreite', 'Latenz', 'TCP-Fenster', 'MB/MiB'],
+        text: 'Echte Übertragungszeit aus Datenmenge, Bandbreite, Overhead, Latenz, TCP-Fenster und Paketverlust – mit Engpass und Bandbreite-Verzögerungs-Produkt.',
+        tex: 't = \\frac{D \\cdot 8}{B_\\text{eff}}'
+      },
+      {
+        titel: 'Netzwerkkabel und PoE',
+        gruppe: 'Netzwerk',
+        pfad: 'it/netzwerkkabel-poe.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Cat 6A', 'PoE', 'Kabellänge', 'Bündel'],
+        text: 'Kanallänge je Kategorie und Datenrate, Spannung und Leistung am PoE-Endgerät, Verlust im Kabel, Erwärmung im Bündel und PoE-Budget des Switches.',
+        tex: 'P_\\text{V} = I^2 \\cdot R_\\text{Schleife}'
+      },
+      {
+        titel: 'WLAN planen',
+        gruppe: 'Netzwerk',
+        pfad: 'it/wlan.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['WLAN', 'dBm', 'Reichweite', 'Kanäle'],
+        text: 'Empfangspegel aus Sendeleistung, Antennen, Freiraumdämpfung und Wänden, Reichweite, Datenrate nach Wi-Fi 6 und Kanalplanung für 2,4, 5 und 6 GHz.',
+        tex: 'FSPL = 20 \\log d + 20 \\log f - 27{,}55'
+      },
+      {
+        titel: 'USV auslegen',
+        gruppe: 'Betrieb',
+        pfad: 'it/usv.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['USV', 'Akku', 'Überbrückungszeit'],
+        text: 'USV für Server und Netzwerk: Scheinleistung mit Reserve, Baugröße, Überbrückungszeit mit Peukert und Alterung, Kapazität für die Wunschzeit – mit simuliertem Stromausfall.',
+        tex: 't = H \\left(\\frac{C}{I H}\\right)^k'
+      },
+      {
+        titel: 'RAID- und Speicherrechner',
+        gruppe: 'Betrieb',
+        pfad: 'it/raid.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['RAID', 'Speicher', 'Rebuild', 'Ausfall'],
+        text: 'RAID 0 bis 60: nutzbare Kapazität, erlaubte Ausfälle, Leistung, Rebuild-Zeit, Lesefehler beim Wiederaufbau und Datenverlust im Jahr – mit Simulation.',
+        tex: 'C = (n - p) \\cdot c'
+      },
+      {
+        titel: 'Serverraum-Klima',
+        gruppe: 'Betrieb',
+        pfad: 'it/serverraum-klima.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Kühllast', 'Kaltgang', 'PUE'],
+        text: 'Kühllast, Luftvolumenstrom zwischen Kalt- und Warmgang, Klimageräte mit Redundanz, PUE und Zeit bis zur Überhitzung bei Ausfall der Kühlung.',
+        tex: '\\dot V = \\frac{Q}{\\rho c_p \\Delta\\vartheta}'
+      },
+      {
+        titel: 'Backup-Planer',
+        gruppe: 'Betrieb',
+        pfad: 'it/backup.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Datensicherung', 'RPO', 'RTO', '3-2-1'],
+        text: 'Speicherbedarf mit Voll-, inkrementeller oder differenzieller Sicherung, Dauer von Sicherung und Wiederherstellung, RPO und Prüfung nach 3-2-1-1-0.',
+        tex: 'S = \\frac{1}{k} \\sum S_\\text{Tag}'
+      },
+      {
+        titel: 'Passwort- und Schlüsselstärke',
+        gruppe: 'Sicherheit',
+        pfad: 'it/passwort.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Passwort', 'Entropie', 'Brute Force'],
+        text: 'Entropie aus Länge und Zeichenvorrat oder Passphrase, Suchzeit für Online-Angriffe und gestohlene Hashes mit Grafikkarten, Vergleich mit Schlüssellängen.',
+        tex: 'H = L \\cdot \\log_2 N'
+      },
+      {
+        titel: 'Verschlüsselung Schritt für Schritt',
+        gruppe: 'Sicherheit',
+        pfad: 'it/verschluesselung.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['SHA-256', 'RSA', 'Diffie-Hellman', 'TLS'],
+        text: 'Hash, symmetrische Verschlüsselung, Diffie-Hellman, RSA und Signatur mit echten Rechnungen und Simulation, dazu der TLS-1.3-Handshake.',
+        tex: 'c = m^e \\bmod n'
+      },
+      {
+        titel: 'Zahlensysteme und Bits',
+        gruppe: 'Grundlagen',
+        pfad: 'it/zahlensysteme.html',
+        bereich: 'IT und Netzwerk',
+        themen: ['Binär', 'Hexadezimal', 'Zweierkomplement', 'IEEE 754'],
+        text: 'Binär, Oktal, Dezimal, Hex und jede Basis bis 36, Zweierkomplement mit Überlauf und Bitoperationen, Gleitkomma nach IEEE 754 Bit für Bit.',
+        tex: 'z = \\sum d_i \\cdot b^i'
       }
     ];
 
     // Reihenfolge und Farben der Bereiche; Untergruppen in dieser Reihenfolge
-    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Heizungstechnik': '#C2410C', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A', 'Werkzeuge': '#6B7785' };
+    const BEREICHE = { 'Elektrotechnik': '#2B7BB9', 'Mechanik': '#6E6FA6', 'Sanitärtechnik': '#0E6B6A', 'Heizungstechnik': '#C2410C', 'Brandschutz': '#E4572E', 'Dach und Klempnerei': '#A0785A', 'IT und Netzwerk': '#3B5BDB', 'Werkzeuge': '#6B7785' };
     const GRUPPEN = ['Grundlagen', 'Installation und Schutz', 'Energie und Photovoltaik'];
     const farbe = function (b) { return BEREICHE[b] || 'var(--leise)'; };
 
