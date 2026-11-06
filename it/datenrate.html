@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datenrate und Übertragungszeit</title>
+  <meta name="description" content="Wie lange dauert eine Übertragung wirklich? Datenmenge, Bandbreite, Protokoll-Overhead, Latenz, TCP-Fenster und Paketverlust ergeben die echte Rate – mit Engpass, Bandbreite-Verzögerungs-Produkt und MB gegen MiB.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+
+    // Einheiten: Faktor in Byte bzw. bit/s
+    const MENGE = { kB: 1e3, MB: 1e6, GB: 1e9, TB: 1e12, KiB: 1024, MiB: 1048576, GiB: 1073741824, TiB: 1099511627776 };
+    const RATE = { kbit: 1e3, Mbit: 1e6, Gbit: 1e9, MBs: 8e6 };
+    // Nutzdatenanteil je Rahmen: Nutzlast / (Rahmen + Präambel 8 + Lücke 12)
+    const PROTO = {
+      v4: ['Ethernet, IPv4, TCP (MTU 1500)', 1460, 1538],
+      v6: ['Ethernet, IPv6, TCP (MTU 1500)', 1440, 1538],
+      jumbo: ['Jumbo-Frames, IPv4, TCP (MTU 9000)', 8960, 9038],
+      vpn: ['IPv4, TCP über VPN-Tunnel (MTU 1420)', 1380, 1538],
+      wlan: ['WLAN (Funk-Overhead, Richtwert 55 %)', 55, 100],
+      roh: ['ohne Overhead (Rohrate)', 1, 1]
+    };
+    const LEITUNGEN = [['DSL 16', 16e6], ['DSL/Kabel 50', 50e6], ['100 Mbit/s', 100e6], ['250 Mbit/s', 250e6], ['Gigabit', 1e9], ['2,5 Gbit/s', 2.5e9], ['10 Gbit/s', 1e10], ['USB 2.0 (≈ 35 MB/s)', 280e6], ['USB 3.0 (≈ 400 MB/s)', 3.2e9], ['SATA-SSD (≈ 520 MB/s)', 4.16e9]];
+    const BEISPIEL = { menge: 25, mEinheit: 'GB', rate: 250, rEinheit: 'Mbit', proto: 'v4', rtt: 30, fenster: 4096, verlust: 0, n: 1 };
+
+    R.seite({
+      titel: 'Datenrate und Übertragungszeit',
+      einleitung: 'Wie lange dauert die Übertragung wirklich? Datenmenge, Leitung, Protokoll-Overhead, Latenz, TCP-Fenster und Paketverlust ergeben die echte Rate – mit dem Engpass, dem Bandbreite-Verzögerungs-Produkt und dem Unterschied zwischen MB und MiB.',
+      hilfe: 'Leitungsrate in bit/s (Mbit/s), Dateigrößen in Byte (MB). 1 Byte = 8 bit; Betriebssysteme zeigen oft MiB/GiB (Basis 1024) an.',
+      gruppen: [
+        { titel: 'Datenmenge', farbe: '#3B5BDB', felder: [
+          { k: 'menge', tex: 'D', name: 'Größe', e: '', min: 0.001, max: 1e9 },
+          { k: 'mEinheit', name: 'Einheit', wahl: Object.keys(MENGE).map(function (k) { return [k, k + (k.indexOf('i') > 0 ? ' (Basis 1024)' : ' (Basis 1000)')]; }) }
+        ] },
+        { titel: 'Leitung', farbe: '#0E6B6A', felder: [
+          { k: 'rate', tex: 'B', name: 'Bandbreite', e: '', min: 0.001, max: 1e7 },
+          { k: 'rEinheit', name: 'Einheit', wahl: [['kbit', 'kbit/s'], ['Mbit', 'Mbit/s'], ['Gbit', 'Gbit/s'], ['MBs', 'MB/s']] },
+          { k: 'proto', name: 'Protokoll', wahl: Object.keys(PROTO).map(function (k) { return [k, PROTO[k][0]]; }) }
+        ] },
+        { titel: 'TCP und Latenz', farbe: '#B5533C', hilfe: 'RTT = Hin- und Rückweg (ping). Fenster: wie viel ungequittiert unterwegs sein darf; ohne Window Scaling höchstens 64 KiB.', felder: [
+          { k: 'rtt', tex: 'RTT', name: 'Umlaufzeit', e: 'ms', min: 0.01, max: 5000 },
+          { k: 'fenster', tex: 'W', name: 'TCP-Empfangsfenster', e: 'KiB', min: 1, max: 1048576 },
+          { k: 'verlust', tex: 'p', name: 'Paketverlust', e: '%', min: 0, max: 50 },
+          { k: 'n', tex: 'n', name: 'parallele Verbindungen', e: '', min: 1, max: 1000, ganz: true }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Übertragungszeit', 't = \\frac{D \\cdot 8}{B_\\text{eff}} + 1{,}5 \\cdot RTT', 'D in Byte, B in bit/s; 1,5 RTT für den Verbindungsaufbau'],
+        ['Nutzrate', 'B_\\text{Netz} = B \\cdot \\frac{\\text{Nutzlast}}{\\text{Rahmen} + 20\\,\\text{Byte}}', 'Ethernet: Präambel 8 Byte und Rahmenlücke 12 Byte zusätzlich zum Rahmen'],
+        ['Fenstergrenze', 'B_\\text{Fenster} = \\frac{n \\cdot W}{RTT}', 'mehr als ein Fenster pro Umlauf kann nicht unterwegs sein'],
+        ['Bandbreite-Verzögerungs-Produkt', 'BDP = B \\cdot RTT', 'so groß muss das Fenster mindestens sein, um die Leitung zu füllen'],
+        ['Verlustgrenze (Mathis)', 'B_\\text{Verlust} \\approx n \\cdot \\frac{MSS}{RTT} \\cdot \\frac{1{,}22}{\\sqrt{p}}', 'grobe Obergrenze für klassisches TCP (Reno) bei zufälligem Verlust; moderne Verfahren wie CUBIC oder BBR kommen höher'],
+        ['Einheiten', '1\\,\\text{MB} = 10^6\\,\\text{Byte},\\quad 1\\,\\text{MiB} = 2^{20}\\,\\text{Byte},\\quad 1\\,\\text{Byte} = 8\\,\\text{bit}', 'IEC 80000-13: kibi, mebi, gibi für Zweierpotenzen']
+      ],
+      quellen: 'IEEE 802.3 (Ethernet-Rahmen), RFC 7323 (TCP Window Scaling), Mathis et al. 1997 (TCP-Durchsatz bei Verlust), IEC 80000-13 (Binärpräfixe). WLAN-Nutzanteil ist ein Richtwert; real je nach Funkumgebung 30 bis 70 %.',
+      bild: { titel: 'Pakete unterwegs', label: 'Sender und Empfänger, Pakete im Fenster unterwegs, Quittungen zurück', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(230, Math.min(300, B * 0.5)); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Engpass: ' + r.engpass + '. ' + (r.fensterEng ? 'Das Fenster ist kleiner als das Bandbreite-Verzögerungs-Produkt – zwischen den Fenstern bleibt die Leitung leer.' : 'Das Fenster füllt die Leitung.'); } }
+    });
+
+    function dauer(s) {
+      if (!isFinite(s)) return '–';
+      if (s < 1) return z(s * 1000, 0) + ' ms';
+      if (s < 60) return z(s, 1) + ' s';
+      const t = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sek = Math.round(s % 60);
+      return (t ? t + ' d ' : '') + (t || h ? h + ' h ' : '') + m + ' min' + (t ? '' : ' ' + sek + ' s');
+    }
+    function rateText(b) { return b >= 1e9 ? z(b / 1e9, 2) + ' Gbit/s' : b >= 1e6 ? z(b / 1e6, 1) + ' Mbit/s' : z(b / 1e3, 0) + ' kbit/s'; }
+    function rechne(e) {
+      const r = {};
+      r.D = e.menge * MENGE[e.mEinheit];
+      r.B = e.rate * RATE[e.rEinheit];
+      const p = PROTO[e.proto];
+      r.anteil = p[1] / p[2]; r.mss = e.proto === 'jumbo' ? 8960 : e.proto === 'v6' ? 1440 : e.proto === 'vpn' ? 1380 : 1460;
+      r.Bnetz = r.B * r.anteil;
+      r.rttS = e.rtt / 1000;
+      r.W = e.fenster * 1024;
+      r.Bfenster = e.n * r.W * 8 / r.rttS;
+      r.Bverlust = e.verlust > 0 ? e.n * r.mss * 8 / r.rttS * 1.22 / Math.sqrt(e.verlust / 100) : Infinity;
+      r.Beff = Math.min(r.Bnetz, r.Bfenster, r.Bverlust);
+      r.engpass = r.Beff === r.Bnetz ? 'Leitung und Protokoll' : r.Beff === r.Bfenster ? 'TCP-Fenster' : 'Paketverlust';
+      r.fensterEng = r.Bfenster < r.Bnetz;
+      r.bdp = r.Bnetz * r.rttS / 8;
+      r.t = r.D * 8 / r.Beff + 1.5 * r.rttS;
+      r.tIdeal = r.D * 8 / r.B;
+      r.auslast = r.Beff / r.B * 100;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (r.engpass === 'TCP-Fenster') H.meldung('Das TCP-Fenster bremst: Bei ' + z(e.rtt, 0) + ' ms Umlaufzeit sind mindestens ' + z(r.bdp / 1024, 0) + ' KiB Fenster nötig, um ' + rateText(r.Bnetz) + ' zu füllen. Window Scaling aktivieren, Puffer vergrößern oder mehrere Verbindungen nutzen.');
+      if (r.engpass === 'Paketverlust') H.meldung('Der Paketverlust bremst: TCP halbiert bei jedem Verlust das Sendefenster. Ursache suchen (WLAN, überlastete Leitung, defektes Kabel) oder ein verlusttolerantes Verfahren nutzen.');
+      if (e.mEinheit.indexOf('i') < 0) H.meldung('Das Betriebssystem zeigt ' + z(e.menge, 2) + ' ' + e.mEinheit + ' oft als ' + z(r.D / MENGE[e.mEinheit.charAt(0) + 'iB'], 2) + ' ' + e.mEinheit.charAt(0) + 'iB an (Basis 1024) – gleiche Datenmenge, andere Einheit.');
+      H.urteil(null, 'Engpass: ' + r.engpass);
+      H.kacheln([
+        [dauer(r.t), 'Übertragungszeit', '#3B5BDB'],
+        [z(r.Beff / 8e6, r.Beff < 8e7 ? 2 : 1) + ' MB/s', 'echte Rate (' + rateText(r.Beff) + ')', '#0E6B6A'],
+        [z(r.auslast, 0) + ' %', 'der Nenn-Bandbreite genutzt', r.auslast < 50 ? '#C0392B' : '#2E8B57'],
+        [z(r.bdp / 1024, 0) + ' KiB', 'Bandbreite-Verzögerungs-Produkt', '#B5533C'],
+        [dauer(r.tIdeal), 'theoretisch ohne Overhead und Latenz', '#6B7785']
+      ]);
+      H.tabelle('Dieselbe Datenmenge über andere Leitungen', ['Leitung', 'Zeit (ohne Engpässe, mit ' + PROTO[e.proto][0].split(' (')[0] + ')'], LEITUNGEN.map(function (l) { return [l[0], dauer(r.D * 8 / (l[1] * r.anteil))]; }), { zahl: [1] });
+    }
+    function weg(r, e) {
+      return [
+        ['Datenmenge in bit', 'D = ' + tz(e.menge, 3) + '\\,\\text{' + e.mEinheit + '} \\cdot 8 = ' + tz(r.D * 8 / 1e9, 3) + '\\,\\text{Gbit}'],
+        ['Nutzrate nach Overhead', 'B_\\text{Netz} = ' + tz(r.B / 1e6, 2) + '\\,\\tfrac{\\text{Mbit}}{\\text{s}} \\cdot ' + tz(r.anteil, 3) + ' = ' + tz(r.Bnetz / 1e6, 2) + '\\,\\tfrac{\\text{Mbit}}{\\text{s}}'],
+        ['Fenstergrenze', 'B_\\text{Fenster} = \\frac{' + e.n + ' \\cdot ' + tz(e.fenster, 0) + '\\,\\text{KiB} \\cdot 8}{' + tz(r.rttS, 4) + '\\,\\text{s}} = ' + tz(r.Bfenster / 1e6, 1) + '\\,\\tfrac{\\text{Mbit}}{\\text{s}}'],
+        e.verlust > 0 ? ['Verlustgrenze', 'B_\\text{Verlust} = ' + e.n + ' \\cdot \\frac{' + r.mss + ' \\cdot 8}{' + tz(r.rttS, 4) + '} \\cdot \\frac{1{,}22}{\\sqrt{' + tz(e.verlust / 100, 4) + '}} = ' + tz(r.Bverlust / 1e6, 1) + '\\,\\tfrac{\\text{Mbit}}{\\text{s}}'] : null,
+        ['Kleinster Wert zählt', 'B_\\text{eff} = ' + E(tz(r.Beff / 1e6, 2) + '\\,\\tfrac{\\text{Mbit}}{\\text{s}}')],
+        ['Zeit', 't = \\frac{' + tz(r.D * 8 / 1e6, 1) + '\\,\\text{Mbit}}{' + tz(r.Beff / 1e6, 2) + '\\,\\tfrac{\\text{Mbit}}{\\text{s}}} + 1{,}5 \\cdot ' + tz(r.rttS, 3) + '\\,\\text{s} = ' + E(tz(r.t, 1) + '\\,\\text{s}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      const x0 = 70, x1 = B - 70, ym = H * 0.42, len = x1 - x0;
+      // Sender und Empfänger
+      [[x0 - 30, 'Sender'], [x1 + 30, 'Empfänger']].forEach(function (s) {
+        cx.fillStyle = f('--flaeche'); cx.strokeStyle = f('--linie'); cx.lineWidth = 1.5;
+        cx.beginPath(); cx.roundRect ? cx.roundRect(s[0] - 26, ym - 34, 52, 68, 8) : cx.rect(s[0] - 26, ym - 34, 52, 68); cx.fill(); cx.stroke();
+        cx.fillStyle = '#3B5BDB'; cx.fillRect(s[0] - 18, ym - 24, 36, 24);
+        Z.text(cx, s[1], s[0], ym + 46, 'center', 11, true);
+      });
+      // Hinweg oben, Rückweg (Quittungen) unten
+      cx.strokeStyle = f('--linie'); cx.lineWidth = 10; cx.beginPath(); cx.moveTo(x0, ym - 10); cx.lineTo(x1, ym - 10); cx.moveTo(x0, ym + 12); cx.lineTo(x1, ym + 12); cx.stroke();
+      // Zeitmaßstab: ein Umlauf dauert in der Animation 2,4 s
+      const T = 2400, phase = (t % T) / T;
+      // Anteil der Zeit, in der gesendet wird (Fenster ÷ BDP)
+      const fuell = Math.min(1, r.Bfenster / Math.max(1, r.Bnetz)), anzahl = 14;
+      for (let i = 0; i < anzahl; i++) {
+        const start = i / anzahl; if (start > fuell) break;
+        // Paket i startet bei start·½ Umlauf, braucht ½ Umlauf hin
+        let u = (phase - start * 0.5 + 1) % 1;
+        if (u < 0.5) { const x = x0 + len * u * 2; cx.fillStyle = '#3B5BDB'; cx.fillRect(x - 6, ym - 16, 12, 12); }
+        else { const x = x1 - len * (u - 0.5) * 2; cx.fillStyle = '#2E8B57'; cx.beginPath(); cx.arc(x, ym + 12, 4, 0, 2 * Math.PI); cx.fill(); }
+      }
+      Z.text(cx, 'Daten →', x0 + 4, ym - 26, 'left', 11, true, '#3B5BDB');
+      Z.text(cx, '← Quittungen (ACK)', x1 - 4, ym + 30, 'right', 11, true, '#2E8B57');
+      // Auslastungsbalken
+      const by = H - 54, bw = B - 40;
+      cx.fillStyle = f('--linie'); cx.fillRect(20, by, bw, 14);
+      const anteile = [[r.Beff / r.B, '#0E6B6A', 'Nutzdaten'], [Math.max(0, r.Bnetz / r.B - r.Beff / r.B), '#E4572E', r.engpass === 'TCP-Fenster' ? 'leer (Fenster)' : 'leer (Verlust)'], [1 - r.anteil, '#9AA3AD', 'Overhead']];
+      let x = 20;
+      anteile.forEach(function (a) { const w = bw * Math.max(0, a[0]); cx.fillStyle = a[1]; cx.fillRect(x, by, w, 14); x += w; });
+      let lx = 20;
+      anteile.forEach(function (a) { if (a[0] > 0.005) { cx.fillStyle = a[1]; cx.fillRect(lx, by + 24, 10, 10); Z.text(cx, a[2] + ' ' + z(a[0] * 100, 0) + ' %', lx + 14, by + 29, 'left', 11, false); lx += 130; } });
+      Z.text(cx, 'Leitung ' + rateText(r.B) + ' · RTT ' + z(e.rtt, 0) + ' ms', B / 2, 16, 'center', 11, true, f('--leise'));
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RAID- und Speicherrechner</title>
+  <meta name="description" content="RAID 0, 1, 5, 6, 10, 50 und 60 berechnen: nutzbare Kapazität, erlaubte Plattenausfälle, Lese- und Schreibleistung, Rebuild-Zeit, Lesefehler-Risiko beim Wiederaufbau und Datenverlust im Jahr – mit Simulation von Ausfall und Rebuild.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+
+    // [Name, Mindestzahl, Schreibstrafe]
+    const STUFE = {
+      r0: ['RAID 0 (Striping)', 2, 1], r1: ['RAID 1 (Spiegel)', 2, 2], r5: ['RAID 5 (einfache Parität)', 3, 4], r6: ['RAID 6 (doppelte Parität)', 4, 6],
+      r10: ['RAID 10 (Spiegel + Striping)', 4, 2], r50: ['RAID 50', 6, 4], r60: ['RAID 60', 8, 6], jbod: ['JBOD (einzelne Platten)', 1, 1]
+    };
+    const BEISPIEL = { stufe: 'r5', n: 6, tb: 12, gruppe: 4, ure: '15', afr: 1.5, mbs: 250, iops: 180, rebuild: 120, spare: 'nein', tausch: 48 };
+
+    R.seite({
+      titel: 'RAID- und Speicherrechner',
+      einleitung: 'Nutzbare Kapazität, Ausfallsicherheit und Geschwindigkeit von RAID 0, 1, 5, 6, 10, 50 und 60 – mit Wiederaufbauzeit, Risiko eines Lesefehlers beim Rebuild und der Wahrscheinlichkeit von Datenverlust im Jahr. Die Simulation lässt eine Platte ausfallen und baut sie neu auf.',
+      hilfe: 'RAID ersetzt keine Datensicherung: Löschen, Verschlüsselungstrojaner und Brand treffen alle Platten gleichzeitig.',
+      gruppen: [
+        { titel: 'Verbund', farbe: '#3B5BDB', felder: [
+          { k: 'stufe', name: 'RAID-Stufe', wahl: Object.keys(STUFE).map(function (k) { return [k, STUFE[k][0]]; }) },
+          { k: 'n', tex: 'n', name: 'Anzahl Platten', e: '', min: 1, max: 128, ganz: true },
+          { k: 'gruppe', tex: 'g', name: 'Platten je Untergruppe', e: '', min: 3, max: 32, ganz: true, wenn: function (e) { return e.stufe === 'r50' || e.stufe === 'r60'; } },
+          { k: 'tb', tex: 'c', name: 'Kapazität je Platte', e: 'TB', min: 0.1, max: 100 },
+          { k: 'spare', name: 'Hot Spare', wahl: [['nein', 'keine Ersatzplatte'], ['ja', 'Hot Spare vorhanden']] },
+          { k: 'tausch', tex: 't_\\text{Tausch}', name: 'Zeit bis zum Plattentausch', e: 'h', min: 0, max: 2000, wenn: function (e) { return e.spare === 'nein'; } }
+        ] },
+        { titel: 'Platten', farbe: '#0E6B6A', felder: [
+          { k: 'mbs', tex: 'v', name: 'Lese-/Schreibrate je Platte', e: 'MB/s', min: 1, max: 20000 },
+          { k: 'iops', tex: 'IOPS', name: 'zufällige Zugriffe je Platte', e: '1/s', min: 1, max: 2000000 },
+          { k: 'rebuild', tex: 'v_\\text{Rebuild}', name: 'Rebuild-Rate', e: 'MB/s', min: 1, max: 20000 },
+          { k: 'ure', name: 'Lesefehlerrate (URE)', wahl: [['14', '1 je 10¹⁴ bit (Desktop-Platte)'], ['15', '1 je 10¹⁵ bit (NAS-/Server-Platte)'], ['16', '1 je 10¹⁶ bit (Enterprise, SSD)'], ['17', '1 je 10¹⁷ bit (Enterprise-SSD)']] },
+          { k: 'afr', tex: 'AFR', name: 'Ausfallrate im Jahr', e: '%', min: 0.01, max: 50 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Nutzbare Kapazität', 'C = (n - p) \\cdot c', 'p = Paritäts- bzw. Spiegelplatten: RAID 5 → 1, RAID 6 → 2, RAID 10 → n/2, RAID 50/60 → 1 bzw. 2 je Gruppe'],
+        ['Rebuild-Zeit', 't_\\text{R} = \\frac{c}{v_\\text{Rebuild}}', 'unter Last oft deutlich länger'],
+        ['Lesefehler beim Rebuild', 'P_\\text{URE} = 1 - e^{-\\frac{b}{URE}}', 'b = gelesene Bits aller übrigen Platten'],
+        ['Zweiter Ausfall beim Rebuild', 'P_2 = 1 - e^{-m \\cdot \\lambda \\cdot t},\\quad \\lambda = \\frac{AFR}{8760\\,\\text{h}}', 'm = Platten, deren Ausfall jetzt zum Verlust führt; t = Tauschzeit + Rebuild'],
+        ['Datenverlust im Jahr', 'P_\\text{Jahr} \\approx 1 - e^{-n \\cdot AFR \\cdot P_\\text{Verlust|Ausfall}}', 'vereinfachtes Modell mit unabhängigen Ausfällen; reale Platten aus einer Charge fallen oft gemeinsam aus'],
+        ['Schreibleistung', 'IOPS_\\text{schreiben} = \\frac{n \\cdot IOPS}{s}', 's = Schreibstrafe: RAID 1/10 → 2, RAID 5 → 4, RAID 6 → 6']
+      ],
+      quellen: 'SNIA-Definitionen der RAID-Stufen; Fehlerraten nach Herstellerdatenblättern; Zuverlässigkeitsmodell vereinfacht (exponentielle Ausfälle, unabhängige Platten). TB = 10¹² Byte, das Betriebssystem zeigt TiB (2⁴⁰ Byte) an.',
+      bild: { titel: 'Ausfall und Wiederaufbau', label: 'Platten mit Datenblöcken und Parität; eine Platte fällt aus und wird neu aufgebaut', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(240, Math.min(320, B * 0.5)); }, zeichne: zeichne,
+        hinweis: function (r) { return r.tol === 0 ? 'Ohne Redundanz: Fällt eine Platte aus, sind die Daten weg.' : 'Fällt eine Platte aus, rechnet der Controller ihren Inhalt aus den übrigen zurück.'; } }
+    });
+
+    function prozent(p) { return p < 0.0001 ? '< 0,01 %' : p > 0.9999 ? '> 99,99 %' : z(p * 100, p < 0.01 ? 3 : p < 0.1 ? 2 : 1) + ' %'; }
+    function rechne(e) {
+      const r = {}, s = STUFE[e.stufe];
+      r.n = e.n; r.c = e.tb;
+      r.min = s[1];
+      r.gs = (e.stufe === 'r50' || e.stufe === 'r60') ? e.gruppe : e.n;
+      r.gruppen = Math.max(1, Math.floor(e.n / r.gs));
+      r.okZahl = e.n >= s[1] && (e.stufe !== 'r10' || e.n % 2 === 0) && ((e.stufe !== 'r50' && e.stufe !== 'r60') || (e.n % e.gruppe === 0 && r.gruppen >= 2 && e.gruppe >= (e.stufe === 'r50' ? 3 : 4)));
+      const p = { r0: 0, r1: e.n - 1, r5: 1, r6: 2, r10: e.n / 2, r50: r.gruppen, r60: 2 * r.gruppen, jbod: 0 }[e.stufe];
+      r.paritaet = p;
+      r.nutz = Math.max(0, (e.n - p) * e.tb);
+      r.nutzTiB = r.nutz * 1e12 / Math.pow(2, 40);
+      r.effizienz = r.nutz / (e.n * e.tb) * 100;
+      r.tol = { r0: 0, r1: e.n - 1, r5: 1, r6: 2, r10: 1, r50: 1, r60: 2, jbod: 0 }[e.stufe];
+      r.tolMax = { r10: e.n / 2, r50: r.gruppen, r60: 2 * r.gruppen }[e.stufe] || r.tol;
+      r.lesen = (e.stufe === 'jbod' ? 1 : e.n) * e.mbs;
+      r.schreibSeq = { r0: e.n, r1: 1, r5: e.n - 1, r6: e.n - 2, r10: e.n / 2, r50: e.n - r.gruppen, r60: e.n - 2 * r.gruppen, jbod: 1 }[e.stufe] * e.mbs;
+      r.iopsL = (e.stufe === 'jbod' ? 1 : e.n) * e.iops;
+      r.iopsS = (e.stufe === 'jbod' ? 1 : e.n) * e.iops / s[2];
+      r.tRebuild = e.tb * 1e12 / (e.rebuild * 1e6) / 3600;
+      r.tAusgesetzt = r.tRebuild + (e.spare === 'ja' ? 0 : e.tausch);
+      const lam = e.afr / 100 / 8760, ure = Math.pow(10, +e.ure);
+      const bits = function (platten) { return platten * e.tb * 8e12; };
+      const pd = function (m, t) { return 1 - Math.exp(-m * lam * t); };
+      const pu = function (platten) { return 1 - Math.exp(-bits(platten) / ure); };
+      let pv, pURE = 0, p2 = 0;
+      if (e.stufe === 'r0' || e.stufe === 'jbod') { pv = 1; }
+      else if (e.stufe === 'r1' && e.n > 2) { p2 = Math.pow(pd(1, r.tAusgesetzt), e.n - 1); pv = p2; }
+      else if (e.stufe === 'r1' || e.stufe === 'r10') { pURE = pu(1); p2 = pd(1, r.tAusgesetzt); pv = 1 - (1 - pURE) * (1 - p2); }
+      else if (e.stufe === 'r5' || e.stufe === 'r50') { const g = r.gs; pURE = pu(g - 1); p2 = pd(g - 1, r.tAusgesetzt); pv = 1 - (1 - pURE) * (1 - p2); }
+      else { const g = r.gs; p2 = pd(g - 1, r.tAusgesetzt); pURE = pu(g - 2); const p3 = pd(g - 2, r.tRebuild); pv = p2 * (1 - (1 - pURE) * (1 - p3)); }
+      r.pURE = pURE; r.p2 = p2; r.pv = pv;
+      r.pJahr = 1 - Math.exp(-e.n * e.afr / 100 * pv);
+      r.pJahr0 = 1 - Math.exp(-e.n * e.afr / 100);
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      const s = STUFE[e.stufe];
+      if (!r.okZahl) H.meldung(s[0] + ' braucht mindestens ' + s[1] + ' Platten' + (e.stufe === 'r10' ? ' und eine gerade Anzahl' : '') + ((e.stufe === 'r50' || e.stufe === 'r60') ? ', mindestens zwei gleich große Gruppen (Anzahl durch Gruppengröße teilbar)' : '') + '.', true);
+      if (e.stufe === 'r5' && e.tb >= 4 && r.pURE > 0.05) H.meldung('Bei großen Platten ist RAID 5 riskant: Beim Wiederaufbau müssen ' + z((r.gs - 1) * e.tb, 0) + ' TB fehlerfrei gelesen werden, ein einziger Lesefehler ' + '(' + prozent(r.pURE) + ') kann den Rebuild scheitern lassen. RAID 6 oder RAID 10 wählen.', true);
+      if (r.tol === 0) H.meldung('Keine Redundanz: Der Ausfall einer Platte bedeutet Datenverlust.', true);
+      if (e.spare === 'nein' && e.tausch > 24) H.meldung('Ohne Hot Spare läuft der Verbund ' + z(e.tausch, 0) + ' h ungeschützt, bis die Platte getauscht ist – Ersatzplatte vorhalten oder Hot Spare einbauen.');
+      H.meldung('RAID schützt nur vor Plattenausfall. Für alles andere gilt die 3-2-1-Regel der Datensicherung.');
+      H.urteil(r.okZahl && r.tol > 0 ? (r.pJahr < 0.001) : false, !r.okZahl ? 'Anzahl prüfen' : r.tol === 0 ? 'keine Redundanz' : 'Verlust/Jahr ' + prozent(r.pJahr));
+      H.kacheln([
+        [z(r.nutz, 1) + ' TB', 'nutzbar (' + z(r.nutzTiB, 1) + ' TiB, ' + z(r.effizienz, 0) + ' %)', '#3B5BDB'],
+        [r.tol === r.tolMax ? String(r.tol) : r.tol + ' bis ' + r.tolMax, 'Plattenausfälle verkraftbar', r.tol ? '#2E8B57' : '#C0392B'],
+        [z(r.lesen, 0) + ' MB/s', 'Lesen (sequenziell, ideal)', '#0E6B6A'],
+        [z(r.iopsS, 0) + ' IOPS', 'zufällig schreiben (Lesen ' + z(r.iopsL, 0) + ')', '#6E6FA6'],
+        [z(r.tRebuild, 1) + ' h', 'Rebuild einer Platte', '#E4572E'],
+        r.tol ? [prozent(r.pURE), 'Lesefehler beim Rebuild', r.pURE > 0.05 ? '#C0392B' : '#6B7785'] : null,
+        [prozent(r.pJahr), 'Datenverlust im Jahr (Modell)', r.pJahr > 0.01 ? '#C0392B' : '#2E8B57']
+      ]);
+      const vergleich = ['r5', 'r6', 'r10'].map(function (k) { const e2 = Object.assign({}, e, { stufe: k, n: k === 'r10' && e.n % 2 ? e.n + 1 : Math.max(STUFE[k][1], e.n) }); const x = rechne(e2); return [STUFE[k][0], e2.n + '', z(x.nutz, 1) + ' TB', String(x.tol), prozent(x.pURE), prozent(x.pJahr)]; });
+      H.tabelle('Vergleich mit gleichen Platten', ['Stufe', 'Platten', 'nutzbar', 'Ausfälle', 'URE beim Rebuild', 'Verlust/Jahr'], vergleich, { zahl: [1, 2, 3, 4, 5] });
+    }
+    function weg(r, e) {
+      return [
+        ['Nutzbare Kapazität', 'C = (' + e.n + ' - ' + z(r.paritaet, 0) + ') \\cdot ' + tz(e.tb, 1) + '\\,\\text{TB} = ' + E(tz(r.nutz, 1) + '\\,\\text{TB}')],
+        ['Rebuild-Zeit', 't_\\text{R} = \\frac{' + tz(e.tb * 1e6, 0) + '\\,\\text{MB}}{' + tz(e.rebuild, 0) + '\\,\\tfrac{\\text{MB}}{\\text{s}}} = ' + E(tz(r.tRebuild, 1) + '\\,\\text{h}')],
+        r.tol ? ['Lesefehler beim Rebuild', 'P_\\text{URE} = 1 - e^{-\\frac{b}{10^{' + e.ure + '}}} = ' + E(tz(r.pURE * 100, 2) + '\\,\\%')] : null,
+        r.tol ? ['Weiterer Ausfall in ' + z(r.tAusgesetzt, 0) + ' h', 'P_2 = 1 - e^{-m \\cdot \\frac{' + tz(e.afr / 100, 3) + '}{8760} \\cdot ' + tz(r.tAusgesetzt, 1) + '} = ' + tz(r.p2 * 100, 4) + '\\,\\%'] : null,
+        ['Verlust je Plattenausfall', 'P_\\text{V} = ' + tz(r.pv * 100, 3) + '\\,\\%'],
+        ['Datenverlust im Jahr', 'P_\\text{Jahr} = 1 - e^{-' + e.n + ' \\cdot ' + tz(e.afr / 100, 3) + ' \\cdot ' + tz(r.pv, 5) + '} = ' + E(tz(r.pJahr * 100, 3) + '\\,\\%')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      const n = Math.min(e.n, 16), zeigen = e.n > 16;
+      const T = 8000, ph = (t % T) / T;
+      const defekt = r.tol > 0 ? 1 % n : 0;
+      const zustand = ph < 0.25 ? 'normal' : ph < 0.45 ? 'ausfall' : ph < 0.9 ? 'rebuild' : 'fertig';
+      const fort = zustand === 'rebuild' ? (ph - 0.45) / 0.45 : zustand === 'fertig' ? 1 : 0;
+      const x0 = 14, y0 = 34, bw = (B - 28) / n, zeilen = 6, zh = (H - y0 - 56) / zeilen;
+      // Block (Zeile j, Platte i) beschreiben: Daten-Nummer, Parität P/Q, Spiegel
+      function block(j, i) {
+        const g = r.gs, gi = Math.floor(i / g), k = i % g;
+        switch (e.stufe) {
+          case 'r0': case 'jbod': return ['D' + (j * n + i + 1), 'd'];
+          case 'r1': return ['D' + (j + 1), 'm'];
+          case 'r10': return ['D' + (j * n / 2 + Math.floor(i / 2) + 1), i % 2 ? 'm' : 'd'];
+          case 'r5': case 'r50': { const pp = (g - 1 - j % g + g) % g; if (k === pp) return ['P', 'p']; return ['D', 'd']; }
+          default: { const pp = (g - 1 - j % g + g) % g, qq = (pp + 1) % g; if (k === pp) return ['P', 'p']; if (k === qq) return ['Q', 'q']; return ['D', 'd']; }
+        }
+      }
+      const farben = { d: '#3B5BDB', m: '#6E8FE8', p: '#F2A541', q: '#B07AD0' };
+      for (let i = 0; i < n; i++) {
+        const x = x0 + i * bw;
+        const istDefekt = i === defekt && zustand !== 'normal';
+        cx.fillStyle = f('--flaeche'); cx.strokeStyle = istDefekt && zustand === 'ausfall' ? '#C0392B' : f('--linie'); cx.lineWidth = 2;
+        cx.fillRect(x + 3, y0 - 6, bw - 6, zeilen * zh + 12); cx.strokeRect(x + 3, y0 - 6, bw - 6, zeilen * zh + 12);
+        for (let j = 0; j < zeilen; j++) {
+          const b = block(j, i);
+          let sichtbar = true;
+          if (istDefekt) sichtbar = zustand !== 'ausfall' && (j + 1) / zeilen <= fort + 1e-9;
+          if (r.tol === 0 && istDefekt) sichtbar = false;
+          cx.fillStyle = sichtbar ? farben[b[1]] : 'rgba(192,57,43,0.15)';
+          cx.fillRect(x + 7, y0 + j * zh + 2, bw - 14, zh - 4);
+          if (sichtbar && bw > 30 && zh > 14) Z.text(cx, e.stufe === 'r5' || e.stufe === 'r6' || e.stufe === 'r50' || e.stufe === 'r60' ? b[0] + (b[0] === 'D' ? '' : (j + 1)) : b[0], x + bw / 2, y0 + j * zh + zh / 2, 'center', Math.min(11, zh * 0.55), true, '#FFFFFF');
+        }
+        if ((e.stufe === 'r50' || e.stufe === 'r60') && i % r.gs === 0 && i) { cx.strokeStyle = f('--text'); cx.setLineDash([4, 4]); cx.beginPath(); cx.moveTo(x, y0 - 12); cx.lineTo(x, y0 + zeilen * zh + 10); cx.stroke(); cx.setLineDash([]); }
+        if (istDefekt && zustand === 'ausfall') { cx.strokeStyle = '#C0392B'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x + 6, y0); cx.lineTo(x + bw - 6, y0 + zeilen * zh); cx.moveTo(x + bw - 6, y0); cx.lineTo(x + 6, y0 + zeilen * zh); cx.stroke(); }
+        Z.text(cx, 'Platte ' + (i + 1), x + bw / 2, y0 + zeilen * zh + 18, 'center', Math.min(10, bw / 5), false, f('--leise'));
+      }
+      const text = zustand === 'normal' ? 'Normalbetrieb' : zustand === 'ausfall' ? (r.tol ? 'Platte ' + (defekt + 1) + ' fällt aus – Verbund läuft weiter (degradiert)' : 'Platte fällt aus – Daten verloren') : zustand === 'rebuild' ? (r.tol ? 'Rebuild ' + z(fort * 100, 0) + ' % (' + z(fort * r.tRebuild, 1) + ' von ' + z(r.tRebuild, 1) + ' h)' : 'nicht wiederherstellbar') : (r.tol ? 'Wieder vollständig geschützt' : 'Daten verloren');
+      Z.text(cx, text, B / 2, 16, 'center', 12, true, zustand === 'ausfall' || !r.tol && zustand !== 'normal' ? '#C0392B' : zustand === 'rebuild' ? '#E4572E' : '#2E8B57');
+      const lx = 14, ly = H - 14;
+      [['d', 'Daten'], ['m', 'Spiegel'], ['p', 'Parität P'], ['q', 'Parität Q']].forEach(function (l, i) { cx.fillStyle = farben[l[0]]; cx.fillRect(lx + i * 88, ly - 5, 10, 10); Z.text(cx, l[1], lx + i * 88 + 14, ly, 'left', 10, false, f('--leise')); });
+      if (zeigen) Z.text(cx, 'erste 16 von ' + e.n + ' Platten', B - 14, ly, 'right', 10, false, f('--leise'));
+    }
+  })();
+  </script>
+</body>
+</html>

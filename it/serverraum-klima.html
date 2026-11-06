@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Serverraum-Klima</title>
+  <meta name="description" content="Serverraum kühlen: Kühllast aus IT-Leistung, USV-Verlusten, Licht und Personen, Luftvolumenstrom zwischen Kalt- und Warmgang, Klimageräte mit Redundanz, PUE und Zeit bis zur Überhitzung bei Ausfall der Kühlung.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+    const RHOCP = 1.2 * 1005;   // J/(m³·K)
+    const MASSE = { leicht: ['leicht (Trockenbau, wenig Technik)', 3], mittel: ['mittel (Mauerwerk, volle Racks)', 8], schwer: ['schwer (Beton, viele Geräte)', 15] };
+    const BEISPIEL = { racks: 6, kwRack: 4, extraIT: 2, etaUsv: 95, flaeche: 40, hoehe: 3, licht: 10, personen: 1, extern: 800, zuluft: 22, dT: 12, einheit: 15, redundanz: 'n1', eer: 3.5, tMax: 35, masse: 'mittel' };
+
+    R.seite({
+      titel: 'Serverraum-Klima',
+      einleitung: 'Kühllast eines Serverraums aus IT-Leistung, USV-Verlusten, Licht, Personen und äußeren Lasten. Daraus der Luftvolumenstrom zwischen Kalt- und Warmgang, die Zahl der Klimageräte mit Redundanz, der Strombedarf der Kühlung, die Effizienz (PUE) und wie schnell der Raum ohne Kühlung zu heiß wird.',
+      hilfe: 'Fast die gesamte elektrische Leistung der Geräte wird zu Wärme. Messwerte der USV oder der Steckdosenleisten sind besser als Typenschilder.',
+      gruppen: [
+        { titel: 'Wärmequellen', farbe: '#E4572E', felder: [
+          { k: 'racks', tex: 'n_\\text{Rack}', name: 'Anzahl Racks', e: '', min: 0, max: 1000, ganz: true },
+          { k: 'kwRack', tex: 'P_\\text{Rack}', name: 'Leistung je Rack', e: 'kW', min: 0, max: 100 },
+          { k: 'extraIT', tex: 'P_\\text{sonst}', name: 'weitere IT (Netz, Speicher)', e: 'kW', min: 0, max: 10000 },
+          { k: 'etaUsv', tex: '\\eta_\\text{USV}', name: 'Wirkungsgrad USV im Raum', e: '%', min: 50, max: 100 },
+          { k: 'licht', name: 'Beleuchtung', e: 'W/m²', min: 0, max: 50 },
+          { k: 'personen', tex: 'n_\\text{P}', name: 'Personen gleichzeitig', e: '', min: 0, max: 50, ganz: true },
+          { k: 'extern', tex: 'Q_\\text{außen}', name: 'Wärme durch Wände, Sonne', e: 'W', min: 0, max: 1e6 }
+        ] },
+        { titel: 'Raum', farbe: '#6E6FA6', felder: [
+          { k: 'flaeche', tex: 'A', name: 'Grundfläche', e: 'm²', min: 1, max: 100000 },
+          { k: 'hoehe', tex: 'h', name: 'Raumhöhe', e: 'm', min: 2, max: 10 },
+          { k: 'masse', name: 'Speichermasse', wahl: Object.keys(MASSE).map(function (k) { return [k, MASSE[k][0]]; }) }
+        ] },
+        { titel: 'Kühlung', farbe: '#2B7BB9', felder: [
+          { k: 'zuluft', tex: '\\vartheta_\\text{Zu}', name: 'Zulufttemperatur (Kaltgang)', e: '°C', min: 10, max: 35 },
+          { k: 'dT', tex: '\\Delta\\vartheta', name: 'Erwärmung Kalt- → Warmgang', e: 'K', min: 3, max: 25 },
+          { k: 'einheit', tex: 'Q_\\text{Gerät}', name: 'Kälteleistung je Klimagerät', e: 'kW', min: 0.5, max: 2000 },
+          { k: 'redundanz', name: 'Redundanz', wahl: [['n', 'N (keine)'], ['n1', 'N+1'], ['n2', 'N+2'], ['2n', '2N']] },
+          { k: 'eer', tex: 'EER', name: 'Leistungszahl Kühlung', e: '', min: 1, max: 50 },
+          { k: 'tMax', tex: '\\vartheta_\\text{max}', name: 'höchste Raumtemperatur bei Ausfall', e: '°C', min: 20, max: 60 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Kühllast', 'Q = P_\\text{IT} + P_\\text{IT}\\left(\\frac{1}{\\eta_\\text{USV}} - 1\\right) + Q_\\text{Licht} + n_\\text{P} \\cdot 100\\,\\text{W} + Q_\\text{außen}', 'sensible Wärme; Personen ca. 100 W'],
+        ['Luftvolumenstrom', '\\dot V = \\frac{Q}{\\rho\\, c_p\\, \\Delta\\vartheta}', 'ρ·c_p ≈ 1,2 kg/m³ · 1005 J/(kg·K); kleinere Temperaturspreizung → mehr Luft'],
+        ['Klimageräte', 'n = \\left\\lceil \\frac{Q}{Q_\\text{Gerät}} \\right\\rceil + \\text{Redundanz}', 'N+1: ein Gerät darf ausfallen; 2N: zweifach'],
+        ['Strombedarf Kühlung', 'P_\\text{Kälte} = \\frac{Q}{EER}', 'freie Kühlung im Winter senkt den Jahresbedarf deutlich'],
+        ['PUE', 'PUE = \\frac{P_\\text{gesamt}}{P_\\text{IT}}', 'Power Usage Effectiveness nach DIN EN 50600-4-2; 1,0 wäre ideal'],
+        ['Erwärmung ohne Kühlung', '\\frac{d\\vartheta}{dt} = \\frac{Q}{k \\cdot \\rho\\, c_p\\, V_\\text{Raum}}', 'k: Faktor für die Speichermasse von Wänden und Geräten (Näherung)']
+      ],
+      quellen: 'DIN EN 50600-2-3 (Umgebungsbedingungen Rechenzentrum), ASHRAE TC 9.9 (empfohlene Zuluft 18–27 °C, Klasse A1), DIN EN 50600-4-2 (PUE), VDI 2054 (Raumlufttechnik für Datenverarbeitung). Die Erwärmung bei Ausfall ist eine grobe Abschätzung.',
+      bild: { titel: 'Kalt- und Warmgang', label: 'Racks mit Kaltgang in der Mitte, Luftströmung und Temperaturen', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(240, Math.min(320, B * 0.52)); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Kalte Luft strömt durch die Geräte in den Warmgang und zurück zum Klimagerät: ' + z(r.V, 0) + ' m³/h.'; } }
+    });
+
+    function rechne(e) {
+      const r = {};
+      r.it = (e.racks * e.kwRack + e.extraIT) * 1000;
+      r.usv = r.it * (100 / e.etaUsv - 1);
+      r.licht = e.licht * e.flaeche;
+      r.pers = e.personen * 100;
+      r.Q = r.it + r.usv + r.licht + r.pers + e.extern;
+      r.V = r.Q / (RHOCP * e.dT) * 3600;
+      r.vRack = e.racks ? (e.racks * e.kwRack * 1000) / (RHOCP * e.dT) * 3600 / e.racks : 0;
+      r.nN = Math.max(1, Math.ceil(r.Q / (e.einheit * 1000) - 1e-9));
+      r.nGes = { n: r.nN, n1: r.nN + 1, n2: r.nN + 2, '2n': 2 * r.nN }[e.redundanz];
+      r.pKaelte = r.Q / e.eer;
+      r.pue = (r.it + r.usv + r.pKaelte + r.licht) / Math.max(1, r.it);
+      r.warm = e.zuluft + e.dT;
+      r.wDichte = r.it / e.flaeche;
+      r.vol = e.flaeche * e.hoehe;
+      r.C = MASSE[e.masse][1] * RHOCP * r.vol;
+      r.start = e.zuluft + e.dT / 2;
+      r.rate = r.Q / r.C * 60;   // K je Minute
+      r.tAusfall = r.Q > 0 ? Math.max(0, (e.tMax - r.start) / r.rate) : Infinity;
+      r.energieJahr = (r.it + r.usv + r.pKaelte + r.licht) * 8760 / 1e6;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (e.zuluft < 18 || e.zuluft > 27) H.meldung('Zuluft ' + z(e.zuluft, 0) + ' °C liegt außerhalb des empfohlenen Bereichs 18–27 °C (ASHRAE A1). ' + (e.zuluft < 18 ? 'Zu kalt kostet nur Energie.' : 'Geräte können drosseln oder ausfallen.'), e.zuluft > 27);
+      if (r.warm > 45) H.meldung('Der Warmgang erreicht ' + z(r.warm, 0) + ' °C – für Kabel, USV-Akkus und Arbeiten im Gang zu heiß. Spreizung verkleinern.');
+      if (e.kwRack > 15) H.meldung('Über 15 kW je Rack reicht Luftkühlung mit offenem Gang kaum noch: Gangeinhausung, Rack-Kühlung oder Flüssigkeitskühlung prüfen.');
+      if (r.tAusfall < 10) H.meldung('Ohne Kühlung sind ' + z(e.tMax, 0) + ' °C schon nach ' + z(r.tAusfall, 1) + ' min erreicht: Klimageräte an USV/Notstrom, automatische Abschaltung, Temperaturalarm.', true);
+      if (e.redundanz === 'n') H.meldung('Ohne Redundanz führt der Ausfall eines Klimageräts zur Überhitzung. Mindestens N+1 planen.');
+      H.urteil(e.zuluft <= 27 && r.tAusfall >= 10 && e.redundanz !== 'n', 'PUE ' + z(r.pue, 2));
+      H.kacheln([
+        [z(r.Q / 1000, 1) + ' kW', 'Kühllast gesamt', '#E4572E'],
+        [z(r.V, 0) + ' m³/h', 'Luftvolumenstrom (' + z(r.vRack, 0) + ' m³/h je Rack)', '#2B7BB9'],
+        [r.nGes + ' × ' + z(e.einheit, 1) + ' kW', 'Klimageräte (' + r.nN + ' nötig, ' + { n: 'N', n1: 'N+1', n2: 'N+2', '2n': '2N' }[e.redundanz] + ')', '#0E6B6A'],
+        [z(r.pKaelte / 1000, 1) + ' kW', 'Strom für die Kühlung', '#6E6FA6'],
+        [z(r.pue, 2), 'PUE (Effizienz)', r.pue > 1.8 ? '#C0392B' : '#2E8B57'],
+        [z(r.tAusfall, 1) + ' min', 'bis ' + z(e.tMax, 0) + ' °C ohne Kühlung', r.tAusfall < 10 ? '#C0392B' : '#B07A12'],
+        [z(r.energieJahr, 0) + ' MWh', 'Strom im Jahr (Dauerlast)', '#6B7785']
+      ]);
+      H.tabelle('Wärmebilanz', ['Quelle', 'Leistung', 'Anteil'], [['IT-Geräte', r.it], ['USV-Verluste', r.usv], ['Beleuchtung', r.licht], ['Personen', r.pers], ['Wände, Sonne', e.extern]].map(function (x) { return [x[0], z(x[1] / 1000, 2) + ' kW', z(x[1] / Math.max(1, r.Q) * 100, 1) + ' %']; }), { zahl: [1, 2] });
+    }
+    function weg(r, e) {
+      return [
+        ['IT-Leistung', 'P_\\text{IT} = ' + e.racks + ' \\cdot ' + tz(e.kwRack, 1) + ' + ' + tz(e.extraIT, 1) + ' = ' + tz(r.it / 1000, 1) + '\\,\\text{kW}'],
+        ['Kühllast', 'Q = ' + tz(r.it / 1000, 2) + ' + ' + tz(r.usv / 1000, 2) + ' + ' + tz(r.licht / 1000, 2) + ' + ' + tz(r.pers / 1000, 2) + ' + ' + tz(e.extern / 1000, 2) + ' = ' + E(tz(r.Q / 1000, 2) + '\\,\\text{kW}')],
+        ['Luftvolumenstrom', '\\dot V = \\frac{' + tz(r.Q, 0) + '}{1206 \\cdot ' + tz(e.dT, 0) + '} \\cdot 3600 = ' + E(tz(r.V, 0) + '\\,\\tfrac{\\text{m}^3}{\\text{h}}')],
+        ['Klimageräte', 'n = \\lceil ' + tz(r.Q / 1000, 2) + ' / ' + tz(e.einheit, 1) + ' \\rceil = ' + r.nN + ' \\Rightarrow ' + E(String(r.nGes))],
+        ['PUE', 'PUE = \\frac{' + tz(r.it / 1000, 1) + ' + ' + tz(r.usv / 1000, 2) + ' + ' + tz(r.pKaelte / 1000, 2) + ' + ' + tz(r.licht / 1000, 2) + '}{' + tz(r.it / 1000, 1) + '} = ' + E(tz(r.pue, 2))],
+        ['Erwärmung ohne Kühlung', '\\frac{d\\vartheta}{dt} = \\frac{' + tz(r.Q, 0) + '}{' + MASSE[e.masse][1] + ' \\cdot 1206 \\cdot ' + tz(r.vol, 0) + '} \\cdot 60 = ' + tz(r.rate, 2) + '\\,\\tfrac{\\text{K}}{\\text{min}} \\Rightarrow t = ' + E(tz(r.tAusfall, 1) + '\\,\\text{min}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      const boden = H - 60, decke = 30, rh = (boden - decke) * 0.62, rw = Math.min(70, B * 0.14);
+      const mitte = B * 0.42, xl = mitte - rw * 1.4, xr = mitte + rw * 0.4;
+      // Doppelboden
+      cx.fillStyle = 'rgba(43,123,185,0.12)'; cx.fillRect(10, boden, B * 0.84, 22);
+      cx.strokeStyle = f('--linie'); cx.lineWidth = 2; cx.beginPath(); cx.moveTo(10, boden); cx.lineTo(B * 0.84, boden); cx.moveTo(10, decke); cx.lineTo(B - 10, decke); cx.stroke();
+      // Racks
+      [[xl, 'rechts'], [xr, 'links']].forEach(function (q) {
+        cx.fillStyle = '#2B3038'; cx.fillRect(q[0], boden - rh, rw, rh);
+        for (let i = 0; i < 8; i++) { cx.fillStyle = '#4A515B'; cx.fillRect(q[0] + 5, boden - rh + 6 + i * (rh - 12) / 8, rw - 10, (rh - 12) / 8 - 3); cx.fillStyle = Math.floor(t / 300 + i) % 4 ? '#2E8B57' : '#7FD18B'; cx.fillRect(q[0] + (q[1] === 'links' ? 8 : rw - 12), boden - rh + 10 + i * (rh - 12) / 8, 4, 3); }
+      });
+      // Klimagerät rechts
+      const kx = B * 0.84, kw = B * 0.14;
+      cx.fillStyle = '#E6EEF5'; cx.strokeStyle = '#2B7BB9'; cx.fillRect(kx, decke + 20, kw, boden - decke - 20 + 22); cx.strokeRect(kx, decke + 20, kw, boden - decke - 20 + 22);
+      Z.text(cx, 'Klima', kx + kw / 2, decke + 36, 'center', 11, true, '#2B7BB9');
+      const lauf = !bewegungAus;
+      // Luftteilchen: Doppelboden → Kaltgang hoch → durch Racks nach außen → Decke → Klima → Boden
+      const wege = [
+        [[kx + kw / 2, boden - 10], [kx, boden + 11], [mitte, boden + 11], [mitte, boden - rh * 0.6], [xl + rw, boden - rh * 0.6], [xl, boden - rh * 0.6], [xl - 30, boden - rh * 0.6], [xl - 30, decke + 10], [kx + kw / 2, decke + 10], [kx + kw / 2, boden - 10]],
+        [[kx + kw / 2, boden - 10], [kx, boden + 11], [mitte, boden + 11], [mitte, boden - rh * 0.3], [xr, boden - rh * 0.3], [xr + rw, boden - rh * 0.3], [xr + rw + 26, boden - rh * 0.3], [xr + rw + 26, decke + 18], [kx + kw / 2, decke + 18], [kx + kw / 2, boden - 10]]
+      ];
+      wege.forEach(function (w, wi) {
+        let L = 0; const seg = []; for (let i = 1; i < w.length; i++) { const l = Math.hypot(w[i][0] - w[i - 1][0], w[i][1] - w[i - 1][1]); seg.push(l); L += l; }
+        for (let k = 0; k < 26; k++) {
+          let d = ((t * 0.06 + k * L / 26 + wi * 37) % L), i = 0; while (i < seg.length && d > seg[i]) { d -= seg[i]; i++; }
+          if (i >= seg.length) continue;
+          const a = w[i], b = w[i + 1], u = d / seg[i], x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+          const warm = i >= 5 && i < 8;
+          cx.fillStyle = warm ? '#E4572E' : '#2B7BB9'; cx.globalAlpha = 0.8; cx.beginPath(); cx.arc(x, y, 3, 0, 2 * Math.PI); cx.fill();
+        }
+      });
+      cx.globalAlpha = 1;
+      Z.text(cx, 'Kaltgang ' + z(e.zuluft, 0) + ' °C', mitte, decke + 46, 'center', 11, true, '#2B7BB9');
+      Z.text(cx, 'Warmgang ' + z(r.warm, 0) + ' °C', xl - 30, decke + 46, 'center', 11, true, '#E4572E');
+      Z.text(cx, 'Doppelboden', 16, boden + 11, 'left', 10, false, f('--leise'));
+      void lauf;
+      // Temperaturverlauf bei Kühlungsausfall
+      const gy = H - 24, gx0 = 14, gw = B - 28;
+      const tEnde = Math.max(5, Math.min(240, r.tAusfall * 1.3));
+      Z.text(cx, 'ohne Kühlung: ' + z(e.tMax, 0) + ' °C nach ' + z(r.tAusfall, 1) + ' min', gx0, gy - 2, 'left', 11, true, r.tAusfall < 10 ? '#C0392B' : '#B07A12');
+      cx.fillStyle = f('--linie'); cx.fillRect(gx0, gy + 8, gw, 6);
+      cx.fillStyle = '#C0392B'; cx.fillRect(gx0 + gw * Math.min(1, r.tAusfall / tEnde), gy + 8, gw * (1 - Math.min(1, r.tAusfall / tEnde)), 6);
+    }
+  })();
+  </script>
+</body>
+</html>

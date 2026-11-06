@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Netzwerkkabel und PoE</title>
+  <meta name="description" content="Netzwerkverkabelung und Power over Ethernet prüfen: Kanallänge je Kategorie und Datenrate, Schleifenwiderstand, Spannung und Leistung am Endgerät, Verlust im Kabel, Erwärmung im Bündel und PoE-Budget des Switches.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+
+    // Kategorien: [Name, Bandbreite MHz, [Datenrate, Länge Kanal m] …] (ISO/IEC 11801, EN 50173, TIA-568)
+    const KAT = {
+      c5e: ['Cat 5e (Klasse D)', 100, [['1 Gbit/s', 100]]],
+      c6: ['Cat 6 (Klasse E)', 250, [['1 Gbit/s', 100], ['10 Gbit/s', 55]]],
+      c6a: ['Cat 6A (Klasse EA)', 500, [['10 Gbit/s', 100]]],
+      c7: ['Cat 7 / 7A (Klasse F / FA)', 1000, [['10 Gbit/s', 100]]],
+      c8: ['Cat 8 (Klasse I/II)', 2000, [['10 Gbit/s', 100], ['25/40 Gbit/s', 30]]]
+    };
+    // Widerstand je Ader bei 20 °C in Ω/m (Kupfer, massiv; Litze ≈ +10 %)
+    const AWG = { 22: 0.0530, 23: 0.0668, 24: 0.0842, 26: 0.1339 };
+    // PoE: [Name, P_PSE W, P_PD W, U_PSE min V, Paare, Strom je Paar max A]
+    const POE = {
+      af: ['IEEE 802.3af (Typ 1, PoE)', 15.4, 12.95, 44, 2, 0.35],
+      at: ['IEEE 802.3at (Typ 2, PoE+)', 30, 25.5, 50, 2, 0.6],
+      bt3: ['IEEE 802.3bt Typ 3 (4PPoE)', 60, 51, 50, 4, 0.6],
+      bt4: ['IEEE 802.3bt Typ 4 (4PPoE)', 90, 71.3, 52, 4, 0.96],
+      keins: ['ohne PoE', 0, 0, 0, 2, 0]
+    };
+    const BEISPIEL = { kat: 'c6a', rate: '10 Gbit/s', festL: 70, patch: 8, awg: '23', litze: 'massiv', poe: 'at', bedarf: 18, temp: 30, buendel: 24, ports: 16, budget: 370 };
+
+    R.seite({
+      titel: 'Netzwerkkabel und PoE',
+      einleitung: 'Kupferverkabelung im Netzwerk prüfen: Länge der Strecke für die gewünschte Datenrate, Widerstand der Adern, Leistung am Endgerät mit Power over Ethernet, Verluste im Kabel, Erwärmung im Bündel und das PoE-Budget des Switches.',
+      hilfe: 'Strecke = fest verlegtes Kabel (Permanent Link, höchstens 90 m) plus Patchkabel an beiden Enden (zusammen höchstens 10 m).',
+      gruppen: [
+        { titel: 'Strecke', farbe: '#3B5BDB', felder: [
+          { k: 'kat', name: 'Kabelkategorie', wahl: Object.keys(KAT).map(function (k) { return [k, KAT[k][0]]; }) },
+          { k: 'rate', name: 'gewünschte Datenrate', wahl: [['1 Gbit/s', '1 Gbit/s (1000BASE-T)'], ['2,5 Gbit/s', '2,5 Gbit/s (2.5GBASE-T)'], ['5 Gbit/s', '5 Gbit/s (5GBASE-T)'], ['10 Gbit/s', '10 Gbit/s (10GBASE-T)'], ['25/40 Gbit/s', '25/40 Gbit/s (25G/40GBASE-T)']] },
+          { k: 'festL', tex: 'l_\\text{fest}', name: 'fest verlegt (Permanent Link)', e: 'm', min: 0, max: 300 },
+          { k: 'patch', tex: 'l_\\text{Patch}', name: 'Patchkabel zusammen', e: 'm', min: 0, max: 100 },
+          { k: 'awg', name: 'Aderdurchmesser', wahl: [['22', 'AWG 22 (0,64 mm)'], ['23', 'AWG 23 (0,57 mm)'], ['24', 'AWG 24 (0,51 mm)'], ['26', 'AWG 26 (0,40 mm, dünnes Patchkabel)']] },
+          { k: 'litze', name: 'Leiter', wahl: [['massiv', 'massiv (Verlegekabel)'], ['litze', 'Litze (Patchkabel)']] }
+        ] },
+        { titel: 'Power over Ethernet', farbe: '#E4572E', felder: [
+          { k: 'poe', name: 'PoE-Standard', wahl: Object.keys(POE).map(function (k) { return [k, POE[k][0]]; }) },
+          { k: 'bedarf', tex: 'P_\\text{Gerät}', name: 'Leistung des Endgeräts', e: 'W', min: 0, max: 100 },
+          { k: 'temp', tex: '\\vartheta', name: 'Umgebungstemperatur', e: '°C', min: -20, max: 70 },
+          { k: 'buendel', tex: 'n_\\text{Bündel}', name: 'Kabel im Bündel (alle mit PoE)', e: '', min: 1, max: 200, ganz: true }
+        ] },
+        { titel: 'Switch', farbe: '#0E6B6A', felder: [
+          { k: 'ports', tex: 'n', name: 'Geräte mit diesem Bedarf', e: '', min: 1, max: 96, ganz: true },
+          { k: 'budget', tex: 'P_\\text{Budget}', name: 'PoE-Budget des Switches', e: 'W', min: 0, max: 10000 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Schleifenwiderstand', 'R_\\text{Schleife} = \\frac{2 \\cdot R\'\\cdot l}{n_\\text{Adern je Richtung}}', 'zwei Paare (af/at): je Richtung 2 Adern parallel; vier Paare (bt): je Richtung 4 Adern parallel'],
+        ['Widerstand und Temperatur', "R'_\\vartheta = R'_{20} \\cdot (1 + 0{,}00393 \\cdot (\\vartheta - 20\\,°\\text{C}))", 'Kupfer; im Bündel zusätzlich Erwärmung durch den PoE-Strom'],
+        ['Strom und Verlust', 'I = \\frac{P_\\text{Gerät}}{U_\\text{PD}},\\quad P_\\text{Verlust} = I^2 \\cdot R_\\text{Schleife}', 'U_PD = U_PSE − I · R; quadratisch gelöst'],
+        ['Kanallänge', 'l_\\text{Kanal} = l_\\text{fest} + l_\\text{Patch} \\le 100\\,\\text{m},\\quad l_\\text{fest} \\le 90\\,\\text{m}', 'Patchkabel dämpfen stärker; bei mehr Patch wird die Strecke kürzer'],
+        ['PoE-Klassen', 'P_\\text{PSE}: 15{,}4 / 30 / 60 / 90\\,\\text{W} \\rightarrow P_\\text{PD}: 12{,}95 / 25{,}5 / 51 / 71{,}3\\,\\text{W}', 'Leistung am Switch-Port und garantiert am Gerät bei 100 m'],
+        ['Budget', 'n \\cdot P_\\text{Port} \\le P_\\text{Budget}', 'der Switch reserviert je Port die Leistung der Klasse oder den gemessenen Bedarf']
+      ],
+      quellen: 'ISO/IEC 11801-1 und DIN EN 50173-1 (Anwendungsneutrale Verkabelung), ANSI/TIA-568.2-D, IEEE 802.3af/at/bt (PoE), ISO/IEC TS 29125 und DIN EN 50174-99-1 (Fernspeisung, Bündelerwärmung). Die Bündelerwärmung ist eine Näherung; maßgeblich sind die Herstellerangaben des Kabels.',
+      bild: { titel: 'Strecke mit Fernspeisung', label: 'Switch, Patchfeld, Verlegekabel, Dose und Endgerät mit Stromfluss und Spannung', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(250, Math.min(320, B * 0.52)); }, zeichne: zeichne,
+        hinweis: function (r, e) { return e.poe === 'keins' ? 'Ohne PoE: nur Daten.' : 'Gelb: Strom auf ' + POE[e.poe][4] + ' Paaren. Spannung am Gerät ' + z(r.Upd, 1) + ' V.'; } }
+    });
+
+    function rechne(e) {
+      const r = {};
+      const k = KAT[e.kat];
+      r.L = e.festL + e.patch;
+      // Patchkabel dämpfen ca. 20 % (AWG 24) bis 50 % (AWG 26) stärker: Kanal entsprechend kürzer
+      r.patchFaktor = String(e.awg) === '26' ? 1.5 : 1.2;
+      r.Laequi = e.festL + e.patch * r.patchFaktor;
+      const passend = k[2].filter(function (x) { return x[0] === e.rate || (e.rate !== '25/40 Gbit/s' && (x[0] === '10 Gbit/s' || (x[0] === '1 Gbit/s' && e.rate === '1 Gbit/s'))); });
+      // 2,5G und 5G laufen nach IEEE 802.3bz auf Cat 5e (2,5G) bzw. Cat 6 (5G) über 100 m
+      let lMax = 0;
+      if (e.rate === '1 Gbit/s') lMax = 100;
+      else if (e.rate === '2,5 Gbit/s') lMax = 100;
+      else if (e.rate === '5 Gbit/s') lMax = e.kat === 'c5e' ? 0 : 100;
+      else if (e.rate === '10 Gbit/s') lMax = e.kat === 'c5e' ? 0 : e.kat === 'c6' ? 55 : 100;
+      else lMax = e.kat === 'c8' ? 30 : 0;
+      if (e.rate === '5 Gbit/s' && e.kat === 'c5e') lMax = 0;
+      r.lMax = lMax; r.passend = passend;
+      r.okLaenge = r.Laequi <= lMax + 1e-9 && e.festL <= (lMax >= 100 ? 90 : lMax) && lMax > 0;
+      const p = POE[e.poe];
+      r.paare = p[4];
+      // Erwärmung im Bündel (Näherung nach ISO/IEC TS 29125): ΔT ≈ k · I² je Paar · √n
+      r.Rp20 = AWG[e.awg] * (e.litze === 'litze' ? 1.1 : 1);
+      const iPaarGrob = p[3] ? Math.min(p[5], e.bedarf / p[3] / (p[4] / 2)) : 0;
+      r.dTbuendel = p[3] ? 8 * Math.pow(iPaarGrob / 0.6, 2) * Math.sqrt(e.buendel) / Math.sqrt(100) * (String(e.awg) === '26' ? 1.6 : String(e.awg) === '24' ? 1.15 : 1) : 0;
+      r.tKabel = e.temp + r.dTbuendel;
+      r.Rp = r.Rp20 * (1 + 0.00393 * (r.tKabel - 20));
+      const jeRichtung = p[4];   // Adern je Richtung = Paare (je Paar eine Hin- und eine Rück-Ader … pro Paar 2 Adern parallel)
+      r.Rschleife = 2 * r.Rp * r.L / jeRichtung;
+      // Am Gerät: P = U_PD · I, U_PD = U_PSE − I·R  →  R I² − U I + P = 0
+      r.Upse = p[3];
+      if (p[3] > 0) {
+        const disk = r.Upse * r.Upse - 4 * r.Rschleife * e.bedarf;
+        r.I = disk >= 0 ? (r.Upse - Math.sqrt(disk)) / (2 * Math.max(1e-9, r.Rschleife)) : Infinity;
+        if (r.Rschleife < 1e-9) r.I = e.bedarf / r.Upse;
+        r.Upd = r.Upse - r.I * r.Rschleife;
+        r.Pverl = r.I * r.I * r.Rschleife;
+        r.Pport = e.bedarf + r.Pverl;
+        r.iPaar = r.I / (p[4] / 2);
+      } else { r.I = 0; r.Upd = 0; r.Pverl = 0; r.Pport = 0; r.iPaar = 0; }
+      r.okStrom = p[3] === 0 || (isFinite(r.I) && r.iPaar <= p[5] + 1e-9);
+      r.okLeistung = p[3] === 0 ? e.bedarf === 0 : e.bedarf <= p[2] + 1e-9 && r.Pport <= p[1] + 1e-9;
+      r.okSpannung = p[3] === 0 || r.Upd >= (e.poe === 'af' ? 37 : e.poe === 'at' ? 42.5 : e.poe === 'bt3' ? 42.5 : 41.1);
+      r.okTemp = r.tKabel <= 60;
+      r.budgetBedarf = e.ports * (e.poe === 'keins' ? 0 : r.Pport);
+      r.okBudget = r.budgetBedarf <= e.budget + 1e-9;
+      r.ok = r.okLaenge && r.okStrom && r.okLeistung && r.okSpannung && r.okTemp && r.okBudget;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      const p = POE[e.poe];
+      if (r.lMax === 0) H.meldung(KAT[e.kat][0] + ' ist für ' + e.rate + ' nicht spezifiziert.', true);
+      else if (!r.okLaenge) H.meldung('Strecke zu lang für ' + e.rate + ': höchstens ' + r.lMax + ' m Kanal' + (r.lMax >= 100 ? ', davon höchstens 90 m fest verlegt' : '') + (e.patch > 10 ? '; mehr als 10 m Patchkabel verkürzen die zulässige Länge' : '') + '.', true);
+      if (e.poe !== 'keins' && e.bedarf > p[2]) H.meldung('Das Gerät braucht mehr als ' + z(p[2], 1) + ' W, die ' + p[0] + ' am Gerät garantiert – nächsthöhere PoE-Stufe wählen.', true);
+      if (!r.okTemp) H.meldung('Das Kabel wird im Bündel etwa ' + z(r.tKabel, 0) + ' °C warm – über 60 °C ist nicht zulässig. Kleinere Bündel, AWG 23 oder 22, bessere Belüftung.', true);
+      else if (r.dTbuendel > 10) H.meldung('Im Bündel erwärmt sich das Kabel um etwa ' + z(r.dTbuendel, 0) + ' K. Bündel auflockern oder dickere Adern nehmen (DIN EN 50174-99-1).');
+      if (!r.okBudget) H.meldung('Das PoE-Budget reicht nicht: ' + z(r.budgetBedarf, 0) + ' W nötig, ' + z(e.budget, 0) + ' W vorhanden. Geräte verteilen, größeren Switch oder Injektoren nehmen.', true);
+      if (String(e.awg) === '26' && r.L > 50) H.meldung('Dünne AWG-26-Patchkabel sind für lange Strecken und hohe PoE-Leistung ungeeignet.');
+      H.urteil(r.ok, r.ok ? 'passt' : 'passt nicht');
+      H.kacheln([
+        [z(r.L, 0) + ' m', 'Kanal (höchstens ' + r.lMax + ' m für ' + e.rate + ')', r.okLaenge ? '#2E8B57' : '#C0392B'],
+        e.poe === 'keins' ? null : [z(r.Upd, 1) + ' V', 'Spannung am Endgerät', r.okSpannung ? '#3B5BDB' : '#C0392B'],
+        e.poe === 'keins' ? null : [z(r.Pverl, 2) + ' W', 'Verlust im Kabel (' + z(r.Pverl / Math.max(1e-9, r.Pport) * 100, 1) + ' %)', '#E4572E'],
+        e.poe === 'keins' ? null : [z(r.I * 1000, 0) + ' mA', 'Strom gesamt, ' + z(r.iPaar * 1000, 0) + ' mA je Paar', r.okStrom ? '#6E6FA6' : '#C0392B'],
+        [z(r.Rschleife, 2) + ' Ω', 'Schleifenwiderstand bei ' + z(r.tKabel, 0) + ' °C', '#6B7785'],
+        [z(r.budgetBedarf, 0) + ' / ' + z(e.budget, 0) + ' W', 'PoE-Budget belegt', r.okBudget ? '#0E6B6A' : '#C0392B']
+      ]);
+      H.nachweise([
+        [r.okLaenge, 'Länge für ' + e.rate, z(r.L, 0) + ' m Kanal' + (e.patch > 0 ? ' (gleichwertig ' + z(r.Laequi, 0) + ' m wegen Patchkabel)' : '') + ' ≤ ' + r.lMax + ' m'],
+        e.poe === 'keins' ? null : [r.okLeistung, 'Leistung am Gerät', z(e.bedarf, 1) + ' W ≤ ' + z(p[2], 1) + ' W, am Port ' + z(r.Pport, 1) + ' W ≤ ' + z(p[1], 1) + ' W'],
+        e.poe === 'keins' ? null : [r.okStrom, 'Strom je Paar', z(r.iPaar * 1000, 0) + ' mA ≤ ' + z(p[5] * 1000, 0) + ' mA'],
+        e.poe === 'keins' ? null : [r.okSpannung, 'Spannung am Gerät', z(r.Upd, 1) + ' V'],
+        e.poe === 'keins' ? null : [r.okTemp, 'Kabeltemperatur im Bündel', z(e.temp, 0) + ' °C + ' + z(r.dTbuendel, 1) + ' K = ' + z(r.tKabel, 0) + ' °C ≤ 60 °C'],
+        [r.okBudget, 'PoE-Budget des Switches', e.ports + ' × ' + z(r.Pport, 1) + ' W = ' + z(r.budgetBedarf, 0) + ' W ≤ ' + z(e.budget, 0) + ' W']
+      ]);
+      H.tabelle('Längen je Kategorie', ['Kategorie', 'Bandbreite', 'Datenrate und Kanallänge'], Object.keys(KAT).map(function (k) { return [KAT[k][0], KAT[k][1] + ' MHz', KAT[k][2].map(function (x) { return x[0] + ': ' + x[1] + ' m'; }).join(', ')]; }), { fuss: '2,5 und 5 Gbit/s (IEEE 802.3bz) laufen über 100 m auf Cat 5e bzw. Cat 6.' });
+    }
+    function weg(r, e) {
+      const p = POE[e.poe];
+      const w = [['Kanallänge', 'l = ' + tz(e.festL, 0) + ' + ' + tz(e.patch, 0) + ' = ' + E(tz(r.L, 0) + '\\,\\text{m}') + '\\ ' + (r.okLaenge ? '\\le' : '>') + '\\ ' + r.lMax + '\\,\\text{m}']];
+      if (e.poe === 'keins') return w;
+      w.push(['Aderwiderstand bei ' + z(r.tKabel, 0) + ' °C', "R' = " + tz(r.Rp20, 4) + ' \\cdot (1 + 0{,}00393 \\cdot ' + tz(r.tKabel - 20, 1) + ') = ' + tz(r.Rp, 4) + '\\,\\tfrac{\\Omega}{\\text{m}}']);
+      w.push(['Schleifenwiderstand (' + p[4] + ' Paare)', 'R = \\frac{2 \\cdot ' + tz(r.Rp, 4) + ' \\cdot ' + tz(r.L, 0) + '}{' + p[4] + '} = ' + tz(r.Rschleife, 3) + '\\,\\Omega']);
+      w.push(['Strom (P = U · I am Gerät)', 'R I^2 - U_\\text{PSE} I + P = 0 \\Rightarrow I = ' + E(tz(r.I, 3) + '\\,\\text{A}')]);
+      w.push(['Spannung und Verlust', 'U_\\text{PD} = ' + tz(r.Upse, 0) + ' - ' + tz(r.I, 3) + ' \\cdot ' + tz(r.Rschleife, 3) + ' = ' + E(tz(r.Upd, 1) + '\\,\\text{V}') + ',\\quad P_\\text{V} = I^2 R = ' + E(tz(r.Pverl, 2) + '\\,\\text{W}')]);
+      w.push(['Budget', e.ports + ' \\cdot ' + tz(r.Pport, 1) + ' = ' + E(tz(r.budgetBedarf, 0) + '\\,\\text{W}')]);
+      return w;
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      const y = H * 0.38, x0 = 20, x1 = B - 20;
+      const sw = Math.min(110, B * 0.2);
+      // Switch
+      cx.fillStyle = '#2B3038'; cx.fillRect(x0, y - 26, sw, 52);
+      for (let i = 0; i < 8; i++) { cx.fillStyle = i === 2 ? '#E4572E' : '#5E6670'; cx.fillRect(x0 + 8 + i * (sw - 16) / 8, y - 6, (sw - 16) / 8 - 3, 12); }
+      Z.text(cx, 'Switch', x0 + sw / 2, y - 36, 'center', 11, true);
+      // Endgerät (Zugangspunkt)
+      const gx = x1 - 50;
+      cx.fillStyle = f('--flaeche'); cx.strokeStyle = f('--linie'); cx.lineWidth = 1.5;
+      cx.beginPath(); cx.arc(gx, y, 30, 0, 2 * Math.PI); cx.fill(); cx.stroke();
+      cx.fillStyle = r.okSpannung && r.okLeistung ? '#2E8B57' : '#C0392B'; cx.beginPath(); cx.arc(gx, y, 5, 0, 2 * Math.PI); cx.fill();
+      for (let i = 1; i <= 3; i++) { cx.strokeStyle = 'rgba(59,91,219,' + (0.6 - i * 0.15) + ')'; cx.lineWidth = 2; cx.beginPath(); cx.arc(gx, y - 6, 12 + i * 9 + (t / 60 % 9), -2.4, -0.7); cx.stroke(); }
+      Z.text(cx, 'Endgerät ' + z(e.bedarf, 1) + ' W', gx, y + 44, 'center', 11, true);
+      // Kabel: vier Paare (T568B-Farben)
+      const ka = x0 + sw, kb = gx - 30, farben = [['#2B7BB9', 'blau'], ['#E4572E', 'orange'], ['#2E8B57', 'grün'], ['#8B5A2B', 'braun']];
+      const strompaare = r.paare === 4 ? [0, 1, 2, 3] : [1, 2];
+      farben.forEach(function (p, i) {
+        const yy = y - 15 + i * 10;
+        cx.strokeStyle = p[0]; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(ka, yy); cx.lineTo(kb, yy); cx.stroke();
+        cx.strokeStyle = '#FFFFFF'; cx.lineWidth = 1.5; cx.setLineDash([6, 6]); cx.beginPath(); cx.moveTo(ka, yy); cx.lineTo(kb, yy); cx.stroke(); cx.setLineDash([]);
+        if (e.poe !== 'keins' && strompaare.indexOf(i) >= 0) {
+          cx.fillStyle = '#F2C230';
+          const n = 6, v = (t * 0.05 * (i % 2 ? -1 : 1)) % ((kb - ka) / n);
+          for (let j = 0; j < n + 1; j++) { const x = ka + ((j * (kb - ka) / n + v) % (kb - ka) + (kb - ka)) % (kb - ka); cx.beginPath(); cx.arc(x, yy, 2.6, 0, 2 * Math.PI); cx.fill(); }
+        }
+      });
+      // Patchfeld und Dose markieren
+      const lg = Math.max(1, r.L), xp = ka + (kb - ka) * (e.patch / 2) / lg, xd = kb - (kb - ka) * (e.patch / 2) / lg;
+      [[xp, 'Patchfeld'], [xd, 'Dose']].forEach(function (q) { cx.fillStyle = f('--text'); cx.fillRect(q[0] - 2, y - 22, 4, 44); Z.text(cx, q[1], q[0], y + 32, 'center', 10, false, f('--leise')); });
+      Z.text(cx, z(e.festL, 0) + ' m fest verlegt', (xp + xd) / 2, y - 30, 'center', 11, true);
+      // Spannungsverlauf
+      if (e.poe !== 'keins' && isFinite(r.Upd)) {
+        const gy0 = H - 70, gh = 50, um = r.Upse;
+        Z.text(cx, 'Spannung', x0, gy0 - 10, 'left', 11, true, f('--leise'));
+        cx.strokeStyle = f('--linie'); cx.lineWidth = 1; cx.strokeRect(ka, gy0, kb - ka, gh);
+        const yU = function (u) { return gy0 + gh - (u - (um - Math.max(4, um - r.Upd) * 1.6)) / (Math.max(4, um - r.Upd) * 1.6) * gh; };
+        cx.strokeStyle = '#E4572E'; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(ka, yU(um)); cx.lineTo(kb, yU(r.Upd)); cx.stroke();
+        Z.text(cx, z(um, 0) + ' V', ka + 4, yU(um) - 9, 'left', 11, true, '#E4572E');
+        Z.text(cx, z(r.Upd, 1) + ' V', kb - 4, yU(r.Upd) - 9, 'right', 11, true, '#E4572E');
+      }
+    }
+  })();
+  </script>
+</body>
+</html>

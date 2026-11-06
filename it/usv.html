@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>USV auslegen</title>
+  <meta name="description" content="USV für Server und Netzwerk auslegen: Scheinleistung mit Reserve, Baugröße, Überbrückungszeit der Akkus mit Peukert-Effekt und Alterung, Kapazität für die Wunschzeit und Ladezeit – mit simuliertem Stromausfall.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+
+    const GROESSEN = [500, 750, 1000, 1500, 2000, 3000, 5000, 6000, 8000, 10000, 15000, 20000, 30000, 40000, 60000, 80000, 100000, 120000, 160000, 200000];
+    // Akkus: [Name, Peukert-Exponent, nutzbare Entladetiefe, Nennentladezeit h]
+    const AKKU = { blei: ['Blei-Vlies (AGM)', 1.2, 1, 20], gel: ['Blei-Gel', 1.15, 1, 20], lfp: ['Lithium-Eisenphosphat', 1.03, 0.9, 1] };
+    const BEISPIEL = { geraete: [{ name: 'Server', p: 450, n: 2 }, { name: 'Switch', p: 60, n: 2 }, { name: 'Firewall', p: 40, n: 1 }, { name: 'NAS', p: 90, n: 1 }], pf: 0.9, reserve: 25, typ: 'vfi', akku: 'blei', ub: 12, ah: 9, zellen: 4, straenge: 2, eta: 92, alter: 80, ziel: 15, lade: 1.5 };
+
+    R.seite({
+      titel: 'USV auslegen',
+      einleitung: 'Unterbrechungsfreie Stromversorgung für Server und Netzwerk planen: Scheinleistung mit Reserve, passende Baugröße, Überbrückungszeit der Akkus mit Peukert-Effekt und Alterung, nötige Kapazität für die Wunschzeit und Ladezeit – mit simuliertem Stromausfall.',
+      hilfe: 'Leistung der Geräte im Betrieb (Messwert oder Typenschild × 0,6 bis 0,8). Die USV wird nach Scheinleistung (VA) und Wirkleistung (W) gewählt.',
+      gruppen: [
+        { titel: 'Verbraucher', farbe: '#3B5BDB', liste: { k: 'geraete', name: 'Geräte', zeile: 'Gerät', max: 30, kopieren: true, spalten: [
+          { k: 'name', name: 'Bezeichnung', text: true, breit: true },
+          { k: 'p', name: 'Leistung', e: 'W', min: 0, max: 100000 },
+          { k: 'n', name: 'Anzahl', e: '', min: 0, max: 500, ganz: true }
+        ], neu: function () { return { name: 'Gerät', p: 100, n: 1 }; } }, felder: [
+          { k: 'pf', tex: '\\cos\\varphi', name: 'Leistungsfaktor der Last', e: '', min: 0.5, max: 1 },
+          { k: 'reserve', name: 'Reserve für Zuwachs', e: '%', min: 0, max: 200 }
+        ] },
+        { titel: 'USV', farbe: '#E4572E', felder: [
+          { k: 'typ', name: 'Bauart', wahl: [['vfd', 'Offline (VFD): schaltet bei Ausfall um'], ['vi', 'Line-Interactive (VI): regelt Spannung'], ['vfi', 'Online / Doppelwandler (VFI)']] },
+          { k: 'eta', tex: '\\eta_\\text{WR}', name: 'Wirkungsgrad Wechselrichter', e: '%', min: 50, max: 99 }
+        ] },
+        { titel: 'Akkus', farbe: '#0E6B6A', felder: [
+          { k: 'akku', name: 'Akkutyp', wahl: Object.keys(AKKU).map(function (k) { return [k, AKKU[k][0]]; }) },
+          { k: 'ub', tex: 'U_\\text{Block}', name: 'Spannung je Block', e: 'V', min: 2, max: 60 },
+          { k: 'ah', tex: 'C', name: 'Kapazität je Block (Nenn)', e: 'Ah', min: 0.5, max: 3000 },
+          { k: 'zellen', tex: 'n_\\text{Reihe}', name: 'Blöcke in Reihe', e: '', min: 1, max: 60, ganz: true },
+          { k: 'straenge', tex: 'n_\\text{parallel}', name: 'Stränge parallel', e: '', min: 1, max: 40, ganz: true },
+          { k: 'alter', name: 'Restkapazität (Alterung)', e: '%', min: 30, max: 100 },
+          { k: 'lade', tex: 'I_\\text{Lade}', name: 'Ladestrom', e: 'A', min: 0.1, max: 500 },
+          { k: 'ziel', tex: 't_\\text{Ziel}', name: 'gewünschte Überbrückungszeit', e: 'min', min: 1, max: 1440 }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Scheinleistung', 'S = \\frac{P}{\\cos\\varphi} \\cdot (1 + r)', 'r Reserve; die USV muss in VA und in W reichen'],
+        ['Entladestrom', 'I = \\frac{P}{U_\\text{Akku} \\cdot \\eta_\\text{WR}}', 'U_Akku = Blockspannung × Blöcke in Reihe'],
+        ['Peukert', 't = H \\cdot \\left(\\frac{C}{I \\cdot H}\\right)^k', 'H Nennentladezeit (Blei 20 h), k Peukert-Exponent: bei hohem Strom liefert der Akku weniger als die Nennkapazität'],
+        ['Kapazität für Wunschzeit', 'C = I \\cdot H \\cdot \\left(\\frac{t}{H}\\right)^{1/k}', 'Peukert nach C umgestellt, dann durch Alterung teilen'],
+        ['Ladezeit', 't_\\text{Lade} \\approx \\frac{1{,}2 \\cdot C_\\text{entnommen}}{I_\\text{Lade}}', 'Faktor 1,2 für Ladeverluste; die letzten 10 % dauern länger'],
+        ['Energie', 'E = U_\\text{Akku} \\cdot C', 'Wh; Blei-Akkus sollen nicht tiefer als bis 10,5 V je 12-V-Block entladen werden']
+      ],
+      quellen: 'DIN EN IEC 62040-3 (USV-Klassifizierung VFD, VI, VFI), DIN EN 62485-2 (Batterieräume, Lüftung), Peukert-Gleichung als Näherung; Herstellertabellen für Entladezeiten sind genauer. Alterung: Blei-Akkus gelten bei 80 % Restkapazität als verbraucht.',
+      bild: { titel: 'Stromausfall', label: 'Netz, USV mit Akku und Verbraucher; der Akku entlädt sich im Zeitraffer', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(240, Math.min(300, B * 0.5)); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Zeitraffer: ein Durchlauf zeigt die ganze Überbrückungszeit von ' + dauer(r.t * 60) + '.'; } }
+    });
+
+    function dauer(s) { if (!isFinite(s)) return '–'; if (s < 3600) return z(s / 60, s < 600 ? 1 : 0) + ' min'; return Math.floor(s / 3600) + ' h ' + Math.round(s % 3600 / 60) + ' min'; }
+    function rechne(e) {
+      const r = {}, a = AKKU[e.akku];
+      r.P = e.geraete.reduce(function (s, g) { return s + g.p * g.n; }, 0);
+      r.S = r.P / e.pf;
+      r.Sres = r.S * (1 + e.reserve / 100); r.Pres = r.P * (1 + e.reserve / 100);
+      // USV-Wirkleistung: Ausgangsleistungsfaktor 0,9 (Online), 0,6 (Offline/VI)
+      r.pfUsv = e.typ === 'vfi' ? 0.9 : 0.6;
+      r.groesse = GROESSEN.filter(function (g) { return g >= r.Sres && g * r.pfUsv >= r.Pres; })[0] || null;
+      r.U = e.ub * e.zellen;
+      r.C = e.ah * e.straenge;
+      r.Cnutz = r.C * e.alter / 100 * a[2];
+      r.I = r.P / Math.max(1e-9, r.U * e.eta / 100);
+      // Peukert: t = H · (C/(I·H))^k in h
+      r.H = a[3]; r.k = a[1];
+      r.tH = r.P > 0 ? r.H * Math.pow(r.Cnutz / (r.I * r.H), r.k) : Infinity;
+      r.t = r.tH * 60;
+      r.Cziel = r.P > 0 ? r.I * r.H * Math.pow(e.ziel / 60 / r.H, 1 / r.k) / (e.alter / 100 * a[2]) : 0;
+      r.stranggleich = Math.ceil(r.Cziel / e.ah);
+      r.E = r.U * r.C;
+      r.C1 = r.C / (r.I * r.H) > 0 ? r.C * Math.min(1, Math.pow(r.C / (r.I * r.H), r.k - 1)) : r.C;
+      r.entnommen = Math.min(r.Cnutz, r.I * Math.min(r.tH, e.ziel / 60));
+      r.lade = 1.2 * r.entnommen / e.lade;
+      r.cRate = r.I / r.C;
+      r.ok = r.t >= e.ziel && !!r.groesse;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (r.P <= 0) H.meldung('Keine Last eingetragen.', true);
+      if (!r.groesse) H.meldung('Größer als 200 kVA: mehrere USV parallel oder Großanlage planen.', true);
+      if (r.t < e.ziel) H.meldung('Die Akkus reichen nur ' + dauer(r.t * 60) + ' statt ' + e.ziel + ' min. Nötig sind etwa ' + z(r.Cziel, 0) + ' Ah je Strang-Spannung, also ' + r.stranggleich + ' Stränge mit ' + z(e.ah, 0) + ' Ah.', true);
+      if (r.cRate > 3) H.meldung('Sehr hoher Entladestrom (' + z(r.cRate, 1) + ' C): Blei-Akkus liefern dabei deutlich weniger als die Nennkapazität und altern schnell.');
+      if (e.typ === 'vfd') H.meldung('Offline-USV schalten erst bei Ausfall um (einige ms). Für Server ist eine Online-USV (VFI) besser – sie liefert immer saubere Spannung.');
+      if (r.lade > 12) H.meldung('Nach einem Ausfall dauert es etwa ' + z(r.lade, 0) + ' h, bis die Akkus wieder voll sind – solange fehlt die volle Überbrückungszeit.');
+      H.meldung('Server über die USV-Software (Netzwerkkarte, USB) automatisch herunterfahren lassen, bevor die Akkus leer sind.');
+      H.urteil(r.ok, r.ok ? 'reicht' : 'reicht nicht');
+      H.kacheln([
+        [z(r.P, 0) + ' W', 'Last (' + z(r.S, 0) + ' VA)', '#3B5BDB'],
+        [r.groesse ? z(r.groesse, 0) + ' VA' : '–', 'USV-Baugröße mit ' + e.reserve + ' % Reserve (' + (r.groesse ? z(r.groesse * r.pfUsv, 0) + ' W' : '') + ')', '#E4572E'],
+        [dauer(r.t * 60), 'Überbrückungszeit (Ziel ' + e.ziel + ' min)', r.ok ? '#2E8B57' : '#C0392B'],
+        [z(r.I, 1) + ' A', 'Entladestrom bei ' + z(r.U, 0) + ' V', '#6E6FA6'],
+        [z(r.Cziel, 0) + ' Ah', 'nötige Kapazität für ' + e.ziel + ' min', '#0E6B6A'],
+        [z(r.lade, 1) + ' h', 'Ladezeit nach Entladung', '#6B7785']
+      ]);
+      const rows = [5, 10, 15, 30, 60, 120].map(function (m) { const C = r.I * r.H * Math.pow(m / 60 / r.H, 1 / r.k) / (e.alter / 100 * AKKU[e.akku][2]); return [m + ' min', z(C, 0) + ' Ah', z(Math.ceil(C / e.ah), 0) + ' × ' + z(e.ah, 0) + ' Ah']; });
+      H.tabelle('Kapazität je Überbrückungszeit bei ' + z(r.P, 0) + ' W', ['Zeit', 'Kapazität bei ' + z(r.U, 0) + ' V', 'Stränge'], rows, { zahl: [1, 2] });
+    }
+    function weg(r, e) {
+      return [
+        ['Wirkleistung', 'P = \\sum P_i \\cdot n_i = ' + E(tz(r.P, 0) + '\\,\\text{W}')],
+        ['Scheinleistung mit Reserve', 'S = \\frac{' + tz(r.P, 0) + '}{' + tz(e.pf, 2) + '} \\cdot ' + tz(1 + e.reserve / 100, 2) + ' = ' + tz(r.Sres, 0) + '\\,\\text{VA} \\Rightarrow ' + E(r.groesse ? tz(r.groesse, 0) + '\\,\\text{VA}' : '\\text{zu groß}')],
+        ['Entladestrom', 'I = \\frac{' + tz(r.P, 0) + '}{' + tz(r.U, 0) + ' \\cdot ' + tz(e.eta / 100, 2) + '} = ' + tz(r.I, 2) + '\\,\\text{A}'],
+        ['Nutzbare Kapazität', 'C = ' + tz(r.C, 1) + ' \\cdot ' + tz(e.alter / 100, 2) + (AKKU[e.akku][2] < 1 ? ' \\cdot ' + tz(AKKU[e.akku][2], 2) : '') + ' = ' + tz(r.Cnutz, 1) + '\\,\\text{Ah}'],
+        ['Überbrückungszeit (Peukert)', 't = ' + r.H + ' \\cdot \\left(\\frac{' + tz(r.Cnutz, 1) + '}{' + tz(r.I, 2) + ' \\cdot ' + r.H + '}\\right)^{' + tz(r.k, 2) + '} = ' + E(tz(r.tH, 3) + '\\,\\text{h} = ' + tz(r.t, 1) + '\\,\\text{min}')],
+        ['Kapazität für ' + e.ziel + ' min', 'C = \\frac{' + tz(r.I, 2) + ' \\cdot ' + r.H + ' \\cdot (' + tz(e.ziel / 60, 3) + '/' + r.H + ')^{1/' + tz(r.k, 2) + '}}{' + tz(e.alter / 100 * AKKU[e.akku][2], 2) + '} = ' + E(tz(r.Cziel, 0) + '\\,\\text{Ah}')]
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      const T = 9000, ph = (t % T) / T;
+      // 0–0,15 Netz da, 0,15–0,9 Ausfall mit Entladung, danach Netz zurück
+      const ausfall = ph > 0.15 && ph < 0.9, ant = ausfall ? (ph - 0.15) / 0.75 : 0;
+      const tAus = ant * Math.max(r.t, e.ziel) * 1.1;
+      const leer = tAus >= r.t;
+      const soc = ausfall ? Math.max(0, 1 - tAus / Math.max(1e-9, r.t)) : ph >= 0.9 ? (ph - 0.9) / 0.1 : 1;
+      const y = H * 0.38, w3 = (B - 40) / 3;
+      // Netz
+      const xn = 20 + w3 / 2;
+      Z.text(cx, 'Netz', xn, y - 54, 'center', 12, true);
+      cx.strokeStyle = ausfall ? '#9AA3AD' : '#2E8B57'; cx.lineWidth = 4;
+      cx.beginPath(); cx.moveTo(xn - 20, y + 30); cx.lineTo(xn, y - 40); cx.lineTo(xn + 20, y + 30); cx.moveTo(xn - 14, y + 8); cx.lineTo(xn + 14, y + 8); cx.moveTo(xn - 9, y - 12); cx.lineTo(xn + 9, y - 12); cx.stroke();
+      if (ausfall) { cx.strokeStyle = '#C0392B'; cx.lineWidth = 4; cx.beginPath(); cx.moveTo(xn - 24, y - 30); cx.lineTo(xn + 24, y + 26); cx.stroke(); }
+      // USV mit Akku
+      const xu = 20 + w3 * 1.5;
+      cx.fillStyle = '#2B3038'; cx.fillRect(xu - 40, y - 46, 80, 92);
+      Z.text(cx, 'USV', xu, y - 34, 'center', 12, true, '#FFFFFF');
+      const bh = 50, bx = xu - 16, by = y - 20;
+      cx.strokeStyle = '#E6E9EC'; cx.lineWidth = 2; cx.strokeRect(bx, by, 32, bh); cx.fillStyle = '#E6E9EC'; cx.fillRect(bx + 10, by - 5, 12, 5);
+      cx.fillStyle = soc > 0.5 ? '#2E8B57' : soc > 0.2 ? '#F2A541' : '#C0392B'; cx.fillRect(bx + 3, by + 3 + (bh - 6) * (1 - soc), 26, (bh - 6) * soc);
+      Z.text(cx, z(soc * 100, 0) + ' %', xu, y + 58, 'center', 12, true);
+      // Verbraucher (Rack)
+      const xv = 20 + w3 * 2.5, an = !(ausfall && leer);
+      cx.fillStyle = '#3A3F45'; cx.fillRect(xv - 28, y - 46, 56, 92);
+      for (let i = 0; i < 5; i++) { cx.fillStyle = '#5E6670'; cx.fillRect(xv - 22, y - 40 + i * 17, 44, 12); cx.fillStyle = an ? (Math.floor(t / 200 + i) % 3 ? '#2E8B57' : '#7FD18B') : '#5E6670'; cx.fillRect(xv + 12, y - 36 + i * 17, 5, 4); }
+      Z.text(cx, z(r.P, 0) + ' W', xv, y + 58, 'center', 12, true);
+      // Energiefluss
+      const fluss = function (xa, xb, aktiv, farbe) { cx.strokeStyle = f('--linie'); cx.lineWidth = 6; cx.beginPath(); cx.moveTo(xa, y); cx.lineTo(xb, y); cx.stroke(); if (!aktiv) return; cx.fillStyle = farbe; for (let x = xa + (t / 8) % 16; x < xb; x += 16) { cx.beginPath(); cx.arc(x, y, 3, 0, 2 * Math.PI); cx.fill(); } };
+      fluss(xn + 26, xu - 42, !ausfall, '#2E8B57');
+      fluss(xu + 42, xv - 30, an, ausfall ? '#E4572E' : '#2E8B57');
+      // Zeitleiste
+      const ly = H - 46, lx0 = 20, lw = B - 40;
+      cx.fillStyle = f('--linie'); cx.fillRect(lx0, ly, lw, 8);
+      const tMax = Math.max(r.t, e.ziel) * 1.1;
+      cx.fillStyle = '#E4572E'; cx.fillRect(lx0, ly, lw * Math.min(1, r.t / tMax), 8);
+      cx.fillStyle = f('--text'); cx.fillRect(lx0 + lw * Math.min(1, e.ziel / tMax) - 1, ly - 6, 2, 20);
+      Z.text(cx, 'Ziel ' + e.ziel + ' min', lx0 + lw * Math.min(1, e.ziel / tMax), ly - 12, 'center', 10, true);
+      if (ausfall) { cx.fillStyle = '#3B5BDB'; cx.beginPath(); cx.arc(lx0 + lw * Math.min(1, tAus / tMax), ly + 4, 6, 0, 2 * Math.PI); cx.fill(); }
+      Z.text(cx, ausfall ? (leer ? 'Akku leer – Verbraucher aus! (' + z(tAus, 0) + ' min)' : 'Stromausfall seit ' + z(tAus, 1) + ' min') : ph >= 0.9 ? 'Netz zurück – Akku lädt' : 'Netzbetrieb', B / 2, H - 16, 'center', 12, true, ausfall && leer ? '#C0392B' : ausfall ? '#E4572E' : '#2E8B57');
+    }
+  })();
+  </script>
+</body>
+</html>

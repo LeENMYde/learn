@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passwort- und Schlüsselstärke</title>
+  <meta name="description" content="Passwortstärke berechnen: Entropie aus Länge und Zeichenvorrat oder Wörtern einer Passphrase, Suchzeit für Online-Angriffe und gestohlene Hashes (bcrypt, Argon2, MD5, NTLM) mit Grafikkarten, Vergleich mit Schlüssellängen.">
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-rechner data-merken></main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script src="../assets/rechner.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const R = Rechner, z = R.zahl, tz = R.tz, E = R.E;
+
+    // Rate je Angreifer in Versuchen pro Sekunde (offline: je Grafikkarte der Oberklasse, Richtwerte 2024/2025)
+    const ANGRIFF = {
+      og: ['online, gedrosselt (10 Versuche/min)', 10 / 60, false],
+      ou: ['online, ungebremst (100 Versuche/s)', 100, false],
+      argon: ['offline, Argon2id (64 MiB)', 500, true],
+      bcrypt: ['offline, bcrypt Kosten 10', 5.7e3, true],
+      pbkdf2: ['offline, PBKDF2-SHA256 600 000 Runden', 1.8e4, true],
+      sha256: ['offline, SHA-256 ungesalzen', 2.2e10, true],
+      md5: ['offline, MD5', 1.6e11, true],
+      ntlm: ['offline, NTLM (Windows)', 2.9e11, true]
+    };
+    let eigenGebaut = false;
+    const BEISPIEL = { art: 'zufall', laenge: 12, klein: 'ja', gross: 'ja', ziffer: 'ja', sonder: 'nein', woerter: 5, liste: 7776, angriff: 'bcrypt', gpus: 8 };
+
+    const seite = R.seite({
+      titel: 'Passwort- und Schlüsselstärke',
+      einleitung: 'Wie lange braucht ein Angreifer, um ein Passwort durch Ausprobieren zu finden? Entropie in Bit aus Länge und Zeichenvorrat oder aus der Zahl der Wörter einer Passphrase, Zeit für verschiedene Angreifer und Speicherverfahren, Vergleich mit Schlüssellängen.',
+      hilfe: 'Die Rechnung gilt für zufällig erzeugte Passwörter. Selbst ausgedachte sind viel schwächer, weil Angreifer Wörter, Namen und Muster zuerst probieren.',
+      gruppen: [
+        { titel: 'Passwort', farbe: '#3B5BDB', felder: [
+          { k: 'art', name: 'Art', wahl: [['zufall', 'zufällige Zeichen'], ['phrase', 'Passphrase aus zufälligen Wörtern'], ['pin', 'PIN (nur Ziffern)']] },
+          { k: 'laenge', tex: 'L', name: 'Länge', e: 'Zeichen', min: 1, max: 128, ganz: true, wenn: function (e) { return e.art !== 'phrase'; } },
+          { k: 'klein', name: 'Kleinbuchstaben a–z', wahl: [['ja', 'ja (26)'], ['nein', 'nein']], wenn: function (e) { return e.art === 'zufall'; } },
+          { k: 'gross', name: 'Großbuchstaben A–Z', wahl: [['ja', 'ja (26)'], ['nein', 'nein']], wenn: function (e) { return e.art === 'zufall'; } },
+          { k: 'ziffer', name: 'Ziffern 0–9', wahl: [['ja', 'ja (10)'], ['nein', 'nein']], wenn: function (e) { return e.art === 'zufall'; } },
+          { k: 'sonder', name: 'Sonderzeichen', wahl: [['ja', 'ja (33)'], ['nein', 'nein']], wenn: function (e) { return e.art === 'zufall'; } },
+          { k: 'woerter', tex: 'W', name: 'Anzahl Wörter', e: '', min: 1, max: 30, ganz: true, wenn: function (e) { return e.art === 'phrase'; } },
+          { k: 'liste', tex: 'N', name: 'Wörter in der Liste', e: '', min: 2, max: 1000000, ganz: true, wenn: function (e) { return e.art === 'phrase'; } }
+        ] },
+        { titel: 'Angreifer', farbe: '#E4572E', felder: [
+          { k: 'angriff', name: 'Angriff und Speicherverfahren', wahl: Object.keys(ANGRIFF).map(function (k) { return [k, ANGRIFF[k][0]]; }) },
+          { k: 'gpus', tex: 'n_\\text{GPU}', name: 'Grafikkarten (offline)', e: '', min: 1, max: 1000000, ganz: true }
+        ] }
+      ],
+      beispiel: BEISPIEL,
+      rechne: rechne, ergebnis: ergebnis, weg: weg,
+      sammlung: [
+        ['Möglichkeiten', 'M = N^L', 'N Zeichenvorrat (bzw. Wortliste), L Länge (bzw. Wortzahl)'],
+        ['Entropie', 'H = L \\cdot \\log_2 N\\ \\text{bit}', 'jedes Bit verdoppelt die Arbeit des Angreifers'],
+        ['Zeit im Mittel', 't = \\frac{2^{H-1}}{v \\cdot n}', 'im Mittel ist die Hälfte aller Möglichkeiten zu probieren; v Versuche je Sekunde und Gerät'],
+        ['Zeichenvorrat', 'N = 26 + 26 + 10 + 33 = 95', 'druckbare ASCII-Zeichen'],
+        ['Passphrase', 'H = W \\cdot \\log_2 7776 \\approx W \\cdot 12{,}9\\,\\text{bit}', 'Würfelliste mit 7776 Wörtern: fünf Würfe je Wort'],
+        ['Schlüssel', '\\text{AES-128} = 128\\,\\text{bit},\\quad \\text{RSA-3072} \\approx 128\\,\\text{bit},\\quad \\text{ECC-256} \\approx 128\\,\\text{bit}', 'symmetrisch gleichwertige Sicherheit (BSI TR-02102-1)']
+      ],
+      quellen: 'BSI IT-Grundschutz ORP.4 (Identitäts- und Berechtigungsmanagement), BSI TR-02102-1 (Schlüssellängen), NIST SP 800-63B (Passwortregeln), OWASP Password Storage Cheat Sheet. Rechenraten sind Richtwerte für aktuelle Grafikkarten und steigen jedes Jahr.',
+      bild: { titel: 'Ausprobieren', label: 'Zähler mit Kandidaten und Balken der Suchzeit für alle Angreifer im logarithmischen Maßstab', animiert: !bewegungAus,
+        hoehe: function (B) { return Math.max(260, Math.min(330, B * 0.56)); }, zeichne: zeichne,
+        hinweis: function (r) { return 'Jeder Balkenstrich nach rechts bedeutet zehnmal länger.'; } }
+    });
+
+    function zeichensatz(e) {
+      if (e.art === 'pin') return '0123456789';
+      if (e.art === 'phrase') return '';
+      let s = '';
+      if (e.klein === 'ja') s += 'abcdefghijklmnopqrstuvwxyz';
+      if (e.gross === 'ja') s += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (e.ziffer === 'ja') s += '0123456789';
+      if (e.sonder === 'ja') s += '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ ';
+      return s;
+    }
+    function zeit(s) {
+      if (!isFinite(s)) return 'unendlich';
+      if (s < 1) return 'sofort';
+      if (s < 120) return z(s, 0) + ' s';
+      if (s < 7200) return z(s / 60, 0) + ' min';
+      if (s < 172800) return z(s / 3600, 0) + ' h';
+      const a = s / 31557600;
+      if (a < 2) return z(s / 86400, 0) + ' Tage';
+      if (a < 1e3) return z(a, 0) + ' Jahre';
+      if (a < 1e6) return z(a / 1e3, 0) + ' Tsd. Jahre';
+      if (a < 1e9) return z(a / 1e6, 0) + ' Mio. Jahre';
+      if (a < 1.38e10 * 1000) return z(a / 1e9, 0) + ' Mrd. Jahre';
+      return z(a / 1.38e10, 0).length > 12 ? '≫ Alter des Universums' : z(a / 1.38e10, 0) + ' × Alter des Universums';
+    }
+    function rechne(e) {
+      const r = {};
+      if (e.art === 'phrase') { r.N = e.liste; r.L = e.woerter; }
+      else { r.N = zeichensatz(e).length; r.L = e.laenge; }
+      r.H = r.N > 1 ? r.L * Math.log(r.N) / Math.LN2 : 0;
+      const a = ANGRIFF[e.angriff];
+      r.v = a[1] * (a[2] ? e.gpus : 1);
+      r.t = Math.pow(2, r.H - 1) / r.v;
+      r.alle = Object.keys(ANGRIFF).map(function (k) { const v = ANGRIFF[k][1] * (ANGRIFF[k][2] ? e.gpus : 1); return [k, ANGRIFF[k][0], Math.pow(2, r.H - 1) / v]; });
+      r.stufe = r.H < 40 ? 0 : r.H < 60 ? 1 : r.H < 80 ? 2 : r.H < 100 ? 3 : 4;
+      return r;
+    }
+    function ergebnis(r, e, H) {
+      if (r.N < 2) H.meldung('Mindestens einen Zeichenvorrat wählen.', true);
+      if (e.art === 'pin') H.meldung('PINs sind nur sicher, wenn die Zahl der Versuche begrenzt ist (z. B. Sperre nach 3 Fehlversuchen).');
+      if (r.H < 60 && ANGRIFF[e.angriff][2]) H.meldung('Unter 60 bit ist ein gestohlener Passwort-Hash mit Grafikkarten in absehbarer Zeit zu knacken. Länger machen – Länge bringt mehr als Sonderzeichen.', true);
+      H.meldung('Für jedes Konto ein eigenes Passwort aus einem Passwortmanager und, wo möglich, zweiter Faktor oder Passkey. Erzwungene regelmäßige Wechsel ohne Anlass bringen nichts (NIST SP 800-63B).');
+      H.urteil(r.H >= 80, ['sehr schwach', 'schwach', 'mittel', 'stark', 'sehr stark'][r.stufe]);
+      H.kacheln([
+        [z(r.H, 1) + ' bit', 'Entropie', ['#C0392B', '#E4572E', '#F2A541', '#2E8B57', '#0E6B6A'][r.stufe]],
+        [zeit(r.t), 'im Mittel bis zum Treffer', '#3B5BDB'],
+        [r.N + (e.art === 'phrase' ? ' Wörter' : ' Zeichen'), 'Vorrat je Stelle', '#6E6FA6'],
+        [z(r.v, r.v < 10 ? 2 : 0) + ' /s', 'Versuche je Sekunde', '#6B7785'],
+        [e.art === 'phrase' ? '' + Math.ceil(80 / (Math.log(e.liste) / Math.LN2)) + ' Wörter' : Math.ceil(80 / (Math.log(Math.max(2, r.N)) / Math.LN2)) + ' Zeichen', 'für 80 bit mit diesem Vorrat', '#0E6B6A']
+      ]);
+      H.tabelle('Suchzeit je Angreifer', ['Angriff', 'Zeit im Mittel'], r.alle.map(function (a) { return [a[1] + (ANGRIFF[a[0]][2] && e.gpus > 1 ? ', ' + e.gpus + ' Karten' : ''), zeit(a[2])]; }), { zahl: [1], klasse: function (i) { return r.alle[i][0] === e.angriff ? 'gewaehlt' : ''; } });
+      // Eigenes Passwort prüfen: nur im Browser, wird weder gespeichert noch gesendet
+      if (!eigenGebaut) {
+        eigenGebaut = true;
+        const box = document.createElement('div'); box.setAttribute('data-nicht-merken', '');
+        const l = document.createElement('label'); l.className = 'listen-feld breit'; l.htmlFor = 'eigen';
+        const s = document.createElement('span'); s.className = 'listen-name'; s.textContent = 'Eigenes Passwort grob prüfen (bleibt auf diesem Gerät, wird nicht gespeichert)';
+        const i = document.createElement('input'); i.type = 'password'; i.id = 'eigen'; i.autocomplete = 'off'; i.className = 'text'; i.setAttribute('data-nicht-merken', '');
+        const o = document.createElement('p'); o.className = 'hilfe'; o.id = 'eigen-erg';
+        l.append(s, i); box.append(l, o);
+        i.addEventListener('input', function () { o.textContent = pruefeEigen(i.value); });
+        setTimeout(function () { if (seite && seite.bildZusatz) seite.bildZusatz.append(box); }, 0);
+      }
+    }
+    const HAEUFIG = ['passwort', 'password', 'hallo', 'qwertz', 'qwerty', 'asdf', 'admin', 'login', 'geheim', 'sommer', 'winter', 'schatz', 'fussball', 'iloveyou', 'abc', '123', '111', '000', 'letmein', 'welcome', 'willkommen'];
+    function pruefeEigen(p) {
+      if (!p) return '';
+      let n = 0; if (/[a-z]/.test(p)) n += 26; if (/[A-Z]/.test(p)) n += 26; if (/[0-9]/.test(p)) n += 10; if (/[^a-zA-Z0-9]/.test(p)) n += 33;
+      let h = p.length * Math.log(Math.max(2, n)) / Math.LN2;
+      const klein = p.toLowerCase(), funde = [];
+      HAEUFIG.forEach(function (w) { if (klein.indexOf(w) >= 0) { funde.push(w); h -= w.length * 3; } });
+      if (/(.)\1{2,}/.test(p)) { funde.push('Wiederholungen'); h -= 8; }
+      if (/(19|20)\d\d/.test(p)) { funde.push('Jahreszahl'); h -= 8; }
+      if (/^[A-Z]?[a-z]+[0-9!]{1,4}$/.test(p)) { funde.push('Wort + Ziffern am Ende'); h -= 15; }
+      h = Math.max(0, h);
+      return 'Höchstens etwa ' + z(h, 0) + ' bit' + (funde.length ? ', abgezogen für: ' + funde.join(', ') : '') + '. Ausgedachte Passwörter sind meist deutlich schwächer als diese Schätzung.';
+    }
+    function weg(r, e) {
+      return [
+        ['Möglichkeiten', 'M = ' + r.N + '^{' + r.L + '} = 2^{' + tz(r.H, 1) + '}'],
+        ['Entropie', 'H = ' + r.L + ' \\cdot \\log_2 ' + r.N + ' = ' + E(tz(r.H, 1) + '\\,\\text{bit}')],
+        ['Versuche je Sekunde', 'v = ' + tz(ANGRIFF[e.angriff][1], 2) + (ANGRIFF[e.angriff][2] ? ' \\cdot ' + e.gpus : '') + ' = ' + tz(r.v, 0) + '\\,\\tfrac{1}{\\text{s}}'],
+        ['Zeit im Mittel', 't = \\frac{2^{' + tz(r.H - 1, 1) + '}}{' + tz(r.v, 0) + '} \\approx 10^{' + tz(Math.log(Math.max(1e-300, r.t)) / Math.LN10, 1) + '}\\,\\text{s}']
+      ];
+    }
+    function zeichne(cx, B, H, t, r, e) {
+      const Z = R.Z, f = R.farbe;
+      // Zähler mit Kandidaten
+      const zs = zeichensatz(e), woerter = ['apfel', 'regen', 'tisch', 'lampe', 'fluss', 'nebel', 'kiste', 'garten', 'stern', 'birke', 'mauer', 'wolke'];
+      let kand = '';
+      const seed = Math.floor(t / 70);
+      if (e.art === 'phrase') { for (let i = 0; i < Math.min(6, e.woerter); i++) kand += (i ? '-' : '') + woerter[(seed * 7 + i * 13) % woerter.length]; if (e.woerter > 6) kand += '…'; }
+      else if (zs.length) { for (let i = 0; i < Math.min(24, r.L); i++) kand += zs.charAt((seed * 31 + i * 17 + i * i * 7) % zs.length); if (r.L > 24) kand += '…'; }
+      cx.fillStyle = '#1C2026'; cx.fillRect(14, 12, B - 28, 40);
+      cx.fillStyle = '#7FD18B'; cx.font = '700 16px ui-monospace, Menlo, Consolas, monospace'; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      cx.fillText(kand, 24, 32);
+      const versucht = seed * 1e5;
+      Z.text(cx, 'Versuch ' + z(versucht, 0) + ' von 2^' + z(r.H, 0), B - 24, 64, 'right', 10, false, f('--leise'));
+      // Balken je Angreifer, logarithmisch
+      const y0 = 82, zh = Math.min(24, (H - y0 - 30) / r.alle.length), x0 = Math.min(130, B * 0.3), x1 = B - 18;
+      const KURZ = { og: 'online, gedrosselt', ou: 'online', argon: 'Argon2id', bcrypt: 'bcrypt', pbkdf2: 'PBKDF2', sha256: 'SHA-256', md5: 'MD5', ntlm: 'NTLM' };
+      const lmin = 0, lmax = 20;   // 1 s bis 10^20 s
+      for (let k = lmin; k <= lmax; k += 5) { const x = x0 + (x1 - x0) * (k - lmin) / (lmax - lmin); cx.strokeStyle = f('--linie'); cx.beginPath(); cx.moveTo(x, y0 - 4); cx.lineTo(x, y0 + r.alle.length * zh); cx.stroke(); }
+      [[0, '1 s'], [Math.log(3600 * 24) / Math.LN10, 'Tag'], [Math.log(31557600) / Math.LN10, 'Jahr'], B > 500 ? [Math.log(31557600 * 1e6) / Math.LN10, 'Mio. Jahre'] : [0, ''], [Math.log(31557600 * 1.38e10) / Math.LN10, 'Universum']].forEach(function (m) { const x = x0 + (x1 - x0) * m[0] / lmax; Z.text(cx, m[1], x, y0 + r.alle.length * zh + 12, 'center', 9, false, f('--leise')); });
+      r.alle.forEach(function (a, i) {
+        const y = y0 + i * zh, lg = Math.log(Math.max(1e-9, a[2])) / Math.LN10, w = (x1 - x0) * Math.max(0.005, Math.min(1, (lg - lmin) / (lmax - lmin)));
+        const anim = Math.min(1, ((t % 4000) / 1500));
+        cx.fillStyle = a[0] === e.angriff ? '#E4572E' : lg < Math.log(31557600) / Math.LN10 ? '#C0392B' : '#3B5BDB';
+        cx.globalAlpha = a[0] === e.angriff ? 1 : 0.65; cx.fillRect(x0, y + 3, w * anim, zh - 6); cx.globalAlpha = 1;
+        Z.text(cx, KURZ[a[0]], x0 - 6, y + zh / 2, 'right', Math.min(11, B / 40), a[0] === e.angriff, f('--text'));
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
