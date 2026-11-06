@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gangschaltung: Simulator und Rechner – Formeln &amp; Rechner</title>
+  <meta name="description" content="Gangschaltung von Fahrrad, Auto und Motorrad frei einstellen und fahren: Übersetzungen, Entfaltung, Geschwindigkeit je Gang, Gangsprünge, Schräglauf, Sägezahn- und Zugkraftdiagramm, Höchstgeschwindigkeit, 0–100 km/h – mit Simulation und Rechenweg.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/mechanik/gangschaltung.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Gangschaltung: Simulator und Rechner">
+  <meta property="og:description" content="Gangschaltung von Fahrrad, Auto und Motorrad frei einstellen und fahren: Übersetzungen, Entfaltung, Geschwindigkeit je Gang, Gangsprünge, Schräglauf, Sägezahn- und Zugkraftdiagramm, Höchstgeschwindigkeit, 0–100 km/h – mit Simulation und Rechenweg.">
+  <meta property="og:url" content="https://tools.pr1m3.de/mechanik/gangschaltung.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Gangschaltung: Simulator und Rechner","url":"https://tools.pr1m3.de/mechanik/gangschaltung.html","inLanguage":"de","description":"Gangschaltung von Fahrrad, Auto und Motorrad frei einstellen und fahren: Übersetzungen, Entfaltung, Geschwindigkeit je Gang, Gangsprünge, Schräglauf, Sägezahn- und Zugkraftdiagramm, Höchstgeschwindigkeit, 0–100 km/h – mit Simulation und Rechenweg.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .modus { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 0; }
+    .modus button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 8px 16px; font: inherit; cursor: pointer; }
+    .modus button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .modus select { padding: 7px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; max-width: 100%; }
+    .aufbau h3 { margin: 16px 0 4px; font-size: 1rem; }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 12px; margin: 6px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster label.breit { grid-column: 1 / -1; }
+    .raster input, .raster select { padding: 6px 8px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .95rem; min-width: 0; width: 100%; }
+    .raster input.liste-ein { font-family: var(--technik); }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .raster .fehlertext { font-size: .78rem; }
+    #sim, #diagramm { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); touch-action: manipulation; }
+    .steuer { display: grid; grid-template-columns: auto auto 1fr; gap: 8px 10px; align-items: center; margin-top: 10px; }
+    .steuer .schalt { display: flex; gap: 6px; }
+    .steuer .schalt button { min-width: 52px; font-size: 1.05rem; }
+    .regler { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 14px; margin-top: 8px; }
+    .regler label { display: flex; flex-direction: column; font-size: .82rem; color: var(--leise); }
+    .regler input[type="range"] { width: 100%; accent-color: #E4572E; }
+    .knopfreihe { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+    .knopfreihe label { display: flex; gap: 6px; align-items: center; font-size: .9rem; }
+    .tabelle tr { cursor: pointer; }
+    .tabelle td.warn-z { color: var(--fehler); }
+    .diagramm-wahl { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+    .diagramm-wahl button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 5px 12px; font: inherit; font-size: .88rem; cursor: pointer; }
+    .diagramm-wahl button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    @media (max-width: 960px) { .rechnen > .bild-tafel { order: -1; } }
+    .loeser .feld { grid-template-columns: minmax(0, 1fr) 120px 70px 28px; }
+    @media (max-width: 520px) { .loeser .feld { grid-template-columns: minmax(0, 1fr) 100px 52px 28px; } .loeser .feld .symbol { min-width: 40px; } }
+    @media print { .steuer, .regler, .knopfreihe, .modus, .diagramm-wahl { display: none !important; } #sim, #diagramm { max-height: 95mm; width: auto; max-width: 100%; } }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Gangschaltung</span></h1>
+      <p>Schaltung frei zusammenstellen und fahren: Kettenblätter und Ritzel oder Nabe am Fahrrad, Gangübersetzungen, Achsantrieb, Reifen und Drehmomentkurve bei Auto und Motorrad. Der Rechner zeigt jeden Gang mit Übersetzung, Entfaltung, Geschwindigkeit, Gangsprung und Zugkraft; der Simulator fährt mit echten Fahrwiderständen – mit Steigung, Automatik und 0–100-Messung.</p>
+    </section>
+
+    <div class="modus" data-nicht-merken>
+      <button type="button" id="m-rad" aria-pressed="true">🚲 Fahrrad</button>
+      <button type="button" id="m-kfz" aria-pressed="false">🚗 Auto / Motorrad</button>
+      <select id="vorlage" aria-label="Vorlage"></select>
+      <button type="button" class="knopf-leise" id="beispiel">Beispielwerte wiederherstellen</button>
+    </div>
+    <input type="hidden" id="gang-merken">
+
+    <div class="rechnen">
+      <section class="tafel aufbau" aria-labelledby="h-aufbau" data-nicht-merken>
+        <h2 id="h-aufbau">Aufbau</h2>
+        <p class="hilfe" id="aufbau-hilfe"></p>
+        <div id="felder"></div>
+      </section>
+      <section class="tafel bild-tafel" aria-labelledby="h-sim">
+        <h2 id="h-sim">Simulator</h2>
+        <canvas id="sim" tabindex="0" role="img" aria-label="Simulation der Gangschaltung mit Antrieb, Anzeigen und Fahrbahn"></canvas>
+        <div class="steuer" data-nicht-merken>
+          <div class="schalt"><button type="button" class="knopf" id="runter" aria-label="Gang runter">▼</button><button type="button" class="knopf" id="hoch" aria-label="Gang hoch">▲</button></div>
+          <button type="button" class="knopf-haupt" id="lauf">▶ Fahren</button>
+          <span class="zustand" id="sim-zustand"></span>
+        </div>
+        <div class="regler" data-nicht-merken>
+          <label id="l-gas">Gas <input type="range" id="gas" min="0" max="100" value="70"></label>
+          <label>Steigung <span id="steig-wert">0 %</span><input type="range" id="steigung" min="-15" max="25" value="0"></label>
+        </div>
+        <div class="knopfreihe" data-nicht-merken>
+          <label><input type="checkbox" id="auto" checked> Automatisch schalten</label>
+          <button type="button" class="knopf-leise" id="neustart">Neu starten</button>
+          <button type="button" class="knopf-leise" id="messung">0–100 km/h messen</button>
+        </div>
+        <p class="hilfe">Schalten mit ▲/▼ oder den Pfeiltasten, wenn der Simulator ausgewählt ist. Ein Klick in die Tabelle legt den Gang ein.</p>
+      </section>
+    </div>
+
+    <section class="tafel abstand" aria-labelledby="h-erg">
+      <div class="kopf-zeile"><h2 id="h-erg">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div class="meldungen" id="meldungen"></div>
+      <div class="kacheln" id="kacheln"></div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-gaenge">
+      <h2 id="h-gaenge">Alle Gänge</h2>
+      <div class="rahmen"><table class="tabelle" id="tabelle"></table></div>
+      <p class="tabellen-fuss" id="tabellen-fuss"></p>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-diag">
+      <h2 id="h-diag">Diagramm</h2>
+      <div class="diagramm-wahl" id="diagramm-wahl" data-nicht-merken></div>
+      <canvas id="diagramm" role="img" aria-label="Diagramm der Gänge"></canvas>
+      <p class="hilfe" id="diagramm-hilfe"></p>
+    </section>
+
+    <section class="tafel abstand loeser" aria-labelledby="h-loeser">
+      <h2 id="h-loeser">Schnellrechner</h2>
+      <p class="hilfe">Alle Werte bis auf einen eintragen – der fehlende wird berechnet. Sind alle eingetragen, wird geprüft, ob sie zusammenpassen.</p>
+      <div id="loeser-rad"></div>
+      <div id="loeser-kfz" hidden></div>
+    </section>
+
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg <span id="weg-gang"></span></h2>
+      <ol class="weg" id="weg"></ol>
+    </section>
+
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung</h2>
+      <div id="sammlung"></div>
+      <p class="quellen" id="quellen">Reifengrößen nach ETRTO / DIN ISO 5775 (Fahrrad) und ETRTO / ECE R30 (Pkw), Fahrwiderstände nach der üblichen Fahrwiderstandsgleichung (Roll-, Steigungs-, Luft- und Beschleunigungswiderstand), Drehmassenzuschlag als Näherung. Schräglauf-Grenze und Leistungsabfall bei ungünstiger Trittfrequenz sind Faustwerte. Die Simulation rechnet mit idealisierten Werten; reale Fahrzeuge weichen ab.</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    const G = 9.81, RHO_L = 1.2;
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; const p = Math.pow(10, n || 0); return (Math.round(w * p) / p).toFixed(n || 0).replace('.', ','); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function lies(t) { const s = String(t).trim().replace(',', '.'); return s === '' ? NaN : Number(s); }
+    function kopie(o) { return JSON.parse(JSON.stringify(o)); }
+
+    // ---------- Vorlagen ----------
+    const RAD_GRUND = { typ: 'kette', blaetter: [50, 34], ritzel: [11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32], nabe: [0.527, 0.644, 0.748, 0.851, 1, 1.223, 1.419, 1.615], felge: 622, breite: 28, umfang: 0, kurbel: 172.5, tf: 90, tfMin: 60, tfMax: 110, leistung: 200, masse: 85, cwa: 0.32, crr: 0.005 };
+    const VORLAGEN_RAD = {
+      rr211: ['Rennrad 2 × 11', {}],
+      rr212: ['Rennrad 2 × 12', { ritzel: [11, 12, 13, 14, 15, 17, 19, 21, 24, 27, 30, 34] }],
+      gravel: ['Gravel 1 × 12', { blaetter: [40], ritzel: [10, 11, 13, 15, 17, 19, 21, 24, 28, 32, 38, 44], breite: 40, cwa: 0.4, crr: 0.007, masse: 90 }],
+      mtb: ['Mountainbike 1 × 12', { blaetter: [32], ritzel: [10, 12, 14, 16, 18, 21, 24, 28, 33, 39, 45, 52], breite: 60, kurbel: 170, cwa: 0.45, crr: 0.012, masse: 92, tf: 80 }],
+      trekking: ['Trekking 3 × 9', { blaetter: [48, 36, 26], ritzel: [11, 13, 15, 17, 20, 23, 26, 30, 34], breite: 42, kurbel: 175, cwa: 0.5, crr: 0.007, masse: 100, tf: 75, leistung: 150 }],
+      nabe8: ['Stadtrad mit 8-Gang-Nabe', { typ: 'nabe', blaetter: [38], ritzel: [20], breite: 40, kurbel: 170, cwa: 0.55, crr: 0.008, masse: 100, tf: 70, leistung: 120 }],
+      nabe14: ['Reiserad mit 14-Gang-Nabe', { typ: 'nabe', blaetter: [40], ritzel: [16], nabe: [0.279, 0.316, 0.360, 0.409, 0.464, 0.528, 0.600, 0.682, 0.774, 0.881, 1.0, 1.137, 1.292, 1.467], breite: 47, kurbel: 175, cwa: 0.55, crr: 0.008, masse: 110, tf: 75, leistung: 150 }],
+      single: ['Eingang (Singlespeed)', { blaetter: [44], ritzel: [16], breite: 28 }]
+    };
+    const KFZ_GRUND = { gaenge: [3.62, 2.05, 1.37, 1.03, 0.84, 0.70], achse: 3.94, breite: 205, quer: 55, zoll: 16, umfang: 0, moment: [[1000, 140], [1500, 200], [2000, 250], [3500, 250], [5000, 240], [6000, 215], [6500, 190]], leerlauf: 800, anfahr: 1800, nMax: 6500, hoch: 6000, runter: 1500, masse: 1400, cwa: 0.65, crr: 0.011, eta: 0.92 };
+    const VORLAGEN_KFZ = {
+      kompakt: ['Kompaktwagen Benziner, 6 Gänge', {}],
+      klein: ['Kleinwagen, 5 Gänge', { gaenge: [3.55, 1.95, 1.28, 0.97, 0.78], achse: 4.06, breite: 185, quer: 65, zoll: 15, moment: [[1000, 80], [2000, 110], [3000, 125], [4500, 120], [6000, 100], [6300, 95]], nMax: 6300, hoch: 5800, masse: 1150, cwa: 0.62 }],
+      diesel: ['Kombi Diesel, 6 Gänge', { gaenge: [3.78, 2.12, 1.27, 0.86, 0.66, 0.55], achse: 3.65, breite: 225, quer: 45, zoll: 17, moment: [[1000, 200], [1750, 340], [2750, 340], [3500, 300], [4200, 240], [4600, 200]], leerlauf: 750, anfahr: 1500, nMax: 4600, hoch: 4000, runter: 1300, masse: 1650, cwa: 0.68 }],
+      motorrad: ['Motorrad, 6 Gänge', { gaenge: [2.75, 2.0, 1.6, 1.35, 1.17, 1.04], achse: 4.92, breite: 180, quer: 55, zoll: 17, moment: [[2000, 35], [4000, 50], [6000, 60], [8000, 68], [10000, 62], [11500, 55]], leerlauf: 1200, anfahr: 3000, nMax: 11500, hoch: 11000, runter: 4000, masse: 290, cwa: 0.38, crr: 0.015, eta: 0.9 }],
+      transporter: ['Transporter beladen, 6 Gänge', { gaenge: [4.17, 2.23, 1.40, 1.0, 0.79, 0.65], achse: 4.4, breite: 235, quer: 65, zoll: 16, moment: [[1000, 180], [1500, 330], [2500, 340], [3500, 290], [4200, 220]], leerlauf: 750, anfahr: 1400, nMax: 4200, hoch: 3800, runter: 1300, masse: 3500, cwa: 1.6, crr: 0.012 }]
+    };
+    function radVorlage(k) { return Object.assign(kopie(RAD_GRUND), kopie(VORLAGEN_RAD[k][1])); }
+    function kfzVorlage(k) { return Object.assign(kopie(KFZ_GRUND), kopie(VORLAGEN_KFZ[k][1])); }
+    const FELGEN = [[622, '622 mm – 28″ / 29″ / 700C'], [584, '584 mm – 27,5″ / 650B'], [559, '559 mm – 26″'], [590, '590 mm – 26″ × 1 3/8'], [571, '571 mm – 650C'], [507, '507 mm – 24″'], [451, '451 mm – 20″ (Kurbel)'], [406, '406 mm – 20″'], [305, '305 mm – 16″']];
+
+    // ---------- Zustand ----------
+    const Z = { art: 'rad', vorlageRad: 'rr211', vorlageKfz: 'kompakt', rad: radVorlage('rr211'), kfz: kfzVorlage('kompakt'), diagramm: { rad: 'bereiche', kfz: 'saegezahn' } };
+
+    // Feldbeschreibung: [Schlüssel, Beschriftung, Art, min, max, Einheit/Hilfe]
+    const FELDER_RAD = [
+      ['h', 'Schaltung'],
+      ['typ', 'Schaltungsart', 'wahl', [['kette', 'Kettenschaltung'], ['nabe', 'Nabenschaltung']]],
+      ['blaetter', 'Kettenblätter (Zähne)', 'zaehne', 1, 3, 18, 72, 'z. B. 50/34'],
+      ['ritzel', 'Ritzel (Zähne)', 'zaehne', 1, 14, 9, 60, 'z. B. 11-12-13-14-16-18-20-22-25-28-32'],
+      ['nabe', 'Nabenübersetzungen', 'faktoren', 1, 14, 0.2, 4, 'z. B. 0,53 / 0,64 / … / 1,62'],
+      ['h', 'Rad und Kurbel'],
+      ['felge', 'Felge (ETRTO)', 'wahl', FELGEN],
+      ['breite', 'Reifenbreite mm', 'zahl', 18, 120],
+      ['umfang', 'Abrollumfang mm (0 = aus Reifen)', 'zahl', 0, 3500],
+      ['kurbel', 'Kurbellänge mm', 'zahl', 100, 200],
+      ['h', 'Fahrer'],
+      ['tf', 'Wunsch-Trittfrequenz 1/min', 'zahl', 20, 160],
+      ['tfMin', 'Trittfrequenz von 1/min', 'zahl', 10, 200],
+      ['tfMax', 'Trittfrequenz bis 1/min', 'zahl', 10, 200],
+      ['leistung', 'Dauerleistung W', 'zahl', 10, 2000],
+      ['masse', 'Masse Fahrer + Rad kg', 'zahl', 20, 300],
+      ['cwa', 'Luftwiderstand cw·A m²', 'zahl', 0.1, 1.5],
+      ['crr', 'Rollwiderstand c_r', 'zahl', 0.001, 0.05]
+    ];
+    const FELDER_KFZ = [
+      ['h', 'Getriebe'],
+      ['gaenge', 'Gangübersetzungen', 'faktoren', 1, 12, 0.2, 10, 'z. B. 3,62 / 2,05 / 1,37 / 1,03 / 0,84 / 0,70'],
+      ['achse', 'Achsübersetzung (beim Motorrad Primär × Sekundär)', 'zahl', 1, 15],
+      ['h', 'Reifen'],
+      ['breite', 'Reifenbreite mm', 'zahl', 80, 400],
+      ['quer', 'Querschnitt %', 'zahl', 20, 100],
+      ['zoll', 'Felge Zoll', 'zahl', 8, 24],
+      ['umfang', 'Abrollumfang mm (0 = aus Reifen)', 'zahl', 0, 4000],
+      ['h', 'Motor'],
+      ['moment', 'Drehmomentkurve (Drehzahl:Nm)', 'kurve', 2, 12, 0, 0, 'z. B. 1000:140 2000:250 3500:250 5000:240 6500:190'],
+      ['leerlauf', 'Leerlauf 1/min', 'zahl', 300, 3000],
+      ['anfahr', 'Anfahrdrehzahl 1/min', 'zahl', 500, 8000],
+      ['nMax', 'Höchstdrehzahl 1/min', 'zahl', 1000, 25000],
+      ['hoch', 'Hochschalten bei 1/min', 'zahl', 800, 25000],
+      ['runter', 'Runterschalten bei 1/min', 'zahl', 400, 20000],
+      ['h', 'Fahrzeug'],
+      ['masse', 'Masse mit Fahrer kg', 'zahl', 50, 60000],
+      ['cwa', 'Luftwiderstand cw·A m²', 'zahl', 0.1, 15],
+      ['crr', 'Rollwiderstand c_r', 'zahl', 0.004, 0.05],
+      ['eta', 'Wirkungsgrad Antrieb', 'zahl', 0.5, 1]
+    ];
+    function felderVon(art) { return art === 'rad' ? FELDER_RAD : FELDER_KFZ; }
+
+    // ---------- Eingaben lesen und prüfen ----------
+    function liesZaehne(t, f) {
+      const teile = String(t).split(/[^0-9]+/).filter(function (s) { return s !== ''; }).map(Number);
+      if (teile.length < f[3] || teile.length > f[4]) return null;
+      for (let i = 0; i < teile.length; i++) if (!(teile[i] >= f[5] && teile[i] <= f[6] && Math.floor(teile[i]) === teile[i])) return null;
+      return teile;
+    }
+    function liesFaktoren(t, f) {
+      const teile = String(t).split(/[\s\/;|]+/).filter(function (s) { return s !== ''; }).map(function (s) { return lies(s); });
+      if (teile.length < f[3] || teile.length > f[4]) return null;
+      for (let i = 0; i < teile.length; i++) if (!(isFinite(teile[i]) && teile[i] >= f[5] && teile[i] <= f[6])) return null;
+      return teile;
+    }
+    function liesKurve(t, f) {
+      const paare = String(t).split(/[\s;\/|]+/).filter(function (s) { return s !== ''; });
+      if (paare.length < f[3] || paare.length > f[4]) return null;
+      const o = [];
+      for (let i = 0; i < paare.length; i++) {
+        const p = paare[i].split(/[:=]/); if (p.length !== 2) return null;
+        const n = lies(p[0]), m = lies(p[1]);
+        if (!(isFinite(n) && isFinite(m) && n >= 300 && n <= 25000 && m >= 1 && m <= 5000)) return null;
+        if (o.length && n <= o[o.length - 1][0]) return null;
+        o.push([n, m]);
+      }
+      return o;
+    }
+    function zeigeListe(v, art) {
+      if (art === 'zaehne') return v.join(v.length > 3 ? '-' : '/');
+      if (art === 'faktoren') return v.map(function (x) { return String(x).replace('.', ','); }).join(' / ');
+      if (art === 'kurve') return v.map(function (p) { return p[0] + ':' + String(p[1]).replace('.', ','); }).join(' ');
+      return String(v).replace('.', ',');
+    }
+    // strenge Prüfung eines ganzen Datensatzes (aus Link oder Speicher); liefert geprüfte Kopie oder null
+    function pruefeSatz(roh, art) {
+      const basis = art === 'rad' ? kopie(RAD_GRUND) : kopie(KFZ_GRUND);
+      if (!roh || typeof roh !== 'object') return basis;
+      felderVon(art).forEach(function (f) {
+        if (f[0] === 'h' || !(f[0] in roh)) return;
+        const v = roh[f[0]];
+        if (f[2] === 'wahl') { const o = f[3].filter(function (o) { return String(o[0]) === String(v); })[0]; if (o) basis[f[0]] = o[0]; }
+        else if (f[2] === 'zahl') { if (typeof v === 'number' && isFinite(v) && v >= f[3] && v <= f[4]) basis[f[0]] = v; }
+        else if (Array.isArray(v)) {
+          const t = f[2] === 'kurve' ? v.map(function (p) { return Array.isArray(p) ? p.join(':') : ''; }).join(' ') : v.join(' ');
+          const g = f[2] === 'zaehne' ? liesZaehne(t, f) : f[2] === 'faktoren' ? liesFaktoren(t, f) : liesKurve(t, f);
+          if (g) basis[f[0]] = g;
+        }
+      });
+      return basis;
+    }
+
+    // ---------- Fahrrad rechnen ----------
+    function radUmfang(r) { return r.umfang > 0 ? r.umfang : Math.PI * (r.felge + 2 * r.breite); }
+    function widerstand(m, cwa, crr, steig, v) { const th = Math.atan(steig / 100); return m * G * (crr * Math.cos(th) + Math.sin(th)) + 0.5 * RHO_L * cwa * v * Math.abs(v); }
+    function radTempo(r, P, steig) {
+      // P·η = F(v)·v nach v lösen (Bisektion)
+      const eta = 0.97; let lo = 0, hi = 40;
+      if (widerstand(r.masse, r.cwa, r.crr, steig, 0.01) * 0.01 > P * eta && steig > 0) { /* zu steil für sehr langsam: trotzdem lösen */ }
+      for (let i = 0; i < 60; i++) { const mi = (lo + hi) / 2; if (widerstand(r.masse, r.cwa, r.crr, steig, mi) * mi > P * eta) hi = mi; else lo = mi; }
+      return lo;
+    }
+    function rechneRad() {
+      const r = Z.rad, U = radUmfang(r), meld = [];
+      const gaenge = [];
+      if (r.typ === 'nabe') {
+        const grund = r.blaetter[0] / r.ritzel[0];
+        r.nabe.forEach(function (f, k) { gaenge.push({ name: (k + 1) + '. Gang', b: 0, z: 0, nabe: f, i: grund * f, schraeg: 0 }); });
+      } else {
+        const ritzel = r.ritzel.slice().sort(function (a, b) { return a - b; });
+        const nb = r.blaetter.length, nr = ritzel.length;
+        const blaetter = r.blaetter.slice().sort(function (a, b) { return b - a; });
+        // seitliche Lage: großes Blatt außen, kleines Ritzel außen (Faustwerte: Blattabstand 5 mm, Ritzelabstand 3,9 mm, Kettenstrebe 420 mm)
+        const ab = nr >= 12 ? 3.75 : nr >= 11 ? 3.95 : 4.35;
+        blaetter.forEach(function (b, kb) {
+          const xb = ((nb - 1) / 2 - kb) * 5;
+          ritzel.forEach(function (z, kz) {
+            const xz = ((nr - 1) / 2 - kz) * ab;
+            gaenge.push({ name: b + ' × ' + z, b: b, z: z, kb: kb, kz: kz, i: b / z, schraeg: Math.atan((xz - xb) / 420) * 180 / Math.PI });
+          });
+        });
+      }
+      const D = U / Math.PI;
+      gaenge.forEach(function (g) {
+        g.entf = g.i * U / 1000;
+        g.v = g.entf * r.tf / 60 * 3.6; g.vMin = g.entf * r.tfMin / 60 * 3.6; g.vMax = g.entf * r.tfMax / 60 * 3.6;
+        g.zoll = g.i * D / 25.4; g.gain = (D / 2) / r.kurbel * g.i;
+      });
+      // sortiert nach Übersetzung für Sprünge und doppelte Gänge
+      const sortiert = gaenge.slice().sort(function (a, b) { return a.i - b.i; });
+      sortiert.forEach(function (g, k) { g.rang = k; g.sprung = k ? (g.i / sortiert[k - 1].i - 1) * 100 : NaN; });
+      let doppelt = 0;
+      sortiert.forEach(function (g, k) { if (k && g.sprung < 2.5) { g.doppelt = true; doppelt++; } });
+      gaenge.forEach(function (g) { g.kreuz = r.typ === 'kette' && r.blaetter.length > 1 && Math.abs(g.schraeg) > 2.6; });
+      const iMin = sortiert[0].i, iMax = sortiert[sortiert.length - 1].i;
+      const ber = { U: U, D: D, gaenge: gaenge, sortiert: sortiert, iMin: iMin, iMax: iMax, bandbreite: iMax / iMin * 100, doppelt: doppelt, meld: meld };
+      // Tempo bei Dauerleistung in der Ebene und am Berg (8 %)
+      ber.vEbene = radTempo(r, r.leistung, 0) * 3.6; ber.vBerg = radTempo(r, r.leistung, 8) * 3.6;
+      function besterGang(vkmh) { let best = null; gaenge.forEach(function (g) { if (g.kreuz) return; const tf = vkmh / 3.6 / g.entf * 60; if (!best || Math.abs(tf - r.tf) < Math.abs(best.tf - r.tf)) best = { g: g, tf: tf }; }); return best; }
+      ber.ebene = besterGang(ber.vEbene); ber.berg = besterGang(ber.vBerg);
+      // Meldungen
+      if (r.tfMin >= r.tfMax) meld.push(['Trittfrequenz „von“ muss kleiner sein als „bis“.', true]);
+      if (r.typ === 'kette' && r.blaetter.length > 1) { const k = gaenge.filter(function (g) { return g.kreuz; }).length; if (k) meld.push([k + ' Kombinationen laufen stark schräg (über 2,6°, Faustwert): großes Blatt mit großen Ritzeln und kleines Blatt mit kleinen Ritzeln meiden – mehr Verschleiß, Geräusche, Kettenabwurf.', false]); }
+      if (doppelt) meld.push([doppelt + ' Gänge liegen weniger als 2,5 % neben einem anderen – praktisch doppelt.', false]);
+      const grosse = sortiert.filter(function (g) { return g.sprung > 16; });
+      if (grosse.length) meld.push(['Großer Gangsprung über 16 % bei ' + grosse.map(function (g) { return g.name; }).join(', ') + ': Die Trittfrequenz springt beim Schalten deutlich.', false]);
+      if (ber.berg && ber.berg.tf < r.tfMin) meld.push(['Am 8-%-Anstieg reicht selbst der leichteste Gang nicht für ' + r.tfMin + '/min (' + zahl(ber.berg.tf, 0) + '/min bei ' + zahl(ber.vBerg, 1) + ' km/h): kleineres Blatt oder größeres Ritzel.', false]);
+      return ber;
+    }
+
+    // ---------- Kfz rechnen ----------
+    function kfzUmfang(k) { return k.umfang > 0 ? k.umfang : Math.PI * (k.zoll * 25.4 + 2 * k.breite * k.quer / 100) * 0.97; }
+    function moment(k, n) {
+      const p = k.moment; if (n <= 0) return 0;
+      if (n > k.nMax) return 0;
+      if (n <= p[0][0]) return p[0][1] * Math.max(0.3, n / p[0][0]);
+      for (let i = 1; i < p.length; i++) if (n <= p[i][0]) return p[i - 1][1] + (p[i][1] - p[i - 1][1]) * (n - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
+      return p[p.length - 1][1];
+    }
+    // Haftgrenze der Antriebsräder: Annahme μ · Achslastanteil ≈ 0,5 (Motorrad unter 600 kg: Hinterrad trägt fast alles, ≈ 0,85)
+    function zweirad(k) { return k.masse < 600; }
+    function haftung(k) { return (zweirad(k) ? 0.85 : 0.5) * k.masse * G; }
+    // Drehmassenzuschlag (Näherung): Pkw 1,04 + 0,0025 · i², Motorrad 1,03 + 0,0008 · i²
+    function drehmasse(iges, k) { return Math.min(1.6, k && zweirad(k) ? 1.03 + 0.0008 * iges * iges : 1.04 + 0.0025 * iges * iges); }
+    function rechneKfz() {
+      const k = Z.kfz, U = kfzUmfang(k), rd = U / 1000 / (2 * Math.PI), meld = [];
+      // größte Leistung aus der Kurve
+      let pMax = 0, nP = 0, mMax = 0, nM = 0;
+      for (let n = k.leerlauf; n <= k.nMax; n += 25) { const m = moment(k, n), p = m * 2 * Math.PI * n / 60; if (p > pMax) { pMax = p; nP = n; } if (m > mMax) { mMax = m; nM = n; } }
+      const gaenge = k.gaenge.map(function (ig, j) {
+        const g = { name: (j + 1) + '. Gang', ig: ig, i: ig * k.achse };
+        g.v1000 = 1000 / 60 / g.i * U / 1000 * 3.6;
+        g.vBegr = g.v1000 * k.nMax / 1000;
+        g.n100 = 100 / g.v1000 * 1000; g.n130 = 130 / g.v1000 * 1000;
+        g.fMax = mMax * g.i * k.eta / rd;
+        g.fNutz = Math.min(g.fMax, haftung(k)); g.haft = g.fMax > haftung(k);
+        g.steig = Math.max(0, Math.tan(Math.asin(Math.min(0.999, Math.max(0, g.fNutz / (k.masse * G) - k.crr)))) * 100);
+        // Gleichgewicht: höchste Geschwindigkeit, bei der die Zugkraft den Widerstand in der Ebene deckt
+        let vg = 0;
+        for (let n = k.leerlauf; n <= k.nMax; n += 20) { const v = n / 1000 * g.v1000 / 3.6, f = moment(k, n) * g.i * k.eta / rd; if (f >= widerstand(k.masse, k.cwa, k.crr, 0, v)) vg = v * 3.6; }
+        g.vMax = vg; g.begrenzt = vg >= g.vBegr - 0.5;
+        return g;
+      });
+      gaenge.forEach(function (g, j) { g.phi = j < gaenge.length - 1 ? g.ig / gaenge[j + 1].ig : NaN; });
+      let vMax = 0, gV = 0; gaenge.forEach(function (g, j) { if (g.vMax > vMax) { vMax = g.vMax; gV = j; } });
+      const ber = { U: U, rd: rd, gaenge: gaenge, pMax: pMax, nP: nP, mMax: mMax, nM: nM, vMax: vMax, gV: gV, meld: meld };
+      ber.spreizung = gaenge[0].ig / gaenge[gaenge.length - 1].ig;
+      ber.t100 = beschleunigung(k, ber, 100);
+      // Meldungen
+      if (!(k.leerlauf < k.anfahr && k.anfahr < k.nMax)) meld.push(['Drehzahlen passen nicht: Leerlauf < Anfahrdrehzahl < Höchstdrehzahl.', true]);
+      if (!(k.runter < k.hoch && k.hoch <= k.nMax)) meld.push(['Schaltpunkte passen nicht: Runterschalten < Hochschalten ≤ Höchstdrehzahl.', true]);
+      for (let j = 1; j < gaenge.length; j++) if (gaenge[j].ig >= gaenge[j - 1].ig) { meld.push(['Gang ' + (j + 1) + ' ist nicht länger übersetzt als Gang ' + j + ' – Übersetzungen absteigend eintragen.', true]); break; }
+      for (let j = 1; j < gaenge.length - 1; j++) if (gaenge[j].phi > gaenge[j - 1].phi * 1.08 && isFinite(gaenge[j].phi)) { meld.push(['Die Gangsprünge werden nach oben größer (bei ' + (j + 1) + '→' + (j + 2) + '). Üblich ist eine progressive Stufung: unten große, oben kleine Sprünge.', false]); break; }
+      if (gaenge[0].steig < 25) meld.push(['Im 1. Gang nur ' + zahl(gaenge[0].steig, 0) + ' % Steigfähigkeit: Anfahren am Berg und mit Anhänger wird schwierig.', false]);
+      if (gV < gaenge.length - 1) meld.push(['Die Höchstgeschwindigkeit wird im ' + (gV + 1) + '. Gang erreicht; der ' + gaenge.length + '. Gang ist ein Spargang (Overdrive) und senkt nur die Drehzahl.', false]);
+      if (gaenge[gV].begrenzt) meld.push(['Im schnellsten Gang begrenzt die Höchstdrehzahl, nicht der Luftwiderstand – die Übersetzung ist kurz.', false]);
+      const last = gaenge[gaenge.length - 1];
+      if (last.n130 > 0.6 * k.nMax) meld.push(['Bei 130 km/h dreht der Motor im höchsten Gang ' + zahl(last.n130, 0) + '/min – laut und durstig.', false]);
+      return ber;
+    }
+    // 0–v km/h mit Automatik (Zeitschritt 10 ms, Schaltpause 0,3 s)
+    function beschleunigung(k, ber, ziel) {
+      let v = 0, t = 0, gang = 0, pause = 0;
+      for (let s = 0; s < 12000; s++) {
+        const g = ber.gaenge[gang], nW = v / (ber.U / 1000) * g.i * 60, inPause = pause > 0;
+        const n = Math.max(nW, k.anfahr);
+        let F = inPause ? 0 : Math.min(haftung(k), moment(k, Math.min(n, k.nMax)) * g.i * k.eta / ber.rd);
+        if (n >= k.nMax) F = 0;
+        const a = (F - widerstand(k.masse, k.cwa, k.crr, 0, v)) / (k.masse * drehmasse(g.i, k));
+        v += a * 0.01; t += 0.01; if (pause > 0) pause -= 0.01;
+        if (v < 0) v = 0;
+        if (nW >= k.hoch && gang < ber.gaenge.length - 1 && pause <= 0) { gang++; pause = 0.3; }
+        if (v * 3.6 >= ziel) return t;
+        if (s > 200 && a < 0.005 && !inPause && nW < k.hoch) return Infinity;
+      }
+      return Infinity;
+    }
+
+    // ---------- Oberfläche: Aufbau ----------
+    let B = null, gewaehlt = 0;
+    function felderBauen() {
+      const z = $('felder'); z.innerHTML = '';
+      const daten = Z[Z.art];
+      $('aufbau-hilfe').textContent = Z.art === 'rad' ? 'Zähne mit Bindestrich, Schrägstrich oder Leerzeichen trennen. Nabenübersetzungen als Faktoren, 1 = direkter Gang.' : 'Übersetzungen vom 1. Gang an absteigend. Drehmomentkurve als Paare Drehzahl:Moment, aufsteigend nach Drehzahl.';
+      let raster = null;
+      felderVon(Z.art).forEach(function (f) {
+        if (f[0] === 'h') { const h = document.createElement('h3'); h.textContent = f[1]; z.append(h); raster = document.createElement('div'); raster.className = 'raster'; z.append(raster); return; }
+        if (Z.art === 'rad' && daten.typ === 'kette' && f[0] === 'nabe') return;
+        const l = document.createElement('label');
+        const t = document.createElement('span'); t.textContent = Z.art === 'rad' && daten.typ === 'nabe' && f[0] === 'blaetter' ? 'Kettenblatt (Zähne)' : Z.art === 'rad' && daten.typ === 'nabe' && f[0] === 'ritzel' ? 'Ritzel an der Nabe (Zähne)' : f[1];
+        l.append(t);
+        let e;
+        if (f[2] === 'wahl') {
+          e = document.createElement('select');
+          f[3].forEach(function (o) { const op = document.createElement('option'); op.value = String(o[0]); op.textContent = o[1]; e.append(op); });
+          e.value = String(daten[f[0]]);
+          e.addEventListener('change', function () { daten[f[0]] = typeof f[3][0][0] === 'number' ? +e.value : e.value; if (f[0] === 'typ') { if (daten.typ === 'nabe') { daten.blaetter = daten.blaetter.slice(0, 1); daten.ritzel = [Math.max(14, Math.min(24, daten.ritzel[Math.floor(daten.ritzel.length / 2)]))]; } else if (daten.ritzel.length < 2) { daten.ritzel = kopie(RAD_GRUND.ritzel); daten.blaetter = kopie(RAD_GRUND.blaetter); } felderBauen(); } neu(true); });
+        } else {
+          e = document.createElement('input'); e.type = 'text';
+          const liste = f[2] !== 'zahl';
+          if (liste) { e.className = 'liste-ein'; e.placeholder = f[7] || ''; l.classList.add('breit'); } else e.inputMode = 'decimal';
+          e.value = zeigeListe(daten[f[0]], f[2]);
+          const fehl = document.createElement('span'); fehl.className = 'fehlertext';
+          e.addEventListener('input', function () {
+            let v;
+            const nabeEinzeln = Z.art === 'rad' && daten.typ === 'nabe' && (f[0] === 'blaetter' || f[0] === 'ritzel');
+            if (f[2] === 'zahl') { v = lies(e.value); if (!(isFinite(v) && v >= f[3] && v <= f[4])) v = null; }
+            else if (f[2] === 'zaehne') { v = liesZaehne(e.value, nabeEinzeln ? [0, 0, 0, 1, 1, f[5], f[6]] : f); }
+            else if (f[2] === 'faktoren') v = liesFaktoren(e.value, f);
+            else v = liesKurve(e.value, f);
+            e.classList.toggle('falsch', v === null);
+            fehl.textContent = v === null ? (f[2] === 'zahl' ? 'erlaubt: ' + zahl(f[3], f[3] < 1 ? 3 : 0) + ' bis ' + zahl(f[4], f[4] < 2 ? 2 : 0) : nabeEinzeln ? 'genau ein Wert, ' + f[5] + ' bis ' + f[6] : f[2] === 'kurve' ? 'Paare n:M, Drehzahl aufsteigend, ' + f[3] + ' bis ' + f[4] + ' Punkte' : f[3] + ' bis ' + f[4] + ' Werte, je ' + zahl(f[5], f[5] < 1 ? 1 : 0) + ' bis ' + zahl(f[6], 0)) : '';
+            if (v !== null) { daten[f[0]] = v; neu(true); }
+          });
+          e.addEventListener('blur', function () { e.classList.remove('falsch'); fehl.textContent = ''; e.value = zeigeListe(daten[f[0]], f[2]); });
+          l.append(e, fehl);
+        }
+        e.id = 'f-' + Z.art + '-' + f[0];
+        if (f[2] === 'wahl') l.append(e);
+        raster.append(l);
+      });
+    }
+    function vorlagenBauen() {
+      const s = $('vorlage'); s.innerHTML = '';
+      const v = Z.art === 'rad' ? VORLAGEN_RAD : VORLAGEN_KFZ;
+      Object.keys(v).forEach(function (k) { const o = document.createElement('option'); o.value = k; o.textContent = v[k][0]; s.append(o); });
+      s.value = Z.art === 'rad' ? Z.vorlageRad : Z.vorlageKfz;
+    }
+    $('vorlage').addEventListener('change', function (ev) {
+      const k = ev.target.value;
+      if (Z.art === 'rad' && VORLAGEN_RAD[k]) { Z.vorlageRad = k; Z.rad = radVorlage(k); }
+      if (Z.art === 'kfz' && VORLAGEN_KFZ[k]) { Z.vorlageKfz = k; Z.kfz = kfzVorlage(k); }
+      felderBauen(); neu(true);
+    });
+    $('beispiel').addEventListener('click', function () {
+      if (Z.art === 'rad') Z.rad = radVorlage(Z.vorlageRad); else Z.kfz = kfzVorlage(Z.vorlageKfz);
+      felderBauen(); neu(true);
+    });
+    function modusSetzen(art) {
+      Z.art = art;
+      $('m-rad').setAttribute('aria-pressed', String(art === 'rad')); $('m-kfz').setAttribute('aria-pressed', String(art === 'kfz'));
+      $('loeser-rad').hidden = art !== 'rad'; $('loeser-kfz').hidden = art !== 'kfz';
+      $('l-gas').firstChild.textContent = art === 'rad' ? 'Leistung ' : 'Gas ';
+      $('messung').textContent = art === 'rad' ? '0–30 km/h messen' : '0–100 km/h messen';
+      vorlagenBauen(); felderBauen(); diagrammWahlBauen(); neu(true);
+    }
+    $('m-rad').addEventListener('click', function () { modusSetzen('rad'); });
+    $('m-kfz').addEventListener('click', function () { modusSetzen('kfz'); });
+
+    // Gesamter Zustand für Merken und Teilen-Link (basis.js liest das versteckte Feld)
+    $('gang-merken').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      Z.rad = pruefeSatz(a.rad, 'rad'); Z.kfz = pruefeSatz(a.kfz, 'kfz');
+      if (VORLAGEN_RAD[a.vorlageRad]) Z.vorlageRad = a.vorlageRad;
+      if (VORLAGEN_KFZ[a.vorlageKfz]) Z.vorlageKfz = a.vorlageKfz;
+      if (a.diagramm && typeof a.diagramm === 'object') { if (['bereiche', 'entfaltung', 'trittfrequenz'].indexOf(a.diagramm.rad) >= 0) Z.diagramm.rad = a.diagramm.rad; if (['saegezahn', 'zugkraft', 'leistung'].indexOf(a.diagramm.kfz) >= 0) Z.diagramm.kfz = a.diagramm.kfz; }
+      modusSetzen(a.art === 'kfz' ? 'kfz' : 'rad');
+    });
+
+    // ---------- Ergebnis, Tabelle, Rechenweg ----------
+    function kachel(w, t, farbe) { return [w, t, farbe]; }
+    function neu(neuStart) {
+      $('gang-merken').value = JSON.stringify({ art: Z.art, vorlageRad: Z.vorlageRad, vorlageKfz: Z.vorlageKfz, rad: Z.rad, kfz: Z.kfz, diagramm: Z.diagramm });
+      B = Z.art === 'rad' ? rechneRad() : rechneKfz();
+      const anzahl = Z.art === 'rad' ? B.sortiert.length : B.gaenge.length;
+      if (neuStart) simNeu();
+      if (gewaehlt >= anzahl) gewaehlt = anzahl - 1;
+      const fehler = B.meld.some(function (m) { return m[1]; });
+      const u = $('urteil'); u.textContent = fehler ? 'Eingaben prüfen' : 'stimmig'; u.className = 'urteil ' + (fehler ? 'schlecht' : 'gut');
+      const mel = $('meldungen'); mel.innerHTML = '';
+      B.meld.forEach(function (m) { const d = document.createElement('div'); d.className = 'hinweis' + (m[1] ? ' fehler' : ''); d.textContent = m[0]; mel.append(d); });
+      let k;
+      if (Z.art === 'rad') {
+        const r = Z.rad;
+        k = [kachel(String(anzahl) + (B.doppelt ? ' (' + (anzahl - B.doppelt) + ' eigene)' : ''), 'Gänge', '#2B7BB9'), kachel(zahl(B.bandbreite, 0) + ' %', 'Bandbreite (größte ÷ kleinste)', '#6E6FA6'), kachel(zahl(B.iMin * B.U / 1000, 2) + ' – ' + zahl(B.iMax * B.U / 1000, 2) + ' m', 'Entfaltung', '#E4572E'), kachel(zahl(B.vEbene, 1) + ' km/h', 'bei ' + r.leistung + ' W in der Ebene' + (B.ebene ? ', ' + B.ebene.g.name + ' mit ' + zahl(B.ebene.tf, 0) + '/min' : ''), '#2E8B57'), kachel(zahl(B.vBerg, 1) + ' km/h', 'bei 8 % Steigung' + (B.berg ? ', ' + B.berg.g.name + ' mit ' + zahl(B.berg.tf, 0) + '/min' : ''), '#B07A12'), kachel(zahl(B.U, 0) + ' mm', 'Abrollumfang', '#6E6FA6')];
+      } else {
+        const g = B.gaenge;
+        k = [kachel(zahl(B.vMax, 0) + ' km/h', 'Höchstgeschwindigkeit im ' + (B.gV + 1) + '. Gang', '#E4572E'), kachel(isFinite(B.t100) ? zahl(B.t100, 1) + ' s' : '–', '0–100 km/h (Schaltpunkt ' + zahl(Z.kfz.hoch, 0) + '/min)', '#2E8B57'), kachel(zahl(B.pMax / 1000, 0) + ' kW', 'Leistung bei ' + zahl(B.nP, 0) + '/min (' + zahl(B.pMax / 735.5, 0) + ' PS)', '#B07A12'), kachel(zahl(B.mMax, 0) + ' Nm', 'Drehmoment bei ' + zahl(B.nM, 0) + '/min', '#B07A12'), kachel(zahl(B.spreizung, 2), 'Spreizung i₁ ÷ i_' + g.length, '#6E6FA6'), kachel(zahl(g[0].steig, 0) + ' %', 'Steigfähigkeit im 1. Gang', '#2B7BB9'), kachel(zahl(g[g.length - 1].n130, 0) + ' /min', 'bei 130 km/h im ' + g.length + '. Gang', '#6E6FA6')];
+      }
+      const kz = $('kacheln'); kz.innerHTML = '';
+      k.forEach(function (q) { const d = document.createElement('div'); d.className = 'kachel'; d.style.setProperty('--farbe', q[2]); const w = document.createElement('div'); w.className = 'wert'; w.textContent = q[0]; const s = document.createElement('small'); s.textContent = q[1]; d.append(w, s); kz.append(d); });
+      tabelleBauen(); wegBauen(); diagrammZeichnen();
+    }
+    function zelle(tr, t, zahlig, klasse) { const td = document.createElement('td'); td.textContent = t; if (zahlig) td.className = 'zahl'; if (klasse) td.classList.add(klasse); tr.append(td); }
+    function tabelleBauen() {
+      const t = $('tabelle'); t.innerHTML = '';
+      const kopf = document.createElement('tr');
+      const rad = Z.art === 'rad';
+      (rad ? ['Gang', Z.rad.typ === 'nabe' ? 'Nabe' : 'Blatt × Ritzel', 'i', 'Entfaltung m', 'km/h bei ' + Z.rad.tf, 'km/h ' + Z.rad.tfMin + '–' + Z.rad.tfMax, 'Zoll', 'Gain', 'Sprung', 'Schräglauf']
+        : ['Gang', 'i Gang', 'i gesamt', 'km/h je 1000/min', 'km/h bei n max', 'v max', '/min bei 100', 'Zugkraft max', 'Steigung', 'Stufensprung']).forEach(function (h) { const th = document.createElement('th'); th.textContent = h; kopf.append(th); });
+      t.append(kopf);
+      const liste = rad ? B.sortiert : B.gaenge;
+      liste.forEach(function (g, j) {
+        const tr = document.createElement('tr');
+        if (j === sim.gang) tr.className = 'gewaehlt';
+        if (rad) {
+          if (g.kreuz || g.doppelt) tr.classList.add('leise');
+          zelle(tr, String(j + 1)); zelle(tr, Z.rad.typ === 'nabe' ? g.name + ' (' + zahl(g.nabe, 3) + ')' : g.name); zelle(tr, zahl(g.i, 2), true); zelle(tr, zahl(g.entf, 2), true); zelle(tr, zahl(g.v, 1), true); zelle(tr, zahl(g.vMin, 1) + '–' + zahl(g.vMax, 1), true); zelle(tr, zahl(g.zoll, 1), true); zelle(tr, zahl(g.gain, 2), true);
+          zelle(tr, isFinite(g.sprung) ? zahl(g.sprung, 1) + ' %' + (g.doppelt ? ' ⚠' : '') : '–', true, g.sprung > 16 ? 'warn-z' : '');
+          zelle(tr, Z.rad.typ === 'nabe' ? '–' : zahl(g.schraeg, 1) + '°' + (g.kreuz ? ' ⚠' : ''), true, g.kreuz ? 'warn-z' : '');
+        } else {
+          zelle(tr, String(j + 1)); zelle(tr, zahl(g.ig, 2), true); zelle(tr, zahl(g.i, 2), true); zelle(tr, zahl(g.v1000, 1), true); zelle(tr, zahl(g.vBegr, 0), true); zelle(tr, zahl(g.vMax, 0) + (j === B.gV ? ' ★' : ''), true);
+          zelle(tr, g.n100 <= Z.kfz.nMax && g.n100 >= Z.kfz.leerlauf ? zahl(g.n100, 0) : '–', true); zelle(tr, zahl(g.fMax / 1000, 1) + ' kN', true); zelle(tr, zahl(g.steig, 0) + ' %' + (g.haft ? ' ⓗ' : ''), true); zelle(tr, isFinite(g.phi) ? zahl(g.phi, 2) : '–', true);
+        }
+        tr.tabIndex = 0;
+        tr.addEventListener('click', function () { gangWaehlen(j); });
+        tr.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); gangWaehlen(j); } });
+        t.append(tr);
+      });
+      $('tabellen-fuss').textContent = rad ? 'Sortiert von leicht nach schwer. Grau: Schräglauf oder praktisch doppelter Gang. Zoll = Übersetzung × Raddurchmesser (Gear Inches), Gain = Weg des Rads je Weg des Pedals.' : '★ = Gang der Höchstgeschwindigkeit. Zugkraft mit größtem Drehmoment, Steigfähigkeit in diesem Gang bei voller Last (ⓗ: begrenzt durch die Reifenhaftung, angenommen μ · Achslastanteil = 0,5, beim Motorrad 0,85), Stufensprung = i(n) ÷ i(n+1).';
+    }
+    function gangWaehlen(j) { schalteAuf(j, true); tabelleBauen(); wegBauen(); }
+    function wegBauen() {
+      const o = $('weg'); o.innerHTML = '';
+      const w = [];
+      if (Z.art === 'rad') {
+        const r = Z.rad, g = B.sortiert[Math.min(sim.gang, B.sortiert.length - 1)];
+        $('weg-gang').textContent = '– Gang ' + (sim.gang + 1) + ': ' + g.name;
+        w.push(['Abrollumfang', r.umfang > 0 ? 'U = ' + E(tz(B.U, 0) + '\\,\\text{mm}') + '\\ (\\text{eingetragen})' : 'U = \\pi \\cdot (d_\\text{Felge} + 2 b) = \\pi \\cdot (' + r.felge + ' + 2 \\cdot ' + tz(r.breite, 0) + ') = ' + E(tz(B.U, 0) + '\\,\\text{mm}')]);
+        w.push(['Übersetzung', r.typ === 'nabe' ? 'i = \\frac{z_\\text{Blatt}}{z_\\text{Ritzel}} \\cdot i_\\text{Nabe} = \\frac{' + r.blaetter[0] + '}{' + r.ritzel[0] + '} \\cdot ' + tz(g.nabe, 3) + ' = ' + E(tz(g.i, 3)) : 'i = \\frac{z_\\text{Blatt}}{z_\\text{Ritzel}} = \\frac{' + g.b + '}{' + g.z + '} = ' + E(tz(g.i, 3))]);
+        w.push(['Entfaltung', 'e = i \\cdot U = ' + tz(g.i, 3) + ' \\cdot ' + tz(B.U / 1000, 3) + '\\,\\text{m} = ' + E(tz(g.entf, 2) + '\\,\\text{m}')]);
+        w.push(['Geschwindigkeit bei ' + r.tf + '/min', 'v = e \\cdot n \\cdot 0{,}06 = ' + tz(g.entf, 2) + ' \\cdot ' + r.tf + ' \\cdot 0{,}06 = ' + E(tz(g.v, 1) + '\\,\\tfrac{\\text{km}}{\\text{h}}')]);
+        w.push(['Gain Ratio', 'G = \\frac{D/2}{l_\\text{Kurbel}} \\cdot i = \\frac{' + tz(B.D / 2, 0) + '}{' + tz(r.kurbel, 1) + '} \\cdot ' + tz(g.i, 3) + ' = ' + E(tz(g.gain, 2))]);
+        if (isFinite(g.sprung)) w.push(['Sprung zum leichteren Gang', '\\frac{i_n}{i_{n-1}} - 1 = ' + E(tz(g.sprung, 1) + '\\,\\%')]);
+        w.push(['Tempo bei ' + r.leistung + ' W in der Ebene', 'P \\cdot \\eta = \\left(m g c_r + \\tfrac{1}{2} \\rho\\, c_w A\\, v^2\\right) v \\Rightarrow v = ' + E(tz(B.vEbene, 1) + '\\,\\tfrac{\\text{km}}{\\text{h}}')]);
+      } else {
+        const k = Z.kfz, g = B.gaenge[Math.min(sim.gang, B.gaenge.length - 1)];
+        $('weg-gang').textContent = '– ' + g.name;
+        w.push(['Abrollumfang', k.umfang > 0 ? 'U = ' + E(tz(B.U, 0) + '\\,\\text{mm}') : 'U \\approx 0{,}97 \\cdot \\pi \\cdot \\left(' + k.zoll + ' \\cdot 25{,}4 + 2 \\cdot ' + k.breite + ' \\cdot ' + tz(k.quer / 100, 2) + '\\right) = ' + E(tz(B.U, 0) + '\\,\\text{mm}')]);
+        w.push(['Gesamtübersetzung', 'i_\\text{ges} = i_\\text{G} \\cdot i_\\text{A} = ' + tz(g.ig, 2) + ' \\cdot ' + tz(k.achse, 2) + ' = ' + E(tz(g.i, 3))]);
+        w.push(['Geschwindigkeit je 1000/min', 'v = \\frac{n \\cdot U}{i_\\text{ges}} = \\frac{1000 \\cdot ' + tz(B.U / 1000, 3) + '\\,\\text{m}}{' + tz(g.i, 3) + '} \\cdot 0{,}06 = ' + E(tz(g.v1000, 1) + '\\,\\tfrac{\\text{km}}{\\text{h}}')]);
+        w.push(['Zugkraft', 'F = \\frac{M \\cdot i_\\text{ges} \\cdot \\eta}{r_\\text{dyn}} = \\frac{' + tz(B.mMax, 0) + ' \\cdot ' + tz(g.i, 3) + ' \\cdot ' + tz(k.eta, 2) + '}{' + tz(B.rd, 3) + '} = ' + E(tz(g.fMax, 0) + '\\,\\text{N}')]);
+        w.push(['Steigfähigkeit' + (g.haft ? ' (Haftgrenze)' : ''), 'p = \\tan\\left(\\arcsin\\left(\\frac{' + tz(g.fNutz, 0) + '}{' + tz(k.masse * G, 0) + '} - ' + tz(k.crr, 3) + '\\right)\\right) = ' + E(tz(g.steig, 0) + '\\,\\%')]);
+        if (isFinite(g.phi)) w.push(['Stufensprung', '\\varphi = \\frac{i_' + (sim.gang + 1) + '}{i_' + (sim.gang + 2) + '} = ' + E(tz(g.phi, 2))]);
+        w.push(['Höchstgeschwindigkeit', 'F(v) = m g c_r + \\tfrac{1}{2} \\rho\\, c_w A\\, v^2 \\Rightarrow v_{\\max} = ' + E(tz(B.vMax, 0) + '\\,\\tfrac{\\text{km}}{\\text{h}}') + '\\ (' + (B.gV + 1) + '.\\ \\text{Gang})']);
+      }
+      w.forEach(function (q) { const li = document.createElement('li'), t = document.createElement('div'), r = document.createElement('div'); t.className = 'titel'; t.textContent = q[0]; r.className = 'rechnung'; Formel.setze(r, q[1], true); li.append(t, r); o.append(li); });
+    }
+
+    // ---------- Schnellrechner (Löser) ----------
+    // v = c · Π x^e ; ein fehlender Wert wird berechnet, bei allen gegebenen wird geprüft
+    function loeserBauen(ziel, def, c, pre) {
+      const felder = def.map(function (d) {
+        const f = document.createElement('div'); f.className = 'feld';
+        const l = document.createElement('label'); const s = document.createElement('span'); s.className = 'symbol'; Formel.setze(s, d[1]); const n = document.createElement('span'); n.className = 'name'; n.textContent = d[2]; l.append(s, n);
+        const e = document.createElement('input'); e.type = 'text'; e.inputMode = 'decimal'; e.id = 'l' + pre + '-' + d[0]; e.placeholder = 'gesucht'; l.htmlFor = e.id;
+        const u = document.createElement('span'); u.className = 'einheit'; u.textContent = d[3];
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'leeren'; x.textContent = '×'; x.setAttribute('aria-label', d[2] + ' leeren');
+        f.append(l, e, u, x); ziel.append(f);
+        x.addEventListener('click', function () { e.value = ''; rechnen(); });
+        e.addEventListener('input', rechnen);
+        return { d: d, f: f, e: e };
+      });
+      function rechnen() {
+        let fehlt = [], wert = {};
+        felder.forEach(function (q) {
+          q.f.classList.remove('gegeben', 'berechnet', 'widerspruch');
+          if (q.f.dataset.berechnet === '1') { q.e.value = ''; q.f.dataset.berechnet = ''; }
+          const v = lies(q.e.value);
+          if (q.e.value.trim() === '') fehlt.push(q); else if (isFinite(v) && v > 0 && v < 1e7) { wert[q.d[0]] = v; q.f.classList.add('gegeben'); } else q.f.classList.add('widerspruch');
+        });
+        if (fehlt.length === 1) {
+          const q = fehlt[0]; let rest = c;
+          felder.forEach(function (p) { if (p !== q) rest *= Math.pow(wert[p.d[0]], p.d[4]); });
+          // Form: Π x^e · c = 1 (v steht mit Exponent −1 in der Liste)
+          const x = Math.pow(1 / rest, 1 / q.d[4]);
+          if (isFinite(x) && x > 0) { q.e.value = zahl(x, x < 10 ? 3 : x < 1000 ? 1 : 0); q.f.classList.add('berechnet'); q.f.dataset.berechnet = '1'; }
+        } else if (fehlt.length === 0) {
+          let prod = c; felder.forEach(function (p) { prod *= Math.pow(wert[p.d[0]], p.d[4]); });
+          if (Math.abs(prod - 1) > 0.01) felder.forEach(function (p) { p.f.classList.remove('gegeben'); p.f.classList.add('widerspruch'); });
+        }
+      }
+      return rechnen;
+    }
+    // Fahrrad: v = 0,06 · n · z_B / z_R · U(m)  →  0,06 · n · zB · zR⁻¹ · U · v⁻¹ = 1
+    const loeseRad = loeserBauen($('loeser-rad'), [['tf', 'n', 'Trittfrequenz', '1/min', 1], ['zb', 'z_\\text{B}', 'Zähne Kettenblatt', '', 1], ['zr', 'z_\\text{R}', 'Zähne Ritzel', '', -1], ['u', 'U', 'Abrollumfang', 'mm', 1], ['v', 'v', 'Geschwindigkeit', 'km/h', -1]], 0.00006, 'r');
+    // Kfz: v = 0,06 · n · U(m) / (iG · iA)
+    const loeseKfz = loeserBauen($('loeser-kfz'), [['n', 'n', 'Motordrehzahl', '1/min', 1], ['ig', 'i_\\text{G}', 'Gangübersetzung', '', -1], ['ia', 'i_\\text{A}', 'Achsübersetzung', '', -1], ['u', 'U', 'Abrollumfang', 'mm', 1], ['v', 'v', 'Geschwindigkeit', 'km/h', -1]], 0.00006, 'k');
+
+    // ---------- Zeichenhilfen ----------
+    function f(n) { return Thema.farbe(n); }
+    const ROT = '#D23B2E', GRUEN = '#2E8B57', ORANGE = '#E4572E', BLAU = '#2B7BB9';
+    const REIHEN = ['#E4572E', '#2B7BB9', '#2E8B57'];
+    function strich(cx, pts, farbe, w, dash) { cx.strokeStyle = farbe; cx.lineWidth = w; cx.lineJoin = 'round'; cx.lineCap = 'round'; cx.setLineDash(dash || []); cx.beginPath(); pts.forEach(function (q, i) { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.stroke(); cx.setLineDash([]); }
+    function kreis(cx, x, y, r, fuell, rand, lw) { cx.beginPath(); cx.arc(x, y, Math.max(0.1, r), 0, 2 * Math.PI); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); } }
+    function rund(cx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function kasten(cx, x, y, w, h, r, fuell, rand, lw) { rund(cx, x, y, w, h, r); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.2; cx.stroke(); } }
+    function txt(cx, t, x, y, o) { o = o || {}; cx.fillStyle = o.f || f('--text'); cx.font = (o.b ? '700 ' : '500 ') + Math.round(o.g || 12) + 'px ' + (o.mono ? 'ui-monospace, Menlo, Consolas, monospace' : (f('--technik') || 'sans-serif')); cx.textAlign = o.a || 'center'; cx.textBaseline = o.bl || 'middle'; cx.fillText(t, x, y); }
+    function leinwand(c, hoehe) {
+      const d = window.devicePixelRatio || 1, w = Math.max(260, c.parentNode.clientWidth), h = Math.round(hoehe(w));
+      if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.height = h + 'px'; }
+      const cx = c.getContext('2d'); cx.setTransform(d, 0, 0, d, 0, 0); return { cx: cx, w: w, h: h };
+    }
+
+    // ---------- Diagramm ----------
+    const DIAGRAMME = { rad: [['bereiche', 'Tempo je Gang'], ['trittfrequenz', 'Trittfrequenz beim Schalten'], ['entfaltung', 'Entfaltung je Blatt']], kfz: [['saegezahn', 'Sägezahn (Drehzahl)'], ['zugkraft', 'Zugkraft und Widerstand'], ['leistung', 'Motorkennlinie']] };
+    function diagrammWahlBauen() {
+      const z = $('diagramm-wahl'); z.innerHTML = '';
+      DIAGRAMME[Z.art].forEach(function (d) { const b = document.createElement('button'); b.type = 'button'; b.textContent = d[1]; b.setAttribute('aria-pressed', String(Z.diagramm[Z.art] === d[0])); b.addEventListener('click', function () { Z.diagramm[Z.art] = d[0]; diagrammWahlBauen(); neu(false); }); z.append(b); });
+    }
+    function schritt125(spanne, ziel) { const roh = spanne / ziel, p = Math.pow(10, Math.floor(Math.log(roh) / Math.LN10)), q = roh / p; return (q < 1.5 ? 1 : q < 3.5 ? 2 : q < 7.5 ? 5 : 10) * p; }
+    function achsen(cx, w, h, x0, x1, y0, y1, xt, yt, ohneY) {
+      const l = 54, r = 14, o = 14, u = 40, pw = w - l - r, ph = h - o - u;
+      const X = function (x) { return l + (x - x0) / (x1 - x0) * pw; }, Y = function (y) { return o + ph - (y - y0) / (y1 - y0) * ph; };
+      cx.font = '500 11px ' + (f('--technik') || 'sans-serif');
+      const sx = schritt125(x1 - x0, w < 500 ? 5 : 9), sy = schritt125(y1 - y0, 6);
+      for (let x = Math.ceil(x0 / sx) * sx; x <= x1 + 1e-9; x += sx) { strich(cx, [[X(x), o], [X(x), o + ph]], f('--linie'), 1); txt(cx, zahl(x, sx < 1 ? 1 : 0), X(x), o + ph + 12, { g: 10, f: f('--leise') }); }
+      for (let y = Math.ceil(y0 / sy) * sy; y <= y1 + 1e-9 && !ohneY; y += sy) { strich(cx, [[l, Y(y)], [l + pw, Y(y)]], f('--linie'), 1); txt(cx, zahl(y, sy < 1 ? 1 : 0), l - 6, Y(y), { g: 10, f: f('--leise'), a: 'right' }); }
+      txt(cx, xt, l + pw / 2, h - 10, { g: 11, f: f('--leise') });
+      cx.save(); cx.translate(13, o + ph / 2); cx.rotate(-Math.PI / 2); txt(cx, yt, 0, 0, { g: 11, f: f('--leise') }); cx.restore();
+      return { X: X, Y: Y, l: l, o: o, pw: pw, ph: ph };
+    }
+    function diagrammZeichnen() {
+      if (!B) return;
+      const art = Z.diagramm[Z.art];
+      const lw = leinwand($('diagramm'), function (w) { return Math.max(260, Math.min(420, w * 0.55)) + (art === 'bereiche' ? Math.max(0, (B.gaenge.length - 12) * 9) : 0); });
+      const cx = lw.cx, w = lw.w, h = lw.h; cx.clearRect(0, 0, w, h);
+      const hilfe = $('diagramm-hilfe');
+      if (Z.art === 'rad') {
+        const r = Z.rad, s = B.sortiert;
+        if (art === 'bereiche') {
+          const vmax = Math.max.apply(null, s.map(function (g) { return g.vMax; })) * 1.05;
+          const A = achsen(cx, w, h, 0, vmax, 0, s.length, 'Geschwindigkeit in km/h', 'Gänge von leicht (unten) nach schwer', true);
+          const bh = A.ph / s.length;
+          s.forEach(function (g, j) {
+            const y = A.o + A.ph - (j + 1) * bh + bh * 0.18, farbe = r.typ === 'nabe' ? ORANGE : REIHEN[g.kb % 3];
+            cx.globalAlpha = g.kreuz || g.doppelt ? 0.35 : 0.9;
+            kasten(cx, A.X(g.vMin), y, Math.max(2, A.X(g.vMax) - A.X(g.vMin)), bh * 0.64, 3, farbe);
+            cx.globalAlpha = 1;
+            strich(cx, [[A.X(g.v), y - 1], [A.X(g.v), y + bh * 0.64 + 1]], f('--text'), 2);
+            if (bh > 11) txt(cx, g.name, A.X(g.vMax) + 4, y + bh * 0.32, { g: Math.min(10, bh * 0.7), a: 'left', f: f('--leise') });
+            if (j === sim.gang) kasten(cx, A.l, y - 2, A.pw, bh * 0.64 + 4, 3, null, f('--text'), 1.5);
+          });
+          hilfe.textContent = 'Balken: Geschwindigkeit von ' + r.tfMin + ' bis ' + r.tfMax + '/min, Strich: ' + r.tf + '/min. ' + (r.typ === 'kette' && r.blaetter.length > 1 ? 'Farbe je Kettenblatt, blass: Schräglauf oder doppelt.' : '');
+        } else if (art === 'trittfrequenz') {
+          const vmax = s[s.length - 1].vMax * 1.05, A = achsen(cx, w, h, 0, vmax, 0, Math.max(160, r.tfMax * 1.2), 'Geschwindigkeit in km/h', 'Trittfrequenz 1/min');
+          cx.fillStyle = 'rgba(46,139,87,0.14)'; cx.fillRect(A.l, A.Y(r.tfMax), A.pw, A.Y(r.tfMin) - A.Y(r.tfMax));
+          s.forEach(function (g) { cx.globalAlpha = g.kreuz ? 0.25 : 0.5; strich(cx, [[A.X(0), A.Y(0)], [A.X(vmax), A.Y(vmax / 3.6 / g.entf * 60)]], f('--leise'), 1); });
+          cx.globalAlpha = 1;
+          // Schaltweg: bei tfMax in den nächsten nutzbaren Gang
+          const nutz = s.filter(function (g) { return !g.kreuz && !g.doppelt; }); const pfad = [];
+          nutz.forEach(function (g, j) { const v0 = j ? nutz[j - 1].vMax : 0; pfad.push([A.X(v0), A.Y(v0 / 3.6 / g.entf * 60)]); pfad.push([A.X(g.vMax), A.Y(r.tfMax)]); });
+          strich(cx, pfad, ORANGE, 2.5);
+          strich(cx, [[A.X(sim.v * 3.6), A.Y(0)], [A.X(sim.v * 3.6), A.Y(Math.max(160, r.tfMax * 1.2))]], BLAU, 1.5, [4, 4]);
+          hilfe.textContent = 'Graue Linien: jeder Gang. Orange: Hochschalten jeweils bei ' + r.tfMax + '/min in den nächsten sinnvollen Gang – je kleiner die Sprünge, desto weniger fällt die Trittfrequenz. Grünes Band: Wunschbereich.';
+        } else {
+          const nb = r.typ === 'nabe' ? 1 : r.blaetter.length, emax = s[s.length - 1].entf * 1.08;
+          const A = achsen(cx, w, h, 0, emax, 0, nb + 1, 'Entfaltung in m je Kurbelumdrehung', '');
+          const reihen = r.typ === 'nabe' ? [B.gaenge] : r.blaetter.slice().sort(function (a, b) { return b - a; }).map(function (b) { return B.gaenge.filter(function (g) { return g.b === b; }); });
+          reihen.forEach(function (rg, kb) {
+            const y = A.Y(nb - kb);
+            strich(cx, [[A.X(rg[0].entf), y], [A.X(rg[rg.length - 1].entf), y]], f('--linie'), 3);
+            rg.forEach(function (g) { kreis(cx, A.X(g.entf), y, g === s[sim.gang] ? 7 : 5, g.kreuz ? f('--linie') : (r.typ === 'nabe' ? ORANGE : REIHEN[kb % 3]), f('--flaeche'), 1.5); });
+            txt(cx, r.typ === 'nabe' ? 'Nabe' : rg[0].b + ' Z', A.l - 6, y, { g: 11, b: true, a: 'right' });
+          });
+          hilfe.textContent = 'Jeder Punkt ist ein Gang; je gleichmäßiger die Abstände, desto feiner die Abstufung. Überlappende Bereiche der Blätter ergeben doppelte Gänge.';
+        }
+      } else {
+        const k = Z.kfz, gs = B.gaenge, vmax = Math.max(B.vMax, gs[gs.length - 1].vBegr * 0.6) * 1.1;
+        if (art === 'saegezahn') {
+          const A = achsen(cx, w, h, 0, vmax, 0, k.nMax * 1.1, 'Geschwindigkeit in km/h', 'Drehzahl 1/min');
+          cx.fillStyle = 'rgba(210,59,46,0.12)'; cx.fillRect(A.l, A.Y(k.nMax * 1.1), A.pw, A.Y(k.nMax) - A.Y(k.nMax * 1.1));
+          gs.forEach(function (g, j) { strich(cx, [[A.X(0), A.Y(0)], [A.X(Math.min(vmax, g.vBegr)), A.Y(Math.min(vmax, g.vBegr) / g.v1000 * 1000)]], j === sim.gang ? ORANGE : f('--leise'), j === sim.gang ? 2.5 : 1); });
+          // Anfahren mit schleifender Kupplung bei Anfahrdrehzahl, dann jeweils bis zum Schaltpunkt
+          const pfad = [[A.X(0), A.Y(k.anfahr)], [A.X(gs[0].v1000 * k.anfahr / 1000), A.Y(k.anfahr)]];
+          for (let j = 0; j < gs.length; j++) {
+            const g = gs[j], vh = Math.min(g.v1000 * k.hoch / 1000, B.vMax);
+            if (j) { const vs = gs[j - 1].v1000 * k.hoch / 1000; if (vs >= B.vMax) break; pfad.push([A.X(vs), A.Y(vs / g.v1000 * 1000)]); }
+            pfad.push([A.X(vh), A.Y(vh / g.v1000 * 1000)]);
+            if (vh >= B.vMax) break;
+          }
+          strich(cx, pfad, BLAU, 2.5);
+          strich(cx, [[A.X(B.vMax), A.Y(0)], [A.X(B.vMax), A.Y(k.nMax * 1.1)]], ROT, 1.5, [5, 4]);
+          txt(cx, 'v max', A.X(B.vMax) - 4, A.o + 10, { g: 10, b: true, f: ROT, a: 'right' });
+          gs.forEach(function (g, j) { const v = Math.min(vmax * 0.97, g.vBegr * 0.92); txt(cx, String(j + 1), A.X(v), A.Y(v / g.v1000 * 1000) - 9, { g: 11, b: true }); });
+          hilfe.textContent = 'Jede Linie ein Gang. Blau: Hochschalten bei ' + zahl(k.hoch, 0) + '/min – die Drehzahl fällt um den Stufensprung. Rot schraffiert: über der Höchstdrehzahl.';
+        } else if (art === 'zugkraft') {
+          let fmax = 0; gs.forEach(function (g) { fmax = Math.max(fmax, g.fMax); });
+          const A = achsen(cx, w, h, 0, vmax, 0, fmax * 1.1 / 1000, 'Geschwindigkeit in km/h', 'Zugkraft in kN');
+          gs.forEach(function (g, j) { const p = []; for (let n = k.leerlauf; n <= k.nMax; n += 50) { const v = n / 1000 * g.v1000; if (v > vmax) break; p.push([A.X(v), A.Y(moment(k, n) * g.i * k.eta / B.rd / 1000)]); } strich(cx, p, j === sim.gang ? ORANGE : REIHEN[j % 3], j === sim.gang ? 3 : 1.8); if (p.length) txt(cx, String(j + 1), p[0][0] + 8, p[0][1] - 8, { g: 10, b: true }); });
+          const hyp = []; for (let v = 5; v <= vmax; v += 2) hyp.push([A.X(v), A.Y(Math.min(fmax * 1.1, B.pMax * k.eta / (v / 3.6)) / 1000)]);
+          strich(cx, hyp, f('--text'), 1.2, [6, 5]);
+          [0, 10, 20].forEach(function (p, j) { const wl = []; for (let v = 0; v <= vmax; v += 2) wl.push([A.X(v), A.Y(Math.min(fmax * 1.1, widerstand(k.masse, k.cwa, k.crr, p, v / 3.6)) / 1000)]); strich(cx, wl, ROT, 1.5, j ? [3, 3] : []); txt(cx, p + ' %', A.X(vmax) - 4, wl[wl.length - 1][1] - 8, { g: 10, b: true, f: ROT, a: 'right' }); });
+          hilfe.textContent = 'Farbig: Zugkraft je Gang aus der Drehmomentkurve. Gestrichelt schwarz: ideale Zugkrafthyperbel bei Höchstleistung. Rot: Fahrwiderstand in der Ebene, bei 10 % und 20 % Steigung – wo die Gangkurve darüber liegt, wird beschleunigt.';
+        } else {
+          let mm = 0; k.moment.forEach(function (p) { mm = Math.max(mm, p[1]); });
+          const A = achsen(cx, w, h, 0, k.nMax * 1.05, 0, Math.max(mm, B.pMax / 1000) * 1.15, 'Drehzahl in 1/min', 'Nm  bzw.  kW');
+          const pm = [], pp = [];
+          for (let n = k.leerlauf; n <= k.nMax; n += 25) { pm.push([A.X(n), A.Y(moment(k, n))]); pp.push([A.X(n), A.Y(moment(k, n) * 2 * Math.PI * n / 60 / 1000)]); }
+          strich(cx, pm, BLAU, 2.5); strich(cx, pp, ORANGE, 2.5);
+          k.moment.forEach(function (p) { kreis(cx, A.X(p[0]), A.Y(p[1]), 4, BLAU, f('--flaeche'), 1.5); });
+          txt(cx, 'Drehmoment Nm', A.X(k.nMax * 0.08), A.Y(mm) - 12, { g: 11, b: true, f: BLAU, a: 'left' });
+          txt(cx, 'Leistung kW', A.X(B.nP), A.Y(B.pMax / 1000) - 12, { g: 11, b: true, f: ORANGE });
+          [k.runter, k.hoch].forEach(function (n, j) { strich(cx, [[A.X(n), A.o], [A.X(n), A.o + A.ph]], j ? ROT : GRUEN, 1.2, [4, 4]); });
+          strich(cx, [[A.X(sim.n), A.o], [A.X(sim.n), A.o + A.ph]], f('--text'), 1.5);
+          hilfe.textContent = 'Punkte: eingetragene Drehmomentkurve. Grün/Rot gestrichelt: Schaltpunkte runter/hoch, schwarz: aktuelle Drehzahl im Simulator.';
+        }
+      }
+    }
+
+    // ---------- Simulator ----------
+    const sim = { v: 0, gang: 0, lauf: false, kurbel: 0, radW: 0, weg: 0, n: 0, tf: 0, pause: 0, sperre: 0, meldung: '', meldZeit: 0, mess: null, ergebnis: '', schleift: false, begrenzer: false, F: 0 };
+    function anzahlGaenge() { return Z.art === 'rad' ? B.sortiert.length : B.gaenge.length; }
+    function simNeu() {
+      sim.v = 0; sim.weg = 0; sim.pause = 0; sim.sperre = 0; sim.mess = null; sim.ergebnis = '';
+      sim.gang = Z.art === 'rad' ? Math.max(0, Math.min(anzahlGaenge() - 1, Math.floor(anzahlGaenge() / 3))) : 0;
+      sim.n = Z.art === 'kfz' ? Z.kfz.leerlauf : 0;
+      const gas = $('gas');
+      if (Z.art === 'rad') { gas.max = String(Math.max(600, Math.round(Z.rad.leistung * 2.5))); gas.value = String(Z.rad.leistung); }
+      else { gas.max = '100'; gas.value = '70'; }
+    }
+    function melde(t) { sim.meldung = t; sim.meldZeit = 1.6; }
+    function iVon(j) { return Z.art === 'rad' ? B.sortiert[j].i : B.gaenge[j].i; }
+    function schalteAuf(j, hand) {
+      if (j < 0 || j >= anzahlGaenge() || j === sim.gang) return false;
+      if (Z.art === 'kfz') {
+        const k = Z.kfz, nNeu = sim.v / (B.U / 1000) * iVon(j) * 60;
+        if (nNeu > k.nMax * 1.02) { if (hand) melde('Zu hohe Drehzahl im ' + (j + 1) + '. Gang (' + zahl(nNeu, 0) + '/min) – nicht geschaltet'); return false; }
+        sim.pause = 0.3;
+      } else sim.pause = Z.rad.typ === 'nabe' ? 0.1 : 0.25;
+      sim.gang = j; sim.sperre = hand ? 1.2 : 0.7;
+      if (hand) { tabelleBauen(); wegBauen(); diagrammZeichnen(); }
+      return true;
+    }
+    $('hoch').addEventListener('click', function () { if (!schalteAuf(sim.gang + 1, true) && sim.gang >= anzahlGaenge() - 1) melde('Schon im höchsten Gang'); });
+    $('runter').addEventListener('click', function () { if (!schalteAuf(sim.gang - 1, true) && sim.gang === 0) melde('Schon im kleinsten Gang'); });
+    $('sim').addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowUp' || ev.key === 'ArrowRight') { ev.preventDefault(); $('hoch').click(); }
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowLeft') { ev.preventDefault(); $('runter').click(); }
+      if (ev.key === ' ') { ev.preventDefault(); $('lauf').click(); }
+    });
+    function laufKnopf() { $('lauf').textContent = sim.lauf ? '❚❚ Anhalten' : '▶ Fahren'; }
+    $('lauf').addEventListener('click', function () { sim.lauf = !sim.lauf; laufKnopf(); });
+    $('neustart').addEventListener('click', function () { simNeu(); tabelleBauen(); wegBauen(); });
+    $('messung').addEventListener('click', function () {
+      simNeu(); sim.gang = 0; sim.lauf = true; laufKnopf(); $('auto').checked = true; $('steigung').value = '0'; $('steig-wert').textContent = '0 %';
+      if (Z.art === 'kfz') $('gas').value = '100';
+      sim.mess = { t: 0, ziel: Z.art === 'kfz' ? 100 : 30 }; sim.ergebnis = '';
+      tabelleBauen();
+    });
+    $('steigung').addEventListener('input', function (ev) { $('steig-wert').textContent = ev.target.value + ' %'; });
+    function steigung() { return +$('steigung').value; }
+
+    function simSchritt(dt) {
+      const auto = $('auto').checked, st = steigung();
+      if (sim.pause > 0) sim.pause -= dt;
+      if (sim.sperre > 0) sim.sperre -= dt;
+      if (sim.meldZeit > 0) sim.meldZeit -= dt;
+      if (Z.art === 'rad') {
+        const r = Z.rad, g = B.sortiert[sim.gang], U = B.U / 1000, rr = U / (2 * Math.PI);
+        const P = +$('gas').value;
+        sim.tf = sim.v / U / g.i * 60;
+        // Kurbelmoment: Leistung geteilt durch Winkelgeschwindigkeit, begrenzt durch die Beinkraft; über 120/min fällt die Leistung ab
+        const om = sim.tf * 2 * Math.PI / 60, tMax = Math.max(40, P / (2 * Math.PI * 45 / 60));
+        const abfall = Math.max(0, Math.min(1, 1 - (sim.tf - 120) / 50));
+        let T = om > 0.1 ? Math.min(tMax, P * abfall / om) : tMax;
+        if (sim.pause > 0) T *= 0.3;
+        sim.F = T * g.i * 0.97 / rr;
+        const a = (sim.F - widerstand(r.masse, r.cwa, r.crr, st, sim.v)) / (r.masse * 1.05);
+        sim.v = Math.max(0, sim.v + a * dt);
+        sim.kurbel += om * dt; sim.radW += sim.v / rr * dt;
+        if (auto && sim.sperre <= 0 && sim.v > 0.5) {
+          if (sim.tf > r.tfMax && sim.gang < anzahlGaenge() - 1) { let j = sim.gang + 1; while (j < anzahlGaenge() - 1 && (B.sortiert[j].kreuz || B.sortiert[j].doppelt)) j++; schalteAuf(j, false); tabelleBauen(); }
+          else if (sim.tf < r.tfMin && sim.gang > 0) { let j = sim.gang - 1; while (j > 0 && (B.sortiert[j].kreuz || B.sortiert[j].doppelt)) j--; schalteAuf(j, false); tabelleBauen(); }
+        }
+      } else {
+        const k = Z.kfz, g = B.gaenge[sim.gang], U = B.U / 1000, gas = +$('gas').value / 100;
+        const nW = sim.v / U * g.i * 60;
+        sim.schleift = false; sim.begrenzer = false;
+        let n, F;
+        if (sim.pause > 0) { n = Math.max(k.leerlauf, sim.n - 3000 * dt); F = 0; }
+        else if (nW < k.anfahr && gas > 0.02 && nW < k.leerlauf * 1.6) { n = Math.max(nW, k.leerlauf + (k.anfahr - k.leerlauf) * gas); F = gas * moment(k, n) * g.i * k.eta / B.rd; sim.schleift = n > nW + 50; }
+        else { n = Math.max(nW, k.leerlauf); F = gas * moment(k, n) * g.i * k.eta / B.rd; if (gas < 0.02 && nW > k.leerlauf) F = -0.12 * B.mMax * (nW / k.nMax) * g.i / B.rd; }
+        if (n >= k.nMax) { F = 0; sim.begrenzer = true; }
+        sim.durch = F > haftung(k); if (sim.durch) F = haftung(k);
+        sim.n = n; sim.F = F;
+        const a = (F - widerstand(k.masse, k.cwa, k.crr, st, sim.v)) / (k.masse * drehmasse(g.i, k));
+        sim.v = Math.max(0, sim.v + a * dt);
+        sim.kurbel += n / 60 * 2 * Math.PI * dt * 0.05; sim.radW += sim.v / B.rd * dt;
+        if (auto && sim.sperre <= 0 && sim.pause <= 0) {
+          if (nW >= k.hoch && sim.gang < anzahlGaenge() - 1) { schalteAuf(sim.gang + 1, false); tabelleBauen(); }
+          else if (nW <= k.runter && sim.gang > 0 && sim.v > 1) { const nNeu = sim.v / U * B.gaenge[sim.gang - 1].i * 60; if (nNeu < k.hoch * 0.97) { schalteAuf(sim.gang - 1, false); tabelleBauen(); } }
+        }
+      }
+      sim.weg += sim.v * dt;
+      if (sim.mess) {
+        sim.mess.t += dt;
+        if (sim.v * 3.6 >= sim.mess.ziel) { sim.ergebnis = '0–' + sim.mess.ziel + ' km/h in ' + zahl(sim.mess.t, 1) + ' s'; sim.mess = null; }
+        else if (sim.mess.t > 90) { sim.ergebnis = sim.mess.ziel + ' km/h nicht erreicht'; sim.mess = null; }
+      }
+    }
+
+    // ---------- Simulator zeichnen ----------
+    function zeichneSim() {
+      const lw = leinwand($('sim'), function (w) { return Math.max(300, Math.min(440, w * 0.68)); });
+      const cx = lw.cx, w = lw.w, h = lw.h, K = Math.max(0.72, Math.min(1.15, Math.min(w / 640, h / 420)));
+      cx.clearRect(0, 0, w, h);
+      // Fahrbahn mit Steigung
+      const st = steigung(), win = Math.atan(st / 100), boden = h * 0.88;
+      cx.save(); cx.translate(w * 0.5, boden); cx.rotate(-win);
+      cx.fillStyle = f('--linie'); cx.fillRect(-w, 0, 2 * w, h);
+      const d = (sim.weg * 40 * K) % (60 * K);
+      for (let x = -w - d; x < w; x += 60 * K) strich(cx, [[x, 6 * K], [x + 30 * K, 6 * K]], f('--flaeche'), 3 * K);
+      cx.restore();
+      if (Z.art === 'rad') zeichneRad(cx, w, h, K, win, boden); else zeichneKfz(cx, w, h, K, win, boden);
+      // Zustandszeile unter dem Bild
+      let z = sim.lauf ? (Z.art === 'rad' ? 'fährt' : sim.begrenzer ? 'Drehzahlbegrenzer!' : sim.durch ? 'Räder drehen durch' : sim.schleift ? 'Kupplung schleift' : 'fährt') : 'angehalten';
+      if (sim.mess) z = 'Messung läuft: ' + zahl(sim.mess.t, 1) + ' s';
+      if (sim.ergebnis) z = sim.ergebnis;
+      if (sim.meldZeit > 0) z = sim.meldung;
+      $('sim-zustand').textContent = z;
+    }
+    function anzeige(cx, x, y, gross, klein, farbe, K) { txt(cx, gross, x, y, { g: 26 * K, b: true, f: farbe || f('--text'), a: 'left', mono: true }); txt(cx, klein, x, y + 20 * K, { g: 11 * K, f: f('--leise'), a: 'left' }); }
+    function zahnrad(cx, x, y, z, r, winkel, farbe, aktiv, K) {
+      const n = Math.max(6, z), zh = Math.max(1.6, 3 * K);
+      cx.beginPath();
+      for (let i = 0; i < n * 2; i++) { const a = winkel + i * Math.PI / n, rr = i % 2 ? r : r + zh; if (i) cx.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); else cx.moveTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
+      cx.closePath(); cx.fillStyle = farbe; cx.globalAlpha = aktiv ? 1 : 0.28; cx.fill(); cx.globalAlpha = 1;
+      if (aktiv) { kreis(cx, x, y, r * 0.62, f('--flaeche2')); for (let i = 0; i < 5; i++) { const a = winkel + i * 2 * Math.PI / 5; strich(cx, [[x + r * 0.15 * Math.cos(a), y + r * 0.15 * Math.sin(a)], [x + r * 0.62 * Math.cos(a), y + r * 0.62 * Math.sin(a)]], farbe, 3 * K); } kreis(cx, x, y, r * 0.16, farbe); }
+    }
+    function laufrad(cx, x, y, r, winkel, K) {
+      kreis(cx, x, y, r, null, '#2A2D31', 7 * K); kreis(cx, x, y, r - 5 * K, null, '#9AA3AD', 2 * K);
+      for (let i = 0; i < 12; i++) { const a = winkel + i * Math.PI / 6; strich(cx, [[x, y], [x + (r - 6 * K) * Math.cos(a), y + (r - 6 * K) * Math.sin(a)]], f('--leise'), 0.8); }
+      kreis(cx, x, y, 5 * K, '#5E6670');
+    }
+    function tangente(a, ra, b, rb, oben) {
+      // äußere Tangente zweier Kreise (gleicher Drehsinn), oben oder unten
+      const dx = b[0] - a[0], dy = b[1] - a[1], dd = Math.hypot(dx, dy), ph = Math.atan2(dy, dx), al = Math.acos(Math.max(-1, Math.min(1, (ra - rb) / dd)));
+      const t = ph + (oben ? -al : al);
+      return [[a[0] + ra * Math.cos(t), a[1] + ra * Math.sin(t)], [b[0] + rb * Math.cos(t), b[1] + rb * Math.sin(t)]];
+    }
+    function zeichneRad(cx, w, h, K, win, boden) {
+      const r = Z.rad, g = B.sortiert[sim.gang], rr = Math.min(h * 0.24, w * 0.17);
+      cx.save(); cx.translate(w * 0.5, boden); cx.rotate(-win);
+      const hint = [-w * 0.2, -rr], vorn = [w * 0.22, -rr], tl = [-w * 0.02, -rr * 0.85];
+      laufrad(cx, hint[0], hint[1], rr, sim.radW, K); laufrad(cx, vorn[0], vorn[1], rr, sim.radW, K);
+      // Rahmen
+      const sattel = [tl[0] - rr * 0.35, -rr * 2.3], lenk = [vorn[0] - rr * 0.45, -rr * 2.25];
+      strich(cx, [hint, tl, sattel, hint], '#3C6E8F', 5 * K); strich(cx, [sattel, lenk, tl], '#3C6E8F', 5 * K); strich(cx, [lenk, vorn], '#3C6E8F', 5 * K);
+      strich(cx, [[sattel[0] - 4 * K, sattel[1] - 10 * K], [sattel[0] - 20 * K, sattel[1] - 12 * K], [sattel[0] + 14 * K, sattel[1] - 12 * K]], '#2A2D31', 5 * K);
+      strich(cx, [lenk, [lenk[0] + 4 * K, lenk[1] - 14 * K], [lenk[0] + 22 * K, lenk[1] - 12 * K]], '#2A2D31', 4 * K);
+      // Antrieb: Kettenblätter und Ritzel, Größe nach Zähnen
+      const s = rr * 0.0105;
+      const blaetter = r.blaetter.slice().sort(function (a, b) { return b - a; });
+      const ritzel = r.typ === 'nabe' ? r.ritzel : r.ritzel.slice().sort(function (a, b) { return a - b; });
+      const bAkt = r.typ === 'nabe' ? r.blaetter[0] : g.b, zAkt = r.typ === 'nabe' ? r.ritzel[0] : g.z;
+      const RB = bAkt * s, RZ = zAkt * s;
+      blaetter.forEach(function (b) { if (b !== bAkt) zahnrad(cx, tl[0], tl[1], b, b * s, sim.kurbel, '#7D8790', false, K); });
+      ritzel.forEach(function (z) { if (z !== zAkt) zahnrad(cx, hint[0], hint[1], z, z * s, -sim.kurbel * bAkt / zAkt, '#7D8790', false, K); });
+      zahnrad(cx, hint[0], hint[1], zAkt, RZ, sim.kurbel * bAkt / zAkt, '#5E6670', true, K);
+      // Schaltwerk unter dem Ritzel (bei der Nabe Kettenspanner fest)
+      const roll1 = [hint[0] + 6 * K, hint[1] + RZ + 11 * K], roll2 = [hint[0] - 4 * K, hint[1] + RZ + 36 * K];
+      const oben = tangente(tl, RB, hint, RZ, true);
+      const unten1 = tangente(tl, RB, roll2, 5 * K, false);
+      // Kette: oben vom Blatt zum Ritzel, unten über die Schaltwerksrollen zurück
+      const kette = [oben[0], oben[1]], weg2 = r.typ === 'kette' ? [unten1[1], [roll2[0] - 5 * K, roll2[1]], [roll1[0] - 5 * K, roll1[1]], [hint[0] - RZ * 0.35, hint[1] + RZ * 0.94]] : [unten1[1], [roll2[0] - 5 * K, roll2[1]], [hint[0] - RZ * 0.6, hint[1] + RZ * 0.8]];
+      const vers = -(sim.kurbel * RB) % (10 * K);
+      cx.lineDashOffset = vers;
+      strich(cx, kette, '#B9BEC3', 4.5 * K); strich(cx, kette, '#5E6670', 4.5 * K, [5 * K, 5 * K]);
+      strich(cx, [unten1[0], unten1[1]], '#B9BEC3', 4.5 * K); strich(cx, [unten1[0], unten1[1]], '#5E6670', 4.5 * K, [5 * K, 5 * K]);
+      strich(cx, weg2, '#B9BEC3', 4.5 * K); strich(cx, weg2, '#5E6670', 4.5 * K, [5 * K, 5 * K]);
+      cx.lineDashOffset = 0;
+      if (r.typ === 'kette') { strich(cx, [[hint[0] + 2 * K, hint[1] + 4 * K], [hint[0] + 10 * K, hint[1] + RZ + 4 * K], roll1, roll2], '#2A2D31', 4 * K); kreis(cx, roll1[0], roll1[1], 5 * K, '#3A3F45'); kreis(cx, roll2[0], roll2[1], 5 * K, '#3A3F45'); }
+      else {
+        // Nabe mit Planetenrädern
+        kreis(cx, hint[0], hint[1], rr * 0.2, '#C9CED3', '#5E6670', 1.5);
+        for (let i = 0; i < 3; i++) { const a = sim.radW * 1.6 + i * 2 * Math.PI / 3; kreis(cx, hint[0] + rr * 0.11 * Math.cos(a), hint[1] + rr * 0.11 * Math.sin(a), rr * 0.055, '#E4572E'); }
+        kreis(cx, roll2[0], roll2[1], 5 * K, '#3A3F45');
+      }
+      zahnrad(cx, tl[0], tl[1], bAkt, RB, sim.kurbel, '#3A3F45', true, K);
+      // Kurbel und Pedale
+      const kl = rr * 0.42, pa = [tl[0] + kl * Math.cos(sim.kurbel), tl[1] + kl * Math.sin(sim.kurbel)], pb = [tl[0] - kl * Math.cos(sim.kurbel), tl[1] - kl * Math.sin(sim.kurbel)];
+      strich(cx, [tl, pb], '#5E6670', 5 * K); kasten(cx, pb[0] - 8 * K, pb[1] - 3 * K, 16 * K, 6 * K, 2, '#5E6670');
+      strich(cx, [tl, pa], '#2A2D31', 6 * K); kasten(cx, pa[0] - 9 * K, pa[1] - 3.5 * K, 18 * K, 7 * K, 2, '#2A2D31');
+      kreis(cx, tl[0], tl[1], 5 * K, '#C9CED3');
+      cx.restore();
+      // Anzeigen
+      const tfFarbe = sim.tf > r.tfMax ? ROT : sim.tf < r.tfMin && sim.v > 0.5 ? '#B07A12' : GRUEN;
+      anzeige(cx, 12 * K, 30 * K, zahl(sim.v * 3.6, 1), 'km/h', null, K);
+      anzeige(cx, 12 * K, 82 * K, zahl(sim.tf, 0), 'Trittfrequenz /min', tfFarbe, K);
+      anzeige(cx, 12 * K, 134 * K, (sim.gang + 1) + '/' + anzahlGaenge(), r.typ === 'nabe' ? 'Gang · Nabe ' + zahl(g.nabe, 3) : 'Gang · ' + g.name, null, K);
+      txt(cx, $('gas').value + ' W · ' + zahl(steigung(), 0) + ' %', 12 * K, 182 * K, { g: 12 * K, f: f('--leise'), a: 'left' });
+      // Kettenlinie von hinten
+      if (r.typ === 'kette') {
+        const bx = w - 118 * K, by = 14 * K, bw = 104 * K, bh = 92 * K;
+        kasten(cx, bx, by, bw, bh, 8, f('--flaeche'), f('--linie'), 1);
+        txt(cx, 'von hinten', bx + bw / 2, by + 10 * K, { g: 9 * K, f: f('--leise') });
+        const nr = ritzel.length, nb = blaetter.length, yb = by + bh - 14 * K, yr = by + 24 * K;
+        const xr = function (kz) { return bx + bw / 2 + ((nr - 1) / 2 - kz) * Math.min(7 * K, (bw - 16 * K) / Math.max(1, nr)); };
+        const xbb = function (kb) { return bx + bw / 2 + ((nb - 1) / 2 - kb) * 12 * K; };
+        ritzel.forEach(function (z, kz) { strich(cx, [[xr(kz), yr - z * 0.18 * K], [xr(kz), yr + z * 0.18 * K]], z === zAkt ? f('--text') : f('--linie'), 3 * K); });
+        blaetter.forEach(function (b, kb) { strich(cx, [[xbb(kb), yb - 8 * K], [xbb(kb), yb + 8 * K]], b === bAkt ? f('--text') : f('--linie'), 3 * K); });
+        strich(cx, [[xbb(blaetter.indexOf(bAkt)), yb - 8 * K], [xr(ritzel.indexOf(zAkt)), yr + zAkt * 0.18 * K]], g.kreuz ? ROT : GRUEN, 2.5 * K);
+        txt(cx, zahl(g.schraeg, 1) + '°', bx + bw - 6 * K, by + bh - 8 * K, { g: 9 * K, b: true, f: g.kreuz ? ROT : f('--leise'), a: 'right' });
+      }
+    }
+    function rundinstrument(cx, x, y, r, wert, max, rot, titel, einheit, teil, K) {
+      kreis(cx, x, y, r, '#1C2026', '#5E6670', 2);
+      const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25, wa = function (v) { return a0 + (a1 - a0) * Math.max(0, Math.min(1, v / max)); };
+      if (rot < max) { cx.strokeStyle = ROT; cx.lineWidth = 6 * K; cx.beginPath(); cx.arc(x, y, r - 8 * K, wa(rot), a1); cx.stroke(); }
+      const n = Math.round(max / teil);
+      for (let i = 0; i <= n; i++) { const a = wa(i * teil); strich(cx, [[x + (r - 4 * K) * Math.cos(a), y + (r - 4 * K) * Math.sin(a)], [x + (r - 13 * K) * Math.cos(a), y + (r - 13 * K) * Math.sin(a)]], '#E6E9EC', 1.6); if (n <= 14 || i % 2 === 0) txt(cx, String(Math.round(i * teil / (max > 2000 ? 1000 : 1))), x + (r - 24 * K) * Math.cos(a), y + (r - 24 * K) * Math.sin(a), { g: 9 * K, f: '#B8C0C8' }); }
+      const a = wa(wert); strich(cx, [[x, y], [x + (r - 10 * K) * Math.cos(a), y + (r - 10 * K) * Math.sin(a)]], ORANGE, 3 * K); kreis(cx, x, y, 6 * K, ORANGE);
+      txt(cx, titel, x, y + r * 0.42, { g: 14 * K, b: true, f: '#FFFFFF', mono: true }); txt(cx, einheit, x, y + r * 0.66, { g: 9 * K, f: '#9AA3AD' });
+    }
+    function zeichneKfz(cx, w, h, K, win, boden) {
+      const k = Z.kfz, gs = B.gaenge, g = gs[sim.gang];
+      // Instrumente
+      const ri = Math.min(h * 0.2, w * 0.15);
+      const nMaxSkala = Math.ceil(k.nMax * 1.15 / 1000) * 1000, vSkala = Math.max(60, Math.ceil(gs[gs.length - 1].vBegr * 0.9 / 20) * 20);
+      rundinstrument(cx, ri + 12 * K, ri + 14 * K, ri, sim.n, nMaxSkala, k.nMax, zahl(sim.n, 0), '1/min', 1000, K);
+      rundinstrument(cx, 3 * ri + 24 * K, ri + 14 * K, ri, sim.v * 3.6, vSkala, 1e9, zahl(sim.v * 3.6, 0), 'km/h', vSkala > 200 ? 40 : 20, K);
+      if (sim.begrenzer && Math.floor(Date.now() / 150) % 2) kreis(cx, ri + 12 * K, 2 * ri + 6 * K, 6 * K, ROT);
+      // Schaltkulisse (H-Schema)
+      const sx = Math.min(w - 90 * K, 4 * ri + 50 * K), sy = 18 * K, sw = Math.max(70 * K, w - sx - 12 * K), sh = 2 * ri - 6 * K;
+      kasten(cx, sx, sy, sw, sh, 10, f('--flaeche'), f('--linie'), 1);
+      const spalten = Math.ceil(gs.length / 2), mx = function (s) { return sx + sw * (s + 0.5) / spalten; }, ym = sy + sh / 2;
+      strich(cx, [[mx(0), ym], [mx(spalten - 1), ym]], f('--linie'), 4 * K);
+      gs.forEach(function (q, j) { const s = Math.floor(j / 2), oben = j % 2 === 0; strich(cx, [[mx(s), ym], [mx(s), oben ? sy + 18 * K : sy + sh - 18 * K]], f('--linie'), 4 * K); txt(cx, String(j + 1), mx(s), oben ? sy + 10 * K : sy + sh - 9 * K, { g: 11 * K, b: true, f: j === sim.gang ? ORANGE : f('--leise') }); });
+      const ks = Math.floor(sim.gang / 2), ko = sim.gang % 2 === 0, knauf = sim.pause > 0 ? [mx(ks), ym] : [mx(ks), ko ? sy + 18 * K : sy + sh - 18 * K];
+      kreis(cx, knauf[0], knauf[1], 9 * K, '#2A2D31', ORANGE, 2.5);
+      // Getriebe schematisch: Antriebswelle oben, Abtriebswelle unten, aktives Radpaar farbig
+      const gx = w * 0.5, gy = 2 * ri + 30 * K, gw = w * 0.5 - 12 * K, gh = boden - gy - 14 * K;
+      if (gh > 40 * K) {
+        kasten(cx, gx, gy, gw, gh, 10, f('--flaeche'), f('--linie'), 1);
+        txt(cx, 'Getriebe', gx + 8 * K, gy + gh - 10 * K, { g: 10 * K, b: true, f: f('--leise'), a: 'left' });
+        const yo = gy + gh * 0.4, yu = gy + gh * 0.68, x0 = gx + 46 * K, x1 = gx + gw - 26 * K;
+        const dreh = sim.n / 60 * 0.6 * (Date.now() / 1000);
+        strich(cx, [[gx + 10 * K, yo], [x1 + 10 * K, yo]], '#7D8790', 5 * K); strich(cx, [[x0 - 20 * K, yu], [gx + gw - 6 * K, yu]], '#7D8790', 5 * K);
+        txt(cx, 'Motor', gx + 12 * K, yo - 10 * K, { g: 9 * K, f: f('--leise'), a: 'left' }); txt(cx, 'zum Rad', gx + gw - 8 * K, yu + 12 * K, { g: 9 * K, f: f('--leise'), a: 'right' });
+        const abst = yu - yo;
+        gs.forEach(function (q, j) {
+          const x = x0 + (x1 - x0) * (j + 0.5) / gs.length, ra = abst / (1 + q.ig), rb = abst - ra, akt = j === sim.gang && sim.pause <= 0, bw = Math.min(14 * K, (x1 - x0) / gs.length * 0.5);
+          cx.globalAlpha = akt ? 1 : 0.35;
+          kasten(cx, x - bw / 2, yo - ra, bw, 2 * ra, 3, akt ? ORANGE : '#9AA3AD');
+          kasten(cx, x - bw / 2, yu - rb, bw, 2 * rb, 3, akt ? '#B9471F' : '#7D8790');
+          if (akt) for (let i = 0; i < 4; i++) { const yy = yo - ra + ((dreh * 40 + i * ra / 2) % (2 * ra)); strich(cx, [[x - bw / 2, yy], [x + bw / 2, yy]], 'rgba(255,255,255,0.6)', 1.5); }
+          cx.globalAlpha = 1;
+          txt(cx, String(j + 1), x, gy + gh * 0.13, { g: 10 * K, b: true, f: akt ? ORANGE : f('--leise') });
+        });
+        if (sim.pause > 0) txt(cx, 'Kupplung getreten', gx + gw - 8 * K, gy + 10 * K, { g: 10 * K, b: true, f: ORANGE, a: 'right' });
+      }
+      // Fahrzeug auf der Straße
+      cx.save(); cx.translate(w * 0.5, boden); cx.rotate(-win); cx.translate(-w * 0.25, 0);
+      const L = Math.min(w * 0.4, 200 * K), rr = L * 0.12;
+      const motorrad = k.masse < 600;
+      if (motorrad) {
+        laufrad(cx, -L * 0.35, -rr, rr, sim.radW, K); laufrad(cx, L * 0.35, -rr, rr, sim.radW, K);
+        strich(cx, [[-L * 0.35, -rr], [-L * 0.05, -rr * 2.2], [L * 0.25, -rr * 2.4], [L * 0.35, -rr]], '#C0392B', 6 * K);
+        kasten(cx, -L * 0.15, -rr * 3, L * 0.3, rr * 0.8, 6, '#C0392B');
+      } else {
+        rund(cx, -L / 2, -rr * 3.2, L, rr * 2.2, 10 * K); cx.fillStyle = '#3C6E8F'; cx.fill();
+        rund(cx, -L * 0.28, -rr * 4.6, L * 0.5, rr * 1.6, 12 * K); cx.fillStyle = '#3C6E8F'; cx.fill();
+        kasten(cx, -L * 0.24, -rr * 4.3, L * 0.2, rr * 1.1, 4, '#BFD7EA'); kasten(cx, -L * 0.01, -rr * 4.3, L * 0.19, rr * 1.1, 4, '#BFD7EA');
+        laufrad(cx, -L * 0.32, -rr, rr, sim.radW, K); laufrad(cx, L * 0.32, -rr, rr, sim.radW, K);
+      }
+      // Zugkraftpfeil
+      if (Math.abs(sim.F) > 1) { const lp = Math.max(-L * 0.3, Math.min(L * 0.45, sim.F / (k.masse * G) * L)); const ya = -rr * (motorrad ? 3.6 : 5.2); strich(cx, [[0, ya], [lp, ya]], sim.F > 0 ? GRUEN : ROT, 4 * K); txt(cx, 'Zugkraft ' + zahl(sim.F / 1000, 1) + ' kN', 0, ya - 12 * K, { g: 10 * K, b: true, f: sim.F > 0 ? GRUEN : ROT }); }
+      cx.restore();
+      txt(cx, (sim.gang + 1) + '. Gang · i = ' + zahl(g.i, 2) + ' · Gas ' + $('gas').value + ' % · ' + zahl(steigung(), 0) + ' %', 12 * K, boden + 22 * K > h - 6 ? h - 8 * K : boden + 22 * K, { g: 11 * K, f: f('--text'), a: 'left' });
+    }
+
+    let letzte = 0;
+    function schleife(t) {
+      const dt = Math.min(0.05, Math.max(0, (t - letzte) / 1000)); letzte = t;
+      if (B && sim.lauf) { const n = 5; for (let i = 0; i < n; i++) simSchritt(dt / n); }
+      if (B) zeichneSim();
+      if (B && sim.lauf && Z.diagramm[Z.art] !== 'bereiche' && Z.diagramm[Z.art] !== 'entfaltung' && Math.floor(t / 250) !== Math.floor((t - dt * 1000) / 250)) diagrammZeichnen();
+      requestAnimationFrame(schleife);
+    }
+    window.addEventListener('resize', function () { diagrammZeichnen(); });
+    document.addEventListener('themawechsel', function () { diagrammZeichnen(); });
+
+    // ---------- Formelsammlung ----------
+    (function () {
+      const z = $('sammlung');
+      [
+        ['Übersetzung Fahrrad', 'i = \\frac{z_\\text{Kettenblatt}}{z_\\text{Ritzel}} \\cdot i_\\text{Nabe}', 'Radumdrehungen je Kurbelumdrehung; bei der Kettenschaltung ist i_Nabe = 1'],
+        ['Entfaltung und Tempo', 'e = i \\cdot U,\\qquad v = e \\cdot n_\\text{Tritt} \\cdot 0{,}06\\ \\tfrac{\\text{km/h}}{\\text{m/min}}', 'U: Abrollumfang, etwa π · (Felgendurchmesser + 2 × Reifenbreite) nach ETRTO'],
+        ['Gear Inches und Gain Ratio', '\\text{GI} = i \\cdot D_\\text{Zoll},\\qquad G = \\frac{D/2}{l_\\text{Kurbel}} \\cdot i', 'Gain Ratio berücksichtigt auch die Kurbellänge: Weg des Rads je Weg des Pedals'],
+        ['Gangsprung und Bandbreite', 's = \\frac{i_{n+1}}{i_n} - 1,\\qquad \\text{Bandbreite} = \\frac{i_{\\max}}{i_{\\min}}', 'kleine Sprünge: feine Abstufung; große Bandbreite: leichter Berggang und schneller Gang'],
+        ['Gesamtübersetzung Kfz', 'i_\\text{ges} = i_\\text{G} \\cdot i_\\text{A},\\qquad v = \\frac{n \\cdot U}{i_\\text{ges}}', 'Motordrehungen je Radumdrehung; Abrollumfang dynamisch etwa 3 % unter dem geometrischen'],
+        ['Zugkraft', 'F_\\text{Z} = \\frac{M \\cdot i_\\text{ges} \\cdot \\eta}{r_\\text{dyn}}', 'im 1. Gang am größten; die ideale Zugkrafthyperbel ist F = P_max · η / v'],
+        ['Fahrwiderstand', 'F_\\text{W} = m g (c_r \\cos\\alpha + \\sin\\alpha) + \\tfrac{1}{2} \\rho\\, c_w A\\, v^2 + e\\, m\\, a', 'Roll-, Steigungs-, Luft- und Beschleunigungswiderstand; e ≈ 1,04 + 0,0025 · i_ges² (Drehmassen)'],
+        ['Stufensprung und Spreizung', '\\varphi_n = \\frac{i_n}{i_{n+1}},\\qquad \\text{Spreizung} = \\frac{i_1}{i_z}', 'progressive Stufung: unten große, oben kleine Sprünge'],
+        ['Leistung', 'P = M \\cdot \\omega = M \\cdot \\frac{2\\pi n}{60}', 'Leistung in W aus Drehmoment in Nm und Drehzahl in 1/min']
+      ].forEach(function (q) { const s = document.createElement('section'), h = document.createElement('h3'), fo = document.createElement('div'), p = document.createElement('p'); h.textContent = q[0]; Formel.setze(fo, q[1], true); p.textContent = q[2]; s.append(h, fo, p); z.append(s); });
+    })();
+
+    // Beispiel im Schnellrechner
+    [['lr-tf', '90'], ['lr-zb', '50'], ['lr-zr', '17'], ['lr-u', '2111'], ['lk-n', '3000'], ['lk-ig', '1,03'], ['lk-ia', '3,94'], ['lk-u', '1917']].forEach(function (p) { const e = $(p[0]); if (e) e.value = p[1]; });
+    loeseRad(); loeseKfz();
+    modusSetzen('rad'); laufKnopf(); requestAnimationFrame(schleife);
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>
