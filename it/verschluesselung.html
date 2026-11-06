@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verschlüsselung Schritt für Schritt – Formeln &amp; Rechner</title>
+  <meta name="description" content="Verschlüsselung verstehen mit Simulation: SHA-256 mit Lawineneffekt, symmetrische Stromchiffre mit XOR, Diffie-Hellman-Schlüsseltausch, RSA und digitale Signatur mit echten Rechnungen und der TLS-1.3-Handshake.">
+  <!-- seo -->
+  <link rel="canonical" href="https://tools.pr1m3.de/it/verschluesselung.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formeln &amp; Rechner">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="Verschlüsselung Schritt für Schritt">
+  <meta property="og:description" content="Verschlüsselung verstehen mit Simulation: SHA-256 mit Lawineneffekt, symmetrische Stromchiffre mit XOR, Diffie-Hellman-Schlüsseltausch, RSA und digitale Signatur mit echten Rechnungen und der TLS-1.3-Handshake.">
+  <meta property="og:url" content="https://tools.pr1m3.de/it/verschluesselung.html">
+  <meta property="og:image" content="https://tools.pr1m3.de/assets/symbol-512.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Verschlüsselung Schritt für Schritt","url":"https://tools.pr1m3.de/it/verschluesselung.html","inLanguage":"de","description":"Verschlüsselung verstehen mit Simulation: SHA-256 mit Lawineneffekt, symmetrische Stromchiffre mit XOR, Diffie-Hellman-Schlüsseltausch, RSA und digitale Signatur mit echten Rechnungen und der TLS-1.3-Handshake.","isPartOf":{"@type":"WebSite","name":"Formeln & Rechner","url":"https://tools.pr1m3.de/"}}</script>
+  <!-- /seo -->
+  <meta name="theme-color" content="#F1F3F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/symbol-apple.png">
+  <link rel="stylesheet" href="../assets/katex/katex.min.css">
+  <link rel="stylesheet" href="../assets/stil.css">
+  <link rel="stylesheet" href="../assets/rechner.css">
+  <script src="../assets/basis.js"></script>
+  <style>
+    .reiter-leiste { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+    .reiter-leiste button { border: 1.5px solid var(--linie); border-radius: 999px; background: var(--flaeche); color: var(--text); padding: 7px 14px; font: inherit; font-size: .92rem; cursor: pointer; }
+    .reiter-leiste button[aria-pressed="true"] { background: var(--text); color: var(--grund); border-color: var(--text); }
+    .raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; margin: 8px 0 4px; }
+    .raster label { display: flex; flex-direction: column; gap: 2px; font-size: .8rem; color: var(--leise); min-width: 0; }
+    .raster label.breit { grid-column: 1 / -1; }
+    .raster input, .raster select { padding: 7px 9px; border: 1.5px solid var(--linie); border-radius: var(--rund-klein); background: var(--flaeche); color: var(--text); font: inherit; font-size: .98rem; min-width: 0; width: 100%; }
+    .raster input.mono, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .raster input.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+    .raster input[type="range"] { padding: 0; border: none; accent-color: #3B5BDB; }
+    .bild { display: block; width: 100%; border-radius: var(--rund); background: var(--flaeche2); }
+    .schritte { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; }
+    .schritte li { counter-increment: s; position: relative; padding: 9px 10px 9px 42px; border-radius: var(--rund); margin: 4px 0; cursor: pointer; border: 1px solid transparent; }
+    .schritte li::before { content: counter(s); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; background: var(--linie); color: var(--text); font-size: .8rem; font-weight: 700; display: grid; place-items: center; }
+    .schritte li.aktiv { background: var(--flaeche2); border-color: var(--linie); }
+    .schritte li.aktiv::before { background: #3B5BDB; color: #FFFFFF; }
+    .schritte li.fertig::before { content: '✓'; background: #2E8B57; color: #FFFFFF; }
+    .schritte b { display: block; font-family: var(--technik); }
+    .schritte span { font-size: .9rem; color: var(--leise); }
+    .stepper { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+    .stepper .status { color: var(--leise); font-size: .9rem; }
+    .bereich { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 18px; margin-top: 14px; align-items: start; }
+    @media (max-width: 960px) { .bereich { grid-template-columns: minmax(0, 1fr); } .bereich > .bild-tafel { order: -1; } }
+    @media print { .reiter-leiste, .stepper { display: none !important; } .bereich { display: block; } .bild { max-height: 100mm; width: auto; max-width: 100%; } }
+    .hex { font-family: ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; font-size: .92rem; }
+    .held .hinweis { margin-top: 10px; }
+    .knopfzeile { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  </style>
+</head>
+
+<body>
+  <div id="seitenkopf" data-wurzel="../"></div>
+
+  <main class="seite" data-merken>
+    <section class="held">
+      <h1><span class="unterstrichen">Verschlüsselung Schritt für Schritt</span></h1>
+      <p>Wie Hashes, symmetrische Verschlüsselung, Schlüsseltausch nach Diffie-Hellman, RSA und digitale Signaturen funktionieren – mit echten Rechnungen zum Nachvollziehen (SHA-256 vollständig, die übrigen Verfahren mit kleinen Zahlen) und am Ende alles zusammen im TLS-Handshake.</p>
+      <div class="hinweis">Lernseite: Die kleinen Zahlen bei Diffie-Hellman und RSA sind in Sekunden zu knacken. Für echte Daten nur geprüfte Bibliotheken mit Schlüsseln ab 2048 bit (RSA) bzw. 256 bit (ECC) verwenden.</div>
+    </section>
+    <div class="reiter-leiste" id="reiter" data-nicht-merken></div>
+    <input type="hidden" id="zustand">
+    <div class="bereich">
+      <section class="tafel" aria-labelledby="h-schritte">
+        <h2 id="h-schritte">Schritte</h2>
+        <p class="hilfe" id="kurz"></p>
+        <div class="raster" id="felder" data-nicht-merken></div>
+        <ol class="schritte" id="schritte"></ol>
+      </section>
+      <section class="tafel bild-tafel" aria-labelledby="h-bild">
+        <h2 id="h-bild">Simulation</h2>
+        <canvas id="bild" class="bild" role="img" aria-label="Darstellung des Verfahrens mit Alice, Bob und den ausgetauschten Werten"></canvas>
+        <div class="stepper" data-nicht-merken>
+          <button type="button" class="knopf-leise" id="zurueck">← Schritt zurück</button>
+          <button type="button" class="knopf" id="weiter">Nächster Schritt →</button>
+          <span class="status" id="stand"></span>
+        </div>
+      </section>
+    </div>
+    <section class="tafel abstand" aria-labelledby="h-erg">
+      <div class="kopf-zeile"><h2 id="h-erg">Ergebnis</h2><span class="urteil" id="urteil"></span></div>
+      <div class="meldungen" id="meldungen"></div>
+      <div class="kacheln" id="kacheln"></div>
+      <div class="rahmen"><div id="tabelle"></div></div>
+    </section>
+    <section class="tafel abstand" aria-labelledby="h-weg">
+      <h2 id="h-weg">Rechenweg</h2>
+      <ol class="weg" id="weg"></ol>
+    </section>
+    <section class="tafel abstand formelsammlung" aria-labelledby="h-formeln">
+      <h2 id="h-formeln">Formelsammlung</h2>
+      <div id="sammlung"></div>
+      <p class="quellen">FIPS 180-4 (SHA-256), FIPS 197 und NIST SP 800-38D (AES, GCM), RFC 2631 / RFC 7748 (Diffie-Hellman, X25519), RFC 8017 (RSA, PKCS #1), RFC 8446 (TLS 1.3), BSI TR-02102-1 (Empfehlungen zu Verfahren und Schlüssellängen).</p>
+    </section>
+  </main>
+
+  <div id="seitenfuss" data-wurzel="../"></div>
+
+  <script src="../assets/katex/katex.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const bewegungAus = false;
+    const $ = function (id) { return document.getElementById(id); };
+    function zahl(w, n) { if (typeof w !== 'number' || !isFinite(w)) return '–'; const p = Math.pow(10, n || 0); const t = (Math.round(w * p) / p).toFixed(n || 0).replace('.', ',').split(','); t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return t.join(','); }
+    function tz(w, n) { return Formel.zahl(zahl(w, n)); }
+    function E(t) { return '\\htmlClass{ergebnis}{' + t + '}'; }
+    function f(n) { return Thema.farbe(n); }
+    function knoten(tag, klasse, text) { const k = document.createElement(tag); if (klasse) k.className = klasse; if (text !== undefined) k.textContent = text; return k; }
+    function leinwand(c, hoehe) {
+      const d = window.devicePixelRatio || 1, w = Math.max(240, c.parentNode.clientWidth), h = Math.round(hoehe(w));
+      if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.height = h + 'px'; }
+      const cx = c.getContext('2d'); cx.setTransform(d, 0, 0, d, 0, 0); return { cx: cx, w: w, h: h };
+    }
+    function txt(cx, t, x, y, o) { o = o || {}; cx.fillStyle = o.f || f('--text'); cx.font = (o.b ? '700 ' : '500 ') + Math.round(o.g || 12) + 'px ' + (o.mono ? 'ui-monospace, Menlo, Consolas, monospace' : (f('--technik') || 'sans-serif')); cx.textAlign = o.a || 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y); }
+    function rund(cx, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function kasten(cx, x, y, w, h, r, fuell, rand, lw) { rund(cx, x, y, w, h, r); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.2; cx.stroke(); } }
+    function strich(cx, pts, farbe, w, dash) { cx.strokeStyle = farbe; cx.lineWidth = w; cx.lineJoin = 'round'; cx.lineCap = 'round'; cx.setLineDash(dash || []); cx.beginPath(); pts.forEach(function (q, i) { if (i) cx.lineTo(q[0], q[1]); else cx.moveTo(q[0], q[1]); }); cx.stroke(); cx.setLineDash([]); }
+    function kreis(cx, x, y, r, fuell, rand, lw) { cx.beginPath(); cx.arc(x, y, Math.max(0.1, r), 0, 2 * Math.PI); if (fuell) { cx.fillStyle = fuell; cx.fill(); } if (rand) { cx.strokeStyle = rand; cx.lineWidth = lw || 1.5; cx.stroke(); } }
+    function pfeil(cx, a, b, farbe, w) { strich(cx, [a, b], farbe, w || 2); const an = Math.atan2(b[1] - a[1], b[0] - a[0]), k = 8; cx.fillStyle = farbe; cx.beginPath(); cx.moveTo(b[0], b[1]); cx.lineTo(b[0] - k * Math.cos(an - 0.4), b[1] - k * Math.sin(an - 0.4)); cx.lineTo(b[0] - k * Math.cos(an + 0.4), b[1] - k * Math.sin(an + 0.4)); cx.closePath(); cx.fill(); }
+    // Ergebnis-Bausteine
+    function meldungen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (m) { ziel.append(knoten('div', 'hinweis' + (m[1] ? ' fehler' : ''), m[0])); }); }
+    function kacheln(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const d = knoten('div', 'kachel'); d.style.setProperty('--farbe', q[2] || 'var(--linie)'); d.append(knoten('div', 'wert', q[0]), knoten('small', '', q[1])); ziel.append(d); }); }
+    function wegZeigen(ziel, liste) { ziel.innerHTML = ''; liste.forEach(function (q) { if (!q) return; const li = knoten('li'), r = knoten('div', 'rechnung'); Formel.setze(r, q[1], true); li.append(knoten('div', 'titel', q[0]), r); ziel.append(li); }); }
+    function sammlung(ziel, liste) { liste.forEach(function (q) { const s = knoten('section'), fo = knoten('div', 'formelblock'); Formel.setze(fo, q[1], true); s.append(knoten('h3', '', q[0]), fo, knoten('p', '', q[2])); ziel.append(s); }); }
+    function tabelle(ziel, kopf, zeilen, opt) {
+      opt = opt || {}; ziel.innerHTML = '';
+      const t = knoten('table', 'tabelle'), tr0 = knoten('tr');
+      kopf.forEach(function (k, i) { tr0.append(knoten('th', (opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '', k)); }); t.append(tr0);
+      zeilen.forEach(function (z, j) { const tr = knoten('tr', opt.klasse ? opt.klasse(j) || '' : ''); z.forEach(function (w, i) { tr.append(knoten('td', ((opt.zahl || []).indexOf(i) >= 0 ? 'zahl' : '') + (opt.mono && opt.mono.indexOf(i) >= 0 ? ' mono' : ''), w)); }); t.append(tr); });
+      ziel.append(t);
+    }
+
+    // ---------- SHA-256 (FIPS 180-4) ----------
+    const KK = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    function utf8(s) { const e = unescape(encodeURIComponent(s)), o = []; for (let i = 0; i < e.length; i++) o.push(e.charCodeAt(i)); return o; }
+    function sha256(bytes) {
+      const h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+      const m = bytes.slice(), l = bytes.length * 8;
+      m.push(0x80); while (m.length % 64 !== 56) m.push(0);
+      for (let i = 7; i >= 0; i--) m.push(i >= 4 ? 0 : (l >>> (i * 8)) & 255);
+      const rot = function (x, n) { return (x >>> n) | (x << (32 - n)); };
+      for (let b = 0; b < m.length; b += 64) {
+        const w = [];
+        for (let i = 0; i < 16; i++) w[i] = (m[b + 4 * i] << 24) | (m[b + 4 * i + 1] << 16) | (m[b + 4 * i + 2] << 8) | m[b + 4 * i + 3];
+        for (let i = 16; i < 64; i++) { const s0 = rot(w[i - 15], 7) ^ rot(w[i - 15], 18) ^ (w[i - 15] >>> 3), s1 = rot(w[i - 2], 17) ^ rot(w[i - 2], 19) ^ (w[i - 2] >>> 10); w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0; }
+        let a = h[0], bb = h[1], c = h[2], d = h[3], e = h[4], ff = h[5], g = h[6], hh = h[7];
+        for (let i = 0; i < 64; i++) {
+          const S1 = rot(e, 6) ^ rot(e, 11) ^ rot(e, 25), ch = (e & ff) ^ (~e & g), t1 = (hh + S1 + ch + KK[i] + w[i]) | 0;
+          const S0 = rot(a, 2) ^ rot(a, 13) ^ rot(a, 22), maj = (a & bb) ^ (a & c) ^ (bb & c), t2 = (S0 + maj) | 0;
+          hh = g; g = ff; ff = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+        }
+        h[0] = (h[0] + a) | 0; h[1] = (h[1] + bb) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0; h[4] = (h[4] + e) | 0; h[5] = (h[5] + ff) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+      }
+      const o = []; h.forEach(function (x) { o.push((x >>> 24) & 255, (x >>> 16) & 255, (x >>> 8) & 255, x & 255); });
+      return { bytes: o, bloecke: m.length / 64, aufgefuellt: m.length };
+    }
+    function bin8(x) { let q = x.toString(2); while (q.length < 8) q = '0' + q; return q; }
+    function hex(b) { return b.map(function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join(''); }
+
+    // ---------- Zahlentheorie mit kleinen Zahlen ----------
+    function mulmod(a, b, m) { return (a * b) % m; }      // sicher, solange m < 9,4 · 10⁷
+    function powmod(b, e, m) { let r = 1; b %= m; while (e > 0) { if (e & 1) r = mulmod(r, b, m); b = mulmod(b, b, m); e = Math.floor(e / 2); } return r; }
+    function prim(n) { if (n < 2 || Math.floor(n) !== n) return false; if (n < 4) return true; if (n % 2 === 0) return false; for (let i = 3; i * i <= n; i += 2) if (n % i === 0) return false; return true; }
+    function ggt(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
+    function inv(a, m) { let t = 0, nt = 1, r = m, nr = a % m; while (nr) { const q = Math.floor(r / nr); let x = t - q * nt; t = nt; nt = x; x = r - q * nr; r = nr; nr = x; } return r > 1 ? -1 : (t + m) % m; }
+
+    // ---------- Verfahren ----------
+    const START = { tab: 'hash', schritt: 0, text: 'Hallo Welt', schluessel: 'geheim', klar: 'Treffpunkt 12 Uhr', p: 2027, g: 2, a: 1234, b: 987, rp: 61, rq: 53, re: 17, rm: 65, nachricht: 'Überweise 100 €', faelschen: 'nein' };
+    let Z = JSON.parse(JSON.stringify(START));
+    const TABS = {
+      hash: { name: 'Hash', kurz: 'Ein Hash ist ein Fingerabdruck fester Länge: gleiche Eingabe, gleicher Hash – die kleinste Änderung ergibt einen völlig anderen. Zurückrechnen ist nicht möglich.',
+        felder: [['text', 'Text', 'text']],
+        schritte: [['Text in Bytes', 'Jedes Zeichen wird nach UTF-8 in ein bis vier Bytes übersetzt.'], ['Auffüllen', 'Eine 1, dann Nullen und am Ende die Länge in Bit – bis die Nachricht ein Vielfaches von 512 bit ist.'], ['64 Runden je Block', 'Acht 32-bit-Wörter werden je Block in 64 Runden mit Verschiebungen, UND, XOR und Additionen gemischt.'], ['Ergebnis: 256 bit', 'Die acht Wörter hintereinander sind der Hash, als 64 Hex-Ziffern geschrieben.'], ['Lawineneffekt', 'Ein einziges geändertes Zeichen kippt im Mittel die Hälfte aller 256 Bits.']] },
+      sym: { name: 'Symmetrisch', kurz: 'Beide Seiten haben denselben geheimen Schlüssel. Hier als Stromchiffre: aus dem Schlüssel entsteht ein Schlüsselstrom, der mit XOR über den Text gelegt wird – XOR mit demselben Strom macht es wieder rückgängig.',
+        felder: [['klar', 'Klartext', 'text'], ['schluessel', 'Schlüssel (Passwort)', 'text']],
+        schritte: [['Schlüssel ableiten', 'Aus dem Passwort wird mit SHA-256 ein 256-bit-Schlüssel (in der Praxis mit Salz und vielen Runden, z. B. PBKDF2 oder Argon2).'], ['Schlüsselstrom', 'SHA-256(Schlüssel ‖ Zähler) liefert Block für Block zufällig aussehende Bytes – wie AES im Zählermodus.'], ['XOR', 'Jedes Byte des Klartexts wird mit einem Byte des Schlüsselstroms per XOR verknüpft: Ergebnis ist der Geheimtext.'], ['Übertragen', 'Ohne Schlüssel ist der Geheimtext nicht von Zufall zu unterscheiden. Zähler (Nonce) darf sich nie wiederholen!'], ['Entschlüsseln', 'Bob erzeugt denselben Schlüsselstrom und rechnet XOR noch einmal: a ⊕ k ⊕ k = a.']] },
+      dh: { name: 'Diffie-Hellman', kurz: 'Zwei Seiten einigen sich über eine abhörbare Leitung auf ein gemeinsames Geheimnis, ohne es je zu übertragen. Sicher, weil der diskrete Logarithmus bei großen Zahlen praktisch nicht zu berechnen ist.',
+        felder: [['p', 'Primzahl p (öffentlich)', 'zahl', 5, 94000000], ['g', 'Basis g (öffentlich)', 'zahl', 2, 94000000], ['a', 'Geheimnis von Alice a', 'zahl', 2, 10000000], ['b', 'Geheimnis von Bob b', 'zahl', 2, 10000000]],
+        schritte: [['Öffentliche Werte', 'Alice und Bob vereinbaren offen eine große Primzahl p und eine Basis g.'], ['Geheime Zahlen', 'Alice wählt geheim a, Bob geheim b. Diese verlassen nie ihren Rechner.'], ['Austausch', 'Alice sendet A = gᵃ mod p, Bob sendet B = gᵇ mod p – beides darf jeder sehen.'], ['Gemeinsames Geheimnis', 'Alice rechnet Bᵃ mod p, Bob rechnet Aᵇ mod p. Beides ergibt g^(ab) mod p.'], ['Lauscherin Eve', 'Eve kennt p, g, A und B. Um s zu finden, müsste sie a aus A berechnen – bei 2048-bit-Zahlen unmöglich.']] },
+      rsa: { name: 'RSA', kurz: 'Asymmetrisch: ein öffentlicher Schlüssel zum Verschlüsseln, ein privater zum Entschlüsseln. Sicher, weil sich das Produkt zweier großer Primzahlen nicht in vertretbarer Zeit zerlegen lässt.',
+        felder: [['rp', 'Primzahl p (geheim)', 'zahl', 3, 9700], ['rq', 'Primzahl q (geheim)', 'zahl', 3, 9700], ['re', 'öffentlicher Exponent e', 'zahl', 3, 65537], ['rm', 'Nachricht als Zahl m', 'zahl', 0, 94000000]],
+        schritte: [['Zwei Primzahlen', 'Bob wählt geheim zwei große Primzahlen p und q und rechnet n = p · q.'], ['φ(n) und e', 'φ(n) = (p − 1)(q − 1). Der öffentliche Exponent e muss teilerfremd zu φ(n) sein, meist 65 537.'], ['Privater Schlüssel', 'd ist das Inverse von e modulo φ(n): e · d ≡ 1. Das kann nur, wer p und q kennt.'], ['Verschlüsseln', 'Alice nimmt Bobs öffentlichen Schlüssel (n, e): c = mᵉ mod n.'], ['Entschlüsseln', 'Bob rechnet c^d mod n und erhält wieder m.']] },
+      sig: { name: 'Signatur', kurz: 'Umgekehrt zu RSA-Verschlüsselung: Bob signiert mit dem privaten Schlüssel, jeder prüft mit dem öffentlichen. So ist klar, wer die Nachricht geschrieben hat und dass sie nicht verändert wurde.',
+        felder: [['nachricht', 'Nachricht', 'text'], ['faelschen', 'unterwegs verändert?', 'wahl', [['nein', 'nein'], ['ja', 'ja, ein Zeichen geändert']]]],
+        schritte: [['Hash bilden', 'Bob hasht die Nachricht mit SHA-256 (hier auf den kleinen RSA-Modul n verkleinert).'], ['Signieren', 'Bob rechnet s = h^d mod n mit seinem privaten Schlüssel aus dem RSA-Reiter.'], ['Senden', 'Nachricht und Signatur gehen zusammen an Alice.'], ['Prüfen', 'Alice hasht die empfangene Nachricht selbst und rechnet sᵉ mod n mit Bobs öffentlichem Schlüssel.'], ['Vergleich', 'Stimmen beide Werte überein, ist die Signatur gültig. Jede Änderung an der Nachricht fällt auf.']] },
+      tls: { name: 'TLS 1.3', kurz: 'Alles zusammen: Beim Aufruf einer https-Seite tauschen Browser und Server per Diffie-Hellman einen Schlüssel aus, der Server beweist mit Zertifikat und Signatur, wer er ist, danach läuft alles symmetrisch verschlüsselt.',
+        felder: [],
+        schritte: [['ClientHello', 'Browser: unterstützte Verfahren, Zufallszahl und gleich seinen Diffie-Hellman-Anteil (Key Share, meist X25519).'], ['ServerHello', 'Server wählt Verfahren und sendet seinen Key Share. Beide berechnen jetzt das gemeinsame Geheimnis – ab hier ist alles verschlüsselt.'], ['Zertifikat', 'Der Server schickt sein Zertifikat: öffentlicher Schlüssel und Name, signiert von einer Zertifizierungsstelle, der der Browser vertraut.'], ['CertificateVerify', 'Der Server signiert den bisherigen Handshake mit seinem privaten Schlüssel – Beweis, dass er den Schlüssel zum Zertifikat besitzt.'], ['Finished und Daten', 'Beide bestätigen den Handshake mit einem Prüfwert. Danach fließen die Daten mit AES-GCM oder ChaCha20 verschlüsselt – nach nur einem Umlauf.']] }
+    };
+    const REIHE = ['hash', 'sym', 'dh', 'rsa', 'sig', 'tls'];
+    let schritt = 0;
+
+    function rsaSchluessel() {
+      const r = { p: Z.rp, q: Z.rq, e: Z.re };
+      r.ok = prim(r.p) && prim(r.q) && r.p !== r.q;
+      r.n = r.p * r.q; r.phi = (r.p - 1) * (r.q - 1);
+      r.eOk = r.e > 1 && r.e < r.phi && ggt(r.e, r.phi) === 1;
+      r.d = r.eOk ? inv(r.e, r.phi) : -1;
+      return r;
+    }
+    function rechne() {
+      const r = { mel: [], ka: [], weg: [], tab: [] };
+      if (Z.tab === 'hash') {
+        const b = utf8(Z.text), h = sha256(b);
+        const geaendert = Z.text.length ? Z.text.slice(0, -1) + String.fromCharCode(Z.text.charCodeAt(Z.text.length - 1) ^ 1) : 'a';
+        const h2 = sha256(utf8(geaendert));
+        let diff = 0; for (let i = 0; i < 32; i++) { let x = h.bytes[i] ^ h2.bytes[i]; while (x) { diff += x & 1; x >>= 1; } }
+        Object.assign(r, { b: b, h: h, h2: h2, geaendert: geaendert, diff: diff });
+        r.ka = [[hex(h.bytes).slice(0, 16) + '…', 'SHA-256 (256 bit)', '#3B5BDB'], [b.length + ' Byte', 'Eingabe (' + h.bloecke + ' Block' + (h.bloecke > 1 ? 'e' : '') + ' à 512 bit)', '#0E6B6A'], [diff + ' von 256', 'Bits geändert bei „' + (geaendert.length > 20 ? geaendert.slice(0, 20) + '…' : geaendert) + '“', '#E4572E']];
+        r.tab = [['Eingabe', Z.text], ['SHA-256', hex(h.bytes)], ['geändert', geaendert], ['SHA-256', hex(h2.bytes)]];
+        r.weg = [['Bytes (UTF-8)', '\\text{' + b.slice(0, 8).map(function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join('\\ ') + (b.length > 8 ? '\\ \\ldots' : '') + '}'], ['Aufgefüllt', b.length + '\\,\\text{Byte} \\rightarrow ' + h.aufgefuellt + '\\,\\text{Byte} = ' + h.bloecke + ' \\cdot 512\\,\\text{bit}'], ['Lawineneffekt', '\\text{geänderte Bits} = ' + E(String(diff)) + ' \\approx 128']];
+        r.urteil = '256 bit';
+      } else if (Z.tab === 'sym') {
+        const k = sha256(utf8(Z.schluessel)).bytes, m = utf8(Z.klar);
+        const strom = []; for (let blk = 0; strom.length < m.length; blk++) strom.push.apply(strom, sha256(k.concat([0, 0, 0, blk & 255])).bytes);
+        const c = m.map(function (x, i) { return x ^ strom[i]; }), zur = c.map(function (x, i) { return x ^ strom[i]; });
+        Object.assign(r, { k: k, m: m, strom: strom.slice(0, m.length), c: c, zur: zur });
+        r.ka = [[hex(c).slice(0, 16) + (c.length > 8 ? '…' : ''), 'Geheimtext (hex)', '#E4572E'], [m.length + ' Byte', 'gleiche Länge wie der Klartext', '#0E6B6A'], [String.fromCharCode.apply(null, zur) === String.fromCharCode.apply(null, m) ? 'stimmt' : 'Fehler', 'entschlüsselt = Klartext', '#2E8B57']];
+        r.tab = [['Klartext', hex(m)], ['Schlüsselstrom', hex(r.strom)], ['Geheimtext', hex(c)], ['entschlüsselt', Z.klar]];
+        r.weg = [['Schlüssel', 'k = \\text{SHA-256}(\\text{Passwort}) = \\texttt{' + hex(k).slice(0, 16) + '}\\ldots'], ['Erstes Byte', '\\texttt{' + bin8(m[0] || 0) + '} \\oplus \\texttt{' + bin8(r.strom[0] || 0) + '} = ' + E('\\texttt{' + bin8(c[0] || 0) + '}')], ['Zurück', 'c \\oplus k = (m \\oplus k) \\oplus k = m']];
+        r.mel.push(['Nie denselben Schlüsselstrom zweimal verwenden: Aus zwei Geheimtexten mit gleichem Strom lässt sich per XOR der Unterschied der Klartexte lesen. In der Praxis: AES-GCM mit eindeutiger Nonce.']);
+        r.urteil = 'XOR-Stromchiffre';
+      } else if (Z.tab === 'dh') {
+        const pOk = prim(Z.p), gOk = Z.g > 1 && Z.g < Z.p;
+        if (!pOk) r.mel.push(['p muss eine Primzahl sein (z. B. 2027, 7919, 104729, 2147483 … bis 94 000 000).', true]);
+        if (!gOk) r.mel.push(['g muss zwischen 1 und p liegen.', true]);
+        const A = powmod(Z.g, Z.a, Z.p), Bv = powmod(Z.g, Z.b, Z.p), sA = powmod(Bv, Z.a, Z.p), sB = powmod(A, Z.b, Z.p);
+        Object.assign(r, { A: A, B: Bv, sA: sA, sB: sB, ok: pOk && gOk });
+        r.ka = [[String(A), 'A = gᵃ mod p (öffentlich)', '#E4572E'], [String(Bv), 'B = gᵇ mod p (öffentlich)', '#3B5BDB'], [String(sA), 'gemeinsames Geheimnis s', sA === sB ? '#2E8B57' : '#C0392B'], [Math.ceil(Math.log(Z.p) / Math.LN2) + ' bit', 'Größe von p (echt: 2048 bit oder ECC)', '#6B7785']];
+        r.weg = [['Alice', 'A = ' + Z.g + '^{' + Z.a + '} \\bmod ' + Z.p + ' = ' + A], ['Bob', 'B = ' + Z.g + '^{' + Z.b + '} \\bmod ' + Z.p + ' = ' + Bv], ['Alice rechnet', 's = B^a \\bmod p = ' + Bv + '^{' + Z.a + '} \\bmod ' + Z.p + ' = ' + E(String(sA))], ['Bob rechnet', 's = A^b \\bmod p = ' + A + '^{' + Z.b + '} \\bmod ' + Z.p + ' = ' + E(String(sB))]];
+        r.urteil = r.ok && sA === sB ? 'gleiches Geheimnis' : 'Werte prüfen';
+      } else if (Z.tab === 'rsa' || Z.tab === 'sig') {
+        const k = rsaSchluessel(); r.k = k;
+        if (!k.ok) r.mel.push(['p und q müssen zwei verschiedene Primzahlen sein (Reiter RSA).', true]);
+        else if (!k.eOk) r.mel.push(['e muss kleiner als φ(n) = ' + k.phi + ' und teilerfremd dazu sein.', true]);
+        if (Z.tab === 'rsa') {
+          const mOk = Z.rm < k.n;
+          if (k.ok && !mOk) r.mel.push(['Die Nachricht m muss kleiner als n = ' + k.n + ' sein.', true]);
+          const c = k.ok && k.eOk ? powmod(Z.rm % k.n, k.e, k.n) : 0, m2 = k.ok && k.eOk ? powmod(c, k.d, k.n) : 0;
+          Object.assign(r, { c: c, m2: m2 });
+          r.ka = [['(' + k.n + ', ' + k.e + ')', 'öffentlicher Schlüssel (n, e)', '#3B5BDB'], [String(k.d), 'privater Exponent d', '#C0392B'], [String(c), 'Geheimtext c', '#E4572E'], [String(m2), 'entschlüsselt', m2 === Z.rm ? '#2E8B57' : '#C0392B']];
+          r.weg = [['Modul', 'n = ' + k.p + ' \\cdot ' + k.q + ' = ' + k.n], ['φ(n)', '\\varphi = (' + k.p + ' - 1)(' + k.q + ' - 1) = ' + k.phi], ['Privater Exponent', 'd = e^{-1} \\bmod \\varphi = ' + E(String(k.d)) + ',\\quad ' + k.e + ' \\cdot ' + k.d + ' \\bmod ' + k.phi + ' = ' + ((k.e * k.d) % k.phi || 0)], ['Verschlüsseln', 'c = ' + Z.rm + '^{' + k.e + '} \\bmod ' + k.n + ' = ' + E(String(c))], ['Entschlüsseln', 'm = ' + c + '^{' + k.d + '} \\bmod ' + k.n + ' = ' + E(String(m2))]];
+          r.urteil = k.ok && k.eOk && m2 === Z.rm ? 'funktioniert' : 'Werte prüfen';
+        } else {
+          const hv = function (t) { const b = sha256(utf8(t)).bytes; return ((b[0] * 16777216 + b[1] * 65536 + b[2] * 256 + b[3]) % k.n); };
+          const empfangen = Z.faelschen === 'ja' ? Z.nachricht.replace(/\d/, function (d) { return String((+d + 9) % 10); }).replace(/^(?!.*\d)(.)/, function (c) { return c === 'X' ? 'Y' : 'X'; }) : Z.nachricht;
+          const h = hv(Z.nachricht), s = k.ok && k.eOk ? powmod(h, k.d, k.n) : 0, h2 = hv(empfangen), pruef = k.ok && k.eOk ? powmod(s, k.e, k.n) : -1;
+          Object.assign(r, { h: h, s: s, h2: h2, pruef: pruef, empfangen: empfangen, gueltig: pruef === h2 });
+          r.ka = [[String(h), 'Hash der Nachricht (mod n)', '#3B5BDB'], [String(s), 'Signatur s = hᵈ mod n', '#C0392B'], [String(pruef), 'sᵉ mod n beim Empfänger', '#6E6FA6'], [r.gueltig ? 'gültig' : 'ungültig', 'Vergleich mit Hash der empfangenen Nachricht (' + h2 + ')', r.gueltig ? '#2E8B57' : '#C0392B']];
+          r.tab = [['gesendet', Z.nachricht], ['empfangen', empfangen]];
+          r.weg = [['Hash', 'h = \\text{SHA-256}(\\text{Nachricht}) \\bmod ' + k.n + ' = ' + h], ['Signieren', 's = ' + h + '^{' + k.d + '} \\bmod ' + k.n + ' = ' + E(String(s))], ['Prüfen', 's^e \\bmod n = ' + s + '^{' + k.e + '} \\bmod ' + k.n + ' = ' + pruef + (r.gueltig ? ' = ' : ' \\neq ') + h2 + '\\ \\Rightarrow\\ ' + E(r.gueltig ? '\\text{gültig}' : '\\text{ungültig}')]];
+          r.urteil = r.gueltig ? 'Signatur gültig' : 'Signatur ungültig';
+        }
+      } else {
+        r.ka = [['1 RTT', 'Handshake bis zu den ersten Daten', '#3B5BDB'], ['X25519', 'Schlüsseltausch (Diffie-Hellman auf Kurve)', '#E4572E'], ['ECDSA / RSA', 'Signatur im CertificateVerify', '#C0392B'], ['AES-GCM', 'symmetrische Verschlüsselung der Daten', '#0E6B6A']];
+        r.weg = [['Gemeinsames Geheimnis', 's = \\text{X25519}(a, B) = \\text{X25519}(b, A)'], ['Schlüssel', 'k = \\text{HKDF}(s, \\text{Handshake-Hash})'], ['Daten', 'c = \\text{AES-GCM}_k(\\text{HTTP-Daten})']];
+        r.mel.push(['Forward Secrecy: Weil die Diffie-Hellman-Anteile für jede Verbindung neu erzeugt werden, hilft ein später gestohlener Server-Schlüssel nicht, alte Mitschnitte zu entschlüsseln.']);
+        r.urteil = 'Handshake';
+      }
+      return r;
+    }
+
+    // ---------- Oberfläche ----------
+    function reiterBauen() {
+      const z = $('reiter'); z.innerHTML = '';
+      REIHE.forEach(function (k, i) { const b = knoten('button', '', (i + 1) + ' ' + TABS[k].name); b.type = 'button'; b.setAttribute('aria-pressed', String(Z.tab === k)); b.addEventListener('click', function () { Z.tab = k; schritt = 0; reiterBauen(); felderBauen(); neu(); }); z.append(b); });
+    }
+    function felderBauen() {
+      const z = $('felder'); z.innerHTML = ''; $('kurz').textContent = TABS[Z.tab].kurz;
+      TABS[Z.tab].felder.forEach(function (fd) {
+        const l = knoten('label', fd[2] === 'text' ? 'breit' : ''); l.append(knoten('span', '', fd[1]));
+        let e;
+        if (fd[2] === 'wahl') { e = knoten('select'); fd[3].forEach(function (o) { const op = knoten('option', '', o[1]); op.value = o[0]; e.append(op); }); e.value = Z[fd[0]]; e.addEventListener('change', function () { Z[fd[0]] = e.value; neu(); }); }
+        else if (fd[2] === 'text') { e = knoten('input'); e.type = 'text'; e.maxLength = 200; e.value = Z[fd[0]]; e.addEventListener('input', function () { Z[fd[0]] = e.value.slice(0, 200); neu(); }); }
+        else { e = knoten('input'); e.type = 'text'; e.inputMode = 'numeric'; e.value = String(Z[fd[0]]); e.addEventListener('input', function () { const v = Number(e.value.trim()); const ok = e.value.trim() !== '' && Math.floor(v) === v && v >= fd[3] && v <= fd[4]; e.classList.toggle('falsch', !ok); if (ok) { Z[fd[0]] = v; neu(); } }); e.addEventListener('blur', function () { e.classList.remove('falsch'); e.value = String(Z[fd[0]]); }); }
+        l.append(e); z.append(l);
+      });
+      if (Z.tab === 'dh' || Z.tab === 'rsa') {
+        const k = knoten('div', 'knopfzeile'); k.style.gridColumn = '1 / -1';
+        (Z.tab === 'dh' ? [['klein: p = 23', { p: 23, g: 5, a: 6, b: 15 }], ['p = 2027', { p: 2027, g: 2, a: 1234, b: 987 }], ['p = 93 999 997', { p: 93999997, g: 5, a: 4711, b: 815 }]] : [['Lehrbuch: 61 · 53', { rp: 61, rq: 53, re: 17, rm: 65 }], ['größer: 9677 · 9649', { rp: 9677, rq: 9649, re: 65537, rm: 4242424 }]]).forEach(function (b) { const x = knoten('button', 'knopf', b[0]); x.type = 'button'; x.addEventListener('click', function () { Object.assign(Z, b[1]); felderBauen(); neu(); }); k.append(x); });
+        z.append(k);
+      }
+    }
+    function schritteBauen() {
+      const z = $('schritte'); z.innerHTML = '';
+      TABS[Z.tab].schritte.forEach(function (s, i) {
+        const li = knoten('li', i === schritt ? 'aktiv' : i < schritt ? 'fertig' : ''); li.append(knoten('b', '', s[0]), knoten('span', '', s[1])); li.tabIndex = 0; li.setAttribute('role', 'button');
+        li.addEventListener('click', function () { schritt = i; start = performance.now(); neu(); });
+        li.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); schritt = i; start = performance.now(); neu(); } });
+        z.append(li);
+      });
+      const n = TABS[Z.tab].schritte.length;
+      $('stand').textContent = 'Schritt ' + (schritt + 1) + ' von ' + n + ': ' + TABS[Z.tab].schritte[schritt][0];
+      $('zurueck').disabled = schritt === 0; $('weiter').textContent = schritt === n - 1 ? 'Von vorn ↺' : 'Nächster Schritt →';
+    }
+    $('weiter').addEventListener('click', function () { schritt = schritt >= TABS[Z.tab].schritte.length - 1 ? 0 : schritt + 1; start = performance.now(); neu(); });
+    $('zurueck').addEventListener('click', function () { if (schritt > 0) schritt--; start = performance.now(); neu(); });
+    $('zustand').addEventListener('input', function (ev) {
+      let a = null; try { a = JSON.parse(ev.target.value); } catch (x) { a = null; }
+      if (!a || typeof a !== 'object') return;
+      if (REIHE.indexOf(a.tab) >= 0) Z.tab = a.tab;
+      ['text', 'schluessel', 'klar', 'nachricht'].forEach(function (k) { if (typeof a[k] === 'string') Z[k] = a[k].slice(0, 200); });
+      if (a.faelschen === 'ja' || a.faelschen === 'nein') Z.faelschen = a.faelschen;
+      REIHE.forEach(function (t) { TABS[t].felder.forEach(function (fd) { if (fd[2] === 'zahl') { const v = a[fd[0]]; if (typeof v === 'number' && Math.floor(v) === v && v >= fd[3] && v <= fd[4]) Z[fd[0]] = v; } }); });
+      schritt = typeof a.schritt === 'number' && a.schritt >= 0 && a.schritt < 5 ? Math.floor(a.schritt) : 0;
+      reiterBauen(); felderBauen(); neu();
+    });
+    let R = null, start = 0;
+    function neu() {
+      Z.schritt = schritt; $('zustand').value = JSON.stringify(Z);
+      R = rechne(); schritteBauen();
+      meldungen($('meldungen'), R.mel); kacheln($('kacheln'), R.ka); wegZeigen($('weg'), R.weg);
+      $('urteil').textContent = R.urteil; $('urteil').className = 'urteil ' + (R.mel.some(function (m) { return m[1]; }) || /ungültig|prüfen/.test(R.urteil) ? 'schlecht' : 'gut');
+      if (R.tab.length) tabelle($('tabelle'), ['', 'Wert'], R.tab, { mono: [1] }); else $('tabelle').innerHTML = '';
+    }
+
+    // ---------- Zeichnung ----------
+    function person(cx, x, y, name, farbe, K) { kreis(cx, x, y - 16 * K, 10 * K, farbe); kasten(cx, x - 14 * K, y - 4 * K, 28 * K, 26 * K, 10 * K, farbe); txt(cx, name, x, y + 34 * K, { g: 11 * K, b: true }); }
+    function schloss(cx, x, y, K, farbe, offen) { cx.strokeStyle = farbe; cx.lineWidth = 3 * K; cx.beginPath(); cx.arc(x, y - 4 * K - (offen ? 5 * K : 0), 7 * K, Math.PI, 0); cx.stroke(); kasten(cx, x - 10 * K, y - 4 * K, 20 * K, 16 * K, 3, farbe); }
+    function zeichnen(t) {
+      const lw = leinwand($('bild'), function (w) { return Math.max(260, Math.min(340, w * 0.58)); });
+      const cx = lw.cx, w = lw.w, h = lw.h, K = Math.max(0.75, Math.min(1.1, w / 600)); cx.clearRect(0, 0, w, h);
+      const u = ((t - start) / 2200) % 1, rr = R;
+      if (Z.tab === 'hash') {
+        const bits = function (b) { let s = ''; b.forEach(function (x) { let q = x.toString(2); while (q.length < 8) q = '0' + q; s += q; }); return s; };
+        const a = bits(rr.h.bytes), b2 = bits(rr.h2.bytes), n = 16, bw = Math.min(14 * K, (w - 30) / 33), x0 = schritt < 4 ? (w - n * bw) / 2 : (w - (2 * n * bw + 20)) / 2, y0 = 52;
+        txt(cx, schritt < 4 ? 'SHA-256 als 256 Bits' : 'Original | eine Stelle geändert', w / 2, 20, { g: 12 * K, b: true });
+        const zeig = schritt === 0 ? 0 : schritt === 1 ? 0.3 : schritt === 2 ? u : 1;
+        [a, b2].forEach(function (s, k) {
+          if (k === 1 && schritt < 4) return;
+          for (let i = 0; i < 256; i++) {
+            const x = x0 + k * (n * bw + 20) + (i % n) * bw, y = y0 + Math.floor(i / n) * bw;
+            const sichtbar = i / 256 <= zeig;
+            const anders = schritt >= 4 && a.charAt(i) !== b2.charAt(i);
+            cx.fillStyle = !sichtbar ? f('--linie') : s.charAt(i) === '1' ? (anders ? '#E4572E' : '#3B5BDB') : (anders ? 'rgba(228,87,46,0.3)' : 'rgba(59,91,219,0.15)');
+            cx.fillRect(x + 1, y + 1, bw - 2, bw - 2);
+          }
+        });
+        if (schritt === 0 || schritt === 1) { const b = rr.b.slice(0, 16); b.forEach(function (x, i) { kasten(cx, 20 + i * ((w - 40) / 16), h - 40, (w - 40) / 16 - 3, 22, 3, '#0E6B6A'); txt(cx, (x < 16 ? '0' : '') + x.toString(16), 20 + (i + 0.5) * ((w - 40) / 16), h - 29, { g: 10 * K, b: true, f: '#FFFFFF', mono: true }); }); txt(cx, schritt === 1 ? 'aufgefüllt auf ' + rr.h.aufgefuellt + ' Byte' : 'UTF-8-Bytes', w / 2, h - 52, { g: 10 * K, f: f('--leise') }); }
+        if (schritt === 4) txt(cx, rr.diff + ' von 256 Bits anders (orange)', w / 2, h - 14, { g: 12 * K, b: true, f: '#E4572E' });
+      } else if (Z.tab === 'sym') {
+        const n = Math.min(12, rr.m.length), bw = (w - 110) / Math.max(1, n), x0 = 96;
+        const rows = [['Klartext', rr.m, '#0E6B6A'], ['⊕ Strom', rr.strom, '#7E5FC2'], ['= Geheim', rr.c, '#E4572E'], ['⊕ Strom', rr.strom, '#7E5FC2'], ['= Klartext', rr.zur, '#2E8B57']];
+        const zeige = [1, 2, 3, 4, 5][schritt];
+        rows.forEach(function (row, j) {
+          if (j >= zeige + (schritt >= 2 ? 0 : 0)) return;
+          const y = 26 + j * ((h - 40) / 5);
+          txt(cx, row[0], x0 - 8, y + 12, { g: 11 * K, b: true, a: 'right' });
+          for (let i = 0; i < n; i++) {
+            const an = schritt === 2 && j === 2 ? i / n <= u : true;
+            cx.globalAlpha = an ? 1 : 0.15; kasten(cx, x0 + i * bw + 1, y, bw - 3, 24, 4, row[2]); cx.globalAlpha = 1;
+            if (an) txt(cx, j === 0 || j === 4 ? (row[1][i] >= 32 && row[1][i] < 127 ? String.fromCharCode(row[1][i]) : '·') : ((row[1][i] < 16 ? '0' : '') + row[1][i].toString(16)), x0 + (i + 0.5) * bw, y + 12, { g: Math.min(12, bw * 0.4), b: true, f: '#FFFFFF', mono: true });
+          }
+        });
+        if (schritt === 0) { schloss(cx, w / 2, h / 2 + 30, K * 1.6, '#7E5FC2'); txt(cx, 'k = SHA-256(„' + (Z.schluessel.length > 14 ? Z.schluessel.slice(0, 14) + '…' : Z.schluessel) + '“)', w / 2, h / 2 + 70, { g: 12 * K, b: true, mono: true }); }
+      } else if (Z.tab === 'dh' || Z.tab === 'rsa' || Z.tab === 'sig') {
+        const xa = w * 0.14, xb = w * 0.86, y = h * 0.42;
+        person(cx, xa, y, 'Alice', '#E4572E', K); person(cx, xb, y, 'Bob', '#3B5BDB', K);
+        if (Z.tab === 'dh' || Z.tab === 'sig') { person(cx, w / 2, h - 50 * K, 'Eve lauscht', '#6B7785', K * 0.8); }
+        strich(cx, [[xa + 20 * K, y], [xb - 20 * K, y]], f('--linie'), 3, [6, 6]);
+        const fliegt = function (text, hin, farbe, y2) { const x = hin ? xa + 24 * K + (xb - xa - 48 * K) * u : xb - 24 * K - (xb - xa - 48 * K) * u; kasten(cx, x - 40 * K, (y2 || y) - 12 * K, 80 * K, 24 * K, 6, farbe); txt(cx, text, x, y2 || y, { g: 10 * K, b: true, f: '#FFFFFF', mono: true }); };
+        const notiz = function (x, zeilen, farbe) { zeilen.forEach(function (z2, i) { txt(cx, z2, x, 26 + i * 16 * K, { g: 11 * K, b: i === 0, f: farbe || f('--text'), mono: i > 0 }); }); };
+        if (Z.tab === 'dh') {
+          // Farbmisch-Bild: öffentlich gelb, Geheimnisse rot/blau, gemeinsame Mischfarbe
+          notiz(w / 2, ['öffentlich', 'p = ' + Z.p + ', g = ' + Z.g], f('--leise'));
+          if (schritt >= 1) { notiz(xa, ['geheim', 'a = ' + Z.a], '#E4572E'); notiz(xb, ['geheim', 'b = ' + Z.b], '#3B5BDB'); }
+          if (schritt === 2) { fliegt('A = ' + rr.A, true, '#E4572E', y - 18 * K); fliegt('B = ' + rr.B, false, '#3B5BDB', y + 18 * K); }
+          if (schritt >= 3) { kreis(cx, xa, y + 64 * K, 16 * K, '#8E5A9A'); kreis(cx, xb, y + 64 * K, 16 * K, '#8E5A9A'); txt(cx, 's = ' + rr.sA, xa, y + 92 * K, { g: 11 * K, b: true, mono: true }); txt(cx, 's = ' + rr.sB, xb, y + 92 * K, { g: 11 * K, b: true, mono: true }); }
+          if (schritt === 4) txt(cx, 'kennt p, g, A, B – aber nicht a, b, s', w / 2, h - 12, { g: 10 * K, f: f('--leise') });
+        } else if (Z.tab === 'rsa') {
+          const k = rr.k;
+          notiz(xb, ['Bob', 'n = ' + k.n, 'e = ' + k.e, schritt >= 2 ? 'd = ' + k.d + ' (geheim)' : ''], '#3B5BDB');
+          if (schritt >= 1) { schloss(cx, w / 2, 40, K * 1.4, '#3B5BDB', true); txt(cx, 'öffentlicher Schlüssel (n, e)', w / 2, 66, { g: 10 * K, f: f('--leise') }); }
+          if (schritt >= 3) notiz(xa, ['Alice', 'm = ' + Z.rm], '#E4572E');
+          if (schritt === 3) fliegt('c = ' + rr.c, true, '#E4572E');
+          if (schritt === 4) { fliegt('c = ' + rr.c, true, '#E4572E'); txt(cx, 'Bob: m = ' + rr.m2, xb, y + 70 * K, { g: 12 * K, b: true, mono: true, f: '#2E8B57' }); }
+        } else {
+          notiz(xb, ['Bob signiert', 'h = ' + rr.h, schritt >= 1 ? 's = ' + rr.s : ''], '#3B5BDB');
+          if (schritt >= 2) fliegt('Text + s', false, '#3B5BDB');
+          if (schritt >= 3) notiz(xa, ['Alice prüft', 'sᵉ = ' + rr.pruef, 'h\' = ' + rr.h2], '#E4572E');
+          if (schritt >= 4) txt(cx, rr.gueltig ? '✓ gültig' : '✗ ungültig – verändert!', xa, y + 70 * K, { g: 14 * K, b: true, f: rr.gueltig ? '#2E8B57' : '#C0392B' });
+        }
+      } else {
+        // TLS-Ablauf als Sequenzdiagramm
+        const xa = w * 0.15, xb = w * 0.85, y0 = 40, dy = (h - 60) / 6;
+        txt(cx, 'Browser', xa, 18, { g: 12 * K, b: true }); txt(cx, 'Server', xb, 18, { g: 12 * K, b: true });
+        strich(cx, [[xa, 28], [xa, h - 8]], f('--linie'), 2); strich(cx, [[xb, 28], [xb, h - 8]], f('--linie'), 2);
+        const pf = [['ClientHello + Key Share', true, '#3B5BDB'], ['ServerHello + Key Share', false, '#E4572E'], ['Zertifikat 🔒', false, '#7E5FC2'], ['CertificateVerify (Signatur) 🔒', false, '#C0392B'], ['Finished 🔒  ⇄  Daten 🔒', true, '#0E6B6A']];
+        pf.forEach(function (p, i) {
+          if (i > schritt) return;
+          const y = y0 + i * dy + dy / 2, a = p[1] ? [xa, y] : [xb, y], b = p[1] ? [xb, y + dy * 0.4] : [xa, y + dy * 0.4];
+          const teil = i === schritt ? Math.min(1, u * 1.5) : 1;
+          pfeil(cx, a, [a[0] + (b[0] - a[0]) * teil, a[1] + (b[1] - a[1]) * teil], p[2], 2.5);
+          txt(cx, p[0], w / 2, y - 4, { g: 10.5 * K, b: true, f: p[2] });
+        });
+        if (schritt >= 1) { cx.fillStyle = 'rgba(14,107,106,0.08)'; cx.fillRect(xa, y0 + 1.5 * dy, xb - xa, h - y0 - 1.5 * dy - 8); txt(cx, 'ab hier verschlüsselt', w / 2, h - 14, { g: 10 * K, f: '#0E6B6A' }); }
+      }
+    }
+    function schleife(t) { zeichnen(t); requestAnimationFrame(schleife); }
+    sammlung($('sammlung'), [
+      ['Hash', 'h = H(m),\\quad |h| = 256\\,\\text{bit}', 'Einwegfunktion: aus h lässt sich m nicht berechnen; zwei Eingaben mit gleichem Hash zu finden kostet etwa 2^128 Versuche'],
+      ['XOR', 'c = m \\oplus k,\\quad m = c \\oplus k', 'mit echtem Zufallsschlüssel so lang wie die Nachricht beweisbar sicher (One-Time-Pad)'],
+      ['Diffie-Hellman', 'A = g^a \\bmod p,\\ B = g^b \\bmod p,\\ s = B^a = A^b = g^{ab} \\bmod p', 'heute meist auf elliptischen Kurven (X25519)'],
+      ['RSA', 'n = p q,\\ e d \\equiv 1 \\pmod{\\varphi(n)},\\ c = m^e \\bmod n,\\ m = c^d \\bmod n', 'φ(n) = (p − 1)(q − 1); Schlüssel ab 3000 bit für Schutz über 2030 hinaus (BSI)'],
+      ['Signatur', 's = H(m)^d \\bmod n,\\quad \\text{gültig} \\Leftrightarrow s^e \\bmod n = H(m)', 'in der Praxis mit Auffüllung (RSA-PSS) oder ECDSA/Ed25519'],
+      ['Schlüssellängen', '\\text{AES-128} \\approx \\text{RSA-3072} \\approx \\text{ECC-256}', 'gleiche Sicherheit von etwa 128 bit']
+    ]);
+    reiterBauen(); felderBauen(); neu(); requestAnimationFrame(schleife);
+    window.addEventListener('resize', function () { zeichnen(performance.now()); });
+    void bewegungAus;
+  })();
+  </script>
+</body>
+</html>

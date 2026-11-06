@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://tools.pr1m3.de/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://tools.pr1m3.de/brandschutz/brandmeldeanlage.html</loc><lastmod>2026-11-05</lastmod></url>
   <url><loc>https://tools.pr1m3.de/brandschutz/brandsimulation.html</loc><lastmod>2026-11-04</lastmod></url>
   <url><loc>https://tools.pr1m3.de/dach/dachrinne.html</loc><lastmod>2026-11-04</lastmod></url>
@@ -30,6 +30,18 @@
   <url><loc>https://tools.pr1m3.de/heizung/heizlast.html</loc><lastmod>2026-11-04</lastmod></url>
   <url><loc>https://tools.pr1m3.de/heizung/hydraulischer-abgleich.html</loc><lastmod>2026-11-04</lastmod></url>
   <url><loc>https://tools.pr1m3.de/heizung/waermepumpe.html</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/backup.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/datenrate.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/netzwerkkabel-poe.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/paketreise.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/passwort.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/raid.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/serverraum-klima.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/subnetz.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/usv.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/verschluesselung.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/wlan.html</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://tools.pr1m3.de/it/zahlensysteme.html</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://tools.pr1m3.de/mechanik/gangschaltung.html</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://tools.pr1m3.de/mechanik/kraefte.html</loc><lastmod>2026-11-04</lastmod></url>
   <url><loc>https://tools.pr1m3.de/mechanik/sport-bewegung.html</loc><lastmod>2026-11-04</lastmod></url>
